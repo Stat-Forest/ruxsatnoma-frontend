@@ -1,0 +1,181 @@
+@import url('https://fonts.googleapis.com/css2?family=Merriweather:ital,wght@0,300;0,400;0,700;0,900;1,300;1,400;1,700;1,900&family=Plus+Jakarta+Sans:ital,wght@0,300..800;1,300..800&display=swap');
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
+
+@layer base {
+  :root {
+    /* Brand Primary Colors (Forest Green) */
+    --color-primary-50: #F0F7F1;
+    --color-primary-100: #D9EBDC;
+    --color-primary-300: #7FB98A;
+    --color-primary-600: #2E7D4F;
+    --color-primary-700: #23653F;
+    --color-primary-900: #123522;
+
+    /* Accent & Warning Colors */
+    --color-accent-600: #B45309;
+    --color-warning-600: #B45309;
+
+    /* Semantic State Colors */
+    --color-success-600: #15803D;
+    --color-danger-600: #B91C1C;
+    --color-danger-700: #991B1B;
+    --color-info-600: #0369A1;
+
+    /* Neutral Scale */
+    --color-neutral-0: #FFFFFF;
+    --color-neutral-50: #F8F9FA;
+    --color-neutral-200: #E4E7EA;
+    --color-neutral-400: #9AA3AB;
+    --color-neutral-500: #767F87;
+    --color-neutral-600: #5A646D;
+    --color-neutral-900: #1A1F24;
+
+    /* Typography & Fonts */
+    --font-family-base: "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    --font-family-serif: "Merriweather", Georgia, serif;
+    --font-family-heading: "Merriweather", Georgia, serif;
+    --font-family-mono: "JetBrains Mono", "SF Mono", Consolas, monospace;
+
+    /* Sizing & Controls */
+    --control-height: 40px;
+    --control-height-touch: 48px;
+    --row-height: 48px;
+    --touch-target: 44px;
+
+    /* Shadows & Focus */
+    --shadow-sm: 0 1px 2px rgba(26, 31, 36, 0.06);
+    --shadow-md: 0 4px 12px rgba(26, 31, 36, 0.10);
+    --shadow-lg: 0 12px 32px rgba(26, 31, 36, 0.16);
+    --focus-ring: 0 0 0 2px #FFFFFF, 0 0 0 4px #2E7D4F;
+
+    /* Shadcn / UI Tokens */
+    --background: 0 0% 100%;
+    --foreground: 210 24% 12%;
+    --card: 0 0% 100%;
+    --card-foreground: 210 24% 12%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 210 24% 12%;
+    --primary: 145 46% 34%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 210 20% 98%;
+    --secondary-foreground: 210 24% 12%;
+    --muted: 210 20% 98%;
+    --muted-foreground: 210 9% 41%;
+    --accent: 140 33% 95%;
+    --accent-foreground: 147 49% 14%;
+    --destructive: 0 74% 42%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 210 14% 91%;
+    --input: 210 8% 50%;
+    --ring: 145 46% 34%;
+    --radius: 0.5rem;
+  }
+
+  .dark {
+    --background: 210 24% 12%;
+    --foreground: 0 0% 98%;
+    --card: 210 20% 16%;
+    --card-foreground: 0 0% 98%;
+    --popover: 210 20% 16%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 145 46% 40%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 210 16% 22%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 210 16% 22%;
+    --muted-foreground: 210 9% 65%;
+    --accent: 147 49% 14%;
+    --accent-foreground: 0 0% 98%;
+    --destructive: 0 62% 40%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 210 16% 25%;
+    --input: 210 16% 30%;
+    --ring: 145 46% 40%;
+  }
+
+  * {
+    border-color: var(--color-neutral-200);
+    box-sizing: border-box;
+  }
+
+  body {
+    background-color: var(--color-neutral-50);
+    color: var(--color-neutral-900);
+    font-family: var(--font-family-base);
+    margin: 0;
+    padding: 0;
+  }
+
+  /* Big Titles (H1, H2, .font-serif) use Merriweather */
+  h1, h2, .font-serif, .font-heading {
+    font-family: var(--font-family-serif);
+  }
+
+  /* All UI body text, h3, h4, h5, h6, p, buttons, inputs, controls use Plus Jakarta Sans */
+  h3, h4, h5, h6, p, span, div, a, button, input, select, textarea, label, td, th {
+    font-family: var(--font-family-base);
+  }
+}
+
+/* Typography Utility Helper Classes */
+.font-serif {
+  font-family: var(--font-family-serif) !important;
+}
+
+.font-sans {
+  font-family: var(--font-family-base) !important;
+}
+
+/* Custom UI Kit Utility Classes */
+.btn-ds-primary {
+  background-color: var(--color-primary-600);
+  color: var(--color-neutral-0);
+  transition: all 0.15s ease-in-out;
+}
+.btn-ds-primary:hover {
+  background-color: var(--color-primary-700);
+}
+.btn-ds-primary:active {
+  background-color: var(--color-primary-700);
+  box-shadow: inset 0 2px 4px rgba(26, 31, 36, 0.32);
+  transform: translateY(1px);
+}
+
+.btn-ds-secondary {
+  background-color: var(--color-neutral-0);
+  color: var(--color-neutral-900);
+  border: 1px solid var(--color-neutral-500);
+  transition: all 0.15s ease-in-out;
+}
+.btn-ds-secondary:hover {
+  background-color: var(--color-neutral-50);
+  border-color: var(--color-neutral-400);
+}
+
+.btn-ds-ghost {
+  background-color: transparent;
+  color: var(--color-primary-600);
+  transition: all 0.15s ease-in-out;
+}
+.btn-ds-ghost:hover {
+  background-color: var(--color-primary-50);
+}
+
+.btn-ds-danger {
+  background-color: var(--color-danger-600);
+  color: var(--color-neutral-0);
+  transition: all 0.15s ease-in-out;
+}
+.btn-ds-danger:hover {
+  background-color: var(--color-danger-700);
+}
+
+.btn-ds-success {
+  background-color: var(--color-success-600);
+  color: var(--color-neutral-0);
+  transition: all 0.15s ease-in-out;
+}

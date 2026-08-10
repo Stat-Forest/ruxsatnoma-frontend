@@ -1,0 +1,20 @@
+# Local environment
+.env
+.env.*
+!.env.example
+
+# Build output
+dist
+dist-ssr
+*.local
+
+# Database dumps and exports — may contain personal data
+*.dump
+*.sql.gz
+migration/dumps/
+
+# OS and editors
+.DS_Store
+.idea/
+.vscode/
+node_modules
