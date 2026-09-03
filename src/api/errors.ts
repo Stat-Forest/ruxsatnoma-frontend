@@ -1,5 +1,12 @@
 export class ApiError extends Error {
-  constructor(public code: string, message: string, public details?: unknown) { super(message); }
+  code: string;
+  details?: unknown;
+
+  constructor(code: string, message: string, details?: unknown) {
+    super(message);
+    this.code = code;
+    this.details = details;
+  }
 }
 
 /** The backend always answers `{error: {code, message, details?}}` (design/03).

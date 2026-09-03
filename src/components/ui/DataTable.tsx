@@ -10,6 +10,14 @@ export interface Column<T> {
   width?: string;
 }
 
+type SortComparable = string | number | boolean;
+
+/** Narrows a sort value to something `<`/`>` can honestly compare. */
+function isSortComparable(value: unknown): value is SortComparable {
+  const t = typeof value;
+  return t === 'string' || t === 'number' || t === 'boolean';
+}
+
 export interface DataTableProps<T extends { id: string | number }> {
   columns: Column<T>[];
   data: T[];
@@ -78,14 +86,20 @@ export function DataTable<T extends { id: string | number }>({
       const col = columns.find((c) => c.key === sortKey);
       if (!col) return 0;
 
-      let valA: any = col.accessor && typeof col.accessor === 'function' ? col.accessor(a) : (a as any)[sortKey];
-      let valB: any = col.accessor && typeof col.accessor === 'function' ? col.accessor(b) : (b as any)[sortKey];
+      const valA: unknown = col.accessor && typeof col.accessor === 'function' ? col.accessor(a) : (a as Record<string, unknown>)[sortKey];
+      const valB: unknown = col.accessor && typeof col.accessor === 'function' ? col.accessor(b) : (b as Record<string, unknown>)[sortKey];
 
       if (valA == null) return 1;
       if (valB == null) return -1;
 
-      if (valA < valB) return sortDirection === 'asc' ? -1 : 1;
-      if (valA > valB) return sortDirection === 'asc' ? 1 : -1;
+      // A column whose `key` isn't a real property of T (or whose accessor
+      // returns something exotic) yields values we cannot safely order —
+      // treat them as equal (stable, unchanged order) instead of comparing
+      // `unknown` values, which `any` used to do silently and unsoundly.
+      if (isSortComparable(valA) && isSortComparable(valB)) {
+        if (valA < valB) return sortDirection === 'asc' ? -1 : 1;
+        if (valA > valB) return sortDirection === 'asc' ? 1 : -1;
+      }
       return 0;
     });
   }, [data, sortKey, sortDirection, columns]);
@@ -183,13 +197,13 @@ export function DataTable<T extends { id: string | number }>({
                       </td>
                     )}
                     {columns.map((col) => {
-                      let content: React.ReactNode = null;
+                      let content: React.ReactNode;
                       if (typeof col.accessor === 'function') {
                         content = col.accessor(row);
                       } else if (col.accessor) {
-                        content = (row[col.accessor] as unknown) as React.ReactNode;
+                        content = row[col.accessor] as React.ReactNode;
                       } else {
-                        content = (row as any)[col.key];
+                        content = (row as Record<string, unknown>)[col.key] as React.ReactNode;
                       }
 
                       return (

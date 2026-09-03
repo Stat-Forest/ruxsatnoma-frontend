@@ -19,19 +19,4 @@ export default defineConfig([
       globals: globals.browser,
     },
   },
-  {
-    // Copied verbatim from the archived design reference (task 4 brief,
-    // step 2) and deliberately not redesigned. Full-strength lint rules
-    // catch real issues in them (impure Math.random() during render,
-    // `any` in the generic sort comparator) that are reported to the
-    // controller rather than fixed here, per the brief's own instruction
-    // not to silently patch a copied component.
-    files: ['src/components/ui/**/*.tsx'],
-    rules: {
-      '@typescript-eslint/no-explicit-any': 'off',
-      'prefer-const': 'off',
-      'no-useless-assignment': 'off',
-      'react-hooks/purity': 'off',
-    },
-  },
 ])
