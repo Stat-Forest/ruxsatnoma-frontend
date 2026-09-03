@@ -55,7 +55,17 @@ function MfaOrderProbe() {
   );
 }
 
-const server = setupServer();
+// Default handlers for the two calls `AppShell` fires the moment it mounts
+// (the superuser test below reaches it) — without them, MSW's default
+// pass-through sends the request to whatever is *actually* listening on
+// `localhost:8000` (a live backend, in this environment), which answers
+// unauthenticated and drags a real, unpredictably-timed `ERR-AUTH-002` into
+// this file's session-gone handling, racing later tests that share the same
+// module-level client state. Overridable per test via `server.use(...)`.
+const server = setupServer(
+  http.get('*/notifications/unread-count', () => HttpResponse.json({ count: 0 })),
+  http.post('*/auth/logout', () => new HttpResponse(null, { status: 204 })),
+);
 beforeAll(() => server.listen());
 afterEach(() => {
   server.resetHandlers();
@@ -203,4 +213,31 @@ test('an applicant with an incomplete registration sees a blocking notice, not t
   server.use(http.get('*/auth/me', () => HttpResponse.json({ ...ME, registration_complete: false })));
   await renderAt('/');
   expect(await screen.findByTestId('registration-incomplete')).toBeInTheDocument();
+});
+
+test('a failed initial session check does not lock a user out who then logs in successfully', async () => {
+  // Boot fails once with something other than "no session" — a 500, a CORS
+  // blip during a deploy — which sets `authError`. `/login` is ungated, so
+  // the user reaches it despite `authError` being set, and logs in.
+  server.use(
+    http.get('*/auth/me', () =>
+      HttpResponse.json({ error: { code: 'ERR-SYS-001', message: 'internal error' } }, { status: 500 }),
+    ),
+    http.post('*/auth/login', () => HttpResponse.json({ mfa_required: true, mfa_token: 'mfa-1' })),
+    http.post('*/auth/mfa/verify', () => HttpResponse.json(ME)),
+  );
+  await renderAt('/login');
+  expect(await screen.findByTestId('login-page')).toBeInTheDocument();
+
+  await userEvent.type(screen.getByLabelText(/login/i), '30491823410019');
+  await userEvent.type(screen.getByLabelText(/parol/i), 'Head123!');
+  await userEvent.click(screen.getByRole('button', { name: /kirish/i }));
+  await userEvent.type(await screen.findByLabelText(/kod/i), '123456');
+  await userEvent.click(screen.getByRole('button', { name: /tasdiqlash/i }));
+
+  // Login succeeded and `next` (default '/') is a protected route. If the
+  // stale `authError` from the failed boot survived the login, RequireAuth
+  // would still show "session-check-failed" here instead of the app.
+  expect(await screen.findByTestId('app-shell')).toBeInTheDocument();
+  expect(screen.queryByTestId('session-check-failed')).not.toBeInTheDocument();
 });

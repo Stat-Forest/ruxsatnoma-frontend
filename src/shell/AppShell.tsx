@@ -39,9 +39,10 @@ export function AppShell() {
   const { lang, setLanguage } = useLanguage();
   const [drawerOpen, setDrawerOpen] = useState(false);
 
-  // Ruling 10 / task 6 step 4's global rule ("any ERR-AUTH-002 from any query
-  // clears the session") is wired once, in `App.tsx`'s `QueryCache.onError` —
-  // this query just needs to throw an `ApiError` on failure, which it does.
+  // Ruling 10's global rule ("any ERR-AUTH-002 clears the session") is wired
+  // once, in `sessionMiddleware` (`src/api/client.ts`) — this query just
+  // needs to reach `api.GET` and let a non-2xx response flow through, which
+  // it does via `error` here or the thrown `ApiError` below.
   const unreadQuery = useQuery({
     queryKey: ['notifications', 'unread-count'],
     queryFn: async () => {
@@ -84,7 +85,17 @@ export function AppShell() {
             <button
               key={code}
               type="button"
-              onClick={() => void setLanguage(code)}
+              onClick={() => {
+                // `setLanguage` throws on failure (see `I18nProvider`). The
+                // two error codes ruling 10 requires be handled globally
+                // (session gone, stale CSRF) are already caught by
+                // `sessionMiddleware` in `src/api/client.ts` before they ever
+                // reach here; this catch is the backstop against anything
+                // else turning into an unhandled promise rejection.
+                setLanguage(code).catch((err: unknown) => {
+                  console.error('Tilni almashtirishda xatolik:', err);
+                });
+              }}
               aria-pressed={lang === code}
               className={`h-11 min-w-11 px-3 font-semibold ${
                 lang === code ? 'bg-[#2E7D4F] text-white' : 'text-[#5A646D] hover:bg-[#F8F9FA]'

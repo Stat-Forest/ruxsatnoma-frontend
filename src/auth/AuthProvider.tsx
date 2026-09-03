@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
-import { api, setCsrfToken } from '../api/client';
+import { api, setCsrfToken, setSessionGoneHandler } from '../api/client';
 import { apiError, SESSION_GONE } from '../api/errors';
 import type { ApiError } from '../api/errors';
 import type { components } from '../api/schema';
@@ -13,6 +13,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [authError, setAuthError] = useState<ApiError | null>(null);
   const mfaTokenRef = useRef<string | null>(null);
+
+  // The local half of "session gone": clears React state without telling the
+  // backend, because the backend is exactly who just said the session is
+  // already gone — a `logout()` call from here would hit the same
+  // `ERR-AUTH-002` again and, since that re-invokes this same handler, loop.
+  const clearLocalSession = useCallback(() => {
+    setMe(null);
+    setCsrfToken(null);
+    setAuthError(null);
+  }, []);
+
+  // Registered once so `src/api/client.ts`'s `sessionMiddleware` — which
+  // covers every call site, not only TanStack Query — can react to
+  // `ERR-AUTH-002` from anywhere (ruling 10). `client.ts` cannot import this
+  // provider directly (it would cycle: this file already imports `api`), so
+  // it exposes a setter of the same shape as `setCsrfToken` instead.
+  useEffect(() => {
+    setSessionGoneHandler(clearLocalSession);
+    return () => setSessionGoneHandler(null);
+  }, [clearLocalSession]);
 
   useEffect(() => {
     let cancelled = false;
@@ -64,13 +84,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (error) throw apiError(error);
     setCsrfToken(data.csrf_token);
     setMe(data);
+    // A prior boot's authError (a 500, a CORS blip during the initial
+    // /auth/me) must not survive a login that just succeeded — otherwise
+    // RequireAuth keeps showing "session check failed" forever, even though
+    // `me` is now valid, until a full page reload clears React state.
+    setAuthError(null);
   }, []);
 
   const logout = useCallback(async () => {
     await api.POST('/api/v1/auth/logout', {});
-    setMe(null);
-    setCsrfToken(null);
-  }, []);
+    clearLocalSession();
+  }, [clearLocalSession]);
 
   return (
     <AuthContext.Provider value={{ me, loading, authError, requestMfa, verifyMfa, logout }}>

@@ -26,11 +26,16 @@ const ME = {
 };
 
 // No live cookie by default — every test in this file starts anonymous, at
-// the login page, unless a test overrides this handler.
+// the login page, unless a test overrides this handler. `unread-count` is
+// mocked too: the one test that logs all the way in reaches `AppShell`,
+// which fires it the moment it mounts — leaving it unmocked would fall
+// through to whatever actually answers on `localhost:8000` in this
+// environment, a real backend, instead of a deterministic empty result.
 const server = setupServer(
   http.get('*/auth/me', () =>
     HttpResponse.json({ error: { code: 'ERR-AUTH-002', message: 'no session' } }, { status: 401 }),
   ),
+  http.get('*/notifications/unread-count', () => HttpResponse.json({ count: 0 })),
 );
 beforeAll(() => server.listen());
 afterEach(() => {

@@ -5,22 +5,7 @@ import { Button } from '../components/ui/button';
 import { FormField, Input } from '../components/ui/FormControls';
 import { ApiError, RATE_LIMITED } from '../api/errors';
 import { useAuth } from '../auth/useAuth';
-
-// UI copy is Uzbek (decision: no i18n module yet — Task 6 lifts these out).
-// Kept inline, one place per component, per the task-5 brief.
-const COPY = {
-  title: 'Tizimga kirish',
-  loginLabel: 'Login',
-  passwordLabel: 'Parol',
-  codeLabel: 'Tasdiqlash kodi',
-  codeHelp: 'Autentifikator ilovasidagi 6 xonali kod',
-  submitPassword: 'Kirish',
-  submitCode: 'Tasdiqlash',
-  badCredentials: "Login yoki parol noto'g'ri.",
-  blockedAccount: "Hisob bloklangan. Administrator bilan bog'laning.",
-  rateLimited: "Urinishlar soni ko'p. Birozdan so'ng qayta urinib ko'ring.",
-  connectionError: "Ulanishda xatolik yuz berdi. Internetni tekshirib, qayta urinib ko'ring.",
-};
+import { useT } from '../i18n/useT';
 
 type ErrorKind = 'credentials' | 'blocked' | 'rate-limited' | 'connection' | null;
 
@@ -40,6 +25,7 @@ function classify(err: unknown): Exclude<ErrorKind, null> {
 
 export function LoginPage() {
   const { requestMfa, verifyMfa } = useAuth();
+  const t = useT();
   const navigate = useNavigate();
   const location = useLocation();
   const next = (location.state as { next?: string } | null)?.next ?? '/';
@@ -87,33 +73,33 @@ export function LoginPage() {
     >
       <div className="w-full max-w-sm bg-white border border-[#E4E7EA] rounded-2xl p-6 shadow-sm space-y-5">
         <div className="text-center">
-          <h1 className="text-xl font-bold text-[#1A1F24]">{COPY.title}</h1>
+          <h1 className="text-xl font-bold text-[#1A1F24]">{t('login.title')}</h1>
         </div>
 
         {errorKind === 'credentials' && (
           <p data-testid="login-error" role="alert" className="text-sm text-[#B91C1C]">
-            {COPY.badCredentials}
+            {t('login.badCredentials')}
           </p>
         )}
         {errorKind === 'blocked' && (
           <p data-testid="account-blocked" role="alert" className="text-sm text-[#B91C1C]">
-            {COPY.blockedAccount}
+            {t('login.blockedAccount')}
           </p>
         )}
         {errorKind === 'rate-limited' && (
           <p data-testid="rate-limited" role="alert" className="text-sm text-[#B91C1C]">
-            {COPY.rateLimited}
+            {t('login.rateLimited')}
           </p>
         )}
         {errorKind === 'connection' && (
           <p data-testid="connection-error" role="alert" className="text-sm text-[#B91C1C]">
-            {COPY.connectionError}
+            {t('login.connectionError')}
           </p>
         )}
 
         {step === 'password' ? (
           <form onSubmit={handlePasswordSubmit} className="space-y-4">
-            <FormField label={COPY.loginLabel} htmlFor="login" required>
+            <FormField label={t('login.loginLabel')} htmlFor="login" required>
               <Input
                 id="login"
                 touchSize
@@ -122,7 +108,7 @@ export function LoginPage() {
                 onChange={(e) => setLoginId(e.target.value)}
               />
             </FormField>
-            <FormField label={COPY.passwordLabel} htmlFor="password" required>
+            <FormField label={t('login.passwordLabel')} htmlFor="password" required>
               <Input
                 id="password"
                 type="password"
@@ -133,12 +119,12 @@ export function LoginPage() {
               />
             </FormField>
             <Button type="submit" variant="primary" fullWidth size="touch" isLoading={submitting}>
-              {COPY.submitPassword}
+              {t('login.submitPassword')}
             </Button>
           </form>
         ) : (
           <form onSubmit={handleCodeSubmit} className="space-y-4">
-            <FormField label={COPY.codeLabel} htmlFor="code" required helperText={COPY.codeHelp}>
+            <FormField label={t('login.codeLabel')} htmlFor="code" required helperText={t('login.codeHelp')}>
               <Input
                 id="code"
                 inputMode="numeric"
@@ -149,7 +135,7 @@ export function LoginPage() {
               />
             </FormField>
             <Button type="submit" variant="primary" fullWidth size="touch" isLoading={submitting}>
-              {COPY.submitCode}
+              {t('login.submitCode')}
             </Button>
           </form>
         )}
