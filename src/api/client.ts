@@ -52,6 +52,11 @@ async function readErrorCode(response: Response): Promise<string | null> {
  * a side effect of answering "who am I", so re-fetching it is the refresh.
  * Called with the raw `fetch`, not `api.GET` — going through `api` would
  * re-enter this same middleware and, on a second `ERR-AUTH-006`, recurse.
+ *
+ * Not de-duplicated: concurrent stale-token failures each fire their own
+ * refresh. Safe — every retry uses the token its own refresh call returned,
+ * so there is no cross-talk — just redundant network traffic under a burst.
+ * A deliberate simplification, not an oversight.
  */
 async function refreshCsrfToken(): Promise<string | null> {
   const response = await globalThis.fetch(`${BASE_URL}${ME_PATH}`, { credentials: 'include' });
