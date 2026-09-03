@@ -5,6 +5,7 @@ import { DataTable, type Column } from './DataTable';
 interface Row {
   id: number;
   name: string;
+  tags: string[];
 }
 
 const columns: Column<Row>[] = [
@@ -12,13 +13,13 @@ const columns: Column<Row>[] = [
 ];
 
 const rows: Row[] = [
-  { id: 1, name: 'Banana' },
-  { id: 2, name: 'Apple' },
+  { id: 1, name: 'Banana', tags: ['fruit', 'yellow'] },
+  { id: 2, name: 'Apple', tags: ['fruit', 'red'] },
 ];
 
 function nameColumnCells() {
-  // One column ("Name") in the first test, two in the second — always read
-  // the first cell of each row, which is always the "name" column here.
+  // Always read the first <td> of each row, which is always the "name"
+  // column in every test below regardless of how many other columns exist.
   return screen.getAllByRole('row').slice(1).map((row) => row.querySelectorAll('td')[0]?.textContent);
 }
 
@@ -45,8 +46,27 @@ test('sorting by a key absent from the row type does not crash and leaves row or
 
   await user.click(screen.getByRole('button', { name: /Missing/i }));
 
-  // Every row's "missingField" value is undefined, so the comparator has
-  // nothing comparable to sort by (isSortComparable rejects it) — clicking
-  // sort must not throw and must not reorder the rows.
+  // Every row's "missingField" value is undefined, so the pre-existing
+  // `valA == null` guard (not isSortComparable) short-circuits the
+  // comparator before it ever reaches the type-narrowing branch — clicking
+  // sort must not throw and must not reorder the rows. This test does not
+  // exercise isSortComparable; the next one does.
+  expect(nameColumnCells()).toEqual(['Banana', 'Apple']);
+});
+
+test('sorting by a non-null, non-primitive value does not reorder rows (isSortComparable rejects it)', async () => {
+  const user = userEvent.setup();
+  const arrayColumns: Column<Row>[] = [
+    { key: 'name', header: 'Name' },
+    { key: 'tags', header: 'Tags', sortable: true, accessor: (row) => row.tags },
+  ];
+  render(<DataTable columns={arrayColumns} data={rows} />);
+
+  // Both rows' "tags" accessor returns a non-null array — it passes the
+  // `== null` guard, so this reaches isSortComparable, which must reject a
+  // non-string/number/boolean value and leave the rows in their original
+  // order. Without the guard, `<`/`>` would coerce the arrays to strings
+  // ("fruit,yellow" vs "fruit,red") and swap Banana and Apple.
+  await user.click(screen.getByRole('button', { name: /Tags/i }));
   expect(nameColumnCells()).toEqual(['Banana', 'Apple']);
 });
