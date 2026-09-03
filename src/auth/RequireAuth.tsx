@@ -27,10 +27,23 @@ function BlockingNotice({ testId, message }: { testId: string; message: string }
 }
 
 export function RequireAuth({ permission, children }: { permission?: string; children: ReactNode }) {
-  const { me, loading } = useAuth();
+  const { me, loading, authError } = useAuth();
   const location = useLocation();
 
   if (loading) return <FullPageSpinner />;
+
+  // A failed session check that is NOT "no session" (ERR-AUTH-002) must not
+  // be treated the same as logged-out — that would silently bounce a
+  // possibly-still-logged-in user to /login with no visible reason.
+  if (authError) {
+    return (
+      <BlockingNotice
+        testId="session-check-failed"
+        message="Sessiyani tekshirishda xatolik yuz berdi. Sahifani yangilang yoki keyinroq urinib ko'ring."
+      />
+    );
+  }
+
   if (!me) return <Navigate to="/login" state={{ next: location.pathname }} replace />;
 
   if (me.user.must_change_password) {

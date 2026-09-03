@@ -3,7 +3,7 @@ import type { FormEvent } from 'react';
 import { useLocation, useNavigate } from 'react-router';
 import { Button } from '../components/ui/button';
 import { FormField, Input } from '../components/ui/FormControls';
-import { ApiError } from '../api/errors';
+import { ApiError, RATE_LIMITED } from '../api/errors';
 import { useAuth } from '../auth/useAuth';
 
 // UI copy is Uzbek (decision: no i18n module yet — Task 6 lifts these out).
@@ -19,19 +19,27 @@ const COPY = {
   badCredentials: "Login yoki parol noto'g'ri.",
   blockedAccount: "Hisob bloklangan. Administrator bilan bog'laning.",
   rateLimited: "Urinishlar soni ko'p. Birozdan so'ng qayta urinib ko'ring.",
+  connectionError: "Ulanishda xatolik yuz berdi. Internetni tekshirib, qayta urinib ko'ring.",
 };
 
-type ErrorKind = 'credentials' | 'blocked' | 'rate-limited' | null;
+type ErrorKind = 'credentials' | 'blocked' | 'rate-limited' | 'connection' | null;
 
+// ERR-AUTH-001 (wrong credentials), ERR-AUTH-003 (blocked account) and
+// ERR-SYS-006 (rate limited) get three different messages on purpose — the
+// brief's whole reason is that "wrong password" for a locked-out account
+// sends the user in circles. Anything that is not even an ApiError (the
+// backend never answered — a dropped connection, a CORS failure) is its own
+// fourth case: telling someone their password is wrong when their
+// connection dropped is that same defect in a different costume.
 function classify(err: unknown): Exclude<ErrorKind, null> {
-  const code = err instanceof ApiError ? err.code : null;
-  if (code === 'ERR-SYS-006') return 'rate-limited';
-  if (code === 'ERR-AUTH-003') return 'blocked';
+  if (!(err instanceof ApiError)) return 'connection';
+  if (err.code === RATE_LIMITED) return 'rate-limited';
+  if (err.code === 'ERR-AUTH-003') return 'blocked';
   return 'credentials';
 }
 
 export function LoginPage() {
-  const { login } = useAuth();
+  const { requestMfa, verifyMfa } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const next = (location.state as { next?: string } | null)?.next ?? '/';
@@ -48,7 +56,7 @@ export function LoginPage() {
     setErrorKind(null);
     setSubmitting(true);
     try {
-      await login(loginId, password);
+      await requestMfa(loginId, password);
       setStep('code');
     } catch (err) {
       setErrorKind(classify(err));
@@ -62,7 +70,7 @@ export function LoginPage() {
     setErrorKind(null);
     setSubmitting(true);
     try {
-      await login(loginId, password, code);
+      await verifyMfa(code);
       navigate(next, { replace: true });
     } catch (err) {
       setErrorKind(classify(err));
@@ -88,13 +96,18 @@ export function LoginPage() {
           </p>
         )}
         {errorKind === 'blocked' && (
-          <p data-testid="login-error" role="alert" className="text-sm text-[#B91C1C]">
+          <p data-testid="account-blocked" role="alert" className="text-sm text-[#B91C1C]">
             {COPY.blockedAccount}
           </p>
         )}
         {errorKind === 'rate-limited' && (
           <p data-testid="rate-limited" role="alert" className="text-sm text-[#B91C1C]">
             {COPY.rateLimited}
+          </p>
+        )}
+        {errorKind === 'connection' && (
+          <p data-testid="connection-error" role="alert" className="text-sm text-[#B91C1C]">
+            {COPY.connectionError}
           </p>
         )}
 

@@ -1,4 +1,6 @@
+import { useState } from 'react';
 import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { setupServer } from 'msw/node';
 import App from '../App';
@@ -28,10 +30,29 @@ const ME = {
 };
 
 function Probe() {
-  const { me, loading } = useAuth();
+  const { me, loading, authError } = useAuth();
   if (loading) return null;
+  if (authError) return <div data-testid="auth-error">{authError.code}</div>;
   if (!me) return <div data-testid="anonymous" />;
   return <div data-testid="who">{me.role.code}</div>;
+}
+
+/** Calls verifyMfa on click, without ever calling requestMfa first. */
+function MfaOrderProbe() {
+  const { verifyMfa } = useAuth();
+  const [error, setError] = useState<string | null>(null);
+  return (
+    <div>
+      <button
+        onClick={() => {
+          verifyMfa('123456').catch((e: unknown) => setError(e instanceof Error ? e.message : String(e)));
+        }}
+      >
+        verify
+      </button>
+      {error && <div data-testid="mfa-order-error">{error}</div>}
+    </div>
+  );
 }
 
 const server = setupServer();
@@ -90,6 +111,44 @@ test('no session is not an error state, it is the logged-out state', async () =>
   expect(await screen.findByTestId('anonymous')).toBeInTheDocument();
 });
 
+test('a /auth/me failure other than ERR-AUTH-002 is not silently treated as logged out', async () => {
+  server.use(
+    http.get('*/auth/me', () =>
+      HttpResponse.json({ error: { code: 'ERR-SYS-001', message: 'internal error' } }, { status: 500 }),
+    ),
+  );
+  render(
+    <AuthProvider>
+      <Probe />
+    </AuthProvider>,
+  );
+  expect(await screen.findByTestId('auth-error')).toHaveTextContent('ERR-SYS-001');
+  expect(screen.queryByTestId('anonymous')).not.toBeInTheDocument();
+});
+
+test('verifyMfa before requestMfa fails locally instead of sending an empty token to the server', async () => {
+  server.use(
+    http.get('*/auth/me', () =>
+      HttpResponse.json({ error: { code: 'ERR-AUTH-002', message: 'no session' } }, { status: 401 }),
+    ),
+  );
+  let sawVerifyRequest = false;
+  server.use(
+    http.post('*/auth/mfa/verify', () => {
+      sawVerifyRequest = true;
+      return HttpResponse.json(ME);
+    }),
+  );
+  render(
+    <AuthProvider>
+      <MfaOrderProbe />
+    </AuthProvider>,
+  );
+  await userEvent.click(screen.getByRole('button', { name: 'verify' }));
+  expect(await screen.findByTestId('mfa-order-error')).toBeInTheDocument();
+  expect(sawVerifyRequest).toBe(false);
+});
+
 test('RequireAuth sends an anonymous visitor to /login and keeps where they wanted to go', async () => {
   server.use(
     http.get('*/auth/me', () =>
@@ -99,6 +158,17 @@ test('RequireAuth sends an anonymous visitor to /login and keeps where they want
   await renderAt('/applications/42');
   expect(await screen.findByTestId('login-page')).toBeInTheDocument();
   expect(screen.getByTestId('login-page')).toHaveAttribute('data-next', '/applications/42');
+});
+
+test('RequireAuth shows a distinct notice for a failed session check, not a silent redirect to login', async () => {
+  server.use(
+    http.get('*/auth/me', () =>
+      HttpResponse.json({ error: { code: 'ERR-SYS-001', message: 'internal error' } }, { status: 500 }),
+    ),
+  );
+  await renderAt('/');
+  expect(await screen.findByTestId('session-check-failed')).toBeInTheDocument();
+  expect(screen.queryByTestId('login-page')).not.toBeInTheDocument();
 });
 
 test('RequireAuth refuses a route whose permission the user lacks', async () => {

@@ -39,6 +39,12 @@ afterEach(() => {
 });
 afterAll(() => server.close());
 
+async function fillAndSubmitPassword(loginId: string, password: string) {
+  await userEvent.type(await screen.findByLabelText(/login/i), loginId);
+  await userEvent.type(screen.getByLabelText(/parol/i), password);
+  await userEvent.click(screen.getByRole('button', { name: /kirish/i }));
+}
+
 test('login is two steps: password, then the TOTP code', async () => {
   server.use(
     http.post('*/auth/login', () => HttpResponse.json({ mfa_required: true, mfa_token: 'mfa-1' })),
@@ -50,9 +56,7 @@ test('login is two steps: password, then the TOTP code', async () => {
     }),
   );
   render(<App />);
-  await userEvent.type(await screen.findByLabelText(/login/i), '30491823410019');
-  await userEvent.type(screen.getByLabelText(/parol/i), 'Head123!');
-  await userEvent.click(screen.getByRole('button', { name: /kirish/i }));
+  await fillAndSubmitPassword('30491823410019', 'Head123!');
   await userEvent.type(await screen.findByLabelText(/kod/i), '123456');
   await userEvent.click(screen.getByRole('button', { name: /tasdiqlash/i }));
   expect(await screen.findByTestId('app-shell')).toBeInTheDocument();
@@ -65,11 +69,22 @@ test('a wrong password says so and does not advance to the code step', async () 
     ),
   );
   render(<App />);
-  await userEvent.type(await screen.findByLabelText(/login/i), '30491823410019');
-  await userEvent.type(screen.getByLabelText(/parol/i), 'wrong');
-  await userEvent.click(screen.getByRole('button', { name: /kirish/i }));
+  await fillAndSubmitPassword('30491823410019', 'wrong');
   expect(await screen.findByTestId('login-error')).toBeInTheDocument();
+  expect(screen.queryByTestId('account-blocked')).not.toBeInTheDocument();
   expect(screen.queryByLabelText(/kod/i)).not.toBeInTheDocument();
+});
+
+test('a blocked account says so distinctly, not "wrong password"', async () => {
+  server.use(
+    http.post('*/auth/login', () =>
+      HttpResponse.json({ error: { code: 'ERR-AUTH-003', message: 'account blocked' } }, { status: 403 }),
+    ),
+  );
+  render(<App />);
+  await fillAndSubmitPassword('30491823410019', 'Head123!');
+  expect(await screen.findByTestId('account-blocked')).toBeInTheDocument();
+  expect(screen.queryByTestId('login-error')).not.toBeInTheDocument();
 });
 
 test('too many attempts is a distinct message, not "wrong password"', async () => {
@@ -79,8 +94,15 @@ test('too many attempts is a distinct message, not "wrong password"', async () =
     ),
   );
   render(<App />);
-  await userEvent.type(await screen.findByLabelText(/login/i), '30491823410019');
-  await userEvent.type(screen.getByLabelText(/parol/i), 'Head123!');
-  await userEvent.click(screen.getByRole('button', { name: /kirish/i }));
+  await fillAndSubmitPassword('30491823410019', 'Head123!');
   expect(await screen.findByTestId('rate-limited')).toBeInTheDocument();
+  expect(screen.queryByTestId('login-error')).not.toBeInTheDocument();
+});
+
+test('a dropped connection gets a generic message, not "wrong password"', async () => {
+  server.use(http.post('*/auth/login', () => HttpResponse.error()));
+  render(<App />);
+  await fillAndSubmitPassword('30491823410019', 'Head123!');
+  expect(await screen.findByTestId('connection-error')).toBeInTheDocument();
+  expect(screen.queryByTestId('login-error')).not.toBeInTheDocument();
 });

@@ -1,4 +1,5 @@
 import { createContext } from 'react';
+import type { ApiError } from '../api/errors';
 import type { components } from '../api/schema';
 
 type MeOut = components['schemas']['MeOut'];
@@ -7,13 +8,16 @@ export interface AuthContextValue {
   me: MeOut | null;
   loading: boolean;
   /**
-   * Two-phase login sharing one signature. Called without `code` it is step
-   * one — `POST /auth/login` — and only remembers the `mfa_token` it gets
-   * back (in a ref, never in storage). Called again with `code` it is step
-   * two — `POST /auth/mfa/verify` — which is where the session cookie and
-   * the CSRF token actually arrive.
+   * Set when the initial `GET /auth/me` fails with anything other than
+   * `ERR-AUTH-002` (no session) — a 500, a transient outage, a CORS
+   * misconfiguration. Distinct from `me === null`, which means "no session,
+   * this is the ordinary logged-out state". A consumer that only checks `me`
+   * would otherwise bounce a possibly-still-logged-in user to `/login` with
+   * no visible reason.
    */
-  login: (login: string, password: string, code?: string) => Promise<void>;
+  authError: ApiError | null;
+  requestMfa: (login: string, password: string) => Promise<void>;
+  verifyMfa: (code: string) => Promise<void>;
   logout: () => Promise<void>;
 }
 
