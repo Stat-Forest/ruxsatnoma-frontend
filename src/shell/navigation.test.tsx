@@ -54,3 +54,22 @@ test('every navigation entry points at a route that exists', () => {
   const paths = new Set(flattenRoutes(routeConfig));
   for (const item of NAVIGATION) expect(paths).toContain(item.to);
 });
+
+test("every gated navigation entry's route requires the same permission NAVIGATION declares", () => {
+  // Reads the permission back off the actual React element the route table
+  // builds (`routes.tsx` derives it from `NAVIGATION` — this is what makes a
+  // future regression to hand-typing the same code in two places visible:
+  // a typo in either copy fails this assertion, not just this test's peers).
+  const layoutRoute = routeConfig.find((route) => route.children);
+  const childByPath = new Map<string, RouteObject>();
+  for (const child of layoutRoute?.children ?? []) {
+    childByPath.set(child.index ? '/' : `/${child.path}`, child);
+  }
+  for (const item of NAVIGATION) {
+    if (!item.permission) continue;
+    const route = childByPath.get(item.to);
+    expect(route).toBeDefined();
+    const element = route?.element as { props?: { permission?: string } } | undefined;
+    expect(element?.props?.permission).toBe(item.permission);
+  }
+});
