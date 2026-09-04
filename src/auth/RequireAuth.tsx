@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { Navigate, useLocation } from 'react-router';
 import { Forbidden } from '../components/Forbidden';
+import { satisfies } from '../shell/navigation';
 import { useAuth } from './useAuth';
 
 function FullPageSpinner() {
@@ -26,7 +27,13 @@ function BlockingNotice({ testId, message }: { testId: string; message: string }
   );
 }
 
-export function RequireAuth({ permission, children }: { permission?: string; children: ReactNode }) {
+export function RequireAuth({
+  permission,
+  children,
+}: {
+  permission?: string | readonly string[];
+  children: ReactNode;
+}) {
   const { me, loading, authError } = useAuth();
   const location = useLocation();
 
@@ -66,7 +73,10 @@ export function RequireAuth({ permission, children }: { permission?: string; chi
   // The is_superuser short-circuit is the whole point of the flag: sys_admin
   // passes every gate without consulting codes, including one for a
   // permission added after this session's role/permission grants were read.
-  if (permission && !me.is_superuser && !me.permissions.includes(permission)) {
+  // `satisfies` is the SAME predicate the menu filters with, imported rather
+  // than re-implemented: a route whose gate disagreed with its own menu entry
+  // would either show a link that refuses, or hide a page the user may open.
+  if (!satisfies(permission, me)) {
     return <Forbidden />;
   }
 

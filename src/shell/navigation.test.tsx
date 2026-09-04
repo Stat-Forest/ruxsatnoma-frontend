@@ -1,6 +1,6 @@
 import type { RouteObject } from 'react-router';
 import { routeConfig } from '../routes';
-import { NAVIGATION, visibleNav } from './navigation';
+import { NAVIGATION, satisfies, visibleNav } from './navigation';
 
 function joinPaths(parent: string, child: string): string {
   if (child.startsWith('/')) return child;
@@ -70,6 +70,36 @@ test("every gated navigation entry's route requires the same permission NAVIGATI
     const route = childByPath.get(item.to);
     expect(route).toBeDefined();
     const element = route?.element as { props?: { permission?: string } } | undefined;
-    expect(element?.props?.permission).toBe(item.permission);
+    expect(element?.props?.permission).toEqual(item.permission);
   }
+});
+
+
+test('the approver reaches the worklist through his own permission, not the reviewer\'s', () => {
+  // `executor_head` holds `applications.decide` and NOT `applications.review`
+  // (migration 0015, left in place by 0016). Gating `/applications` on `review`
+  // alone hid the page from the one person the workflow waits on — found on the
+  // dev server, where he got "Sizda ushbu sahifaga kirish huquqi yo'q" and the
+  // menu entry was simply absent, while the page itself handled him correctly.
+  const approver = visibleNav({ permissions: ['applications.decide'], is_superuser: false });
+  expect(approver.map((i) => i.to)).toContain('/applications');
+
+  const reviewer = visibleNav({ permissions: ['applications.review'], is_superuser: false });
+  expect(reviewer.map((i) => i.to)).toContain('/applications');
+
+  // And neither code is a skeleton key for the other staff screens.
+  expect(approver.map((i) => i.to)).not.toContain('/admin/users');
+});
+
+test('an array permission means ANY of them, never all', () => {
+  const holdsOne = satisfies(['applications.review', 'applications.decide'], {
+    permissions: ['applications.decide'],
+    is_superuser: false,
+  });
+  const holdsNeither = satisfies(['applications.review', 'applications.decide'], {
+    permissions: ['norms.manage'],
+    is_superuser: false,
+  });
+  expect(holdsOne).toBe(true);
+  expect(holdsNeither).toBe(false);
 });
