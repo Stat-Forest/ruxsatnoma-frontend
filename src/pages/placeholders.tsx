@@ -1,3 +1,6 @@
+import { ApplicationsListPage } from './staff/ApplicationsListPage';
+import { StaffApplicationCard } from './staff/StaffApplicationCard';
+
 /**
  * Trivial placeholders — ruling R3. `navigation.test.tsx`'s last test asserts that
  * every `NAVIGATION` entry points at a route that exists, so each of the eleven
@@ -17,8 +20,9 @@ export function MyPermitsPage() {
   return <div data-testid="my-permits-page">Mening ruxsatnomalarim</div>;
 }
 
+/** Track 3 — the staff worklist (`src/pages/staff/ApplicationsListPage.tsx`). */
 export function ApplicationsPage() {
-  return <div data-testid="applications-page">Arizalar</div>;
+  return <ApplicationsListPage />;
 }
 
 export function GisPage() {
@@ -122,21 +126,11 @@ export function MyPermitPage() {
   );
 }
 
-/** The application card as staff sees it — take into work, decide, over-limit forwarding. */
+/** Track 3 — the staff application card (`src/pages/staff/StaffApplicationCard.tsx`):
+ * take into work, checks, GIS conclusion, calculation, documents, history and
+ * the decide/reject actions with the over-limit forward rendered honestly. */
 export function StaffApplicationCardPage() {
-  return (
-    <DetailPlaceholder
-      testId="staff-application-card-page"
-      title="Ariza kartochkasi (xodim)"
-      apiRoutes={[
-        'GET /api/v1/applications/{id}',
-        'GET /api/v1/applications/{id}/timeline',
-        'POST /api/v1/applications/{id}/start-review',
-        'POST /api/v1/applications/{id}/approve',
-        'POST /api/v1/applications/{id}/reject',
-      ]}
-    />
-  );
+  return <StaffApplicationCard />;
 }
 
 /** The permit document as staff sees it — issue, download PDF, the 3+1 ERI signatures. */
