@@ -9,9 +9,10 @@ export function DashboardPage() {
   return <div data-testid="dashboard-page">Bosh sahifa</div>;
 }
 
-export function MyApplicationsPage() {
-  return <div data-testid="my-applications-page">Mening arizalarim</div>;
-}
+// B6 — real screen, Track 2 (the applicant's path). Re-exported rather than
+// defined here so `routes.tsx`'s import list needs no change and the other
+// parallel tracks' own placeholder bodies below stay untouched.
+export { MyApplicationsPage } from './applicant/MyApplicationsPage';
 
 export function MyPermitsPage() {
   return <div data-testid="my-permits-page">Mening ruxsatnomalarim</div>;
@@ -65,36 +66,10 @@ function DetailPlaceholder({ testId, title, apiRoutes }: { testId: string; title
   );
 }
 
-/** B7 — the application wizard (contour, period, activity, price preview, ERI, submit). */
-export function ApplicationWizardPage() {
-  return (
-    <DetailPlaceholder
-      testId="application-wizard-page"
-      title="Ariza topshirish"
-      apiRoutes={[
-        'GET /api/v1/gis/contours',
-        'POST /api/v1/calculations/preview',
-        'POST /api/v1/files',
-        'POST /api/v1/applications',
-        'PATCH /api/v1/applications/{id}',
-        'POST /api/v1/applications/{id}/documents',
-        'POST /api/v1/applications/{id}/precheck',
-        'POST /api/v1/applications/{id}/submit',
-      ]}
-    />
-  );
-}
-
-/** B8 — the applicant's own application card: status, timeline, checks, documents. */
-export function MyApplicationCardPage() {
-  return (
-    <DetailPlaceholder
-      testId="my-application-card-page"
-      title="Ariza kartochkasi"
-      apiRoutes={['GET /api/v1/applications/{id}', 'GET /api/v1/applications/{id}/timeline']}
-    />
-  );
-}
+// B7/B8 — real screens, Track 2 (the applicant's path). Re-exported rather
+// than defined here, same reasoning as `MyApplicationsPage` above.
+export { ApplicationWizardPage } from './applicant/wizard/ApplicationWizardPage';
+export { MyApplicationCardPage } from './applicant/MyApplicationCardPage';
 
 /** B9 — invoice and payment through Payme. */
 export function MyInvoicePage() {
