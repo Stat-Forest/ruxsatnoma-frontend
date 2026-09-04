@@ -8,15 +8,21 @@ import { LoginPage } from './pages/LoginPage';
 import { UsersPage } from './pages/UsersPage';
 import {
   ApplicationsPage,
+  ApplicationWizardPage,
   DashboardPage,
   GisPage,
   InvoicesPage,
+  MyApplicationCardPage,
   MyApplicationsPage,
+  MyInvoicePage,
+  MyPermitPage,
   MyPermitsPage,
   NormsPage,
   NotificationsPage,
+  PermitDocumentPage,
   PermitsPage,
   ProfilePage,
+  StaffApplicationCardPage,
 } from './pages/placeholders';
 
 /**
@@ -51,6 +57,46 @@ const navigationChildren: RouteObject[] = NAVIGATION.map((item) => {
 });
 
 /**
+ * Detail and action routes: reached by following a link from an
+ * already-rendered screen (an application id, an invoice id, a permit id),
+ * never from the left menu, so they carry no `NAVIGATION` entry — but a
+ * gated one still needs its permission generated from a single declared
+ * value, for the same reason `navigationChildren` above is generated rather
+ * than hand-written: a permission literal copied a second time is exactly
+ * how an earlier draft of this table drifted from the backend's registry.
+ *
+ * `my/applications/new` is the only gated entry here. `POST /applications`
+ * and every other route the wizard calls (`PATCH`, `/documents`,
+ * `/precheck`, `/submit`) require `applications.create` on the backend
+ * ("File and edit one's own application (applicant)" —
+ * `app/modules/applications/permissions.py`, checked 2026-09-04), so a role
+ * without it is refused here instead of failing confusingly on first submit.
+ *
+ * The rest are read-only and carry no permission on purpose: `GET
+ * /applications/{id}`, `GET /invoices/{id}` and `GET /permits/{id}` all gate
+ * on ownership inside the service layer — for staff, on holding one of
+ * `applications.view_any` / `.review` / `.decide` (`applications/service.py`),
+ * not on a `require_permission` dependency. Gating them here too would add a
+ * stricter frontend rule the backend does not enforce, and could lock out a
+ * legitimate reader the backend would have served — `executor_head` holds
+ * `applications.decide` but not `applications.review`, and still has to open
+ * an application card to approve it.
+ */
+const DETAIL_ROUTES: { path: string; element: ReactNode; permission?: string }[] = [
+  { path: 'my/applications/new', element: <ApplicationWizardPage />, permission: 'applications.create' },
+  { path: 'my/applications/:id', element: <MyApplicationCardPage /> },
+  { path: 'my/invoices/:id', element: <MyInvoicePage /> },
+  { path: 'my/permits/:id', element: <MyPermitPage /> },
+  { path: 'applications/:id', element: <StaffApplicationCardPage /> },
+  { path: 'permits/:id', element: <PermitDocumentPage /> },
+];
+
+const detailRouteChildren: RouteObject[] = DETAIL_ROUTES.map(({ path, element, permission }) => ({
+  path,
+  element: permission ? <RequireAuth permission={permission}>{element}</RequireAuth> : element,
+}));
+
+/**
  * The route table. `AppShell` is the layout for every authenticated route —
  * one outer `RequireAuth` (no permission) gates the whole subtree on "logged
  * in and not blocked". Every child route is generated from `NAVIGATION`
@@ -62,6 +108,8 @@ const navigationChildren: RouteObject[] = NAVIGATION.map((item) => {
  * `routeConfig` is exported as plain data (not just the built `router`) so
  * `shell/navigation.test.tsx` can walk it and assert every `NAVIGATION.to`
  * resolves to a real route, without depending on the router's internal shape.
+ * `detailRouteChildren` (above) adds every non-menu detail/action route the
+ * same generated way.
  */
 export const routeConfig: RouteObject[] = [
   { path: '/login', element: <LoginPage /> },
@@ -71,7 +119,7 @@ export const routeConfig: RouteObject[] = [
         <AppShell />
       </RequireAuth>
     ),
-    children: [...navigationChildren, { path: 'applications/:id', element: <div data-testid="application-page" /> }],
+    children: [...navigationChildren, ...detailRouteChildren],
   },
 ];
 
