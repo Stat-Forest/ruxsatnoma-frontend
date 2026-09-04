@@ -1,0 +1,110 @@
+name: Deploy — dev
+
+# Ships the adminka to dev-admin.ruxsatnoma-urmon.uz. The bundle is built once, by the same
+# gate that guards every PR, and travels as an artifact. What lands on the server is dist/
+# plus deploy/ plus the compose file; anything else already there is untouched.
+#
+# The deploy user's `sudo` needs an interactive password, so the whole stack lives under
+# their home directory rather than /opt.
+#
+# Required secrets on the `dev` environment:
+#   DEPLOY_SSH_KEY — private key matching a public key in the deploy user's authorized_keys
+#   DEPLOY_HOST    — server hostname or IP
+#   DEPLOY_PORT    — SSH port (2213 on this server; sshd does not listen on 22)
+#   DEPLOY_USER    — the deploy account, e.g. jahongir
+#   DEPLOY_PATH    — absolute path of the stack on the server: /home/jahongir/ruxsatnoma-admin
+
+on:
+  push:
+    branches: [dev]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-admin-dev
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  gate:
+    name: Gate
+    uses: ./.github/workflows/checks.yml
+    with:
+      upload-dist: true
+      api-base: https://dev-api.ruxsatnoma-urmon.uz
+
+  deploy:
+    name: Ship to dev
+    needs: gate
+    runs-on: ubuntu-latest
+    environment: dev
+    steps:
+      # Checkout first — it wipes the workspace, which would delete an artifact downloaded
+      # before it.
+      - uses: actions/checkout@v4
+
+      - name: Download the bundle
+        uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist
+
+      - name: Load the SSH key
+        uses: webfactory/ssh-agent@v0.10.0
+        with:
+          ssh-private-key: ${{ secrets.DEPLOY_SSH_KEY }}
+
+      - name: Trust the server host key
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_PORT: ${{ secrets.DEPLOY_PORT }}
+        run: |
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
+          ssh-keyscan -p "$DEPLOY_PORT" -H "$DEPLOY_HOST" >> ~/.ssh/known_hosts 2>/dev/null
+
+      - name: Ship dist, deploy/ and the compose file
+        env:
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_PORT: ${{ secrets.DEPLOY_PORT }}
+          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
+        run: |
+          # The old dist/ is removed first: tar would merge into it, leaving assets from
+          # previous builds that the new index.html never references.
+          ssh -p "$DEPLOY_PORT" "$DEPLOY_USER@$DEPLOY_HOST" \
+            "rm -rf '$DEPLOY_PATH/dist'"
+          tar -czf - dist deploy docker-compose.deploy.yml \
+            | ssh -p "$DEPLOY_PORT" "$DEPLOY_USER@$DEPLOY_HOST" \
+                "tar -xzf - -C '$DEPLOY_PATH'"
+
+      - name: Rebuild and roll
+        env:
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_PORT: ${{ secrets.DEPLOY_PORT }}
+          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
+        run: |
+          ssh -p "$DEPLOY_PORT" "$DEPLOY_USER@$DEPLOY_HOST" \
+            "DEPLOY_PATH='$DEPLOY_PATH' bash -s" <<'REMOTE'
+          set -euo pipefail
+          cd "$DEPLOY_PATH"
+          docker compose -f docker-compose.deploy.yml build
+          docker compose -f docker-compose.deploy.yml up -d
+          docker image prune -f
+          docker compose -f docker-compose.deploy.yml ps
+          REMOTE
+
+      - name: Verify the public endpoint
+        # Best-effort only: the site sits behind a Kerio gateway that terminates TLS with
+        # its own expired certificate and does not yet publish this hostname, so a failure
+        # here is not authoritative and must not fail the deploy.
+        continue-on-error: true
+        run: |
+          for i in $(seq 1 5); do
+            if curl -kfs https://dev-admin.ruxsatnoma-urmon.uz/healthz >/dev/null; then
+              echo "public endpoint reachable"; exit 0
+            fi
+            echo "retry $i/5…"; sleep 5
+          done
+          echo "public endpoint unreachable"; exit 1

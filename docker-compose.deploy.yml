@@ -1,0 +1,22 @@
+# The adminka is nginx plus the dist/ bundle the CI runner built and shipped. It publishes
+# no port: Caddy reaches it by name over the shared edge network.
+services:
+  admin:
+    build:
+      context: .
+      dockerfile: deploy/Dockerfile
+    image: ruxsatnoma-admin:latest
+    restart: unless-stopped
+    networks:
+      edge:
+        aliases: [admin]
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1/healthz"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+networks:
+  edge:
+    external: true
+    name: ruxsatnoma-edge
