@@ -96,31 +96,11 @@ export function MyApplicationCardPage() {
   );
 }
 
-/** B9 — invoice and payment through Payme. */
-export function MyInvoicePage() {
-  return (
-    <DetailPlaceholder
-      testId="my-invoice-page"
-      title="Hisob-faktura va to'lov"
-      apiRoutes={['GET /api/v1/invoices/{id}', 'POST /api/v1/invoices/{id}/pay-intents']}
-    />
-  );
-}
+/** B9 — invoice and payment through Payme (Track 4 — real screen). */
+export { MyInvoicePage } from './MyInvoicePage';
 
-/** B10 — the applicant's own permit: view, download PDF, sign with ERI. */
-export function MyPermitPage() {
-  return (
-    <DetailPlaceholder
-      testId="my-permit-page"
-      title="Mening ruxsatnomam"
-      apiRoutes={[
-        'GET /api/v1/permits/{id}',
-        'GET /api/v1/permits/{id}/pdf',
-        'POST /api/v1/permits/{id}/signatures',
-      ]}
-    />
-  );
-}
+/** B10 — the applicant's own permit: view, download PDF, sign with ERI (Track 4 — real screen). */
+export { MyPermitPage } from './MyPermitPage';
 
 /** The application card as staff sees it — take into work, decide, over-limit forwarding. */
 export function StaffApplicationCardPage() {
@@ -139,18 +119,5 @@ export function StaffApplicationCardPage() {
   );
 }
 
-/** The permit document as staff sees it — issue, download PDF, the 3+1 ERI signatures. */
-export function PermitDocumentPage() {
-  return (
-    <DetailPlaceholder
-      testId="permit-document-page"
-      title="Ruxsatnoma hujjati"
-      apiRoutes={[
-        'GET /api/v1/permits/{id}',
-        'GET /api/v1/permits/{id}/pdf',
-        'POST /api/v1/applications/{id}/permit',
-        'POST /api/v1/permits/{id}/signatures',
-      ]}
-    />
-  );
-}
+/** The permit document as staff sees it — issue, download PDF, the 3+1 ERI signatures (Track 4 — real screen). */
+export { PermitDocumentPage } from './PermitDocumentPage';

@@ -2067,6 +2067,421 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/applications": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Applications
+         * @description The applications this caller may see: their own, or — holding one of the
+         *     three staff read codes — their zone's.
+         *
+         *     A caller entitled to nothing gets an empty page, never a 403: a list has no
+         *     row to refuse, and nobody named a target.
+         *
+         *     `status` is the `ApplicationStatus` literal, so a typo is a 422 rather than
+         *     an empty page that reads as "no applications in that state".
+         *     `period_from`/`period_to` select applications whose own period OVERLAPS the
+         *     window — the question a reviewer's queue asks.
+         */
+        get: operations["list_applications_api_v1_applications_get"];
+        put?: never;
+        /**
+         * Create Application
+         * @description 201 with an empty DRAFT: a draft is autosaved field by field (ruling 7),
+         *     so everything except who is filing and for whom arrives through PATCH.
+         *
+         *     422 `ERR-VAL-001` when the caller has no `applicants` row of their own
+         *     (`on_behalf="self"`) or names an applicant that is not theirs; 403
+         *     `ERR-ACL-001` when `on_behalf="legal"` names a legal entity the caller holds
+         *     no effective representation of.
+         */
+        post: operations["create_application_api_v1_applications_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/applications/{application_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Application Card
+         * @description The application, its items, its documents, its checks and its current
+         *     price.
+         *
+         *     404 `ERR-SYS-003` for an id that does not exist, for an application this
+         *     caller has no claim on, and for one outside a staff caller's zone — the same
+         *     answer to all three on purpose, since anything else makes this route an
+         *     application-existence oracle for a document full of personal data. The
+         *     territorial refusal is recorded as RI-12 before it answers.
+         */
+        get: operations["get_application_card_api_v1_applications__application_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Patch Application
+         * @description Any subset of the draft's own fields; `items` is replaced wholesale.
+         *
+         *     `applications.create` is the gate, not a separate "edit" code: filing and
+         *     editing one's own application are one right (its own registry description
+         *     says «File and edit one's own application»). Ownership is the service's
+         *     check, so a holder of the code who is not the owner gets 404 — never a 403,
+         *     which would confirm the application exists.
+         *
+         *     409 `ERR-APP-004` in any status but DRAFT; 422 `ERR-VAL-001` for an unknown
+         *     reference id, and for `requested_area_ha`, which is frozen at submission
+         *     (ruling 22) and refused here as an unknown field.
+         */
+        patch: operations["patch_application_api_v1_applications__application_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/applications/{application_id}/documents": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Attach Document
+         * @description 201 with the attachment. The bytes are uploaded through `POST /files`
+         *     first and this route stores only the reference — checked to exist, to be
+         *     active, and to be the caller's OWN upload, because a file id an applicant
+         *     supplies is untrusted input.
+         *
+         *     409 `ERR-APP-004` in any status but DRAFT; 422 `ERR-VAL-001` for a
+         *     `doc_type_item_id` outside the `doc_types` classifier
+         *     (`unknown_doc_type`) and for a file that is missing, archived or somebody
+         *     else's (`document_file_not_found` / `document_file_not_owned`).
+         */
+        post: operations["attach_document_api_v1_applications__application_id__documents_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/applications/{application_id}/documents/{document_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Detach Document
+         * @description 204. DRAFT only, and both ids are checked — a document belonging to a
+         *     different application is 404, not a cross-application delete. The
+         *     `media_files` row survives: files are never deleted in this system.
+         */
+        delete: operations["detach_document_api_v1_applications__application_id__documents__document_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/applications/{application_id}/precheck": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Precheck Application
+         * @description A dry run: writes the `application_checks` rows and answers with them
+         *     plus the price. **The status never moves and no calculation is stored**
+         *     (ruling 8 — the one that is stored is written at submission and is what
+         *     3.10 invoices from).
+         *
+         *     **200 even when a check BLOCKS.** A failing GIS or norm result is in
+         *     `checks`, as data (design/03): an applicant must be able to see that the
+         *     herd is over the limit, not merely be refused. Task 5's `submit` runs the
+         *     identical `checks.run_all` and turns that same result into a 4xx — that
+         *     difference is the whole point of having both.
+         *
+         *     A broken INPUT is still an error here: 422 `ERR-VAL-001` for a reversed or
+         *     over-long period, 422 `ERR-NORM-004` for a rule parameter that is not
+         *     published (on a fresh database that is the ten `coef_sb:*` rows, which ship
+         *     as drafts until VMQ 689 annex 5 arrives). An incomplete draft is neither —
+         *     it answers 200 with `skipped` rows naming the fields still to fill and a
+         *     null `calculation`.
+         */
+        post: operations["precheck_application_api_v1_applications__application_id__precheck_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/applications/{application_id}/package": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Application Package
+         * @description The canonical bytes to be signed, `application/octet-stream`. The client
+         *     signs exactly these and posts the detached PKCS#7 to `/submit`.
+         *
+         *     `Depends(get_current_user)` and not `require_permission`, like the two
+         *     other read routes and for the same reason: this also admits staff in zone,
+         *     who hold no `applications.create`. Both halves of the read rule live in the
+         *     service, and a stranger is told 404 — never 403, which would confirm the
+         *     application exists.
+         *
+         *     400 `ERR-APP-001` naming the fields still to fill; 409 `ERR-GIS-005` when
+         *     the contour's geometry is still a draft; 422 `ERR-NORM-004` when a rule
+         *     parameter is not published (on a fresh database, the ten `coef_sb:*` rows).
+         *
+         *     **RULING 23:** these bytes are priced afresh on every call, at
+         *     `business_today()` and against whatever tariffs and БҲМ are effective right
+         *     then. A tariff, a `rule_parameter`, a norm or midnight in Tashkent moving
+         *     between this call and the POST changes them, and the applicant then meets
+         *     `ERR-SIGN-001` for something they did not do. Accepted for 3.9a (Oybek's
+         *     choice, option в) and 3.9b's to fix — do not cache the package here.
+         */
+        get: operations["get_application_package_api_v1_applications__application_id__package_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/applications/{application_id}/submit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Submit Application
+         * @description DRAFT -> SUBMITTED, with the public number, in one transaction.
+         *
+         *     `Idempotency-Key` is MANDATORY (422 `ERR-VAL-001`
+         *     `idempotency_key_required` without one, 409 `ERR-SYS-005` on a conflicting
+         *     replay). `ctx` is declared AFTER `actor` — mirroring
+         *     `gis/imports_router.py::create_import` and `payments/router.py::
+         *     create_pay_intent` — so the single `get_current_user` both depend on is
+         *     resolved once; `ctx.save()` runs before the response so a replay returns
+         *     the stored 200 rather than allocating a second number.
+         *
+         *     400 `ERR-APP-001` (missing fields, NAMED); 409 `ERR-APP-004` in any status
+         *     but DRAFT; 422 `ERR-APP-003` for a benefit claim with no supporting
+         *     document; 409 `ERR-GIS-005` for a contour with no published version;
+         *     `ERR-GIS-001/002/005` or `ERR-NORM-001/002/003/006` when a BLOCKING check
+         *     fails — the difference from the pre-check, which reports the identical
+         *     result as data; 422 `ERR-SIGN-001` for an invalid signature; 409
+         *     `ERR-APP-002` with the existing number when another active application
+         *     already covers this plot and period.
+         */
+        post: operations["submit_application_api_v1_applications__application_id__submit_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/applications/{application_id}/start-review": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Start Review Application
+         * @description SUBMITTED -> IN_REVIEW, with the `application_assignments` row saying who
+         *     holds it.
+         *
+         *     404 `ERR-SYS-003` for an id that does not exist AND for an application
+         *     outside the caller's zone — the same answer to both on purpose, since
+         *     anything else makes this route an application-existence oracle; the
+         *     territorial refusal is recorded as RI-12 before it answers. 409
+         *     `ERR-APP-004` in any status but SUBMITTED.
+         *
+         *     **design/03 also says «an incomplete package is returned immediately with
+         *     RJ-01». That is 3.9b's**: returning needs the `RETURNED` status and the
+         *     return route, neither of which exists in 3.9a, so an incomplete package
+         *     reaches a human here rather than bouncing.
+         */
+        post: operations["start_review_application_api_v1_applications__application_id__start_review_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/applications/{application_id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Cancel Application
+         * @description The applicant withdraws: DRAFT, SUBMITTED or IN_REVIEW -> CANCELLED, with
+         *     an optional free-text reason.
+         *
+         *     **The BODY is optional too, not merely its one field** — `design/03` writes
+         *     it as `{reason?}`, and a required body made a reasonless withdrawal a 422
+         *     for a citizen who owes nobody an explanation. `None` and `{}` mean the same
+         *     thing here; the parameter moves after the dependencies because a defaulted
+         *     one cannot precede them.
+         *
+         *     From IN_REVIEW deliberately (`tz/05`): an applicant who no longer wants the
+         *     permit should not have to wait for a decision. A cancelled application also
+         *     stops blocking the plot — `ex_applications_no_duplicate`'s WHERE clause
+         *     excludes CANCELLED — so the citizen can refile immediately.
+         *
+         *     404 `ERR-SYS-003` when the caller does not own it; 409 `ERR-APP-004`
+         *     (`reason="cancel_after_decision"`) in any other status — including
+         *     INVOICED, which `APPLICATION_TRANSITIONS` allows and this route does not
+         *     (controller ruling R26; `service.cancel`'s docstring says who drives that
+         *     edge instead) — and for a repeat cancel of an already-cancelled
+         *     application.
+         */
+        post: operations["cancel_application_api_v1_applications__application_id__cancel_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/applications/{application_id}/timeline": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Application Timeline
+         * @description The transitions, the assignments, the signatures and the information
+         *     requests.
+         *
+         *     A SUBMISSION signature sits on its own `status_history` entry (ruling 25:
+         *     the history row's id IS the signed object's id); the top-level `signatures`
+         *     is the DECISION line, and is empty until task 7's approve/reject signs one.
+         *     `info_requests` is `[]` until 3.9b writes that table.
+         *
+         *     404 `ERR-SYS-003` for an id that does not exist, for an application this
+         *     caller has no claim on, and for one outside a staff caller's zone — the same
+         *     answer to all three, as on the card.
+         */
+        get: operations["get_application_timeline_api_v1_applications__application_id__timeline_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/applications/{application_id}/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Approve Application
+         * @description The head approves — or, beyond their role's limit, forwards.
+         *
+         *     **The answer is never `APPROVED`.** 3.10a's invoice handler subscribes to
+         *     `application_approved` and runs inside this request's own transaction
+         *     (ruling 3а), so a real approval comes back `INVOICED`; APPROVED exists only
+         *     in `application_status_history`. An over-limit request comes back 200 with
+         *     `status: "IN_REVIEW"` and `forwarded_to_organization` set — ruling 9а: the
+         *     application genuinely has not been decided, nothing was signed, and 3.10a
+         *     must not invoice it.
+         *
+         *     404 `ERR-SYS-003` for an id that does not exist and for an application
+         *     outside the caller's zone — the same answer to both, since anything else
+         *     makes this route an application-existence oracle; the territorial refusal is
+         *     recorded as RI-12 before it answers. **TWO 409 `ERR-APP-004`s, and the
+         *     second is not about the status**: `reason="bad_transition"` in any status
+         *     but IN_REVIEW, and `reason="not_claimed_at_this_level"` when an over-limit
+         *     application is escalated a second time from a level nobody has taken it
+         *     into work at (`decision._forward`'s replay guard — a head clicking twice
+         *     would otherwise walk one rung up the ladder per click). 422 `ERR-VAL-001`
+         *     when the application carries no stored calculation, when
+         *     `requested_area_ha` is unknown while the role caps area, and when an
+         *     over-limit application sits at an organization with no parent to escalate
+         *     to. 422 `ERR-SIGN-001` for an ERI that does not verify against the
+         *     package bytes.
+         */
+        post: operations["approve_application_api_v1_applications__application_id__approve_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/applications/{application_id}/reject": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Reject Application
+         * @description IN_REVIEW -> REJECTED, with the grounds `tz/04` С8 requires.
+         *
+         *     `reason_item_id` and `legal_basis` are REQUIRED fields of the body, so a
+         *     refusal with no grounds is 422 `ERR-VAL-001` from pydantic — before the
+         *     handler, and therefore before a signature could be spent on a request that
+         *     cannot succeed. A `reason_item_id` outside the `rejection_reasons`
+         *     classifier, or archived, is the service's own 422 `ERR-VAL-001`
+         *     (`unknown_rejection_reason`), still ahead of the ERI.
+         *
+         *     No role limit: decision #29 caps what a head may GRANT. 404 and 409 exactly
+         *     as on `/approve` above.
+         */
+        post: operations["reject_application_api_v1_applications__application_id__reject_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/invoices/{invoice_id}": {
         parameters: {
             query?: never;
@@ -2120,6 +2535,319 @@ export interface paths {
          *     returns the stored 201 instead of a second `payment_intents` row.
          */
         post: operations["create_pay_intent_api_v1_invoices__invoice_id__pay_intents_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/payments/bank-statements": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create Bank Statement
+         * @description 202, not 201: the file is stored and the work is QUEUED. The parse and
+         *     the matching happen in `app/workers/jobs.py::process_bank_statements`.
+         *
+         *     `ctx` is declared after `user` so the permission check runs first and an
+         *     unauthorized caller never mints an idempotency marker row; `ctx.save()` runs
+         *     before the response so a replay of the same key returns the stored 202 with
+         *     the ORIGINAL statement id instead of queueing a duplicate.
+         */
+        post: operations["create_bank_statement_api_v1_payments_bank_statements_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/payments/bank-statements/{statement_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Bank Statement
+         * @description The statement's own status, `stats` and `error_report`, plus a page of
+         *     its lines in file order — what an accountant polls after the 202 and then
+         *     works down.
+         */
+        get: operations["get_bank_statement_api_v1_payments_bank_statements__statement_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/payments/reconciliations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Reconciliations
+         * @description The accountant's own worklist: every `open` row by default, oldest
+         *     first — `ix_reconciliations_open`'s own query — or `?status=resolved` for
+         *     what has already been closed. A row is either a per-line comparison
+         *     (`statement_line_id` set) or one statement-wide provider-settlement
+         *     period row (`statement_line_id` and `transaction_id` both `None`, both
+         *     totals named in `comment` — `statement_service._period_reconciliation`).
+         *
+         *     This register answers ONE question: did the money arrive against an
+         *     invoice. It never answers whether each half of the 50/50 split reached
+         *     its own account — the budget's account number is in no table at all
+         *     (`tz/12` #15), so at least half of every `allocations` row has
+         *     `account = NULL`; `matcher.py`'s module docstring gives the same
+         *     limitation for the matching side, and this is the same fact seen from
+         *     the register a human actually reads.
+         */
+        get: operations["list_reconciliations_api_v1_payments_reconciliations_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/payments/reconciliations/{reconciliation_id}/resolve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Resolve Reconciliation
+         * @description Close one register row — `tz/08`: with a comment, or with a
+         *     correcting document (`resolution_doc_id`, which must name an ACTIVE
+         *     `media_files` row). This is the accountant's own action, never an
+         *     automatic one: nothing in this module ever resolves a row on its own,
+         *     which is also why an open row with `assigned_to` set needs no separate
+         *     task table (this file's own module docstring).
+         *
+         *     An empty/whitespace-only comment is `ERR-VAL-001`; a row already
+         *     `resolved` is `ERR-PAY-005` (409) rather than a silent second closure
+         *     that would overwrite the first accountant's own comment.
+         */
+        post: operations["resolve_reconciliation_api_v1_payments_reconciliations__reconciliation_id__resolve_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/payments/manual-confirmations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * File Manual Confirmation
+         * @description The MAKER's half: an accountant files that money arrived by bank
+         *     transfer, with the payment order behind it.
+         *
+         *     **201 means filed, not paid** (ruling 4). The invoice is untouched, no
+         *     ledger row is written and no risk indicator is raised — RI-01 fires when
+         *     the invoice actually becomes PAID, which is the checker's step below.
+         *
+         *     `amount_matches_invoice: false` on the response means the bank document's
+         *     amount disagrees with the invoice's; the filing is still accepted (ruling
+         *     5 — an underpayment is a real thing an accountant confirms and then
+         *     reconciles) and an OPEN `reconciliations` row now carries the difference
+         *     in the same register `GET /payments/reconciliations` serves.
+         */
+        post: operations["file_manual_confirmation_api_v1_payments_manual_confirmations_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/payments/manual-confirmations/{confirmation_id}/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Confirm Manual Confirmation
+         * @description The CHECKER's approval — the only place in this system where an
+         *     invoice becomes `paid` without a payment provider saying so.
+         *
+         *     It pays through `payments.service.confirm_payment`, unchanged: a
+         *     synthetic `provider="manual"` transaction goes into the very function the
+         *     Payme webhook calls, so the ledger, the application's move to PAID, the
+         *     applicant's notification and the `payment_confirmed` bus hop all happen
+         *     exactly once and exactly the same way (ruling 14). RI-01 is written to
+         *     the audit journal as a `result="success"` row.
+         *
+         *     `ERR-ACL-001` if the caller filed this confirmation; `ERR-PAY-004` if it
+         *     was already decided, or if the invoice stopped being `pending` while it
+         *     waited (a Payme payment may have landed meanwhile).
+         */
+        post: operations["confirm_manual_confirmation_api_v1_payments_manual_confirmations__confirmation_id__confirm_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/payments/manual-confirmations/{confirmation_id}/reject": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Reject Manual Confirmation
+         * @description The CHECKER's refusal (ruling 7): the invoice stays `pending`, no
+         *     allocation and no synthetic transaction are written, and no RI-01 is
+         *     raised — nothing became PAID.
+         *
+         *     A `reason` is mandatory and must not be blank (`ERR-VAL-001`): a
+         *     rejection is what the accountant reads to file a corrected one, and the
+         *     invoice is free to receive a fresh filing afterwards.
+         */
+        post: operations["reject_manual_confirmation_api_v1_payments_manual_confirmations__confirmation_id__reject_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/payments/allocations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Allocations
+         * @description The whole `allocations` ledger, oldest first — `payment`, `correction`
+         *     (a reversal's negation, `service.record_reversal`) and `refund` (a
+         *     returned refund's negative entries, `backoffice_service.approve_refund`)
+         *     rows alike, never filtered by `entry_type`. Selected either by ONE
+         *     invoice (`?invoice_id=`) or by an `occurred_at` PERIOD
+         *     (`?period_from=&period_to=`, a calendar-day pair in Asia/Tashkent);
+         *     neither given, or only one half of the pair, is `ERR-VAL-001` — a route
+         *     with no filter at all would page the whole ledger this system will ever
+         *     write, and a half-given pair silently hides the rows a reversed or
+         *     incomplete range would miss (the lesson on a reversed date period).
+         *
+         *     **This route answers "did the money arrive against an invoice" — never
+         *     "did each half of the 50/50 split reach its own account"** (ruling 10,
+         *     the same limitation `GET /payments/reconciliations`'s own docstring
+         *     states): `account` is `null`, present on EVERY row, whenever that row
+         *     is the state budget's own half or names a leshoz with no account on
+         *     file (`tz/12` #15 — the state budget's account number is stored nowhere
+         *     in this system). A client renders that `null` as "settled outside the
+         *     system", never as a blank account number.
+         */
+        get: operations["list_allocations_api_v1_payments_allocations_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/refunds": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Refunds
+         * @description The accountant's/rahbar's own register — every refund, optionally
+         *     narrowed by `application_id` or `status`.
+         */
+        get: operations["list_refunds_api_v1_refunds_get"];
+        put?: never;
+        /**
+         * Request Refund
+         * @description An applicant appeals their own application, or an accountant files on
+         *     anyone's behalf (ruling 7). Always 201: `suggested_amount` may be `None`
+         *     with a `suggestion_reason` instead — a hint is never a reason to refuse
+         *     filing (ruling 2).
+         */
+        post: operations["request_refund_api_v1_refunds_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/refunds/{refund_id}/submit-decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Submit Refund Decision
+         * @description The accountant's own half (ruling 4): stores the figures, moves
+         *     `requested` -> `in_review`, touches no money. A breakdown that does not
+         *     sum to `final_amount` answers `ERR-VAL-001` here, before any write.
+         */
+        post: operations["submit_refund_decision_api_v1_refunds__refund_id__submit_decision_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/refunds/{refund_id}/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Approve Refund
+         * @description The rahbar's own half: `resolution="returned"` writes the negative
+         *     `allocations` entries and moves the refund to `returned`;
+         *     `resolution="rejected"` writes nothing and moves it to `rejected`.
+         *     Neither ever touches the invoice or the application (ruling 6).
+         *
+         *     The response's `budget_account` is `None` on a `returned` approval by
+         *     design, not by omission (`tz/12` #15) — see `RefundOut`'s own docstring.
+         */
+        post: operations["approve_refund_api_v1_refunds__refund_id__approve_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2388,6 +3116,52 @@ export interface components {
             /** Valid Until */
             valid_until?: string | null;
         };
+        /**
+         * AllocationOut
+         * @description One `allocations` ledger row (`GET /payments/allocations`, 3.10b task
+         *     10) — `payment`, `correction` (a reversal's negation,
+         *     `service.record_reversal`) and `refund` (a returned refund's negative
+         *     entries, `backoffice_service.approve_refund`) rows alike.
+         *
+         *     **`account` is `null` whenever the row is the state budget's own half of
+         *     the 50/50 split, or names a leshoz with no account on file** (`tz/12`
+         *     #15, ruling 10 — the budget's account number is stored nowhere in this
+         *     system): declared here with no default and no `field_serializer` of its
+         *     own, so a `None` value serializes as JSON `null` — present on every
+         *     response, never omitted, never `""`. An accountant's UI must render that
+         *     as "settled outside the system", not as a blank account number.
+         */
+        AllocationOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Invoice Id
+             * Format: uuid
+             */
+            invoice_id: string;
+            /** Transaction Id */
+            transaction_id: string | null;
+            /** Refund Id */
+            refund_id: string | null;
+            /** Entry Type */
+            entry_type: string;
+            /** Target */
+            target: string;
+            /** Account */
+            account: string | null;
+            /** Amount */
+            amount: string;
+            /**
+             * Occurred At
+             * Format: date-time
+             */
+            occurred_at: string;
+            /** Note */
+            note: string | null;
+        };
         /** AnnouncementAdminOut */
         AnnouncementAdminOut: {
             /**
@@ -2511,6 +3285,580 @@ export interface components {
             verified_at: string | null;
         };
         /**
+         * ApplicationApproveIn
+         * @description `POST /applications/{id}/approve` — the head's detached PKCS#7 over the
+         *     bytes `GET /applications/{id}/package` served, and nothing else.
+         *
+         *     Identical in shape to `ApplicationSubmitIn` and deliberately its own class:
+         *     the two sign the same bytes for different reasons and by different people,
+         *     and a shared model would make a later divergence look like a rename.
+         */
+        ApplicationApproveIn: {
+            /** Pkcs7 */
+            pkcs7: string;
+        };
+        /**
+         * ApplicationCalculationOut
+         * @description The application's CURRENT price — `applications.service.
+         *     current_calculation`, which is the newest `calculations` row and exactly
+         *     what `payments` invoices from.
+         *
+         *     A reduced view of that row on purpose: `input_snapshot` and `breakdown` are
+         *     the calculator's own JSON, sometimes kilobytes, and `GET /calculations/{id}`
+         *     (norms' own route) answers the full row for whoever needs it.
+         */
+        ApplicationCalculationOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Amount */
+            amount: string | null;
+            /** Rule Version */
+            rule_version: string;
+            /** Used Sb */
+            used_sb: string | null;
+            /** Max Sb */
+            max_sb: number | null;
+            /** Remaining Sb */
+            remaining_sb: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+        };
+        /**
+         * ApplicationCancelIn
+         * @description `POST /applications/{id}/cancel` — an OPTIONAL free-text reason, stored
+         *     as the history row's `reason_text`.
+         *
+         *     Optional because `tz/05` asks for no ground to withdraw one's own
+         *     application: a citizen who changes their mind owes nobody an explanation.
+         *     That is the opposite of task 7's rejection, which is a refusal BY the state
+         *     and needs an RJ-* reason and a legal basis before the signature is even
+         *     checked.
+         */
+        ApplicationCancelIn: {
+            /** Reason */
+            reason?: string | null;
+        };
+        /**
+         * ApplicationCardOut
+         * @description `GET /applications/{id}` — the columns above, flat, plus the four things
+         *     that are not columns of `applications` at all.
+         */
+        ApplicationCardOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Number */
+            number: string | null;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "DRAFT" | "SUBMITTED" | "IN_REVIEW" | "PENDING_INFO" | "RETURNED" | "APPROVED" | "INVOICED" | "PAID" | "PERMIT_ISSUED" | "REJECTED" | "CANCELLED" | "EXPIRED_UNPAID" | "CLOSED" | "ARCHIVED";
+            /**
+             * Applicant Id
+             * Format: uuid
+             */
+            applicant_id: string;
+            /**
+             * Submitted By User Id
+             * Format: uuid
+             */
+            submitted_by_user_id: string;
+            /**
+             * On Behalf
+             * @enum {string}
+             */
+            on_behalf: "self" | "legal";
+            /** Representation Id */
+            representation_id: string | null;
+            /** Activity Type Id */
+            activity_type_id: string | null;
+            /** Contour Id */
+            contour_id: string | null;
+            /** Contour Version Id */
+            contour_version_id: string | null;
+            /** Requested Area Ha */
+            requested_area_ha: string | null;
+            /** Period From */
+            period_from: string | null;
+            /** Period To */
+            period_to: string | null;
+            /** Quantity */
+            quantity: string | null;
+            /**
+             * Channel
+             * @enum {string}
+             */
+            channel: "portal" | "mygov";
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "new" | "extension";
+            /** Benefit Category Item Id */
+            benefit_category_item_id: string | null;
+            /** Rejection Reason Item Id */
+            rejection_reason_item_id: string | null;
+            /** Assigned Org Id */
+            assigned_org_id: string | null;
+            /** Assigned User Id */
+            assigned_user_id: string | null;
+            /** Parent Application Id */
+            parent_application_id: string | null;
+            /** Sla Deadline At */
+            sla_deadline_at: string | null;
+            /** Submitted At */
+            submitted_at: string | null;
+            /** Decided At */
+            decided_at: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** Items */
+            items: components["schemas"]["ApplicationItemOut"][];
+            /** Documents */
+            documents: components["schemas"]["ApplicationDocumentOut"][];
+            /** Checks */
+            checks: components["schemas"]["ApplicationCheckOut"][];
+            calculation: components["schemas"]["ApplicationCalculationOut"] | null;
+        };
+        /**
+         * ApplicationCheckOut
+         * @description One check result — evidence, and evidence is a LIST: every run is kept
+         *     and none is superseded (ruling 12), so a card shows the history rather than
+         *     "the latest per type".
+         */
+        ApplicationCheckOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Check Type */
+            check_type: string;
+            /** Result */
+            result: string;
+            /** Details */
+            details: unknown;
+            /** Source */
+            source: string;
+            /**
+             * Checked At
+             * Format: date-time
+             */
+            checked_at: string;
+        };
+        /**
+         * ApplicationCreate
+         * @description `POST /applications` — the whole body. Everything else about a draft
+         *     arrives through PATCH (ruling 7).
+         *
+         *     `applicant_id` is meaningful only with `on_behalf="legal"`: for `"self"` the
+         *     applicant is the caller's own `applicants` row and naming somebody else's
+         *     would be the first half of filing in another citizen's name. The service
+         *     refuses the mismatch rather than a validator here, so the refusal carries a
+         *     domain reason instead of a pydantic field error.
+         */
+        ApplicationCreate: {
+            /**
+             * On Behalf
+             * @enum {string}
+             */
+            on_behalf: "self" | "legal";
+            /** Applicant Id */
+            applicant_id?: string | null;
+        };
+        /**
+         * ApplicationDecisionOut
+         * @description The answer to both decision routes: the application's own columns, flat,
+         *     plus where an over-limit application was forwarded to.
+         *
+         *     `forwarded_to_organization` is `None` on every real decision — an approval,
+         *     a rejection — and carries the parent organization's id ONLY on a forward,
+         *     where `status` is still `IN_REVIEW` because ruling 9а means the application
+         *     genuinely has not been decided. A client tells the two apart by this field,
+         *     not by guessing from the status.
+         *
+         *     Flat rather than `{"application": {...}, "forwarded_to_organization": ...}`,
+         *     the same choice `ApplicationCardOut` made: a client reads `body["status"]`
+         *     in every response this module produces.
+         */
+        ApplicationDecisionOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Number */
+            number: string | null;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "DRAFT" | "SUBMITTED" | "IN_REVIEW" | "PENDING_INFO" | "RETURNED" | "APPROVED" | "INVOICED" | "PAID" | "PERMIT_ISSUED" | "REJECTED" | "CANCELLED" | "EXPIRED_UNPAID" | "CLOSED" | "ARCHIVED";
+            /**
+             * Applicant Id
+             * Format: uuid
+             */
+            applicant_id: string;
+            /**
+             * Submitted By User Id
+             * Format: uuid
+             */
+            submitted_by_user_id: string;
+            /**
+             * On Behalf
+             * @enum {string}
+             */
+            on_behalf: "self" | "legal";
+            /** Representation Id */
+            representation_id: string | null;
+            /** Activity Type Id */
+            activity_type_id: string | null;
+            /** Contour Id */
+            contour_id: string | null;
+            /** Contour Version Id */
+            contour_version_id: string | null;
+            /** Requested Area Ha */
+            requested_area_ha: string | null;
+            /** Period From */
+            period_from: string | null;
+            /** Period To */
+            period_to: string | null;
+            /** Quantity */
+            quantity: string | null;
+            /**
+             * Channel
+             * @enum {string}
+             */
+            channel: "portal" | "mygov";
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "new" | "extension";
+            /** Benefit Category Item Id */
+            benefit_category_item_id: string | null;
+            /** Rejection Reason Item Id */
+            rejection_reason_item_id: string | null;
+            /** Assigned Org Id */
+            assigned_org_id: string | null;
+            /** Assigned User Id */
+            assigned_user_id: string | null;
+            /** Parent Application Id */
+            parent_application_id: string | null;
+            /** Sla Deadline At */
+            sla_deadline_at: string | null;
+            /** Submitted At */
+            submitted_at: string | null;
+            /** Decided At */
+            decided_at: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** Forwarded To Organization */
+            forwarded_to_organization?: string | null;
+        };
+        /**
+         * ApplicationDocumentIn
+         * @description `POST /applications/{id}/documents` — one attachment.
+         *
+         *     `file_id` names a `media_files` row the caller has ALREADY uploaded through
+         *     `POST /files`; the service checks it exists, is active and is the caller's
+         *     own (`service._own_document_file`), because a file id an applicant supplies
+         *     is untrusted input.
+         */
+        ApplicationDocumentIn: {
+            /**
+             * Doc Type Item Id
+             * Format: uuid
+             */
+            doc_type_item_id: string;
+            /**
+             * File Id
+             * Format: uuid
+             */
+            file_id: string;
+            /** Note */
+            note?: string | null;
+        };
+        /**
+         * ApplicationDocumentOut
+         * @description One attachment, as `POST /applications/{id}/documents` answers and as the
+         *     card lists it. `uploaded_by` is deliberately absent: on a draft it is always
+         *     the applicant themselves, and 3.9b's staff-side uploads get their own
+         *     read.
+         */
+        ApplicationDocumentOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Doc Type Item Id
+             * Format: uuid
+             */
+            doc_type_item_id: string;
+            /**
+             * File Id
+             * Format: uuid
+             */
+            file_id: string;
+            /** Note */
+            note: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+        };
+        /**
+         * ApplicationItemIn
+         * @description One livestock line of a grazing application.
+         */
+        ApplicationItemIn: {
+            /**
+             * Livestock Type Id
+             * Format: uuid
+             */
+            livestock_type_id: string;
+            /** Head Count */
+            head_count: number;
+        };
+        /** ApplicationItemOut */
+        ApplicationItemOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Livestock Type Id
+             * Format: uuid
+             */
+            livestock_type_id: string;
+            /** Head Count */
+            head_count: number;
+        };
+        /**
+         * ApplicationOut
+         * @description The application's own columns — the response to create and patch, and one
+         *     row of `GET /applications`.
+         *
+         *     One shape for all three, deliberately: a second, narrower list item would be
+         *     a second place to remember what an application may say about itself.
+         */
+        ApplicationOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Number */
+            number: string | null;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "DRAFT" | "SUBMITTED" | "IN_REVIEW" | "PENDING_INFO" | "RETURNED" | "APPROVED" | "INVOICED" | "PAID" | "PERMIT_ISSUED" | "REJECTED" | "CANCELLED" | "EXPIRED_UNPAID" | "CLOSED" | "ARCHIVED";
+            /**
+             * Applicant Id
+             * Format: uuid
+             */
+            applicant_id: string;
+            /**
+             * Submitted By User Id
+             * Format: uuid
+             */
+            submitted_by_user_id: string;
+            /**
+             * On Behalf
+             * @enum {string}
+             */
+            on_behalf: "self" | "legal";
+            /** Representation Id */
+            representation_id: string | null;
+            /** Activity Type Id */
+            activity_type_id: string | null;
+            /** Contour Id */
+            contour_id: string | null;
+            /** Contour Version Id */
+            contour_version_id: string | null;
+            /** Requested Area Ha */
+            requested_area_ha: string | null;
+            /** Period From */
+            period_from: string | null;
+            /** Period To */
+            period_to: string | null;
+            /** Quantity */
+            quantity: string | null;
+            /**
+             * Channel
+             * @enum {string}
+             */
+            channel: "portal" | "mygov";
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "new" | "extension";
+            /** Benefit Category Item Id */
+            benefit_category_item_id: string | null;
+            /** Rejection Reason Item Id */
+            rejection_reason_item_id: string | null;
+            /** Assigned Org Id */
+            assigned_org_id: string | null;
+            /** Assigned User Id */
+            assigned_user_id: string | null;
+            /** Parent Application Id */
+            parent_application_id: string | null;
+            /** Sla Deadline At */
+            sla_deadline_at: string | null;
+            /** Submitted At */
+            submitted_at: string | null;
+            /** Decided At */
+            decided_at: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /**
+         * ApplicationPatch
+         * @description `PATCH /applications/{id}` — any SUBSET of the draft's own fields
+         *     (design/03's list, plan task 3). A field left out is untouched; a field sent
+         *     as `null` is cleared, which is what makes a half-filled draft correctable.
+         *
+         *     `items` is `None` (absent) or the COMPLETE new list — replaced wholesale,
+         *     never merged, because an applicant removing a livestock kind must be able
+         *     to and merge semantics would make that impossible.
+         *
+         *     No period ordering check and no completeness check: ruling 7 puts both in
+         *     the pre-check and the submission. What IS checked here is every FK
+         *     (`service._assert_references`), because an unknown id would otherwise reach
+         *     `flush()` as an `IntegrityError` — an ERR-SYS-001/500 for a plain typo
+         *     (lesson: walk every caller-settable FK before `flush()`).
+         *
+         *     `quantity` is the declared amount for every activity that is not grazing —
+         *     hectares for haymaking, m³ for deadwood, hives for an apiary
+         *     (`norms.calculator.CalcRequest`'s own definition). Editable here, required
+         *     at submission for those activities (task 5).
+         */
+        ApplicationPatch: {
+            /** Activity Type Id */
+            activity_type_id?: string | null;
+            /** Contour Id */
+            contour_id?: string | null;
+            /** Period From */
+            period_from?: string | null;
+            /** Period To */
+            period_to?: string | null;
+            /** Quantity */
+            quantity?: number | string | null;
+            /** Items */
+            items?: components["schemas"]["ApplicationItemIn"][] | null;
+            /** Benefit Category Item Id */
+            benefit_category_item_id?: string | null;
+        };
+        /**
+         * ApplicationRejectIn
+         * @description `POST /applications/{id}/reject` — the ERI plus the grounds `tz/04` С8
+         *     requires of a refusal BY the state: an RJ-* reason from the
+         *     `rejection_reasons` classifier AND a legal basis.
+         *
+         *     **Both are REQUIRED here rather than validated in the service**, which is
+         *     what makes «missing grounds» a 422 `ERR-VAL-001` before the request body is
+         *     ever handed to a function that could reach `sign()` — a signature must never
+         *     be spent on a request that cannot succeed. `min_length=1` closes the half a
+         *     plain `str` would leave open: an empty legal basis is a missing one.
+         *
+         *     This is the opposite of `ApplicationCancelIn` beside it, whose reason is
+         *     optional because a citizen withdrawing their own application owes nobody an
+         *     explanation.
+         */
+        ApplicationRejectIn: {
+            /** Pkcs7 */
+            pkcs7: string;
+            /**
+             * Reason Item Id
+             * Format: uuid
+             */
+            reason_item_id: string;
+            /** Legal Basis */
+            legal_basis: string;
+        };
+        /**
+         * ApplicationSubmitIn
+         * @description `POST /applications/{id}/submit` — the detached PKCS#7 the client
+         *     produced over the bytes `GET /applications/{id}/package` served, and
+         *     nothing else.
+         *
+         *     The package itself is deliberately NOT echoed back in the body: the server
+         *     signs what IT computes (`service._package_bytes`), and a client-supplied
+         *     copy would only give an attacker a second thing to disagree with. What the
+         *     client signed is proven by the signature verifying, not by it being
+         *     re-sent.
+         */
+        ApplicationSubmitIn: {
+            /** Pkcs7 */
+            pkcs7: string;
+        };
+        /**
+         * ApplicationTimelineOut
+         * @description `GET /applications/{id}/timeline` — design/03's four keys.
+         *
+         *     `signatures` at this level is the DECISION signature (`("application",
+         *     <id>, "application_decision")`), which is why it is empty for everything
+         *     3.9a can produce before task 7 lands and stays empty on an over-limit
+         *     forward, where nothing is signed. The submission signatures are NOT here:
+         *     each sits on its own `status_history` entry, which is the whole point of
+         *     ruling 25 giving the history row and the signed object the same id.
+         *
+         *     `info_requests` is present and empty until 3.9b writes the table.
+         */
+        ApplicationTimelineOut: {
+            /** Status History */
+            status_history: components["schemas"]["TimelineHistoryRow"][];
+            /** Assignments */
+            assignments: components["schemas"]["TimelineAssignmentRow"][];
+            /** Signatures */
+            signatures: components["schemas"]["TimelineSignatureRow"][];
+            /**
+             * Info Requests
+             * @default []
+             */
+            info_requests: unknown[];
+        };
+        /**
          * ApproveIn
          * @description `POST .../approve`. `approval_doc_id` stays optional HERE (not a
          *     required field) on purpose: a missing id must reach the caller as this
@@ -2556,6 +3904,21 @@ export interface components {
             /** Region Ids */
             region_ids?: string[] | null;
         };
+        /** Body_create_bank_statement_api_v1_payments_bank_statements_post */
+        Body_create_bank_statement_api_v1_payments_bank_statements_post: {
+            /** File */
+            file: string;
+            /**
+             * Statement Date
+             * Format: date
+             */
+            statement_date: string;
+            /**
+             * Column Map
+             * @default {}
+             */
+            column_map: string;
+        };
         /** Body_create_import_api_v1_gis_imports_post */
         Body_create_import_api_v1_gis_imports_post: {
             /** File */
@@ -2600,7 +3963,7 @@ export interface components {
          */
         CalculationIn: {
             /** Application Id */
-            application_id?: null;
+            application_id?: string | null;
             /**
              * Contour Id
              * Format: uuid
@@ -3205,6 +4568,61 @@ export interface components {
             /** Content Type */
             content_type: string;
         };
+        /**
+         * FiledManualConfirmationOut
+         * @description The filing's own response, with the one fact that is NOT a column:
+         *     whether the bank document's amount equals the invoice's (ruling 5).
+         *
+         *     A subclass rather than a nullable field on the parent, because only the
+         *     filing path reads the invoice to compare — `reject` never locks it, so a
+         *     flag on every response would be a value the checker's own routes could
+         *     not honestly fill in. `false` here always comes with an OPEN
+         *     `reconciliations` row for the difference.
+         */
+        FiledManualConfirmationOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Invoice Id
+             * Format: uuid
+             */
+            invoice_id: string;
+            /** Amount */
+            amount: string;
+            /**
+             * Paid At
+             * Format: date-time
+             */
+            paid_at: string;
+            /**
+             * Bank Doc File Id
+             * Format: uuid
+             */
+            bank_doc_file_id: string;
+            /**
+             * Maker Id
+             * Format: uuid
+             */
+            maker_id: string;
+            /** Checker Id */
+            checker_id: string | null;
+            /** Status */
+            status: string;
+            /** Reason */
+            reason: string | null;
+            /** Checked At */
+            checked_at: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Amount Matches Invoice */
+            amount_matches_invoice: boolean;
+        };
         /** HTTPValidationError */
         HTTPValidationError: {
             /** Detail */
@@ -3407,6 +4825,121 @@ export interface components {
             mfa_required: boolean;
             /** Mfa Token */
             mfa_token: string;
+        };
+        /**
+         * ManualConfirmationIn
+         * @description `POST /payments/manual-confirmations` — `tz/08` §4's one exception to
+         *     `tz/05` invariant 3.
+         *
+         *     `bank_doc_file_id` is REQUIRED and has no default: ruling 1 makes the
+         *     stored bank document what makes the exception legal, so an omitted one is
+         *     `ERR-VAL-001` from FastAPI's own validation, before the service runs —
+         *     the same unrepresentability `manual_payment_confirmations.bank_doc_file_id`
+         *     enforces as a NOT NULL FK.
+         *
+         *     `amount` is the amount the BANK DOCUMENT says arrived, which may
+         *     legitimately disagree with `invoices.amount` (ruling 5): an underpayment
+         *     is a real thing an accountant confirms and then reconciles. It is
+         *     accepted, recorded and flagged — never refused.
+         *
+         *     **`gt=0` is the guard this door removed from the money path and has to
+         *     put back.** On the Payme side `CreateTransaction`/`CheckPerformTransaction`
+         *     pin the amount to `invoice.amount` and refuse a mismatch with `-31001`;
+         *     here nothing does, and an unbounded `Decimal` was driven end to end
+         *     against a real 150 000,00 invoice: `-2060000.00` filed 201, confirmed
+         *     200, marked the invoice `paid` and the application `PAID`, and wrote two
+         *     NEGATIVE `allocations` rows. `0.00` settled the invoice in full with a
+         *     zero ledger. Ruling 5 accepts an UNDERPAYMENT — money that arrived, less
+         *     than was owed — never a negative or a zero settlement, neither of which
+         *     is a payment at all.
+         *
+         *     **No business ceiling, deliberately.** An overpayment is a documented
+         *     refund ground in `tz/08`, so capping the upper end would refuse a real
+         *     case. `max_digits`/`decimal_places` mirror `numeric(18, 2)` exactly and
+         *     exist only so an overflow is a 422 at the edge rather than a
+         *     `DataError` 500 from the database.
+         */
+        ManualConfirmationIn: {
+            /**
+             * Invoice Id
+             * Format: uuid
+             */
+            invoice_id: string;
+            /** Amount */
+            amount: number | string;
+            /**
+             * Paid At
+             * Format: date-time
+             */
+            paid_at: string;
+            /**
+             * Bank Doc File Id
+             * Format: uuid
+             */
+            bank_doc_file_id: string;
+        };
+        /**
+         * ManualConfirmationOut
+         * @description One `manual_payment_confirmations` row — the maker's filing, and what
+         *     the checker's confirm/reject answers with.
+         *
+         *     `bank_doc_file_id` is on the wire on purpose: the document is the whole
+         *     legal basis of a manual PAID, so a checker asked to approve one must be
+         *     able to reach it from this response alone.
+         */
+        ManualConfirmationOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Invoice Id
+             * Format: uuid
+             */
+            invoice_id: string;
+            /** Amount */
+            amount: string;
+            /**
+             * Paid At
+             * Format: date-time
+             */
+            paid_at: string;
+            /**
+             * Bank Doc File Id
+             * Format: uuid
+             */
+            bank_doc_file_id: string;
+            /**
+             * Maker Id
+             * Format: uuid
+             */
+            maker_id: string;
+            /** Checker Id */
+            checker_id: string | null;
+            /** Status */
+            status: string;
+            /** Reason */
+            reason: string | null;
+            /** Checked At */
+            checked_at: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+        };
+        /**
+         * ManualConfirmationRejectIn
+         * @description `POST /payments/manual-confirmations/{id}/reject` — a rejection must
+         *     say why (ruling 7). A missing field is FastAPI's own `ERR-VAL-001`; a
+         *     present-but-blank one is the service's own check, since a Pydantic `str`
+         *     requirement cannot see past whitespace the way `str.strip()` can (same
+         *     split as `ReconciliationResolveIn.comment`).
+         */
+        ManualConfirmationRejectIn: {
+            /** Reason */
+            reason: string;
         };
         /** MarkAllReadOut */
         MarkAllReadOut: {
@@ -3768,6 +5301,17 @@ export interface components {
             /** Delivered At */
             delivered_at: string | null;
         };
+        /** Page[AllocationOut] */
+        Page_AllocationOut_: {
+            /** Items */
+            items: components["schemas"]["AllocationOut"][];
+            /** Total */
+            total: number;
+            /** Page */
+            page: number;
+            /** Page Size */
+            page_size: number;
+        };
         /** Page[AnnouncementAdminOut] */
         Page_AnnouncementAdminOut_: {
             /** Items */
@@ -3783,6 +5327,17 @@ export interface components {
         Page_AnnouncementOut_: {
             /** Items */
             items: components["schemas"]["AnnouncementOut"][];
+            /** Total */
+            total: number;
+            /** Page */
+            page: number;
+            /** Page Size */
+            page_size: number;
+        };
+        /** Page[ApplicationOut] */
+        Page_ApplicationOut_: {
+            /** Items */
+            items: components["schemas"]["ApplicationOut"][];
             /** Total */
             total: number;
             /** Page */
@@ -3893,6 +5448,28 @@ export interface components {
         Page_PermitOut_: {
             /** Items */
             items: components["schemas"]["PermitOut"][];
+            /** Total */
+            total: number;
+            /** Page */
+            page: number;
+            /** Page Size */
+            page_size: number;
+        };
+        /** Page[ReconciliationOut] */
+        Page_ReconciliationOut_: {
+            /** Items */
+            items: components["schemas"]["ReconciliationOut"][];
+            /** Total */
+            total: number;
+            /** Page */
+            page: number;
+            /** Page Size */
+            page_size: number;
+        };
+        /** Page[RefundOut] */
+        Page_RefundOut_: {
+            /** Items */
+            items: components["schemas"]["RefundOut"][];
             /** Total */
             total: number;
             /** Page */
@@ -4295,6 +5872,57 @@ export interface components {
             verification_status: string;
         };
         /**
+         * PrecheckCalculationOut
+         * @description The price a pre-check quotes — `norms.service.preview`'s answer, which is
+         *     written NOWHERE (ruling 8: exactly one calculation is stored, at
+         *     submission).
+         *
+         *     Not `ApplicationCalculationOut`: that one describes a stored `calculations`
+         *     row and carries its `id` and `created_at`, neither of which a dry run has.
+         *     The overlapping fields keep the card's names (`rule_version`, not the
+         *     column's `rule_code_version`) so a client reads one vocabulary.
+         *
+         *     Every `Decimal` arrives here already rendered as a string by
+         *     `norms.calculator.jsonable` — money and conditional heads round-trip
+         *     exactly as text and would not as floats.
+         */
+        PrecheckCalculationOut: {
+            /** Amount */
+            amount: string;
+            /** Used Sb */
+            used_sb?: string | null;
+            /** Max Sb */
+            max_sb?: number | null;
+            /** Remaining Sb */
+            remaining_sb?: string | null;
+            /** Rule Version */
+            rule_version: string;
+            /**
+             * Breakdown
+             * @default []
+             */
+            breakdown: unknown[];
+        };
+        /**
+         * PrecheckOut
+         * @description `POST /applications/{id}/precheck` — what the checks said, and what it
+         *     would cost.
+         *
+         *     A blocking GIS or norm result is IN `checks`, as data, and the response is
+         *     still 200 (design/03, and 3.7's own `calc_router` docstring): the applicant
+         *     has to be able to see that the herd is over the limit, not merely be
+         *     refused. Task 5's submission runs the very same `checks.run_all` and turns
+         *     that same result into an HTTP error.
+         *
+         *     `calculation` is null when the draft is not complete enough to price — the
+         *     fields still missing are named in each `skipped` check's own `details`.
+         */
+        PrecheckOut: {
+            /** Checks */
+            checks: components["schemas"]["ApplicationCheckOut"][];
+            calculation: components["schemas"]["PrecheckCalculationOut"] | null;
+        };
+        /**
          * PublicCheckCard
          * @description `GET /public/permits/check` — what a citizen or an inspector sees.
          *
@@ -4402,6 +6030,241 @@ export interface components {
             code: string;
             /** Message */
             message: string;
+        };
+        /**
+         * ReconciliationOut
+         * @description One row of the discrepancy register (`GET /payments/reconciliations`) —
+         *     either a per-line comparison (`statement_line_id` set) or a whole
+         *     statement's provider-settlement period row (`statement_line_id` and
+         *     `transaction_id` both `None`, both totals named in `comment` —
+         *     `statement_service._period_reconciliation`).
+         */
+        ReconciliationOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Statement Line Id */
+            statement_line_id: string | null;
+            /** Transaction Id */
+            transaction_id: string | null;
+            /** Invoice Id */
+            invoice_id: string | null;
+            /** Result */
+            result: string;
+            /** Difference */
+            difference: string | null;
+            /** Status */
+            status: string;
+            /** Assigned To */
+            assigned_to: string | null;
+            /** Comment */
+            comment: string | null;
+            /** Resolution Doc Id */
+            resolution_doc_id: string | null;
+            /** Resolved By */
+            resolved_by: string | null;
+            /** Resolved At */
+            resolved_at: string | null;
+            /**
+             * Occurred At
+             * Format: date-time
+             */
+            occurred_at: string;
+        };
+        /**
+         * ReconciliationResolveIn
+         * @description `POST /payments/reconciliations/{id}/resolve` — `tz/08`: close a
+         *     discrepancy with a comment or with a correcting document.
+         *
+         *     `comment` is required by the SCHEMA (its absence is `ERR-VAL-001` from
+         *     FastAPI's own validation, before the service ever runs); a comment that
+         *     is present but blank (`""`, `"   "`) is a service-level check instead
+         *     (`backoffice_service.resolve_reconciliation`), because a Pydantic length
+         *     check cannot see past whitespace the way `str.strip()` can.
+         */
+        ReconciliationResolveIn: {
+            /** Comment */
+            comment: string;
+            /** Resolution Doc Id */
+            resolution_doc_id?: string | null;
+        };
+        /**
+         * RefundAllocationOut
+         * @description One ledger row `approve_refund` just wrote — what makes ruling 5's
+         *     NULL visible on the wire rather than only in the database (see
+         *     `RefundOut.budget_account`'s own docstring).
+         */
+        RefundAllocationOut: {
+            /** Target */
+            target: string;
+            /** Account */
+            account: string | null;
+            /** Amount */
+            amount: string;
+        };
+        /**
+         * RefundApproveIn
+         * @description `POST /refunds/{id}/approve` — the rahbar's (`payments.confirm`) own
+         *     half: `resolution="returned"` validates the breakdown again (defensive —
+         *     see `approve_refund`'s own docstring), writes the negative ledger
+         *     entries and moves the refund to `returned`; `resolution="rejected"`
+         *     moves it to `rejected` and writes nothing to `allocations` — no money
+         *     ever moved, so there is nothing to reverse (design/03: "approval →
+         *     status returned/rejected").
+         */
+        RefundApproveIn: {
+            /** Resolution */
+            resolution: string;
+            /** Comment */
+            comment?: string | null;
+        };
+        /**
+         * RefundOut
+         * @description One `refunds` row. `suggested_amount`/`suggestion_reason` are the
+         *     formula's hint (`backoffice_service.request_refund`'s own docstring
+         *     lists every degenerate case that leaves `suggested_amount` `None`); a
+         *     hint is never an error, so `POST /refunds` always answers 201 with one
+         *     of the two set.
+         *
+         *     `budget_account`/`recipient_account` are NOT columns on `refunds` — they
+         *     are filled in only by `POST /refunds/{id}/approve`'s own response, from
+         *     the allocations that call just wrote, and stay `None` on every other
+         *     response (nothing has been decided yet to have an account at all).
+         *     **`budget_account` is `None` by design, not by omission** (`tz/12` #15
+         *     — the state budget's account number is stored nowhere in this system):
+         *     the field is declared here, with an explicit default, specifically so an
+         *     accountant reading this response sees a `null` the API chose to report
+         *     rather than a key that silently is not there. `allocations` carries the
+         *     same two rows in full (target, account, amount) for a client that wants
+         *     more than the two named accounts.
+         */
+        RefundOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Application Id
+             * Format: uuid
+             */
+            application_id: string;
+            /**
+             * Invoice Id
+             * Format: uuid
+             */
+            invoice_id: string;
+            /**
+             * Basis Item Id
+             * Format: uuid
+             */
+            basis_item_id: string;
+            /** Suggested Amount */
+            suggested_amount: string | null;
+            /** Suggestion Reason */
+            suggestion_reason: string | null;
+            /** Final Amount */
+            final_amount: string | null;
+            /** Budget Amount */
+            budget_amount: string | null;
+            /** Recipient Amount */
+            recipient_amount: string | null;
+            /** Other Amount */
+            other_amount: string | null;
+            /** Status */
+            status: string;
+            /** Requested By */
+            requested_by: string | null;
+            /**
+             * Requested At
+             * Format: date-time
+             */
+            requested_at: string;
+            /**
+             * Due At
+             * Format: date
+             */
+            due_at: string;
+            /** Decided By */
+            decided_by: string | null;
+            /** Decided At */
+            decided_at: string | null;
+            /** Comment */
+            comment: string | null;
+            /** Recipient Account */
+            recipient_account?: string | null;
+            /** Budget Account */
+            budget_account?: string | null;
+            /** Allocations */
+            allocations?: components["schemas"]["RefundAllocationOut"][];
+        };
+        /**
+         * RefundRequestIn
+         * @description `POST /refunds` (design/03) — an applicant appealing their own
+         *     application, or an accountant filing on anyone's behalf (the ownership
+         *     rule lives in `backoffice_service._may_request_refund_for`, never here).
+         *
+         *     `basis_item_id` names one of the four seeded `refund_reasons` items
+         *     (`RF-01`..`RF-04`, migration `0022`) — checked as an ACTIVE classifier
+         *     item by the service, not by this schema, the same existence-not-validity
+         *     split `backoffice_service._assert_doc_active` already draws for a
+         *     document id.
+         */
+        RefundRequestIn: {
+            /**
+             * Application Id
+             * Format: uuid
+             */
+            application_id: string;
+            /**
+             * Basis Item Id
+             * Format: uuid
+             */
+            basis_item_id: string;
+            /** Comment */
+            comment?: string | null;
+        };
+        /**
+         * RefundSubmitDecisionIn
+         * @description `POST /refunds/{id}/submit-decision` — the accountant's (`payments.
+         *     manage`) own half (ruling 4): the three-way breakdown and the amount it
+         *     is meant to sum to. Checked against `refunds.breakdown_is_complete` in
+         *     code BEFORE the insert, so a mismatch answers `ERR-VAL-001` rather than
+         *     an IntegrityError 500 from `returned_needs_complete_breakdown` — even
+         *     though that CHECK only fires once `approve` moves the row to `returned`,
+         *     catching the arithmetic here is what keeps a wrong number from ever
+         *     reaching the rahbar's screen at all.
+         *
+         *     Each component defaults to `0.00`, not `None`: an accountant who leaves
+         *     a source untouched means "nothing from here", the same reading
+         *     `refunds.breakdown_is_complete`'s own `coalesce`-style treatment of
+         *     `None` already gives it — a bare `Field(ge=0, ...)` on each keeps a
+         *     negative component (which `returned_needs_complete_breakdown` does not
+         *     itself forbid) out of a financial ledger at the edge, before it becomes
+         *     a negative-of-a-negative allocation.
+         */
+        RefundSubmitDecisionIn: {
+            /** Final Amount */
+            final_amount: number | string;
+            /**
+             * Budget Amount
+             * @default 0.00
+             */
+            budget_amount: number | string;
+            /**
+             * Recipient Amount
+             * @default 0.00
+             */
+            recipient_amount: number | string;
+            /**
+             * Other Amount
+             * @default 0.00
+             */
+            other_amount: number | string;
+            /** Comment */
+            comment?: string | null;
         };
         /** RegionOut */
         RegionOut: {
@@ -4715,6 +6578,108 @@ export interface components {
             /** Verification Status */
             verification_status: string;
         };
+        /**
+         * StatementAccepted
+         * @description `POST /payments/bank-statements` answers 202 with the id and the status
+         *     it was queued in: the file is stored and QUEUED, and the parse happens in
+         *     `jobs.process_bank_statements`. Poll `GET /payments/bank-statements/{id}`
+         *     for the result.
+         */
+        StatementAccepted: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Status */
+            status: string;
+        };
+        /**
+         * StatementLineOut
+         * @description One imported row. `payer_account` is here because the accountant reads
+         *     it, never because anything matches on it (`matcher.py`'s own docstring).
+         */
+        StatementLineOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Line No */
+            line_no: number;
+            /** Doc Number */
+            doc_number: string | null;
+            /** Amount */
+            amount: string;
+            /**
+             * Operation Date
+             * Format: date
+             */
+            operation_date: string;
+            /** Payer Name */
+            payer_name: string | null;
+            /** Payer Account */
+            payer_account: string | null;
+            /** Purpose */
+            purpose: string | null;
+            /** Match Status */
+            match_status: string;
+            /** Matched Invoice Id */
+            matched_invoice_id: string | null;
+        };
+        /**
+         * StatementOut
+         * @description `GET /payments/bank-statements/{id}` — the header plus a page of its
+         *     lines. `stats` counts what was imported, skipped and how each line was
+         *     classified; `error_report` carries the rows the parser refused. The two are
+         *     NOT mutually exclusive here (unlike `gis.schemas.ImportOut`): one bad row
+         *     out of three hundred is a warning, so a `parsed` statement can carry both.
+         */
+        StatementOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Source */
+            source: string;
+            /** Format */
+            format: string;
+            /** File Id */
+            file_id: string | null;
+            /**
+             * Statement Date
+             * Format: date
+             */
+            statement_date: string;
+            /** Period From */
+            period_from: string | null;
+            /** Period To */
+            period_to: string | null;
+            /** Column Map */
+            column_map: {
+                [key: string]: unknown;
+            };
+            /** Status */
+            status: string;
+            /** Stats */
+            stats: {
+                [key: string]: unknown;
+            };
+            /** Error Report */
+            error_report: {
+                [key: string]: unknown;
+            } | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Lines */
+            lines: components["schemas"]["StatementLineOut"][];
+            /** Lines Total */
+            lines_total: number;
+        };
         /** TariffIn */
         TariffIn: {
             /**
@@ -4850,6 +6815,135 @@ export interface components {
             updated_at: string;
             /** Warning */
             warning?: string | null;
+        };
+        /**
+         * TimelineAssignmentRow
+         * @description One row of the assignment register — who held the application, from when,
+         *     and whether they still do.
+         *
+         *     The SUPERSEDED rows are returned too, not only the active one: the register
+         *     is the record of who held it when, and task 7's over-limit forward is
+         *     readable only as two rows, the reviewer's deactivated and the parent
+         *     organization's active.
+         */
+        TimelineAssignmentRow: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Org Id
+             * Format: uuid
+             */
+            org_id: string;
+            /** User Id */
+            user_id: string | null;
+            /** Assigned By */
+            assigned_by: string | null;
+            /** Reason */
+            reason: string;
+            /** Is Active */
+            is_active: boolean;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+        };
+        /**
+         * TimelineHistoryRow
+         * @description One transition, with the signature bound to THAT transition.
+         *
+         *     `signatures` here is the SUBMISSION line (ruling 25): `submit` signs
+         *     `("application_submission", <this row's id>)`, so the envelope resolves to
+         *     the exact attempt it covers. Every other row carries `[]` — a DRAFT or an
+         *     IN_REVIEW transition is nobody's signed act. The DECISION signature is not
+         *     here at all: it belongs to the application, not to a row of its history, and
+         *     sits at the top level of `ApplicationTimelineOut`.
+         *
+         *     `reason_item_id`, `legal_basis` and `fields_to_fix` are null for everything
+         *     3.9a writes and are on the shape from day one: they are 3.9b's return
+         *     reasons and task 7's rejection grounds, filled in on rows this very read
+         *     already returns.
+         */
+        TimelineHistoryRow: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** From Status */
+            from_status: ("DRAFT" | "SUBMITTED" | "IN_REVIEW" | "PENDING_INFO" | "RETURNED" | "APPROVED" | "INVOICED" | "PAID" | "PERMIT_ISSUED" | "REJECTED" | "CANCELLED" | "EXPIRED_UNPAID" | "CLOSED" | "ARCHIVED") | null;
+            /**
+             * To Status
+             * @enum {string}
+             */
+            to_status: "DRAFT" | "SUBMITTED" | "IN_REVIEW" | "PENDING_INFO" | "RETURNED" | "APPROVED" | "INVOICED" | "PAID" | "PERMIT_ISSUED" | "REJECTED" | "CANCELLED" | "EXPIRED_UNPAID" | "CLOSED" | "ARCHIVED";
+            /** Changed By */
+            changed_by: string | null;
+            /** Reason Item Id */
+            reason_item_id: string | null;
+            /** Reason Text */
+            reason_text: string | null;
+            /** Legal Basis */
+            legal_basis: string | null;
+            /** Fields To Fix */
+            fields_to_fix: {
+                [key: string]: unknown;
+            } | null;
+            /**
+             * Occurred At
+             * Format: date-time
+             */
+            occurred_at: string;
+            /**
+             * Signatures
+             * @default []
+             */
+            signatures: components["schemas"]["TimelineSignatureRow"][];
+        };
+        /**
+         * TimelineSignatureRow
+         * @description One ERI signature as the timeline shows it.
+         *
+         *     A REDUCED view of a `signatures` row, not `signatures.schemas.SignatureOut`
+         *     — exactly the choice `permits.schemas.PermitSignatureRow` made and for the
+         *     same two reasons: `signature_value` is the whole PKCS#7 envelope (kilobytes,
+         *     on a screen that only needs to say who signed and whether it verified) and
+         *     `verification` is the raw provider payload. 3.8's own `GET /signatures?
+         *     object_type=…&object_id=…` answers the full row for whoever needs it, and
+         *     defining the shape here keeps the two modules free to change independently.
+         */
+        TimelineSignatureRow: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Object Type */
+            object_type: string;
+            /**
+             * Object Id
+             * Format: uuid
+             */
+            object_id: string;
+            /** Purpose */
+            purpose: string;
+            /** Signer User Id */
+            signer_user_id: string | null;
+            /**
+             * Certificate Id
+             * Format: uuid
+             */
+            certificate_id: string;
+            /**
+             * Signed At
+             * Format: date-time
+             */
+            signed_at: string;
+            /** Verification Status */
+            verification_status: string;
         };
         /** TotpUriOut */
         TotpUriOut: {
@@ -9321,6 +11415,473 @@ export interface operations {
             };
         };
     };
+    list_applications_api_v1_applications_get: {
+        parameters: {
+            query?: {
+                status?: ("DRAFT" | "SUBMITTED" | "IN_REVIEW" | "PENDING_INFO" | "RETURNED" | "APPROVED" | "INVOICED" | "PAID" | "PERMIT_ISSUED" | "REJECTED" | "CANCELLED" | "EXPIRED_UNPAID" | "CLOSED" | "ARCHIVED") | null;
+                activity_type_id?: string | null;
+                contour_id?: string | null;
+                applicant_id?: string | null;
+                number?: string | null;
+                period_from?: string | null;
+                period_to?: string | null;
+                page?: number;
+                page_size?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Page_ApplicationOut_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_application_api_v1_applications_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ApplicationCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApplicationOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_application_card_api_v1_applications__application_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                application_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApplicationCardOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    patch_application_api_v1_applications__application_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                application_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ApplicationPatch"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApplicationOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    attach_document_api_v1_applications__application_id__documents_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                application_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ApplicationDocumentIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApplicationDocumentOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    detach_document_api_v1_applications__application_id__documents__document_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                application_id: string;
+                document_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    precheck_application_api_v1_applications__application_id__precheck_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                application_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PrecheckOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_application_package_api_v1_applications__application_id__package_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                application_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    submit_application_api_v1_applications__application_id__submit_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                application_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ApplicationSubmitIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApplicationOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    start_review_application_api_v1_applications__application_id__start_review_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                application_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApplicationOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    cancel_application_api_v1_applications__application_id__cancel_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                application_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["ApplicationCancelIn"] | null;
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApplicationOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_application_timeline_api_v1_applications__application_id__timeline_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                application_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApplicationTimelineOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    approve_application_api_v1_applications__application_id__approve_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                application_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ApplicationApproveIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApplicationDecisionOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    reject_application_api_v1_applications__application_id__reject_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                application_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ApplicationRejectIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApplicationDecisionOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     get_invoice_api_v1_invoices__invoice_id__get: {
         parameters: {
             query?: never;
@@ -9407,6 +11968,412 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PayIntentOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_bank_statement_api_v1_payments_bank_statements_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_create_bank_statement_api_v1_payments_bank_statements_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StatementAccepted"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_bank_statement_api_v1_payments_bank_statements__statement_id__get: {
+        parameters: {
+            query?: {
+                limit?: number;
+                offset?: number;
+            };
+            header?: never;
+            path: {
+                statement_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StatementOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_reconciliations_api_v1_payments_reconciliations_get: {
+        parameters: {
+            query?: {
+                status?: string;
+                limit?: number;
+                offset?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Page_ReconciliationOut_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    resolve_reconciliation_api_v1_payments_reconciliations__reconciliation_id__resolve_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                reconciliation_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReconciliationResolveIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReconciliationOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    file_manual_confirmation_api_v1_payments_manual_confirmations_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ManualConfirmationIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FiledManualConfirmationOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    confirm_manual_confirmation_api_v1_payments_manual_confirmations__confirmation_id__confirm_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                confirmation_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManualConfirmationOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    reject_manual_confirmation_api_v1_payments_manual_confirmations__confirmation_id__reject_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                confirmation_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ManualConfirmationRejectIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManualConfirmationOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_allocations_api_v1_payments_allocations_get: {
+        parameters: {
+            query?: {
+                invoice_id?: string | null;
+                period_from?: string | null;
+                period_to?: string | null;
+                limit?: number;
+                offset?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Page_AllocationOut_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_refunds_api_v1_refunds_get: {
+        parameters: {
+            query?: {
+                application_id?: string | null;
+                status?: string | null;
+                limit?: number;
+                offset?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Page_RefundOut_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    request_refund_api_v1_refunds_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RefundRequestIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RefundOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    submit_refund_decision_api_v1_refunds__refund_id__submit_decision_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                refund_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RefundSubmitDecisionIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RefundOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    approve_refund_api_v1_refunds__refund_id__approve_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                refund_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RefundApproveIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RefundOut"];
                 };
             };
             /** @description Validation Error */
