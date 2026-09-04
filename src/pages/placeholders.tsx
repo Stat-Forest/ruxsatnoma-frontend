@@ -50,26 +50,6 @@ export function ProfilePage() {
   return <div data-testid="profile-page">Profil</div>;
 }
 
-/**
- * Detail/action screens (`routes.tsx`'s `DETAIL_ROUTES`) — reached only by
- * following a link from an already-rendered screen, never from the left
- * menu, so unlike the ones above they list the API routes the real screen
- * will call: the next session building it starts from that list instead of
- * re-deriving it from `docs/plans/06-frontend-screens.md`.
- */
-function DetailPlaceholder({ testId, title, apiRoutes }: { testId: string; title: string; apiRoutes: string[] }) {
-  return (
-    <div data-testid={testId}>
-      <h1 className="text-lg font-bold text-[#1A1F24]">{title}</h1>
-      <ul className="mt-2 text-sm text-[#5A646D] list-disc pl-5">
-        {apiRoutes.map((route) => (
-          <li key={route}>{route}</li>
-        ))}
-      </ul>
-    </div>
-  );
-}
-
 // B7/B8 — real screens, Track 2 (the applicant's path). Re-exported rather
 // than defined here, same reasoning as `MyApplicationsPage` above.
 export { ApplicationWizardPage } from './applicant/wizard/ApplicationWizardPage';
