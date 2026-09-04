@@ -34,11 +34,19 @@ export function useActivityTypeName(activityTypeId: string | undefined, lang: Ui
 }
 
 export function useOrganizationName(organizationId: string | undefined, lang: UiLanguage): string | null {
+  // `kind=leshoz`, not an unfiltered fetch: `admin/repo.py::_organizations_query`
+  // documents "no filter at all -> the root only" (ruling 11) -- the endpoint is
+  // built to be walked level by level (root, then children by `parent_id`), not
+  // flattened in one call, so an unfiltered page_size=100 fetch silently returns
+  // just the agency root and never finds a leshoz. `permits/service.py`'s own
+  // docstring says today's `permits.organization_id` "is always the contour's
+  // leshoz" (nothing populates a sub-leshoz organization yet), which is the one
+  // fact that makes this filter correct rather than a coincidence.
   const query = useQuery({
-    queryKey: ['refs', 'organizations'],
+    queryKey: ['refs', 'organizations', 'leshoz'],
     queryFn: async () => {
       const { data, error } = await api.GET('/api/v1/refs/organizations', {
-        params: { query: { page_size: 100 } },
+        params: { query: { kind: 'leshoz', page_size: 100 } },
       });
       if (error) throw apiError(error);
       return data;
