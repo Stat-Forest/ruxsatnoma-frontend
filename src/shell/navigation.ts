@@ -4,9 +4,28 @@ import { Award, Bell, FileText, Home, Inbox, Map, Scale, Stamp, User, Users, Wal
 export type NavItem = {
   to: string;
   labelKey: string;
-  permission?: string;
+  /**
+   * The permission(s) that open this entry. An ARRAY means "any one of these
+   * is enough" — never "all of them". Two roles reach the same staff screen
+   * through different rights far more often than the singular field suggested:
+   * `executor_head` holds `applications.decide` and NOT `applications.review`,
+   * so a lone `review` code hid the worklist from the very person whose
+   * approval the workflow waits on, while the page itself handled him fine.
+   */
+  permission?: string | readonly string[];
   icon: ComponentType<{ className?: string }>;
 };
+
+/** True when `held` satisfies `required` — any one of them, or no requirement. */
+export function satisfies(
+  required: string | readonly string[] | undefined,
+  held: { permissions: string[]; is_superuser: boolean },
+): boolean {
+  if (!required) return true;
+  if (held.is_superuser) return true;
+  const needed = typeof required === 'string' ? [required] : required;
+  return needed.some((code) => held.permissions.includes(code));
+}
 
 /**
  * Every later stage (6.1-6.5) adds its screens by appending an entry here and a
@@ -20,15 +39,24 @@ export type NavItem = {
  * `/my/applications` and `/my/permits` carry no permission code, deliberately:
  * they are scoped by ownership (the backend narrows the list to the caller), not
  * by a code, so a citizen always sees their own documents. `/applications` and
- * `/permits` are the staff equivalents, gated on `applications.review` and
- * `permits.view_any` — seeing *everyone's* is a different right from seeing
- * *one's own*. Merging the two pairs is a real defect in either direction.
+ * `/permits` are the staff equivalents — seeing *everyone's* is a different
+ * right from seeing *one's own*, and merging the two pairs is a real defect in
+ * either direction. `/applications` lists BOTH staff codes because the reviewer
+ * and the approver are different people holding different rights.
  */
 export const NAVIGATION: NavItem[] = [
   { to: '/', labelKey: 'nav.dashboard', icon: Home },
   { to: '/my/applications', labelKey: 'nav.myApplications', icon: FileText },
   { to: '/my/permits', labelKey: 'nav.myPermits', icon: Award },
-  { to: '/applications', labelKey: 'nav.applications', permission: 'applications.review', icon: Inbox },
+  {
+    to: '/applications',
+    labelKey: 'nav.applications',
+    // Both the reviewer and the approver, who hold DIFFERENT codes — see
+    // `NavItem.permission`. The backend agrees: `applications.decide` is
+    // `executor_head`'s (migration 0015, left in place by 0016).
+    permission: ['applications.review', 'applications.decide'],
+    icon: Inbox,
+  },
   { to: '/gis', labelKey: 'nav.gis', permission: 'gis.contours.manage', icon: Map },
   { to: '/norms', labelKey: 'nav.norms', permission: 'norms.manage', icon: Scale },
   { to: '/invoices', labelKey: 'nav.invoices', permission: 'payments.view', icon: Wallet },
@@ -46,5 +74,5 @@ export const NAVIGATION: NavItem[] = [
  * reference's `lib/permissions.ts` does it) cannot express either.
  */
 export function visibleNav(me: { permissions: string[]; is_superuser: boolean }): NavItem[] {
-  return NAVIGATION.filter((item) => !item.permission || me.is_superuser || me.permissions.includes(item.permission));
+  return NAVIGATION.filter((item) => satisfies(item.permission, me));
 }
