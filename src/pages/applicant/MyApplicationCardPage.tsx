@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate, useParams } from 'react-router';
-import { ArrowLeft, FileText, Receipt } from 'lucide-react';
+import { ArrowLeft, Award, FileText, Receipt } from 'lucide-react';
 import { Button } from '../../components/ui/button';
 import { StatusBadge } from '../../components/ui/StatusBadge';
 import {
@@ -14,6 +14,8 @@ import {
 import { formatDate, formatDateTime, formatMoney, pickName } from './format';
 import { STATUS_BADGE_KIND, STATUS_LABELS } from './statusMeta';
 import { ApplicantTimeline } from './components/ApplicantTimeline';
+import { formatPermitNumber } from '../permits/format';
+import { usePermitForApplication } from '../permits/usePermitForApplication';
 
 const API_BASE = (import.meta.env.VITE_API_BASE as string | undefined) ?? 'http://localhost:8000';
 
@@ -51,6 +53,19 @@ export function MyApplicationCardPage() {
     // Most statuses never had an invoice at all; a 404-shaped empty result is
     // the normal case here, not a fetch failure worth retrying.
     retry: false,
+  });
+  // The link this card was missing (task brief, gap 2): once a permit
+  // exists for this application, offer it here rather than leaving the
+  // citizen to find it by other means. Checked for both `PAID` and
+  // `PERMIT_ISSUED` — a paid-but-unsigned permit does not move the
+  // application out of `PAID` (`docs/status.md`'s own "stuck forever" fact),
+  // so gating on `PERMIT_ISSUED` alone would hide the link exactly when a
+  // citizen most needs to see their pending signatures.
+  const permitQuery = usePermitForApplication({
+    applicationId: id ?? '',
+    applicantId: cardQuery.data?.applicant_id,
+    contourId: cardQuery.data?.contour_id,
+    enabled: !!id && (cardQuery.data?.status === 'PAID' || cardQuery.data?.status === 'PERMIT_ISSUED'),
   });
 
   if (!id) return null;
@@ -190,6 +205,27 @@ export function MyApplicationCardPage() {
           </div>
         )}
       </section>
+
+      {/* Permit — shown once one exists for this application (gap 2). */}
+      {permitQuery.data && (
+        <section className="bg-[#F0F7F1] border border-[#D9EBDC] rounded-2xl p-6 shadow-xs flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 className="text-sm font-bold text-[#123522] uppercase tracking-wider">Ruxsatnoma</h2>
+            <p className="text-xs text-[#5A646D] mt-1 font-mono">
+              {formatPermitNumber(permitQuery.data.series, permitQuery.data.number)}
+            </p>
+          </div>
+          <Button
+            variant="primary"
+            size="sm"
+            leftIcon={<Award className="w-4 h-4" />}
+            onClick={() => navigate(`/my/permits/${permitQuery.data!.id}`)}
+            className="cursor-pointer font-bold"
+          >
+            Ruxsatnomani koʻrish
+          </Button>
+        </section>
+      )}
 
       {/* Documents */}
       <section className="bg-white border border-[#E4E7EA] rounded-2xl shadow-xs p-6 space-y-3">

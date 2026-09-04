@@ -42,6 +42,10 @@ export function SignDecisionModal({
   const [pinfl, setPinfl] = useState('');
   const [reasonItemId, setReasonItemId] = useState('');
   const [legalBasis, setLegalBasis] = useState('');
+  // Set only once the operator has actually tried to submit with the PINFL
+  // field empty — an empty field is normal before that point and should not
+  // shout at someone who has not touched the form yet.
+  const [pinflTouched, setPinflTouched] = useState(false);
 
   const rejectionReasons = useRejectionReasons();
   const packageQuery = useApplicationPackage(applicationId);
@@ -53,13 +57,22 @@ export function SignDecisionModal({
     : null;
 
   const pinflValid = PINFL_PATTERN.test(pinfl);
+  // `pinflValid` is deliberately NOT part of `canSubmit`: with it there, an
+  // empty field simply disabled the button and a click did nothing at all —
+  // no error, no feedback (the defect this task fixes). The button stays
+  // clickable so `handleSubmit` below can run its own check and say why it
+  // refused, the same way `PermitSignaturesPanel.tsx::handleSign` already
+  // does for the permit's own signature slots.
   const canSubmit =
-    pinflValid &&
     packageQuery.data !== undefined &&
     !isSubmitting &&
     (mode === 'approve' || (reasonItemId !== '' && legalBasis.trim().length > 0));
 
   async function handleSubmit() {
+    if (!pinflValid) {
+      setPinflTouched(true);
+      return;
+    }
     if (!packageQuery.data) return;
     const pkcs7 = await buildMockSignature({ pinfl, documentBytes: packageQuery.data });
     if (mode === 'approve') {
@@ -132,12 +145,19 @@ export function SignDecisionModal({
           label="ERI sertifikatingiz PINFL (JSHSHIR)"
           required
           helperText="14 xonali raqam — mock ERI uchun kiritiladi, haqiqiy E-IMZO kalitida bu avtomatik oʻqiladi."
-          error={pinfl !== '' && !pinflValid ? "14 xonali raqam boʻlishi kerak" : undefined}
+          error={
+            (pinflTouched || pinfl !== '') && !pinflValid
+              ? pinfl === ''
+                ? 'PINFL kiritilishi shart — bu maydondagi 14 xonali raqam faqat namuna sifatida koʻrsatilgan.'
+                : '14 xonali raqam boʻlishi kerak'
+              : undefined
+          }
         >
           <Input
             inputMode="numeric"
             value={pinfl}
             onChange={(e) => setPinfl(e.target.value.replace(/\D/g, '').slice(0, 14))}
+            onBlur={() => setPinflTouched(true)}
             placeholder="31207854315218"
           />
         </FormField>

@@ -1,10 +1,13 @@
 import { useState } from 'react';
-import { AlertTriangle, ArrowUpCircle, CheckCircle2, Inbox, XCircle } from 'lucide-react';
+import { Link } from 'react-router';
+import { AlertTriangle, ArrowUpCircle, Award, CheckCircle2, Inbox, XCircle } from 'lucide-react';
 import { useAuth } from '../../../auth/useAuth';
 import { Button } from '../../../components/ui/button';
 import { ApiError } from '../../../api/errors';
 import { useApprove, useReject, useStartReview, type ApplicationCardOut } from '../queries';
 import { shortId, statusLabel } from '../format';
+import { formatPermitNumber } from '../../permits/format';
+import { usePermitForApplication } from '../../permits/usePermitForApplication';
 import { SignDecisionModal, type DecisionMode } from './SignDecisionModal';
 
 const REVIEW_PERMISSION = 'applications.review';
@@ -34,6 +37,17 @@ export function DecisionPanel({ card }: { card: ApplicationCardOut }) {
   const startReview = useStartReview(card.id);
   const approve = useApprove(card.id);
   const reject = useReject(card.id);
+  // The link this card was missing (task brief, gap 2). Checked for both
+  // `PAID` and `PERMIT_ISSUED` — a paid-but-unsigned permit does not move
+  // the application out of `PAID` (`docs/status.md`'s own "stuck forever"
+  // fact), so gating on `PERMIT_ISSUED` alone would hide exactly the case
+  // most worth a staff member opening.
+  const permitQuery = usePermitForApplication({
+    applicationId: card.id,
+    applicantId: card.applicant_id,
+    contourId: card.contour_id,
+    enabled: card.status === 'PAID' || card.status === 'PERMIT_ISSUED',
+  });
 
   if (!me) return null;
   const canReview = me.is_superuser || me.permissions.includes(REVIEW_PERMISSION);
@@ -73,6 +87,18 @@ export function DecisionPanel({ card }: { card: ApplicationCardOut }) {
       <div className="text-xs text-[#5A646D]">
         Joriy status: <span className="font-bold text-[#1A1F24]">{statusLabel(card.status)}</span>
       </div>
+
+      {permitQuery.data && (
+        <div className="p-3 bg-[#F0F7F1] border border-[#D9EBDC] rounded-xl text-xs text-[#123522] flex items-center justify-between gap-2">
+          <span className="flex items-center gap-1.5">
+            <Award className="w-4 h-4 shrink-0" />
+            Ruxsatnoma: <strong className="font-mono">{formatPermitNumber(permitQuery.data.series, permitQuery.data.number)}</strong>
+          </span>
+          <Link to={`/permits/${permitQuery.data.id}`} className="font-bold text-[#2E7D4F] hover:underline whitespace-nowrap">
+            Koʻrish →
+          </Link>
+        </div>
+      )}
 
       {forwardedTo && (
         <div className="p-3 bg-[#FFFBEB] border border-[#FDE68A] rounded-xl text-xs text-[#92400E] flex items-start gap-2">

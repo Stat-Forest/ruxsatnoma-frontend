@@ -17,9 +17,10 @@ export function DashboardPage() {
 // parallel tracks' own placeholder bodies below stay untouched.
 export { MyApplicationsPage } from './applicant/MyApplicationsPage';
 
-export function MyPermitsPage() {
-  return <div data-testid="my-permits-page">Mening ruxsatnomalarim</div>;
-}
+// Track 4 — real screen: the applicant's own permit list
+// (`src/pages/permits/MyPermitsPage.tsx`). Re-exported rather than defined
+// here for the same reason `MyApplicationsPage` above is.
+export { MyPermitsPage } from './permits/MyPermitsPage';
 
 /** Track 3 — the staff worklist (`src/pages/staff/ApplicationsListPage.tsx`). */
 export function ApplicationsPage() {
@@ -38,9 +39,9 @@ export function InvoicesPage() {
   return <div data-testid="invoices-page">Hisob-fakturalar</div>;
 }
 
-export function PermitsPage() {
-  return <div data-testid="permits-page">Ruxsatnomalar</div>;
-}
+// Track 4 — real screen: the staff permit registry
+// (`src/pages/permits/PermitsPage.tsx`).
+export { PermitsPage } from './permits/PermitsPage';
 
 export function NotificationsPage() {
   return <div data-testid="notifications-page">Bildirishnomalar</div>;
