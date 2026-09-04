@@ -64,6 +64,22 @@ export function useLivestockTypes() {
   });
 }
 
+/** `benefit_categories` — the classifier `applications.benefit_category_item_id`
+ * belongs to (migration 0005), resolved for the general-info panel. */
+export function useBenefitCategories() {
+  return useQuery({
+    queryKey: ['refs', 'classifiers', 'benefit_categories'],
+    queryFn: async () => {
+      const { data, error } = await api.GET('/api/v1/refs/classifiers/{code}/items', {
+        params: { path: { code: 'benefit_categories' } },
+      });
+      if (error) throw apiError(error);
+      return data;
+    },
+    staleTime: 10 * 60_000,
+  });
+}
+
 /** `doc_types` — the classifier `ApplicationDocumentIn.doc_type_item_id`
  * belongs to, resolved so the documents panel can name an attachment's kind
  * instead of showing a bare classifier id. */

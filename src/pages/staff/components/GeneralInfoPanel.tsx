@@ -1,5 +1,5 @@
 import { UserCheck, FileText } from 'lucide-react';
-import { useActivityTypes, useContour, useLivestockTypes, type ApplicationCardOut } from '../queries';
+import { useActivityTypes, useBenefitCategories, useContour, useLivestockTypes, type ApplicationCardOut } from '../queries';
 import { formatAmount, formatDate, localizedName, shortId } from '../format';
 
 const ON_BEHALF_LABELS: Record<ApplicationCardOut['on_behalf'], string> = {
@@ -29,7 +29,12 @@ function Fact({ label, value, sub }: { label: string; value: string; sub?: strin
 export function GeneralInfoPanel({ card }: { card: ApplicationCardOut }) {
   const activityTypes = useActivityTypes();
   const livestockTypes = useLivestockTypes();
+  const benefitCategories = useBenefitCategories();
   const contour = useContour(card.contour_id);
+
+  const benefitName = card.benefit_category_item_id
+    ? localizedName(benefitCategories.data?.find((b) => b.id === card.benefit_category_item_id)?.name)
+    : null;
 
   const activityName = card.activity_type_id
     ? localizedName(activityTypes.data?.find((a) => a.id === card.activity_type_id)?.name)
@@ -55,7 +60,11 @@ export function GeneralInfoPanel({ card }: { card: ApplicationCardOut }) {
             <Fact label="Yuborish kanali:" value={CHANNEL_LABELS[card.channel]} />
             <Fact
               label="Imtiyoz toifasi:"
-              value={card.benefit_category_item_id ? shortId(card.benefit_category_item_id) : "Koʻrsatilmagan"}
+              value={
+                card.benefit_category_item_id
+                  ? benefitName || shortId(card.benefit_category_item_id)
+                  : "Koʻrsatilmagan"
+              }
             />
           </dl>
         </div>
