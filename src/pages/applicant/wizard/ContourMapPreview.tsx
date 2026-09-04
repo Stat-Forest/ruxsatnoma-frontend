@@ -1,6 +1,24 @@
 import { useEffect, useRef } from 'react';
-import { GeoJSONSource, LngLatBounds, Map as MaplibreMap, type StyleSpecification } from 'maplibre-gl';
+import {
+  GeoJSONSource,
+  LngLatBounds,
+  Map as MaplibreMap,
+  setWorkerUrl,
+  type StyleSpecification,
+} from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
+// MapLibre 6 runs its geometry tiling in a SEPARATE worker file whose URL it
+// builds at run time (`new URL('./maplibre-gl-worker.mjs', import.meta.url)`).
+// A bundler cannot see a path assembled like that, so Vite never emitted the
+// file: the deployed build requested /assets/maplibre-gl-worker.mjs, got
+// nginx's SPA fallback (index.html) with a 404, and the worker silently never
+// started. There is no console error — but every GeoJSON source then stays
+// `_isUpdatingWorker: true` forever, `map.isStyleLoaded()` never turns true,
+// and NOTHING is ever drawn: the map showed a blank background even with a
+// contour selected and its geometry fetched. `?worker&url` makes Vite bundle
+// the worker together with the `maplibre-gl-shared.mjs` it imports and hand
+// back the URL it actually emitted, in dev and in the production build alike.
+import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url';
 // `maplibre-gl`'s own types reference the ambient `GeoJSON` global (from
 // `@types/geojson`), but this project's `tsconfig` sets an explicit `types`
 // list, which turns off TypeScript's automatic pickup of every installed
@@ -9,6 +27,8 @@ import 'maplibre-gl/dist/maplibre-gl.css';
 // namespace GeoJSON` in `@types/geojson` doubles as a real ES module), and
 // works regardless of that `types` list.
 import type { Feature, Geometry } from 'geojson';
+
+setWorkerUrl(workerUrl);
 
 /** No tile source at all (decision #60.1 leaves the basemap itself open — a
  * hosting/licensing question, not a library one): a flat background is
