@@ -76,7 +76,19 @@ export const NAVIGATION: NavItem[] = [
     permission: ['applications.review', 'applications.decide'],
     icon: Inbox,
   },
-  { to: '/gis', labelKey: 'nav.gis', permission: 'gis.contours.manage', icon: Map },
+  // Any ONE of the three (`NavItem.permission` semantics): the GIS
+  // specialist holds `contours.manage`, the rahbar/chief_forester who
+  // approves versions and import batches holds only `contours.approve`, and
+  // a `central_admin` who only maintains layer objects holds only
+  // `layers.manage` (`gis/permissions.py`) — gating on the specialist's code
+  // alone would hide the whole page, approve buttons included, from the
+  // other two (stage 6.5, track F1).
+  {
+    to: '/gis',
+    labelKey: 'nav.gis',
+    permission: ['gis.contours.manage', 'gis.contours.approve', 'gis.layers.manage'],
+    icon: Map,
+  },
   // Two DIFFERENT permissions reach the three tabs behind this one entry:
   // rule parameters and tariffs are gated on `norms.tariffs.manage`, not
   // `norms.manage` — see `NavItem.permission`. Before this array, the

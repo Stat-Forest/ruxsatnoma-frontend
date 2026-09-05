@@ -29,9 +29,11 @@ export function ApplicationsPage() {
   return <ApplicationsListPage />;
 }
 
-export function GisPage() {
-  return <div data-testid="gis-page">GIS xaritasi</div>;
-}
+// F1-F4 — real screen, Track F1 of the stage 4+6 fleet (`./gis/GisPage.tsx`):
+// contour map (draw/edit/split), the version lifecycle, geodata import and
+// the restriction/protection/fire-ban layers. Re-exported rather than
+// defined here for the same reason `MyApplicationsPage` above is.
+export { GisPage } from './gis/GisPage';
 
 // F5-F7 — the real screen (`src/pages/norms/NormsPage.tsx`), re-exported
 // rather than defined here for the same reason `MyApplicationsPage` is.
