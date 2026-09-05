@@ -110,9 +110,12 @@ test('a stale CSRF token on the language switch recovers transparently, not as a
   );
 
   await screen.findByTestId('app-shell');
-  await userEvent.selectOptions(screen.getByTestId('language-select'), 'ru');
+  await userEvent.click(screen.getByTestId('language-trigger'));
+  await userEvent.click(screen.getByRole('menuitemradio', { name: /Русский/ }));
 
-  await waitFor(() => expect(screen.getByTestId('language-select')).toHaveValue('ru'));
+  await waitFor(() =>
+    expect(screen.getByTestId('language-trigger')).toHaveTextContent('RU'),
+  );
   expect(putCalls).toBe(2);
 });
 
@@ -129,12 +132,13 @@ test('a language switch failure that is not session/CSRF related does not throw 
   );
 
   await screen.findByTestId('app-shell');
-  await userEvent.selectOptions(screen.getByTestId('language-select'), 'ru');
+  await userEvent.click(screen.getByTestId('language-trigger'));
+  await userEvent.click(screen.getByRole('menuitemradio', { name: /Русский/ }));
   // Give the rejected promise a tick to surface as an unhandled rejection,
   // were it not caught.
   await new Promise((resolve) => setTimeout(resolve, 0));
 
-  expect(screen.getByTestId('language-select')).toHaveValue('uz_latn');
+  expect(screen.getByTestId('language-trigger')).toHaveTextContent('UZ');
 });
 
 // Decision #18: the switcher offers all five languages the backend accepts
@@ -153,15 +157,21 @@ test('the switcher offers all five backend languages, and one without a string m
   );
 
   await screen.findByTestId('app-shell');
-  const select = screen.getByTestId('language-select');
-  expect(
-    Array.from(select.querySelectorAll('option')).map((option) => option.value),
-  ).toEqual(['uz_cyrl', 'uz_latn', 'ru', 'kaa', 'en']);
+  await userEvent.click(screen.getByTestId('language-trigger'));
+  expect(screen.getAllByRole('menuitemradio').map((item) => item.textContent)).toEqual([
+    'ЎЗЎзбекча (кирилл)',
+    'UZOʻzbekcha (lotin)',
+    'RUРусский',
+    'ҚҚQaraqalpaqsha',
+    'ENEnglish',
+  ]);
 
-  await userEvent.selectOptions(select, 'kaa');
+  await userEvent.click(screen.getByRole('menuitemradio', { name: /Qaraqalpaqsha/ }));
 
-  await waitFor(() => expect(select).toHaveValue('kaa'));
+  await waitFor(() => expect(screen.getByTestId('language-trigger')).toHaveTextContent('ҚҚ'));
   expect(stored).toBe('kaa');
+  // The menu closes on a pick — it is a header control, not a panel.
+  expect(screen.queryByTestId('language-menu')).toBeNull();
   // `kaa` has no dictionary yet, so the copy stays Latin Uzbek rather than
   // rendering raw keys — the fallback, not a missing translation.
   expect(screen.getByRole('button', { name: 'Chiqish' })).toBeInTheDocument();

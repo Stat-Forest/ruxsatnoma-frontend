@@ -5,9 +5,9 @@ import { Bell, LogOut, Menu, RefreshCw, Trees, X } from 'lucide-react';
 import { api } from '../api/client';
 import { apiError } from '../api/errors';
 import { useAuth } from '../auth/useAuth';
-import { LANGUAGES } from '../i18n/context';
-import type { BackendLanguage, UiLanguage } from '../i18n/context';
+import type { UiLanguage } from '../i18n/context';
 import { useLanguage, useT } from '../i18n/useT';
+import { LanguageMenu } from './LanguageMenu';
 import { Nav } from './Nav';
 
 /**
@@ -76,34 +76,21 @@ export function AppShell() {
 
         <div className="flex-1" />
 
-        {/*
-          A select rather than the two-button toggle this header used to carry:
-          five 44px targets do not fit beside the burger, bell and logout at
-          375px, which is the width decision #61 verified the shell against.
-        */}
-        <select
-          data-testid="language-select"
-          aria-label={t('shell.language')}
+        <LanguageMenu
           value={backendLang}
-          onChange={(event) => {
+          label={t('shell.language')}
+          onSelect={(code) => {
             // `setLanguage` throws on failure (see `I18nProvider`). The two
             // error codes ruling 10 requires be handled globally (session
             // gone, stale CSRF) are already caught by `sessionMiddleware` in
             // `src/api/client.ts` before they ever reach here; this catch is
             // the backstop against anything else turning into an unhandled
             // promise rejection.
-            setLanguage(event.target.value as BackendLanguage).catch((err: unknown) => {
+            setLanguage(code).catch((err: unknown) => {
               console.error('Tilni almashtirishda xatolik:', err);
             });
           }}
-          className="h-11 shrink-0 rounded-md border border-[#767F87] bg-white px-2 text-xs font-semibold text-[#5A646D] hover:bg-[#F8F9FA]"
-        >
-          {LANGUAGES.map(({ code, label, title }) => (
-            <option key={code} value={code} title={title}>
-              {label}
-            </option>
-          ))}
-        </select>
+        />
 
         <div className="relative flex items-center justify-center h-11 w-11 text-[#5A646D] shrink-0">
           <Bell className="w-5 h-5" />
