@@ -194,6 +194,7 @@ export const ru = {
   'cabinet.representation.basisShort.org_eri': 'ЭЦП',
   'cabinet.representation.basisShort.director_registry': 'OneID',
   'cabinet.representation.basisShort.poa': 'Доверенность',
+  'cabinet.representation.selectOrgLabel': 'Выберите организацию',
   'cabinet.representation.addColleagueTitle': 'Добавить представителя',
   'cabinet.representation.addColleagueIntro':
     'Добавьте ещё одного человека, который может подавать документы от имени этой организации.',

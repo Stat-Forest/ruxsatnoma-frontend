@@ -32,6 +32,19 @@ describe('buildMockSignedChallenge', () => {
     });
     expect(envelope).not.toMatch(/[+/]/);
   });
+
+  it('carries an org STIR in tin when B4 attaches a legal entity via org_eri', async () => {
+    const envelope = await buildMockSignedChallenge({
+      challenge: 'chal-2',
+      pinfl: '30491823410019',
+      fullName: 'SAIDOV OTABEK',
+      tin: '123456789',
+      legalName: 'OOO Forest LLC',
+    });
+    const payload = decode(envelope);
+    expect(payload.tin).toBe('123456789');
+    expect(payload.legal_name).toBe('OOO Forest LLC');
+  });
 });
 
 describe('buildMockSignature', () => {

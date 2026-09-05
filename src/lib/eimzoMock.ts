@@ -127,19 +127,30 @@ export interface MockChallengeInput {
   challenge: string;
   pinfl: string;
   fullName: string;
+  /**
+   * The org STIR this certificate speaks for — absent (`null`) for an
+   * ordinary personal login, present when B4's "attach a legal entity"
+   * (`org_eri` basis) or "add a colleague" flow builds this same envelope:
+   * `auth.service._verify_org_challenge` checks `identity.tin != stir`
+   * against exactly this field.
+   */
+  tin?: string | null;
+  legalName?: string | null;
 }
 
 export async function buildMockSignedChallenge({
   challenge,
   pinfl,
   fullName,
+  tin = null,
+  legalName = null,
 }: MockChallengeInput): Promise<string> {
   return base64UrlEncodeJson({
     challenge,
     pinfl,
     full_name: fullName,
-    tin: null,
-    legal_name: null,
+    tin,
+    legal_name: legalName,
     cert_serial: 'MOCK-CERT',
     cert_expires_at: null,
   });

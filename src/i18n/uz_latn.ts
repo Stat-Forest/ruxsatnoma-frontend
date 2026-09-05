@@ -203,6 +203,7 @@ export const uz_latn = {
   'cabinet.representation.basisShort.org_eri': 'ERI',
   'cabinet.representation.basisShort.director_registry': 'OneID',
   'cabinet.representation.basisShort.poa': 'Ishonchnoma',
+  'cabinet.representation.selectOrgLabel': 'Tashkilotni tanlang',
   'cabinet.representation.addColleagueTitle': "Vakil qo'shish",
   'cabinet.representation.addColleagueIntro':
     "Ushbu tashkilot nomidan hujjat topshirishi mumkin bo'lgan yana bir shaxsni qo'shing.",
