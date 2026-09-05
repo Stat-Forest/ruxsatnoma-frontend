@@ -54,6 +54,15 @@ const BASEMAPS = [
 
 type BasemapId = (typeof BASEMAPS)[number]['id'];
 
+/** In basemap order: fill first, then the casing, then the outline on top. */
+const CONTOUR_LAYERS = ['contour-fill', 'contour-casing', 'contour-line'] as const;
+
+/** The fill has to do opposite jobs on the two basemaps. Over the flat scheme
+ * it IS the parcel — nothing else marks it. Over imagery it hides the very
+ * thing the imagery was switched on to show (what grows there), so it thins
+ * to a tint and the outline carries the shape. */
+const FILL_OPACITY: Record<BasemapId, number> = { osm: 0.45, satellite: 0.15 };
+
 const BASEMAP_STYLE: StyleSpecification = {
   version: 8,
   sources: {
@@ -150,6 +159,11 @@ export function ContourMapPreview({ geometry }: { geometry: Record<string, unkno
     for (const { id } of BASEMAPS) {
       map.setLayoutProperty(id, 'visibility', id === basemap ? 'visible' : 'none');
     }
+    // Guarded: the contour layers exist only once something is picked, and the
+    // basemap can be switched before that.
+    if (map.getLayer('contour-fill')) {
+      map.setPaintProperty('contour-fill', 'fill-opacity', FILL_OPACITY[basemap]);
+    }
   }, [basemap, mapReady]);
 
   useEffect(() => {
@@ -157,8 +171,7 @@ export function ContourMapPreview({ geometry }: { geometry: Record<string, unkno
     if (!map || !mapReady) return;
 
     if (!geometry) {
-      if (map.getLayer('contour-fill')) map.removeLayer('contour-fill');
-      if (map.getLayer('contour-line')) map.removeLayer('contour-line');
+      for (const id of CONTOUR_LAYERS) if (map.getLayer(id)) map.removeLayer(id);
       if (map.getSource('contour')) map.removeSource('contour');
       return;
     }
@@ -173,13 +186,25 @@ export function ContourMapPreview({ geometry }: { geometry: Record<string, unkno
         id: 'contour-fill',
         type: 'fill',
         source: 'contour',
-        paint: { 'fill-color': '#2E7D4F', 'fill-opacity': 0.45 },
+        paint: { 'fill-color': '#2E7D4F', 'fill-opacity': FILL_OPACITY[basemap] },
+      });
+      // A white casing UNDER the dark outline. Without it the boundary was
+      // invisible on imagery: a dark-green line over dark-green vegetation is
+      // the one combination satellite mode is guaranteed to produce, and a
+      // parcel you cannot find is the whole feature failing. The halo reads
+      // against both a dark photo and the pale scheme, so one styling serves
+      // both basemaps instead of two that can drift apart.
+      map.addLayer({
+        id: 'contour-casing',
+        type: 'line',
+        source: 'contour',
+        paint: { 'line-color': '#FFFFFF', 'line-width': 5, 'line-opacity': 0.9 },
       });
       map.addLayer({
         id: 'contour-line',
         type: 'line',
         source: 'contour',
-        paint: { 'line-color': '#123522', 'line-width': 2.5 },
+        paint: { 'line-color': '#123522', 'line-width': 2 },
       });
     }
 
@@ -189,11 +214,18 @@ export function ContourMapPreview({ geometry }: { geometry: Record<string, unkno
       const bounds = coords.reduce((b, c) => b.extend(c), new LngLatBounds(coords[0], coords[0]));
       map.fitBounds(bounds, { padding: 40, maxZoom: 15, duration: 300 });
     }
-  }, [geometry, mapReady]);
+  }, [geometry, mapReady, basemap]);
 
   return (
     <div className="relative w-full h-64 rounded-xl border border-[#E4E7EA] overflow-hidden">
-      <div ref={containerRef} className="absolute inset-0" />
+      {/* `h-full`, NOT `absolute inset-0`: maplibre-gl.css declares
+          `.maplibregl-map { position: relative }` and adds that class to this
+          very div at run time. Tailwind's `absolute` is one class too, so
+          source order decides and MapLibre wins — `inset-0` then has nothing
+          to anchor to, the container collapses to 0px tall, and the map
+          renders as a white band outside its own frame. Sizing it against the
+          parent's height sidesteps the fight entirely. */}
+      <div ref={containerRef} className="w-full h-full" />
       {/* Top-LEFT: MapLibre's own attribution control sits bottom-right, and
           the credit is the one thing on this map that may not be covered. */}
       <div className="absolute top-2 left-2 z-10 flex rounded-lg overflow-hidden border border-[#E4E7EA] shadow-xs bg-white">
