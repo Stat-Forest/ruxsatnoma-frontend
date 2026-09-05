@@ -8,9 +8,11 @@ import { StaffApplicationCard } from './staff/StaffApplicationCard';
  * Each of these is replaced by a real screen as stages 6.1-6.5 land — nothing
  * about the route table or `NAVIGATION` changes shape when that happens.
  */
-export function DashboardPage() {
-  return <div data-testid="dashboard-page">Bosh sahifa</div>;
-}
+// B1/C3 — real screen for the applicant, the same placeholder body as before
+// for every other role (`src/pages/dashboard/DashboardPage.tsx` holds both
+// branches and the reasoning for the split). Re-exported rather than defined
+// here for the same reason `MyApplicationsPage` below is.
+export { DashboardPage } from './dashboard/DashboardPage';
 
 // B6 — real screen, Track 2 (the applicant's path). Re-exported rather than
 // defined here so `routes.tsx`'s import list needs no change and the other
