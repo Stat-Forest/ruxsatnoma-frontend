@@ -106,3 +106,49 @@ test('an empty warnings array is displayed as explicitly empty, not blank', () =
   render(<PublishConfirmDialog {...baseProps({ result: { item: {}, warnings: [] } })} />);
   expect(screen.getByTestId('publish-result')).toHaveTextContent(LABELS.resultEmpty);
 });
+
+// Review round 1, minor 2: `Modal` wires backdrop/Escape/its header cross to
+// ONE `onClose`, with no opt-out. Mid-flight and after success, a stray
+// dismissal through any of those three must be a no-op — only the footer's
+// own Cancel/Close button (a deliberate click) may still call the real
+// `onClose`.
+
+test('dismissal is blocked while the mutation is pending — the header close button AND Escape both no-op', async () => {
+  const user = userEvent.setup();
+  const onClose = vi.fn();
+  render(<PublishConfirmDialog {...baseProps({ isPending: true, onClose })} />);
+
+  await user.click(screen.getByRole('button', { name: 'Yopish' }));
+  expect(onClose).not.toHaveBeenCalled();
+
+  await user.keyboard('{Escape}');
+  expect(onClose).not.toHaveBeenCalled();
+
+  // The Cancel button itself is disabled while pending — consistent with
+  // Escape/backdrop being blocked too, rather than offering a second way
+  // out that disagrees with the first.
+  expect(screen.getByTestId('publish-dialog-cancel')).toBeDisabled();
+});
+
+test('dismissal is blocked after a successful publish — only the explicit Close button drops the dialog', async () => {
+  const user = userEvent.setup();
+  const onClose = vi.fn();
+  render(
+    <PublishConfirmDialog
+      {...baseProps({ onClose, result: { item: {}, warnings: [{ code: 'RI-04', message: 'late' }] } })}
+    />,
+  );
+
+  await user.click(screen.getByRole('button', { name: 'Yopish' }));
+  expect(onClose).not.toHaveBeenCalled();
+
+  await user.keyboard('{Escape}');
+  expect(onClose).not.toHaveBeenCalled();
+
+  // The returned warning is still on screen — nothing dropped it.
+  expect(screen.getByTestId('publish-warning-RI-04')).toBeInTheDocument();
+
+  await user.click(screen.getByTestId('publish-dialog-close'));
+  expect(onClose).toHaveBeenCalledTimes(1);
+});
+

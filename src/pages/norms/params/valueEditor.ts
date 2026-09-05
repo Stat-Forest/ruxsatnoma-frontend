@@ -33,11 +33,21 @@ export function valueEditorKind(current: unknown): ValueEditorKind {
 
 /** The value as the editor's initial text — raw for a string (an operator
  *  editing a coefficient should see `0.8`, not `"0.8"`), pretty JSON for
- *  anything else. */
+ *  anything else.
+ *
+ *  `undefined` (fix, review round 1) prints as EMPTY, not `'null'`: a fresh
+ *  CREATE form has no value yet at all, and defaulting the JSON editor's
+ *  text to the literal `'null'` let a required field parse cleanly while
+ *  never actually being filled in — `parseValueDraft` below now refuses
+ *  that same empty text as a required-field error rather than a successful
+ *  parse of `null`. A value that IS explicitly stored as `null` (editing an
+ *  existing row) is a real value, not an unfilled field, and still renders
+ *  as the text `null` so the operator can see and change it. */
 export function valueToEditorText(value: unknown, kind: ValueEditorKind): string {
   if (kind === 'string') return typeof value === 'string' ? value : '';
   if (kind === 'number') return typeof value === 'number' ? String(value) : '';
-  return JSON.stringify(value ?? null, null, 2);
+  if (value === undefined) return '';
+  return JSON.stringify(value, null, 2);
 }
 
 export type ValueParseResult = { value: unknown } | { error: string };
@@ -48,6 +58,7 @@ export function parseValueDraft(
   flag: boolean,
   invalidNumberMessage: string,
   invalidJsonPrefix: string,
+  requiredMessage: string,
 ): ValueParseResult {
   switch (kind) {
     case 'boolean':
@@ -61,6 +72,14 @@ export function parseValueDraft(
       return { value: parsed };
     }
     case 'json':
+      // An untouched CREATE form's JSON editor starts empty (see
+      // `valueToEditorText`) — refused here as "required", not handed to
+      // `JSON.parse` (which would either throw a confusing "unexpected end
+      // of input" or, for the OLD default text `'null'`, succeed and quietly
+      // save `null` for a field marked required). A value the operator
+      // legitimately wants to be JSON `null` is still typed as the four
+      // characters `null`, which is non-empty text and parses normally.
+      if (text.trim() === '') return { error: requiredMessage };
       try {
         return { value: JSON.parse(text) as unknown };
       } catch (error) {

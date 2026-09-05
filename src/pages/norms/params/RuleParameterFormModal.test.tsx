@@ -83,17 +83,51 @@ test('a missing basis is refused locally with its own message', async () => {
 
   await user.type(screen.getByTestId('rp-code'), 'coef_sb:qoramol');
   fireEvent.change(screen.getByTestId('rp-effective-from'), { target: { value: '2026-01-01' } });
+  fireEvent.change(screen.getByTestId('rp-value'), { target: { value: '"0.8"' } });
   await user.click(screen.getByText('norms.params.form.save'));
 
   expect(await screen.findByText('norms.params.form.basisRequired')).toBeInTheDocument();
 });
 
-test('a valid create submits and reports the saved row back to the caller', async () => {
+// Review round 1, minor 1: a fresh create form's JSON value editor used to
+// default its text to the literal `'null'`, which parses cleanly — so the
+// value field (marked required) could be saved without ever being filled.
+test('an untouched value field on create is refused locally as required, without calling the API', async () => {
   const user = userEvent.setup();
-  server.use(http.post('*/api/v1/rule-parameters', () => HttpResponse.json(ROW, { status: 201 })));
+  let called = false;
+  server.use(
+    http.post('*/api/v1/rule-parameters', () => {
+      called = true;
+      return HttpResponse.json(ROW, { status: 201 });
+    }),
+  );
+  renderModal('create');
+
+  // The value editor starts EMPTY on create (fixed) — not the text 'null'
+  // that used to parse into a silently-accepted `null` value.
+  expect(screen.getByTestId('rp-value')).toHaveValue('');
+
+  await user.type(screen.getByTestId('rp-code'), 'coef_sb:qoramol');
+  fillCommonFields();
+  await user.click(screen.getByText('norms.params.form.save'));
+
+  expect(await screen.findByText('norms.params.form.valueRequired')).toBeInTheDocument();
+  expect(called).toBe(false);
+});
+
+test('a valid create submits the typed value in the request body and reports the saved row back to the caller', async () => {
+  const user = userEvent.setup();
+  let sentBody: unknown;
+  server.use(
+    http.post('*/api/v1/rule-parameters', async ({ request }) => {
+      sentBody = await request.json();
+      return HttpResponse.json(ROW, { status: 201 });
+    }),
+  );
   const { onSaved } = renderModal('create');
 
   await user.type(screen.getByTestId('rp-code'), 'coef_sb:qoramol');
+  fireEvent.change(screen.getByTestId('rp-value'), { target: { value: '"0.8"' } });
   fillCommonFields();
   await user.click(screen.getByText('norms.params.form.save'));
 
@@ -105,6 +139,10 @@ test('a valid create submits and reports the saved row back to the caller', asyn
   // function, which simply ignores what it does not declare.
   await waitFor(() => expect(onSaved).toHaveBeenCalled());
   expect(onSaved.mock.calls[0][0]).toEqual(ROW);
+  // The actual request body is what minor 1 asked this test to prove: the
+  // JSON editor's typed text really reaches the server as the parsed JSON
+  // value `"0.8"` (a string), not the unfilled default.
+  expect(sentBody).toMatchObject({ code: 'coef_sb:qoramol', value: '0.8', basis: 'Some basis' });
 });
 
 test('editing a draft with a NUMBER value keeps the numeric editor and sends a real number', async () => {

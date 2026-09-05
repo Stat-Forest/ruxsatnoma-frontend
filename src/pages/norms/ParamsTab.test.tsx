@@ -30,7 +30,7 @@
  */
 import type { ReactNode } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { setupServer } from 'msw/node';
@@ -137,6 +137,21 @@ function mockArchive(store: RuleParameterOut[]) {
       const index = store.findIndex((r) => r.id === params.id);
       if (index < 0) return HttpResponse.json({ error: { code: 'ERR-SYS-000', message: 'not found' } }, { status: 404 });
       store[index] = { ...store[index], status: 'archived', effective_to: '2026-01-01' };
+      return HttpResponse.json(store[index]);
+    }),
+  );
+}
+
+/** A real PATCH round trip, mutating `store` in place like the others —
+ *  needed by the R3 integration test below, which edits a row through the
+ *  actual `RuleParameterFormModal` rather than asserting on props directly. */
+function mockPatch(store: RuleParameterOut[]) {
+  server.use(
+    http.patch('*/api/v1/rule-parameters/:id', async ({ params, request }) => {
+      const index = store.findIndex((r) => r.id === params.id);
+      if (index < 0) return HttpResponse.json({ error: { code: 'ERR-SYS-000', message: 'not found' } }, { status: 404 });
+      const body = (await request.json()) as Record<string, unknown>;
+      store[index] = { ...store[index], ...body };
       return HttpResponse.json(store[index]);
     }),
   );
@@ -427,4 +442,45 @@ test('archiving a draft row, end to end, removes it from the register on refetch
 
   await waitFor(() => expect(screen.queryByTestId('row-archive-coef_sb:tuya')).not.toBeInTheDocument());
   expect(store[0].status).toBe('archived');
+});
+
+// Review round 1, IMPORTANT finding: R3's only production wiring
+// (`RuleParameterFormModal.onSaved` -> `markEdited` -> `editedRowIds.has(id)`
+// -> `PublishConfirmDialog`'s `editedByCallerThisSession` prop) had no test
+// exercising the real chain — `PublishConfirmDialog.test.tsx` only proves the
+// dialog renders correctly GIVEN the boolean, never that editing a row here
+// actually SETS it. This test edits a draft through the row's own Edit
+// button, then opens Publish on that SAME row and asserts the warning — and,
+// as a sibling, that a row never touched this session does not raise it. It
+// fails if `markEdited(saved)` is removed from `ParamsTab.tsx`.
+test('ruling R3: publishing a row edited THIS session warns; a row never touched does not', async () => {
+  const user = userEvent.setup();
+  const store = [
+    param({ code: 'coef_sb:qoramol', status: 'draft', value: '0.8' }),
+    param({ code: 'coef_sb:qoy', status: 'draft', value: '0.5' }),
+  ];
+  mockList(store);
+  mockPatch(store);
+  renderTab();
+  await findTableLoaded();
+
+  // Edit coef_sb:qoramol through the real form, exactly as an operator
+  // would — not a prop passed directly to the dialog.
+  await user.click(screen.getByTestId('row-edit-coef_sb:qoramol'));
+  const valueInput = await screen.findByTestId('rp-value');
+  expect(valueInput).toHaveValue('0.8');
+  fireEvent.change(valueInput, { target: { value: '0.83' } });
+  await user.click(screen.getByText('norms.params.form.save'));
+  await waitFor(() => expect(screen.queryByTestId('rule-parameter-form')).not.toBeInTheDocument());
+
+  // Publishing the row just edited warns.
+  await user.click(screen.getByTestId('row-publish-coef_sb:qoramol'));
+  expect(await screen.findByTestId('publish-self-warning')).toBeInTheDocument();
+  await user.click(screen.getByTestId('publish-dialog-cancel'));
+  await waitFor(() => expect(screen.queryByTestId('publish-confirm-dialog')).not.toBeInTheDocument());
+
+  // The OTHER row, never touched this session, does not.
+  await user.click(screen.getByTestId('row-publish-coef_sb:qoy'));
+  await screen.findByTestId('publish-confirm-dialog');
+  expect(screen.queryByTestId('publish-self-warning')).not.toBeInTheDocument();
 });

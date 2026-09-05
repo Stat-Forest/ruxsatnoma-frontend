@@ -94,11 +94,25 @@ export function PublishConfirmDialog({
 }: PublishConfirmDialogProps) {
   const retroactive = effectiveFrom < today;
   const published = result !== null;
+  // `Modal` wires its backdrop, Escape and header cross to ONE `onClose`,
+  // with no opt-out — so blocking a stray dismissal means swapping in a
+  // no-op for those three, not the footer buttons below, which still call
+  // the real `onClose` directly. Two cases need it: mid-flight (`isPending`)
+  // a vanished dialog would look like the publish itself silently vanished
+  // (and the Cancel button is already `disabled` then — Escape/backdrop
+  // must agree, not offer a second, inconsistent way out); after success,
+  // a stray dismissal would drop `result.warnings`, the AUTHORITATIVE set
+  // ruling R4 exists to show, with no way to see them again. Same reasoning
+  // as the house rule that a one-time-secret panel has exactly one exit —
+  // applied here as a guard on the shared `Modal`'s own exits rather than a
+  // bespoke overlay, since the footer already has the one deliberate exit
+  // each state needs.
+  const blockDismiss = () => {};
 
   return (
     <Modal
       isOpen
-      onClose={onClose}
+      onClose={isPending || published ? blockDismiss : onClose}
       title={labels.title}
       maxWidth="md"
       footer={

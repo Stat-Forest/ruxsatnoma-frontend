@@ -169,6 +169,7 @@ export const uz_latn = {
     "Son boricha kiritiladi — 10, satr — qoʻshtirnoqda «0.8», mantiqiy qiymat — true/false.",
   'norms.params.form.valueInvalidNumber': 'Sonni kiriting.',
   'norms.params.form.valueInvalidJson': 'Qiymatni JSON sifatida oʻqib boʻlmadi',
+  'norms.params.form.valueRequired': 'Qiymatni kiriting — maydon majburiy.',
   'norms.params.form.unit': "O'lchov birligi",
   'norms.params.form.effectiveFrom': 'Amal qilish boshlanishi',
   'norms.params.form.effectiveFromRequired': 'Amal qilish boshlanish sanasini kiriting.',

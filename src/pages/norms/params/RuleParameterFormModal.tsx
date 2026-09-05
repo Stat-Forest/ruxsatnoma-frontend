@@ -78,6 +78,7 @@ export function RuleParameterFormModal({ mode, row, onClose, onSaved }: RulePara
     flag,
     t('norms.params.form.valueInvalidNumber'),
     t('norms.params.form.valueInvalidJson'),
+    t('norms.params.form.valueRequired'),
   );
   const codeValid = mode === 'edit' || (RULE_PARAMETER_CODE_PATTERN.test(code) && code.length <= RULE_PARAMETER_CODE_MAX_LENGTH);
   const basisValid = basis.trim().length > 0 && basis.length <= RULE_PARAMETER_BASIS_MAX_LENGTH;

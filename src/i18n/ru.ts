@@ -162,6 +162,7 @@ export const ru = {
     'Число вводится как есть — 10, строка — в кавычках «0.8», логическое значение — true/false.',
   'norms.params.form.valueInvalidNumber': 'Введите число.',
   'norms.params.form.valueInvalidJson': 'Не удалось разобрать значение как JSON',
+  'norms.params.form.valueRequired': 'Укажите значение — поле обязательно.',
   'norms.params.form.unit': 'Единица',
   'norms.params.form.effectiveFrom': 'Действует с',
   'norms.params.form.effectiveFromRequired': 'Укажите дату начала действия.',
