@@ -5,7 +5,9 @@ import { setupServer } from 'msw/node';
 import { vi } from 'vitest';
 import App from '../App';
 import { setCsrfToken } from '../api/client';
+import { ONEID_NEXT_KEY } from '../auth/AuthProvider';
 import { navigation } from '../lib/navigation';
+import { router } from '../routes';
 
 const ME = {
   user: {
@@ -43,6 +45,10 @@ beforeAll(() => server.listen());
 afterEach(() => {
   server.resetHandlers();
   setCsrfToken(null);
+  // The OneID failure-path tests below are the only ones in this file that
+  // touch it — cleared so a value one of them stores can never leak into an
+  // unrelated later test's `next` fallback.
+  sessionStorage.removeItem(ONEID_NEXT_KEY);
 });
 afterAll(() => server.close());
 
@@ -142,6 +148,35 @@ it('the OneID tab sends the browser to the provider', async () => {
   await userEvent.click(await screen.findByRole('tab', { name: 'OneID' }));
   await userEvent.click(screen.getByRole('button', { name: /OneID/ }));
   await waitFor(() => expect(assign).toHaveBeenCalledWith('https://id.egov.uz/?state=x'));
+});
+
+it('a failed OneID round trip surfaces its own message — nobody was reading `?error=oneid` before', async () => {
+  // The backend redirects here on a failed `oneid_state` check — a full
+  // page load, indistinguishable in a test from any other fresh navigation.
+  await router.navigate('/login?error=oneid');
+  render(<App />);
+  expect(await screen.findByTestId('oneid-error')).toBeInTheDocument();
+});
+
+it('a failed OneID round trip does not cost the citizen their destination on retry', async () => {
+  // What `startOneId` had written before the browser left for the provider,
+  // still there because the round trip failed before anything consumed it.
+  sessionStorage.setItem(ONEID_NEXT_KEY, '/my/applications/new');
+  const assign = vi.spyOn(navigation, 'assign').mockImplementation(() => {});
+  server.use(
+    http.get('*/auth/oneid/authorize', () =>
+      HttpResponse.json({ redirect_url: 'https://id.egov.uz/?state=retry' }),
+    ),
+  );
+  // A full page load: `location.state.next` is gone, same as production.
+  await router.navigate('/login?error=oneid');
+  render(<App />);
+  await userEvent.click(await screen.findByRole('tab', { name: 'OneID' }));
+  await userEvent.click(screen.getByRole('button', { name: /OneID/ }));
+  await waitFor(() => expect(assign).toHaveBeenCalledWith('https://id.egov.uz/?state=retry'));
+  // The retry re-stored the SAME destination it recovered — not the '/'
+  // fallback a lost `location.state.next` used to leave `startOneId` with.
+  expect(sessionStorage.getItem(ONEID_NEXT_KEY)).toBe('/my/applications/new');
 });
 
 it('the E-IMZO tab refuses a PINFL that is not 14 digits without calling the API', async () => {

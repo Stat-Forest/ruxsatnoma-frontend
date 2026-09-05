@@ -1,11 +1,27 @@
 /**
- * The module-level cache `OneIdReturnPage` reads its redirect target from,
- * plus the function that fills it. Split out of `OneIdReturnPage.tsx` because
- * a file that exports anything but components breaks fast refresh
- * (`react-refresh/only-export-components`) — and because `resetOneIdReturnCache`
- * needs to be callable from the test file without pulling in the component.
+ * Reads for the OneID "where was the citizen heading" value `startOneId`
+ * stores before the window leaves this origin — one consuming read
+ * (`takeNext`, for `OneIdReturnPage`) and one non-consuming read
+ * (`peekStoredNext`, for `LoginPage`'s failure path). Split out of
+ * `OneIdReturnPage.tsx` because a file that exports anything but components
+ * breaks fast refresh (`react-refresh/only-export-components`) — and because
+ * `resetOneIdReturnCache` needs to be callable from the test file without
+ * pulling in the component.
  */
 import { ONEID_NEXT_KEY } from '../auth/AuthProvider';
+
+/**
+ * The stored value is treated as untrusted input even though this origin
+ * wrote it: anything that is not a single-slash-prefixed relative path is
+ * discarded, so a value planted by another script cannot turn a redirect
+ * into an open one. That includes a protocol-relative URL like
+ * `//evil.example/steal` — it passes `startsWith('/')` but is still an
+ * absolute (scheme-relative) target, so it needs its own explicit check.
+ * Shared by both readers below so the rule can only be defined once.
+ */
+function sanitize(stored: string | null): string | null {
+  return !stored || !stored.startsWith('/') || stored.startsWith('//') ? null : stored;
+}
 
 /**
  * Cached for the lifetime of this page load, and that is load-bearing, not an
@@ -23,13 +39,6 @@ let consumed: string | null = null;
  * Where `GET /auth/oneid/callback` sends the browser once it has set the
  * session cookies. Its only job is to consume the path `startOneId` stored
  * before the window left this origin.
- *
- * The stored value is treated as untrusted input even though this origin
- * wrote it: anything that is not a single-slash-prefixed relative path is
- * discarded, so a value planted by another script cannot turn this route into
- * an open redirect. That includes a protocol-relative URL like
- * `//evil.example/steal` — it passes `startsWith('/')` but is still an
- * absolute (scheme-relative) target, so it needs its own explicit check.
  */
 export function takeNext(): string {
   if (consumed !== null) return consumed;
@@ -42,8 +51,27 @@ export function takeNext(): string {
   } catch {
     // Private mode, or storage disabled entirely.
   }
-  consumed = !stored || !stored.startsWith('/') || stored.startsWith('//') ? '/' : stored;
+  consumed = sanitize(stored) ?? '/';
   return consumed;
+}
+
+/**
+ * Where `LoginPage` recovers `next` after a failed OneID round trip. The
+ * backend's `/login?error=oneid` redirect is a full page load, so React
+ * Router's own `location.state.next` is gone by the time the browser gets
+ * here — but `startOneId` already wrote the intended destination before it
+ * left, and that write survives the round trip untouched. Reads only:
+ * consuming the value is `takeNext`'s job alone, reached solely by a
+ * SUCCESSFUL return, so a retry (which calls `startOneId` again, storing the
+ * same value again) is never starved of it by a failure in between.
+ */
+export function peekStoredNext(): string | null {
+  try {
+    return sanitize(sessionStorage.getItem(ONEID_NEXT_KEY));
+  } catch {
+    // Private mode, or storage disabled entirely.
+    return null;
+  }
 }
 
 /** Test-only: the module cache above outlives a single test's render. */

@@ -99,8 +99,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const startOneId = useCallback(async (next: string) => {
     const { data, error } = await api.GET('/api/v1/auth/oneid/authorize', {});
     if (error) throw apiError(error);
-    // Stored only after the authorize call succeeded: a stale `next` left
-    // behind by a failed attempt would hijack the NEXT successful login.
+    // Stored only after the authorize call itself succeeds: a FAILED
+    // authorize round trip (a dropped connection, before the browser ever
+    // leaves this origin) never touches storage, so it cannot leave a stale
+    // value behind.
+    //
+    // That is the one thing this ordering protects — it does NOT mean the
+    // stored value is wiped by every other kind of failure. Once storage IS
+    // written, an attempt the citizen abandons, or one that fails downstream
+    // (a stale `oneid_state` cookie, `/login?error=oneid`), leaves this same
+    // value alive on purpose: `LoginPage`'s own `next` falls back to reading
+    // it (`oneIdReturnCache.ts::peekStoredNext`) precisely so a retry does
+    // not lose the citizen's destination. It is cleared only by
+    // `OneIdReturnPage`'s `takeNext()`, reached solely by a successful
+    // return — an unrelated LATER login (password, E-IMZO) never reads this
+    // key at all, so there is no hijack risk left to guard against.
     try {
       sessionStorage.setItem(ONEID_NEXT_KEY, next);
     } catch {

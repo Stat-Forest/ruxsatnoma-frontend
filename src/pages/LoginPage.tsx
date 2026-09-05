@@ -1,12 +1,13 @@
 import { useState } from 'react';
 import type { FormEvent } from 'react';
-import { useLocation, useNavigate } from 'react-router';
+import { useLocation, useNavigate, useSearchParams } from 'react-router';
 import { Button } from '../components/ui/button';
 import { FormField, Input } from '../components/ui/FormControls';
 import { ApiError, RATE_LIMITED } from '../api/errors';
 import { useAuth } from '../auth/useAuth';
 import { useT } from '../i18n/useT';
 import { PINFL_PATTERN } from '../lib/eimzoMock';
+import { peekStoredNext } from './oneIdReturnCache';
 
 type ErrorKind = 'credentials' | 'blocked' | 'rate-limited' | 'connection' | 'oneid' | null;
 
@@ -52,7 +53,15 @@ export function LoginPage() {
   const t = useT();
   const navigate = useNavigate();
   const location = useLocation();
-  const next = (location.state as { next?: string } | null)?.next ?? '/';
+  const [searchParams] = useSearchParams();
+  // `location.state.next` survives an in-app redirect (RequireAuth sending
+  // an anonymous visitor here) but not a full page load — exactly what a
+  // failed OneID round trip is: the provider's browser round trip and the
+  // backend's `/login?error=oneid` redirect both leave and re-enter the SPA
+  // from scratch. `peekStoredNext` recovers the same destination `startOneId`
+  // wrote before leaving, without consuming it — consuming it is
+  // `OneIdReturnPage`'s job, reached only on success.
+  const next = (location.state as { next?: string } | null)?.next ?? peekStoredNext() ?? '/';
 
   const [method, setMethod] = useState<Method>(storedMethod);
   const [step, setStep] = useState<'password' | 'code'>('password');
@@ -63,7 +72,14 @@ export function LoginPage() {
   const [fullName, setFullName] = useState('');
   const [badPinfl, setBadPinfl] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [errorKind, setErrorKind] = useState<ErrorKind>(null);
+  // Read once, on mount: the backend redirects a failed OneID state check
+  // (the `oneid_state` cookie expired — its `max_age` is 600s — or was lost)
+  // to `/login?error=oneid`, a full page load. This is the only place that
+  // failure ever surfaces — nothing else in this app reads `error` off the
+  // query string.
+  const [errorKind, setErrorKind] = useState<ErrorKind>(() =>
+    searchParams.get('error') === 'oneid' ? 'oneid' : null,
+  );
 
   async function handlePasswordSubmit(e: FormEvent) {
     e.preventDefault();
