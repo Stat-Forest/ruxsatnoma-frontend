@@ -114,8 +114,7 @@ export function UsersPage() {
           <h1 className="text-lg font-bold text-[#1A1F24]">{L.pageTitle}</h1>
           <p className="text-xs text-[#5A646D] mt-1">{L.pageSubtitle}</p>
         </div>
-        <Button onClick={() => setFormMode('create')} className="inline-flex items-center gap-2">
-          <Plus className="w-4 h-4" />
+        <Button onClick={() => setFormMode('create')} leftIcon={<Plus className="w-4 h-4" />}>
           {L.create}
         </Button>
       </header>
@@ -193,8 +192,7 @@ export function UsersPage() {
           </FormField>
         </div>
         <div className="mt-4 flex gap-2">
-          <Button onClick={apply} className="inline-flex items-center gap-2">
-            <Search className="w-4 h-4" />
+          <Button onClick={apply} leftIcon={<Search className="w-4 h-4" />}>
             {L.apply}
           </Button>
           <Button
