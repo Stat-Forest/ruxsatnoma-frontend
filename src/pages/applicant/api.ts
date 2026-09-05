@@ -186,6 +186,43 @@ export async function listContours(params: {
   return data;
 }
 
+/** Every published contour the caller may see inside `bbox`, as GeoJSON —
+ * what the map draws before anything is picked. `GET /gis/contours` above is
+ * the same contours as a paged list with NO geometry, so it cannot feed a map.
+ *
+ * `bbox` is the viewport, `min_lon,min_lat,max_lon,max_lat`. Sending one is
+ * not optional in practice: without it the server answers every published
+ * contour the caller may see — ~13,500 rows once the leshozes land — and sets
+ * `truncated` to say the answer was clipped. */
+export async function listContourFeatures(bbox: string): Promise<ContourFeatureCollection> {
+  const { data, error } = await api.GET('/api/v1/gis/contours/features', {
+    params: { query: { bbox } },
+  });
+  if (error) throw apiError(error);
+  // Through `unknown` because the server's own schema types a feature as an
+  // opaque `dict[str, Any]` (`FeatureCollectionOut`, shared with the layers
+  // endpoint), so the generated types carry no shape to narrow from. The
+  // interface below is that shape, asserted here rather than inferred.
+  return data as unknown as ContourFeatureCollection;
+}
+
+export interface ContourFeature {
+  type: 'Feature';
+  id: string;
+  geometry: Record<string, unknown>;
+  properties: { contour_id: string; number: string; organization_id: string; area_ha: string };
+}
+
+export interface ContourFeatureCollection {
+  type: 'FeatureCollection';
+  /** The server hit its own cap and this collection is a prefix of the match.
+   * Only reachable with no bbox or an enormous one — the map always sends its
+   * viewport — but a client that ignored it would silently draw a partial
+   * layer as if it were the whole one. */
+  truncated: boolean;
+  features: ContourFeature[];
+}
+
 export async function getContourCard(id: string): Promise<ContourCardOut> {
   const { data, error } = await api.GET('/api/v1/gis/contours/{contour_id}', {
     params: { path: { contour_id: id } },
