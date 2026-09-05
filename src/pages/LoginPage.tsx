@@ -139,6 +139,10 @@ export function LoginPage() {
               onClick={() => {
                 setMethod(m);
                 setErrorKind(null);
+                // Also cleared here, not just on submit: a stale "PINFL must
+                // be 14 digits" alert must not survive a trip to another tab
+                // and back for a form that was never resubmitted.
+                setBadPinfl(false);
                 try {
                   localStorage.setItem(TAB_KEY, m);
                 } catch {

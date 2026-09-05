@@ -160,3 +160,15 @@ it('the E-IMZO tab refuses a PINFL that is not 14 digits without calling the API
   expect(await screen.findByTestId('eimzo-bad-pinfl')).toBeInTheDocument();
   expect(called).toBe(false);
 });
+
+it('leaving the E-IMZO tab and coming back clears a stale bad-PINFL alert', async () => {
+  render(<App />);
+  await userEvent.click(await screen.findByRole('tab', { name: 'E-IMZO' }));
+  await userEvent.type(screen.getByLabelText(/PINFL/), '123');
+  await userEvent.click(screen.getByRole('button', { name: /E-IMZO/ }));
+  expect(await screen.findByTestId('eimzo-bad-pinfl')).toBeInTheDocument();
+
+  await userEvent.click(screen.getByRole('tab', { name: 'OneID' }));
+  await userEvent.click(screen.getByRole('tab', { name: 'E-IMZO' }));
+  expect(screen.queryByTestId('eimzo-bad-pinfl')).not.toBeInTheDocument();
+});
