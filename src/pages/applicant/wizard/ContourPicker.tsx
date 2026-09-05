@@ -14,19 +14,17 @@ export interface PickedContour {
 }
 
 /**
- * Lets the applicant PICK a published contour — drawing/editing stays out of
- * scope (task brief). The published layer is rendered with MapLibre GL JS
- * (decision #60.1), but `GET /gis/contours` carries attributes only, no
- * geometry (`ContourListItem`'s own docstring: "the card, not the list,
- * carries what a picker needs to actually render a plot") — there is no bulk
- * endpoint that would let this component draw all ~151 Burchmulla polygons
- * at once. So the searchable LIST below is the primary, reliable way to find
- * a plot, and the map is a real, live preview of whichever one is currently
- * selected (fetched via `GET /gis/contours/{id}` on selection) — not a
- * click-anywhere-on-the-map browser. A worse fallback (a static SVG instead
- * of MapLibre) was not needed: the list alone already carries the picking,
- * so the map could be built as a genuine preview without missing the
- * two-hour budget the task brief allows for it.
+ * Lets the applicant PICK a published contour — drawing and editing geometry
+ * stay out of scope. Two ways in, one selection between them: the map draws
+ * every published contour in view (`GET /gis/contours/features`, decision
+ * #68) and a click picks one, while the searchable list beside it is the
+ * lookup for someone who already knows a contour number.
+ *
+ * The map used to be neither of those. Until that endpoint existed nothing
+ * returned geometry in bulk — `GET /gis/contours` carries attributes only
+ * (`ContourListItem`'s own docstring) — so it could draw only the parcel the
+ * list had already chosen, and the list was the sole way to find anything.
+ * That is why it was the narrow column; it is the wide one now.
  */
 export function ContourPicker({ value, onChange }: { value: PickedContour | null; onChange: (c: PickedContour) => void }) {
   const [search, setSearch] = useState('');
@@ -61,8 +59,15 @@ export function ContourPicker({ value, onChange }: { value: PickedContour | null
   const total = contoursQuery.data?.total ?? 0;
   const hasMore = page * 100 < total;
 
+  // The map is the WIDE column now, not the narrow one. It stopped being a
+  // thumbnail of an already-made choice the day it started drawing every
+  // parcel in view: finding a plot happens on the map, and the list beside
+  // it is the lookup for someone who already knows a contour number. The
+  // selected contour's card sits under the LIST for the same reason — it
+  // belongs with the choosing, and stretched across a wide map column it
+  // would be a line of text with half a screen of white space after it.
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-6 items-start">
+    <div className="grid grid-cols-1 lg:grid-cols-[340px_1fr] gap-6 items-start">
       <div className="bg-white border border-[#E4E7EA] rounded-2xl p-4 shadow-xs space-y-3">
         <Input
           leftIcon={<Search className="w-4 h-4" />}
@@ -102,18 +107,6 @@ export function ContourPicker({ value, onChange }: { value: PickedContour | null
             Yana yuklash
           </Button>
         )}
-      </div>
-
-      <div className="space-y-3">
-        <ContourMapPreview
-          geometry={previewQuery.data?.geometry ?? null}
-          selectedId={highlightedId}
-          // Selection is one value shared by the list and the map, so picking
-          // a parcel on either shows it on both. `null` arrives when the map
-          // clears it — clicking the highlighted parcel a second time — and
-          // puts every contour in view back on screen.
-          onPick={setHighlightedId}
-        />
         {previewQuery.data && (
           <div className="bg-white border border-[#E4E7EA] rounded-2xl p-4 shadow-xs space-y-2 text-xs">
             <div className="font-mono text-lg font-bold text-[#1A1F24]">{previewQuery.data.number}</div>
@@ -144,6 +137,18 @@ export function ContourPicker({ value, onChange }: { value: PickedContour | null
             </Button>
           </div>
         )}
+      </div>
+
+      <div>
+        <ContourMapPreview
+          geometry={previewQuery.data?.geometry ?? null}
+          selectedId={highlightedId}
+          // Selection is one value shared by the list and the map, so picking
+          // a parcel on either shows it on both. `null` arrives when the map
+          // clears it — clicking the highlighted parcel a second time — and
+          // puts every contour in view back on screen.
+          onPick={setHighlightedId}
+        />
       </div>
     </div>
   );

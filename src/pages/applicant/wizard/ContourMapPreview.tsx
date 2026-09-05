@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
+  FullscreenControl,
   GeoJSONSource,
   LngLatBounds,
   Map as MaplibreMap,
@@ -181,6 +182,7 @@ export function ContourMapPreview({
   onPick?: (contourId: string | null) => void;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const shellRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<MaplibreMap | null>(null);
   // Whether the map has fired `load` ONCE, remembered rather than re-asked.
   // The obvious `map.isStyleLoaded()` is not the same question: it also goes
@@ -222,6 +224,23 @@ export function ContourMapPreview({
       attributionControl: { compact: true },
     });
     mapRef.current = map;
+    // Expands the SHELL, not the canvas: the basemap switch, the parcel count
+    // and the attribution are siblings of the map div, and expanding the map
+    // alone would leave all three behind on the page underneath.
+    //
+    // `pseudo` — CSS expansion to the viewport — rather than the native
+    // Fullscreen API, which is refused outright ("Permissions check failed")
+    // wherever the page is framed without `allow="fullscreen"`. The refusal
+    // is silent from the user's side: the button is there, it is pressed, and
+    // nothing happens. Pseudo mode needs no permission and cannot fail that
+    // way; what it gives up is hiding the browser's own chrome, which in a
+    // cabinet people navigate with is arguably the better trade anyway.
+    if (shellRef.current) {
+      map.addControl(
+        new FullscreenControl({ container: shellRef.current, pseudo: true }),
+        'top-right',
+      );
+    }
 
     const readViewport = () => {
       if (map.getZoom() < MIN_FETCH_ZOOM) {
@@ -386,7 +405,10 @@ export function ContourMapPreview({
   }, [geometry, mapReady, basemap]);
 
   return (
-    <div className="relative w-full h-64 rounded-xl border border-[#E4E7EA] overflow-hidden">
+    <div
+      ref={shellRef}
+      className="map-shell relative w-full h-80 lg:h-[560px] rounded-xl border border-[#E4E7EA] overflow-hidden"
+    >
       {/* `h-full`, NOT `absolute inset-0`: maplibre-gl.css declares
           `.maplibregl-map { position: relative }` and adds that class to this
           very div at run time. Tailwind's `absolute` is one class too, so

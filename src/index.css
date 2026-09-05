@@ -109,3 +109,14 @@ h3, h4, h5, h6, p, span, div, a, button, input, select, textarea, label, td, th 
 .sidebar-scroll:hover::-webkit-scrollbar-thumb {
   background: #d4d9dd;
 }
+
+/*
+ * The map shell while expanded. MapLibre's own `.maplibregl-pseudo-fullscreen`
+ * already pins it to the viewport with `!important`; this only drops the
+ * rounding and the border, which look like a mistake once the element is the
+ * whole screen rather than a card on a page.
+ */
+.map-shell.maplibregl-pseudo-fullscreen {
+  border-radius: 0;
+  border: 0;
+}
