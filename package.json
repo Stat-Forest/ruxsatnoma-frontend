@@ -11,7 +11,8 @@
     "api:types": "bash scripts/gen-types.sh",
     "typecheck": "tsc -b",
     "test": "vitest run",
-    "check": "npm run lint && npm run typecheck && npm run test"
+    "check": "npm run lint && npm run typecheck && npm run test",
+    "check:bundle": "bash scripts/check-bundle.sh dist"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.102.8",
