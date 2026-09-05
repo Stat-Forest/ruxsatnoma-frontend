@@ -150,4 +150,21 @@ export const uz_latn = {
   'staff.infoRequest.field.area': "Soʻralgan maydon",
   'staff.infoRequest.slaPausedBadge': "SLA toʻxtatilgan",
   'staff.infoRequest.slaPausedShort': "Toʻxtatilgan",
+
+  // --- D4 (3.9b task 5): conclusions -------------------------------------
+  'staff.conclusions.panelTitle': 'Mutaxassis xulosalari',
+  'staff.conclusions.gisChecksTitle': 'GIS avtomatik tekshiruvi',
+  'staff.conclusions.gisChecksEmpty': "Hali GIS tekshiruvi oʻtkazilmagan.",
+  'staff.conclusions.listTitle': 'Yozma xulosalar',
+  'staff.conclusions.listEmpty': "Hali xulosa yozilmagan.",
+  'staff.conclusions.kindExecutor': 'Ijrochi',
+  'staff.conclusions.kindGis': 'GIS mutaxassisi',
+  'staff.conclusions.authorLabel': 'Muallif:',
+  'staff.conclusions.writeLabel': "Yangi xulosa matni",
+  'staff.conclusions.writePlaceholder': "Tekshiruv natijasi va tavsiyangizni yozing",
+  'staff.conclusions.recommendationLabel': 'Tavsiya',
+  'staff.conclusions.recommendationNone': "Tavsiya berilmaydi",
+  'staff.conclusions.recommendApprove': 'Tasdiqlash tavsiya etiladi',
+  'staff.conclusions.recommendReject': 'Rad etish tavsiya etiladi',
+  'staff.conclusions.submitButton': "Xulosani saqlash",
 };

@@ -6,7 +6,7 @@ import { useApplicationCard, useApplicationTimeline } from './queries';
 import { formatDateTime, slaStatus, statusLabel } from './format';
 import { GeneralInfoPanel } from './components/GeneralInfoPanel';
 import { ChecksPanel } from './components/ChecksPanel';
-import { GisConclusionPanel } from './components/GisConclusionPanel';
+import { ConclusionsPanel } from './components/ConclusionsPanel';
 import { CalculationPanel } from './components/CalculationPanel';
 import { DocumentsPanel } from './components/DocumentsPanel';
 import { HistoryPanel } from './components/HistoryPanel';
@@ -106,7 +106,7 @@ export function StaffApplicationCard() {
 
         <div className="space-y-4">
           <ReviewActionsPanel card={card} timeline={timelineQuery.data} />
-          <GisConclusionPanel card={card} />
+          <ConclusionsPanel card={card} />
           <DecisionPanel card={card} />
         </div>
       </div>

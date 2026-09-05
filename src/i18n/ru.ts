@@ -143,4 +143,21 @@ export const ru = {
   'staff.infoRequest.field.area': 'Запрошенная площадь',
   'staff.infoRequest.slaPausedBadge': 'SLA приостановлен',
   'staff.infoRequest.slaPausedShort': 'Приостановлен',
+
+  // --- D4 (3.9b, задача 5): заключения -----------------------------------
+  'staff.conclusions.panelTitle': 'Заключения специалистов',
+  'staff.conclusions.gisChecksTitle': 'Автоматическая ГИС-проверка',
+  'staff.conclusions.gisChecksEmpty': 'ГИС-проверка ещё не проводилась.',
+  'staff.conclusions.listTitle': 'Письменные заключения',
+  'staff.conclusions.listEmpty': 'Заключений пока нет.',
+  'staff.conclusions.kindExecutor': 'Исполнитель',
+  'staff.conclusions.kindGis': 'ГИС-специалист',
+  'staff.conclusions.authorLabel': 'Автор:',
+  'staff.conclusions.writeLabel': 'Текст нового заключения',
+  'staff.conclusions.writePlaceholder': 'Опишите результат проверки и вашу рекомендацию',
+  'staff.conclusions.recommendationLabel': 'Рекомендация',
+  'staff.conclusions.recommendationNone': 'Без рекомендации',
+  'staff.conclusions.recommendApprove': 'Рекомендуется одобрить',
+  'staff.conclusions.recommendReject': 'Рекомендуется отклонить',
+  'staff.conclusions.submitButton': 'Сохранить заключение',
 };
