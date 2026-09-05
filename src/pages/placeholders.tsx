@@ -49,9 +49,9 @@ export function NotificationsPage() {
   return <div data-testid="notifications-page">Bildirishnomalar</div>;
 }
 
-export function ProfilePage() {
-  return <div data-testid="profile-page">Profil</div>;
-}
+// C5 — the real screen (`src/pages/admin/profile/ProfilePage.tsx`), re-exported
+// rather than defined here for the same reason `MyApplicationsPage` is.
+export { ProfilePage } from './admin/profile/ProfilePage';
 
 // B7/B8 — real screens, Track 2 (the applicant's path). Re-exported rather
 // than defined here, same reasoning as `MyApplicationsPage` above.

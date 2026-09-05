@@ -6,6 +6,13 @@ import { NAVIGATION } from './shell/navigation';
 import { RequireAuth } from './auth/RequireAuth';
 import { LoginPage } from './pages/LoginPage';
 import { UsersPage } from './pages/UsersPage';
+import { AnnouncementsPage } from './pages/admin/announcements/AnnouncementsPage';
+import { ClassifiersPage } from './pages/admin/classifiers/ClassifiersPage';
+import { IntegrationsPage } from './pages/admin/integrations/IntegrationsPage';
+import { OrganizationsPage } from './pages/admin/organizations/OrganizationsPage';
+import { RolesPage } from './pages/admin/roles/RolesPage';
+import { SettingsPage } from './pages/admin/settings/SettingsPage';
+import { TemplatesPage } from './pages/admin/templates/TemplatesPage';
 import {
   ApplicationsPage,
   ApplicationWizardPage,
@@ -45,6 +52,13 @@ const CHILD_PAGES: Record<string, ReactNode> = {
   '/invoices': <InvoicesPage />,
   '/permits': <PermitsPage />,
   '/admin/users': <UsersPage />,
+  '/admin/roles': <RolesPage />,
+  '/admin/organizations': <OrganizationsPage />,
+  '/admin/classifiers': <ClassifiersPage />,
+  '/admin/settings': <SettingsPage />,
+  '/admin/announcements': <AnnouncementsPage />,
+  '/admin/notification-templates': <TemplatesPage />,
+  '/admin/integrations': <IntegrationsPage />,
   '/notifications': <NotificationsPage />,
   '/profile': <ProfilePage />,
 };

@@ -1,4 +1,3 @@
-/** Placeholder — Task 6 replaces this with the real admin users screen. */
-export function UsersPage() {
-  return <div data-testid="users-page">Foydalanuvchilar</div>;
-}
+/** H1 — the real administration screen lives in `src/pages/admin/users/`.
+ *  Re-exported from here so `src/routes.tsx`'s import list needs no change. */
+export { UsersPage } from './admin/users/UsersPage';

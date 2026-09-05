@@ -3,6 +3,7 @@ import { Navigate, useLocation } from 'react-router';
 import { Forbidden } from '../components/Forbidden';
 import { satisfies } from '../shell/navigation';
 import { useAuth } from './useAuth';
+import { ChangePasswordForm } from '../pages/admin/profile/ChangePasswordForm';
 
 function FullPageSpinner() {
   return (
@@ -53,12 +54,25 @@ export function RequireAuth({
 
   if (!me) return <Navigate to="/login" state={{ next: location.pathname }} replace />;
 
+  // Not a notice any more: only the user themselves can clear this flag
+  // (`POST /auth/password/change`), so telling them to contact an
+  // administrator was advice that led nowhere — the administrator can issue
+  // another one-time password and nothing else. The gate still holds the app
+  // shut; what changes is that it now contains the one action that opens it.
   if (me.user.must_change_password) {
     return (
-      <BlockingNotice
-        testId="must-change-password"
-        message="Parolni almashtirish talab qilinadi. Bu funksiya hali mavjud emas — administrator bilan bog'laning."
-      />
+      <div
+        data-testid="must-change-password"
+        className="min-h-screen flex items-center justify-center px-4 py-10 bg-[#F8F9FA]"
+      >
+        <div className="w-full max-w-sm bg-white border border-[#E4E7EA] rounded-2xl p-6 shadow-xs">
+          <h1 className="text-base font-bold text-[#1A1F24]">Parolni almashtirish</h1>
+          <p className="mt-1 mb-4 text-xs text-[#5A646D] leading-relaxed">
+            Davom etish uchun parolni almashtiring. Administrator bergan vaqtinchalik parol bir martalik.
+          </p>
+          <ChangePasswordForm onChanged={() => window.location.assign('/')} />
+        </div>
+      </div>
     );
   }
   if (!me.registration_complete) {
