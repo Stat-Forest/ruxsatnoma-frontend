@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { setupServer } from 'msw/node';
@@ -199,14 +199,21 @@ test('the superuser passes a gate for a code nobody granted', async () => {
   expect(await screen.findByTestId('users-page')).toBeInTheDocument();
 });
 
-test('a must_change_password account sees a blocking notice, not the app', async () => {
+test('a must_change_password account gets the form that resolves it, not a dead end', async () => {
   server.use(
     http.get('*/auth/me', () =>
       HttpResponse.json({ ...ME, user: { ...ME.user, must_change_password: true } }),
     ),
   );
   await renderAt('/');
-  expect(await screen.findByTestId('must-change-password')).toBeInTheDocument();
+  // The gate itself stays — the app is still out of reach — but the screen it
+  // shows is the ONE action that lifts it. Only the user can clear this flag
+  // (`POST /auth/password/change`); an administrator can merely issue another
+  // one-time password, so a notice telling them to "contact the administrator"
+  // was advice that led nowhere.
+  const gate = within(await screen.findByTestId('must-change-password'));
+  expect(gate.getByTestId('new-password')).toBeInTheDocument();
+  expect(screen.queryByTestId('dashboard-page')).toBeNull();
 });
 
 test('an applicant with an incomplete registration sees a blocking notice, not the app', async () => {

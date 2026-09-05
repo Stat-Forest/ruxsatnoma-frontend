@@ -1,5 +1,24 @@
 import type { ComponentType } from 'react';
-import { Award, Bell, FileText, Home, Inbox, Map, Scale, Stamp, User, Users, Wallet } from 'lucide-react';
+import {
+  Award,
+  Bell,
+  BookMarked,
+  Building2,
+  FileText,
+  Home,
+  Inbox,
+  MailPlus,
+  Map,
+  Megaphone,
+  Radio,
+  Scale,
+  Settings,
+  ShieldCheck,
+  Stamp,
+  User,
+  Users,
+  Wallet,
+} from 'lucide-react';
 
 export type NavItem = {
   to: string;
@@ -62,6 +81,13 @@ export const NAVIGATION: NavItem[] = [
   { to: '/invoices', labelKey: 'nav.invoices', permission: 'payments.view', icon: Wallet },
   { to: '/permits', labelKey: 'nav.permits', permission: 'permits.view_any', icon: Stamp },
   { to: '/admin/users', labelKey: 'nav.users', permission: 'auth.users.manage', icon: Users },
+  { to: '/admin/roles', labelKey: 'nav.roles', permission: 'auth.users.manage', icon: ShieldCheck },
+  { to: '/admin/organizations', labelKey: 'nav.organizations', permission: 'admin.organizations.manage', icon: Building2 },
+  { to: '/admin/classifiers', labelKey: 'nav.classifiers', permission: 'admin.classifiers.manage', icon: BookMarked },
+  { to: '/admin/settings', labelKey: 'nav.settings', permission: 'admin.settings.manage', icon: Settings },
+  { to: '/admin/announcements', labelKey: 'nav.announcements', permission: 'admin.announcements.manage', icon: Megaphone },
+  { to: '/admin/notification-templates', labelKey: 'nav.templates', permission: 'notifications.templates.manage', icon: MailPlus },
+  { to: '/admin/integrations', labelKey: 'nav.integrations', permission: 'admin.integrations.view', icon: Radio },
   { to: '/notifications', labelKey: 'nav.notifications', icon: Bell },
   { to: '/profile', labelKey: 'nav.profile', icon: User },
 ];

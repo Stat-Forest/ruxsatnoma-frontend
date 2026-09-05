@@ -24,13 +24,18 @@ export const FormField: React.FC<FormFieldProps> = ({
   return (
     <div className={`flex flex-col gap-1.5 ${className}`}>
       {label && (
-        <label
-          htmlFor={htmlFor}
-          className="text-xs font-semibold uppercase tracking-wider text-[#5A646D] flex items-center gap-1"
-        >
-          <span>{label}</span>
-          {required && <span className="text-[#B91C1C] font-bold" aria-hidden="true">*</span>}
-        </label>
+        <span className="text-xs font-semibold uppercase tracking-wider text-[#5A646D] flex items-center gap-1">
+          {/* The asterisk sits OUTSIDE the <label>: an accessible name is read
+              from the label's text content, so a marker inside it turns "Rol"
+              into "Rol*" and every by-label query on a required field misses —
+              for a screen reader as much as for a test. */}
+          <label htmlFor={htmlFor}>{label}</label>
+          {required && (
+            <span className="text-[#B91C1C] font-bold" aria-hidden="true">
+              *
+            </span>
+          )}
+        </span>
       )}
       {children}
       {error ? (
