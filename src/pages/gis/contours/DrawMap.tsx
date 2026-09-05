@@ -103,10 +103,12 @@ export function DrawMap({
   const [mapReady, setMapReady] = useState(false);
   const onDrawFinishRef = useRef(onDrawFinish);
   const onViewportChangeRef = useRef(onViewportChange);
+  const heightRef = useRef(height);
   useEffect(() => {
     onDrawFinishRef.current = onDrawFinish;
     onViewportChangeRef.current = onViewportChange;
-  }, [onDrawFinish, onViewportChange]);
+    heightRef.current = height;
+  }, [onDrawFinish, onViewportChange, height]);
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -120,14 +122,34 @@ export function DrawMap({
       attributionControl: { compact: true },
     });
     mapRef.current = map;
+    // Subscriptions from the fullscreen listeners below, torn down on
+    // unmount alongside everything else this effect owns.
+    const fullscreenSubscriptions: { unsubscribe: () => void }[] = [];
     if (shellRef.current) {
       // `pseudo: true` — CSS expansion, not the native Fullscreen API, which
       // is refused ("Permissions check failed") wherever the page is framed
       // without `allow="fullscreen"`. Same trap `ContourMapPreview.tsx`
       // documents; the fix carries over unchanged.
-      map.addControl(
-        new FullscreenControl({ container: shellRef.current, pseudo: true }),
-        'top-right',
+      const fullscreenControl = new FullscreenControl({ container: shellRef.current, pseudo: true });
+      map.addControl(fullscreenControl, 'top-right');
+      // `.maplibregl-pseudo-fullscreen` (added to `shellRef`, the control's
+      // own `container`) makes the SHELL fill the viewport, but this
+      // component's map container carries its own inline `height` (the
+      // `height` prop, `'420px'` by default) — CSS never touches that, so
+      // without this the shell grows to the window's full size while the
+      // map inside stays exactly as tall as the prop said, widening but
+      // never growing taller. `fullscreenstart`/`fullscreenend` fire
+      // synchronously from `_togglePseudoFullScreen`, BEFORE it calls
+      // `map.resize()` — so flipping the container's own height here always
+      // lands before MapLibre re-measures it, with no extra resize step of
+      // our own and no viewport number hard-coded on either side.
+      fullscreenSubscriptions.push(
+        fullscreenControl.on('fullscreenstart', () => {
+          if (containerRef.current) containerRef.current.style.height = '100%';
+        }),
+        fullscreenControl.on('fullscreenend', () => {
+          if (containerRef.current) containerRef.current.style.height = heightRef.current;
+        }),
       );
     }
 
@@ -188,6 +210,7 @@ export function DrawMap({
     map.on('moveend', readViewport);
 
     return () => {
+      for (const subscription of fullscreenSubscriptions) subscription.unsubscribe();
       if (draw.enabled) draw.stop();
       map.remove();
       mapRef.current = null;
