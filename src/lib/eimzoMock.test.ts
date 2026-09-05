@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildMockSignature, buildMockSignedChallenge, PINFL_PATTERN } from './eimzoMock';
+import { buildMockAttachedSignature, buildMockSignature, buildMockSignedChallenge, PINFL_PATTERN } from './eimzoMock';
 
 function decode(envelope: string): Record<string, unknown> {
   const b64 = envelope.replace(/-/g, '+').replace(/_/g, '/');
@@ -65,6 +65,27 @@ describe('buildMockSignature', () => {
     });
     const payload = decode(envelope);
     expect(payload.subject).toBe('PINFL=30491823410019');
+  });
+});
+
+describe('buildMockAttachedSignature', () => {
+  it('carries a document_b64 whose sha256 matches document_sha256 (verify_attached can recover it)', async () => {
+    const envelope = await buildMockAttachedSignature({ pinfl: '30491823410019' });
+    const payload = decode(envelope);
+    expect(typeof payload.document_b64).toBe('string');
+    const bytes = Uint8Array.from(atob(payload.document_b64 as string), (c) => c.charCodeAt(0));
+    const digest = await crypto.subtle.digest('SHA-256', bytes);
+    const hex = Array.from(new Uint8Array(digest))
+      .map((b) => b.toString(16).padStart(2, '0'))
+      .join('');
+    expect(payload.document_sha256).toBe(hex);
+  });
+
+  it('uses CN=<fullName> for the subject when a name is given, PINFL= otherwise', async () => {
+    const named = decode(await buildMockAttachedSignature({ pinfl: '30491823410019', fullName: 'SAIDOV OTABEK' }));
+    expect(named.subject).toBe('CN=SAIDOV OTABEK');
+    const anon = decode(await buildMockAttachedSignature({ pinfl: '30491823410019' }));
+    expect(anon.subject).toBe('PINFL=30491823410019');
   });
 });
 

@@ -4,11 +4,12 @@ import { useAuth } from '../../../auth/useAuth';
 import { useLanguage, useT } from '../../../i18n/useT';
 import { pickName } from '../../applicant/format';
 import { ChangePasswordForm } from './ChangePasswordForm';
+import { CertificatesSection } from './certificates/CertificatesSection';
 import { ContactsSection } from './contacts/ContactsSection';
 import { RepresentationSection } from './representation/RepresentationSection';
 import { LABELS } from './labels';
 
-type TabId = 'profile' | 'representation' | 'password';
+type TabId = 'profile' | 'representation' | 'certificates' | 'password';
 
 /**
  * `/profile` — shared shell for every role (C5, shipped earlier: changing
@@ -23,11 +24,13 @@ type TabId = 'profile' | 'representation' | 'password';
  *    `add_representation` call is refused with `ERR-ACL-001`
  *    (`auth.service`), and an action the backend would refuse is not
  *    offered at all.
- *  - B5 (my certificates) will add its own tab in a later commit of this
- *    same track. No route exists for either B4 or B5 (`src/routes.tsx` and
- *    `NAVIGATION` are both off limits to this track; `/profile` is the one
- *    screen every role already reaches with no permission gate), and both
- *    are natural profile sub-screens once they exist.
+ *  - B5 (my certificates) is its own tab too, offered to EVERY role —
+ *    `GET/POST/DELETE /certificates` carry no role restriction beyond being
+ *    logged in (`signatures/router.py`), since staff sign decisions with
+ *    their own bound certificates too. No route exists for either B4 or B5
+ *    (`src/routes.tsx` and `NAVIGATION` are both off limits to this track;
+ *    `/profile` is the one screen every role already reaches with no
+ *    permission gate), and both are natural profile sub-screens.
  */
 export function ProfilePage() {
   const { me } = useAuth();
@@ -59,6 +62,7 @@ export function ProfilePage() {
           ...(isApplicant
             ? [{ id: 'representation', label: t('cabinet.profile.tabRepresentation') }]
             : []),
+          { id: 'certificates', label: t('cabinet.profile.tabCertificates') },
           { id: 'password', label: t('cabinet.profile.tabPassword') },
         ]}
         activeTabId={tab}
@@ -68,6 +72,8 @@ export function ProfilePage() {
       {tab === 'profile' && <ContactsSection />}
 
       {tab === 'representation' && isApplicant && <RepresentationSection />}
+
+      {tab === 'certificates' && <CertificatesSection />}
 
       {tab === 'password' && (
         <section className="bg-white border border-[#E4E7EA] rounded-2xl p-6 shadow-xs">

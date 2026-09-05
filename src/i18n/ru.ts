@@ -221,8 +221,6 @@ export const ru = {
   'cabinet.certificates.boundAt': 'Дата привязки',
   'cabinet.certificates.unbind': 'Отвязать',
   'cabinet.certificates.unbinding': 'Выполняется…',
-  'cabinet.certificates.confirmUnbind':
-    'Отвязать сертификат? Он не будет виден в списке, пока не будет привязан снова.',
   'cabinet.certificates.statusActive': 'Активен',
   'cabinet.certificates.statusRevoked': 'Отозван',
   'cabinet.certificates.statusExpired': 'Истёк',

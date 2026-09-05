@@ -231,8 +231,6 @@ export const uz_latn = {
   'cabinet.certificates.boundAt': 'Biriktirilgan sana',
   'cabinet.certificates.unbind': 'Ro’yxatdan chiqarish',
   'cabinet.certificates.unbinding': 'Bajarilmoqda…',
-  'cabinet.certificates.confirmUnbind':
-    "Sertifikatni roʻyxatdan chiqarasizmi? U qayta bogʻlanmaguncha ro'yxatda koʻrinmaydi.",
   'cabinet.certificates.statusActive': 'Faol',
   'cabinet.certificates.statusRevoked': 'Bekor qilingan',
   'cabinet.certificates.statusExpired': "Muddati o'tgan",
