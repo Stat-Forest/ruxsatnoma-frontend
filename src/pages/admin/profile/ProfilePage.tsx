@@ -1,20 +1,35 @@
+import { useState } from 'react';
+import { Tabs } from '../../../components/ui/Navigation';
 import { useAuth } from '../../../auth/useAuth';
-import { useLanguage } from '../../../i18n/useT';
+import { useLanguage, useT } from '../../../i18n/useT';
 import { pickName } from '../../applicant/format';
 import { ChangePasswordForm } from './ChangePasswordForm';
+import { ContactsSection } from './contacts/ContactsSection';
 import { LABELS } from './labels';
 
+type TabId = 'profile' | 'password';
+
 /**
- * `/profile` — who the caller is, and the one action this stage ships for
- * them: changing their own password (screen C5).
+ * `/profile` — shared shell for every role (C5, shipped earlier: changing
+ * one's own password). This stage (06.5, track F4) extends it rather than
+ * replacing it, per that track's own brief:
  *
- * The rest of the profile (contacts, language) is `06-frontend-screens.md` B3
- * and is not in this batch; the language switch already lives in the shell.
+ *  - B3 (contacts) lives in the "Profil" tab, alongside the identity card.
+ *    Language is deliberately not repeated here — it has had a real control
+ *    in the shell header since stage 6.0 (`LanguageMenu`).
+ *  - B4 (legal-entity representation) and B5 (my certificates) will each add
+ *    their own tab in a later commit of this same track — no route exists
+ *    for either (`src/routes.tsx` and `NAVIGATION` are both off limits to
+ *    this track; `/profile` is the only screen every role already reaches
+ *    with no permission gate), and both are natural profile sub-screens
+ *    once they exist.
  */
 export function ProfilePage() {
   const { me } = useAuth();
   const { lang } = useLanguage();
-  const t = LABELS[lang];
+  const t = useT();
+  const passwordLabels = LABELS[lang];
+  const [tab, setTab] = useState<TabId>('profile');
 
   return (
     <div className="max-w-xl space-y-5 pb-8">
@@ -32,14 +47,28 @@ export function ProfilePage() {
         </dl>
       </section>
 
-      <section className="bg-white border border-[#E4E7EA] rounded-2xl p-6 shadow-xs">
-        <h2 className="text-base font-bold text-[#1A1F24] mb-4">{t.title}</h2>
-        {/* A full reload rather than a local state update: `AuthProvider` reads
-            `/auth/me` once on mount and exposes no refresh, and after a
-            password change the `must_change_password` flag must be re-read
-            from the server before the shell will let the user anywhere. */}
-        <ChangePasswordForm onChanged={() => window.location.assign('/')} />
-      </section>
+      <Tabs
+        tabs={[
+          { id: 'profile', label: t('cabinet.profile.tabProfile') },
+          { id: 'password', label: t('cabinet.profile.tabPassword') },
+        ]}
+        activeTabId={tab}
+        onChange={(id) => setTab(id as TabId)}
+      />
+
+      {tab === 'profile' && <ContactsSection />}
+
+      {tab === 'password' && (
+        <section className="bg-white border border-[#E4E7EA] rounded-2xl p-6 shadow-xs">
+          <h2 className="text-base font-bold text-[#1A1F24] mb-4">{passwordLabels.title}</h2>
+          {/* A full reload, not `applyMe`: unlike every other write in this
+              track, `POST /auth/password/change` answers 204 with no body
+              (`app/modules/auth/router.py`), so there is no fresh `MeOut` to
+              adopt — and `must_change_password` must be re-read from the
+              server before the shell lets the user anywhere else. */}
+          <ChangePasswordForm onChanged={() => window.location.assign('/')} />
+        </section>
+      )}
     </div>
   );
 }
