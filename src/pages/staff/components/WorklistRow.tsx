@@ -1,12 +1,15 @@
 import { Link } from 'react-router';
-import { FileText, Inbox } from 'lucide-react';
+import { FileText, Inbox, PauseCircle } from 'lucide-react';
+import { useT } from '../../../i18n/useT';
 import { Button } from '../../../components/ui/button';
 import { useContour, useStartReviewRow, type ApplicationOut } from '../queries';
-import { formatAmount, formatDate, formatDateTime, statusLabel } from '../format';
+import { formatAmount, formatDate, formatDateTime, slaStatus, statusLabel } from '../format';
 
 const STATUS_BADGE_CLASS: Record<string, string> = {
   SUBMITTED: 'bg-[#E0F2FE] text-[#0369A1] border-[#BAE6FD]',
   IN_REVIEW: 'bg-[#FFFBEB] text-[#B45309] border-[#FDE68A]',
+  PENDING_INFO: 'bg-[#E0F2FE] text-[#0369A1] border-[#BAE6FD]',
+  RETURNED: 'bg-[#FFFBEB] text-[#B45309] border-[#FDE68A]',
   INVOICED: 'bg-[#F0F7F1] text-[#123522] border-[#D9EBDC]',
   PAID: 'bg-[#F0F7F1] text-[#123522] border-[#D9EBDC]',
   PERMIT_ISSUED: 'bg-[#F0F7F1] text-[#123522] border-[#D9EBDC]',
@@ -14,22 +17,14 @@ const STATUS_BADGE_CLASS: Record<string, string> = {
   CANCELLED: 'bg-[#F8F9FA] text-[#5A646D] border-[#E4E7EA]',
 };
 
-function slaState(slaDeadlineAt: string | null): 'overdue' | 'soon' | 'normal' | null {
-  if (!slaDeadlineAt) return null;
-  const deadline = new Date(slaDeadlineAt).getTime();
-  const now = Date.now();
-  if (deadline < now) return 'overdue';
-  if (deadline - now < 24 * 60 * 60 * 1000) return 'soon';
-  return 'normal';
-}
-
 /** One worklist row — a real `ApplicationOut` (no name is resolved here that
  * the API does not itself supply: applicants have no display-name route
  * reachable by staff, so `applicant_id` is shown as-is, truncated). */
 export function WorklistRow({ row, canReview }: { row: ApplicationOut; canReview: boolean }) {
+  const t = useT();
   const contour = useContour(row.contour_id);
   const startReview = useStartReviewRow();
-  const sla = slaState(row.sla_deadline_at);
+  const sla = slaStatus(row.status, row.sla_deadline_at);
 
   return (
     <tr className="hover:bg-[#F8F9FA] transition-colors">
@@ -61,7 +56,11 @@ export function WorklistRow({ row, canReview }: { row: ApplicationOut; canReview
         {row.requested_area_ha ? `${formatAmount(row.requested_area_ha)} ga` : '—'}
       </td>
       <td className="p-3 text-xs">
-        {row.sla_deadline_at ? (
+        {sla === 'paused' ? (
+          <span className="inline-flex items-center gap-1 text-[#0369A1] font-bold whitespace-nowrap">
+            <PauseCircle className="w-3.5 h-3.5" /> {t('staff.infoRequest.slaPausedShort')}
+          </span>
+        ) : row.sla_deadline_at ? (
           <span
             className={
               sla === 'overdue'

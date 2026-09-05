@@ -107,6 +107,55 @@ export async function buildMockSignature({
   });
 }
 
+/** Standard (non-URL-safe) base64, padding kept — `document_b64` is decoded
+ * server-side with plain `base64.b64decode` (`encode_mock_signature`), a
+ * different alphabet from the envelope's own outer `urlsafe_b64encode`. */
+function base64EncodeBytes(bytes: Uint8Array): string {
+  let binary = '';
+  for (const byte of bytes) binary += String.fromCharCode(byte);
+  return btoa(binary);
+}
+
+export interface MockAttachedSignatureInput {
+  /** The signer's own personal PINFL — 14 digits, `users.pinfl`. */
+  pinfl: string;
+  fullName?: string;
+}
+
+/**
+ * Builds an ATTACHED envelope — `document_b64` present, so
+ * `verify_attached` (`MockEimzo.verify_attached` -> `_verify_envelope(pkcs7,
+ * None)`) can recover the "document" from the envelope itself rather than
+ * being handed one separately. `POST /certificates` (B5, binding a
+ * certificate ahead of any real signing) is this module's one caller: there
+ * is no real document to bind a certificate to yet, only a
+ * proof-of-possession exercise, so the "document" is a random nonce that
+ * exists purely to make the envelope's own sha256 check pass.
+ */
+export async function buildMockAttachedSignature({
+  pinfl,
+  fullName,
+}: MockAttachedSignatureInput): Promise<string> {
+  const now = new Date();
+  const validFrom = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+  const validTo = new Date(now.getTime() + 365 * 24 * 60 * 60 * 1000);
+  const nonce = crypto.getRandomValues(new Uint8Array(16));
+  const documentSha256 = await sha256Hex(nonce.buffer);
+  const serial = `MOCK-${crypto.randomUUID()}`;
+  return base64UrlEncodeJson({
+    serial_number: serial,
+    issuer: 'MOCK-CA-DEMO',
+    subject: fullName ? `CN=${fullName}` : `PINFL=${pinfl}`,
+    pinfl_or_stir: pinfl,
+    valid_from: validFrom.toISOString(),
+    valid_to: validTo.toISOString(),
+    signed_at: now.toISOString(),
+    timestamp_token: 'MOCK-TS',
+    document_b64: base64EncodeBytes(nonce),
+    document_sha256: documentSha256,
+  });
+}
+
 export const PINFL_PATTERN = /^\d{14}$/;
 
 /**
@@ -127,19 +176,30 @@ export interface MockChallengeInput {
   challenge: string;
   pinfl: string;
   fullName: string;
+  /**
+   * The org STIR this certificate speaks for — absent (`null`) for an
+   * ordinary personal login, present when B4's "attach a legal entity"
+   * (`org_eri` basis) or "add a colleague" flow builds this same envelope:
+   * `auth.service._verify_org_challenge` checks `identity.tin != stir`
+   * against exactly this field.
+   */
+  tin?: string | null;
+  legalName?: string | null;
 }
 
 export async function buildMockSignedChallenge({
   challenge,
   pinfl,
   fullName,
+  tin = null,
+  legalName = null,
 }: MockChallengeInput): Promise<string> {
   return base64UrlEncodeJson({
     challenge,
     pinfl,
     full_name: fullName,
-    tin: null,
-    legal_name: null,
+    tin,
+    legal_name: legalName,
     cert_serial: 'MOCK-CERT',
     cert_expires_at: null,
   });

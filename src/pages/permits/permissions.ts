@@ -6,3 +6,7 @@
 export const PERMITS_ISSUE = 'permits.issue';
 export const PERMITS_SIGN = 'permits.sign';
 export const PERMITS_VIEW_ANY = 'permits.view_any';
+/** E3 (3.11b) — suspend/resume/revoke, `executor_head` alone (migration
+ *  0019's own reservation; `_decision_signer_refusal` additionally checks
+ *  the signer's role AND organization match the permit's own). */
+export const PERMITS_MANAGE = 'permits.manage';

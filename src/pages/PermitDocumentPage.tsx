@@ -14,6 +14,7 @@ import { PermitPdfPanel } from './permits/PermitPdfPanel';
 import { PermitRequisitesPanel } from './permits/PermitRequisitesPanel';
 import { PermitSignaturesPanel } from './permits/PermitSignaturesPanel';
 import { PermitTimelinePanel } from './permits/PermitTimelinePanel';
+import { PermitLifecyclePanel } from './permits/components/PermitLifecyclePanel';
 
 /** Every reason `POST /applications/{id}/permit` documents refusing, turned
  *  into copy an operator can act on (`permits/service.py::issue`). */
@@ -164,6 +165,8 @@ export function PermitDocumentPage() {
         permit={permit}
         onSigned={() => void queryClient.invalidateQueries({ queryKey: ['permit', id] })}
       />
+
+      <PermitLifecyclePanel permit={permit} />
 
       <PermitTimelinePanel history={permit.history} />
     </div>

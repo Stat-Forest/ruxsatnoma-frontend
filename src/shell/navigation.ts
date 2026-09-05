@@ -72,13 +72,40 @@ export const NAVIGATION: NavItem[] = [
     labelKey: 'nav.applications',
     // Both the reviewer and the approver, who hold DIFFERENT codes — see
     // `NavItem.permission`. The backend agrees: `applications.decide` is
-    // `executor_head`'s (migration 0015, left in place by 0016).
-    permission: ['applications.review', 'applications.decide'],
+    // `executor_head`'s (migration 0015, left in place by 0016). Plus
+    // `applications.view_any` (I1, migration 0015 grants it to `prosecutor`
+    // alone): `service._holds_staff_read`/`list_applications` already zone-
+    // scope and serve that caller, so leaving this array at just the two
+    // review codes hid a screen the backend already supported — the same
+    // omission `/permits` below did NOT make for its own `.view_any`.
+    permission: ['applications.review', 'applications.decide', 'applications.view_any'],
     icon: Inbox,
   },
-  { to: '/gis', labelKey: 'nav.gis', permission: 'gis.contours.manage', icon: Map },
-  { to: '/norms', labelKey: 'nav.norms', permission: 'norms.manage', icon: Scale },
-  { to: '/invoices', labelKey: 'nav.invoices', permission: 'payments.view', icon: Wallet },
+  // Any ONE of the three (`NavItem.permission` semantics): the GIS
+  // specialist holds `contours.manage`, the rahbar/chief_forester who
+  // approves versions and import batches holds only `contours.approve`, and
+  // a `central_admin` who only maintains layer objects holds only
+  // `layers.manage` (`gis/permissions.py`) — gating on the specialist's code
+  // alone would hide the whole page, approve buttons included, from the
+  // other two (stage 6.5, track F1).
+  {
+    to: '/gis',
+    labelKey: 'nav.gis',
+    permission: ['gis.contours.manage', 'gis.contours.approve', 'gis.layers.manage'],
+    icon: Map,
+  },
+  // Two DIFFERENT permissions reach the three tabs behind this one entry:
+  // rule parameters and tariffs are gated on `norms.tariffs.manage`, not
+  // `norms.manage` — see `NavItem.permission`. Before this array, the
+  // account that maintains grazing coefficients held only the tariffs code
+  // and could not see this menu entry at all (ruling R1, task 2).
+  { to: '/norms', labelKey: 'nav.norms', permission: ['norms.manage', 'norms.tariffs.manage'], icon: Scale },
+  // `payments.confirm` is `executor_head`'s own code (migration 0022), NOT
+  // `payments.view` — the same reviewer/approver asymmetry `/applications`
+  // already documents below. Without it here, the checker half of G4's
+  // manual-PAID maker-checker flow and G5's refund approval have no page to
+  // stand on at all (06.5-accountant.md ruling R4).
+  { to: '/invoices', labelKey: 'nav.invoices', permission: ['payments.view', 'payments.confirm'], icon: Wallet },
   { to: '/permits', labelKey: 'nav.permits', permission: 'permits.view_any', icon: Stamp },
   { to: '/admin/users', labelKey: 'nav.users', permission: 'auth.users.manage', icon: Users },
   { to: '/admin/roles', labelKey: 'nav.roles', permission: 'auth.users.manage', icon: ShieldCheck },

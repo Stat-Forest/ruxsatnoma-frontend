@@ -9,12 +9,52 @@ import { apiError } from '../../api/errors';
 import type { components } from '../../api/schema';
 
 export type ApplicationOut = components['schemas']['ApplicationOut'];
-export type ApplicationCardOut = components['schemas']['ApplicationCardOut'];
-export type ApplicationTimelineOut = components['schemas']['ApplicationTimelineOut'];
 export type ApplicationDecisionOut = components['schemas']['ApplicationDecisionOut'];
 export type ActivityTypeOut = components['schemas']['ActivityTypeOut'];
 export type ClassifierItemOut = components['schemas']['ClassifierItemOut'];
 export type ContourCardOut = components['schemas']['ContourCardOut'];
+
+/** One row of `application_conclusions` (task 5, 3.9b) — now present in
+ *  `schema.d.ts` since its regeneration; re-exported under this name so
+ *  every existing import of it keeps working unchanged. */
+export type ApplicationConclusionOut = components['schemas']['ApplicationConclusionOut'];
+
+/** `ApplicationCardOut`, augmented by INTERSECTION rather than by editing
+ *  `schema.d.ts` — `sla_overdue` and `conclusions` are real fields the
+ *  backend has answered since 3.9b tasks 4-5, just never added to the
+ *  generated type (`docs/plans/06.5-staff-tails.md`'s own finding). Additive
+ *  only: if a future regeneration adds either field with an incompatible
+ *  type, TypeScript's `&` collapses it to `never` and the build breaks
+ *  loudly rather than silently disagreeing. */
+export type ApplicationCardOut = components['schemas']['ApplicationCardOut'] & {
+  sla_overdue: boolean;
+  conclusions: ApplicationConclusionOut[];
+};
+
+/** One row of the `info_requests` register — mirrors `app/modules/
+ *  applications/schemas.py::TimelineInfoRequestRow`. `responded_at`/
+ *  `response_text` are `null` for a still-open pause. */
+export interface TimelineInfoRequestRow {
+  id: string;
+  requested_by: string;
+  message: string;
+  requested_at: string;
+  responded_at: string | null;
+  response_text: string | null;
+}
+
+/** `ApplicationTimelineOut`, augmented the same way `ApplicationCardOut` is
+ *  above — with one twist: `schema.d.ts` already DECLARES `info_requests`
+ *  (as `unknown[]`, a stub from before `TimelineInfoRequestRow` existed as
+ *  its own schema), so a plain `&` here would intersect `unknown[]` with
+ *  `TimelineInfoRequestRow[]` as two unrelated array types rather than
+ *  refining the element type — TypeScript does not simplify that to the
+ *  narrower array, and every read of `.info_requests` degrades to `{}`.
+ *  `Omit` first, so this genuinely REPLACES the stub field instead of
+ *  intersecting it. */
+export type ApplicationTimelineOut = Omit<components['schemas']['ApplicationTimelineOut'], 'info_requests'> & {
+  info_requests: TimelineInfoRequestRow[];
+};
 
 export interface ApplicationListFilters {
   status?: ApplicationOut['status'];
@@ -150,7 +190,10 @@ export function useApplicationCard(applicationId: string) {
         params: { path: { application_id: applicationId } },
       });
       if (error) throw apiError(error);
-      return data;
+      // The response genuinely carries `sla_overdue`/`conclusions` (3.9b
+      // tasks 4-5); only the generated type does not know it yet — see
+      // `ApplicationCardOut`'s own docstring above.
+      return data as ApplicationCardOut;
     },
   });
 }
@@ -163,7 +206,9 @@ export function useApplicationTimeline(applicationId: string) {
         params: { path: { application_id: applicationId } },
       });
       if (error) throw apiError(error);
-      return data;
+      // The response genuinely carries `info_requests` (3.9b task 4); see
+      // `ApplicationTimelineOut`'s own docstring above.
+      return data as ApplicationTimelineOut;
     },
   });
 }
@@ -268,6 +313,74 @@ export function useReject(applicationId: string) {
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['staff', 'application', applicationId] });
       void queryClient.invalidateQueries({ queryKey: ['staff', 'applications'] });
+    },
+  });
+}
+
+// --- D3 (3.9b task 3-4): return for correction, request-info --------------
+//
+// Both routes are now present in `schema.d.ts` since its regeneration —
+// reached through the ordinary typed `api.POST`. Neither carries a
+// `pkcs7`: `applications.review` holds no ERI purpose (`ApplicationReturnIn`'s
+// own docstring, `app/modules/applications/schemas.py`).
+
+/** `fields_to_fix` is a JSON OBJECT (field name -> what is wrong with it),
+ *  never a bare list of names. */
+export type ApplicationReturnIn = components['schemas']['ApplicationReturnIn'];
+
+export function useReturnApplication(applicationId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: ApplicationReturnIn) => {
+      const { data, error } = await api.POST('/api/v1/applications/{application_id}/return', {
+        params: { path: { application_id: applicationId } },
+        body: input,
+      });
+      if (error) throw apiError(error);
+      return data;
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['staff', 'application', applicationId] });
+      void queryClient.invalidateQueries({ queryKey: ['staff', 'applications'] });
+    },
+  });
+}
+
+export function useRequestInfo(applicationId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (message: string) => {
+      const { data, error } = await api.POST('/api/v1/applications/{application_id}/request-info', {
+        params: { path: { application_id: applicationId } },
+        body: { message },
+      });
+      if (error) throw apiError(error);
+      return data;
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['staff', 'application', applicationId] });
+      void queryClient.invalidateQueries({ queryKey: ['staff', 'applications'] });
+    },
+  });
+}
+
+// --- D4 (3.9b task 5): conclusions -----------------------------------------
+
+export type ApplicationConclusionIn = components['schemas']['ApplicationConclusionIn'];
+
+export function useAddConclusion(applicationId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: ApplicationConclusionIn) => {
+      const { data, error } = await api.POST('/api/v1/applications/{application_id}/conclusion', {
+        params: { path: { application_id: applicationId } },
+        body: input,
+      });
+      if (error) throw apiError(error);
+      return data;
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['staff', 'application', applicationId] });
     },
   });
 }

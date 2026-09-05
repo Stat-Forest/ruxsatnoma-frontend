@@ -29,25 +29,27 @@ export function ApplicationsPage() {
   return <ApplicationsListPage />;
 }
 
-export function GisPage() {
-  return <div data-testid="gis-page">GIS xaritasi</div>;
-}
+// F1-F4 — real screen, Track F1 of the stage 4+6 fleet (`./gis/GisPage.tsx`):
+// contour map (draw/edit/split), the version lifecycle, geodata import and
+// the restriction/protection/fire-ban layers. Re-exported rather than
+// defined here for the same reason `MyApplicationsPage` above is.
+export { GisPage } from './gis/GisPage';
 
-export function NormsPage() {
-  return <div data-testid="norms-page">Me'yorlar</div>;
-}
+// F5-F7 — the real screen (`src/pages/norms/NormsPage.tsx`), re-exported
+// rather than defined here for the same reason `MyApplicationsPage` is.
+export { NormsPage } from './norms/NormsPage';
 
-export function InvoicesPage() {
-  return <div data-testid="invoices-page">Hisob-fakturalar</div>;
-}
+/** Track F3 — the accountant's whole workspace (screens G1–G5, real screen). */
+export { AccountantWorkspace as InvoicesPage } from './accountant/AccountantWorkspace';
 
 // Track 4 — real screen: the staff permit registry
 // (`src/pages/permits/PermitsPage.tsx`).
 export { PermitsPage } from './permits/PermitsPage';
 
-export function NotificationsPage() {
-  return <div data-testid="notifications-page">Bildirishnomalar</div>;
-}
+// C4 — the real screen (`src/pages/notifications/NotificationsPage.tsx`),
+// re-exported rather than defined here for the same reason
+// `MyApplicationsPage` is.
+export { NotificationsPage } from './notifications/NotificationsPage';
 
 // C5 — the real screen (`src/pages/admin/profile/ProfilePage.tsx`), re-exported
 // rather than defined here for the same reason `MyApplicationsPage` is.

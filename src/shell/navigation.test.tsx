@@ -91,6 +91,33 @@ test('the approver reaches the worklist through his own permission, not the revi
   expect(approver.map((i) => i.to)).not.toContain('/admin/users');
 });
 
+test('the norms menu entry appears for norms.manage alone', () => {
+  const items = visibleNav({ permissions: ['norms.manage'], is_superuser: false });
+  expect(items.map((i) => i.to)).toContain('/norms');
+});
+
+test('the norms menu entry appears for norms.tariffs.manage alone', () => {
+  // The regression task 2 exists to prevent: before the array permission,
+  // the account that maintains grazing coefficients (norms.tariffs.manage,
+  // not norms.manage) could not see this entry at all.
+  const items = visibleNav({ permissions: ['norms.tariffs.manage'], is_superuser: false });
+  expect(items.map((i) => i.to)).toContain('/norms');
+});
+
+test('I1 — the prosecutor reaches /applications through view_any, the same as /permits already does', () => {
+  // Migration 0015 grants `applications.view_any` to `prosecutor` alone, and
+  // `service.list_applications`/`_holds_staff_read` already zone-scope and
+  // serve that caller — `/permits` already listed its own `.view_any` in
+  // this same array; `/applications` had not, which hid a register the
+  // backend already supported.
+  const prosecutor = visibleNav({
+    permissions: ['applications.view_any', 'permits.view_any'],
+    is_superuser: false,
+  });
+  expect(prosecutor.map((i) => i.to)).toContain('/applications');
+  expect(prosecutor.map((i) => i.to)).toContain('/permits');
+});
+
 test('an array permission means ANY of them, never all', () => {
   const holdsOne = satisfies(['applications.review', 'applications.decide'], {
     permissions: ['applications.decide'],

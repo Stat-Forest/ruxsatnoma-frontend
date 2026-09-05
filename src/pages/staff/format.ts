@@ -136,3 +136,53 @@ export function formatAmount(value: string | null | undefined): string {
 export function shortId(id: string): string {
   return id.slice(0, 8);
 }
+
+// --- D3 (3.9b task 4): the SLA clock, honestly ------------------------------
+//
+// `docs/status.md`'s own fact: "the SLA clock PAUSES on an information
+// request, and a forwarded application keeps its ORIGINAL deadline rather
+// than starting a new one" (decision #67, ruling 9). Mirrors
+// `app/modules/applications/sla.py` exactly: `SLA_ACTIVE_STATUSES =
+// ("SUBMITTED", "IN_REVIEW")` are the only two where the clock is actually
+// running; `is_overdue()` checks `status in SLA_ACTIVE_STATUSES` BEFORE it
+// ever compares `now` to the deadline, so PENDING_INFO (an open pause),
+// RETURNED (`submit()` deliberately keeps the existing deadline on a
+// resubmission rather than resetting it, ruling 16.1) and every decided or
+// terminal status are never "overdue" however stale their stored deadline
+// looks. A client that keeps comparing the stored `sla_deadline_at` to the
+// wall clock regardless of status would show a countdown for a clock that
+// has stopped, or worse, report the application overdue for a delay it did
+// not cause.
+
+export type SlaState = 'paused' | 'overdue' | 'soon' | 'normal' | null;
+
+const SLA_ACTIVE_STATUSES: ReadonlySet<ApplicationStatus> = new Set(['SUBMITTED', 'IN_REVIEW']);
+
+/**
+ * `overdueFromServer`, when supplied, is `ApplicationCardOut.sla_overdue`
+ * (`sla.is_overdue`) — the authoritative answer, computed with the SAME
+ * `SLA_ACTIVE_STATUSES` rule this function mirrors client-side, plus
+ * knowledge this function does not have (today's business calendar).
+ * Preferred whenever it is available; the list row (`ApplicationOut`)
+ * carries no such field, so `WorklistRow` calls this with it omitted and
+ * falls back to comparing the stored deadline itself — but only for the two
+ * statuses where that comparison means anything.
+ */
+export function slaStatus(
+  status: ApplicationStatus,
+  slaDeadlineAt: string | null,
+  overdueFromServer?: boolean,
+): SlaState {
+  // PENDING_INFO gets its own, more informative label — it is the one
+  // status an officer can act on right now (nudge the applicant), unlike a
+  // merely-inactive one.
+  if (status === 'PENDING_INFO') return 'paused';
+  if (!slaDeadlineAt) return null;
+  if (overdueFromServer !== undefined) return overdueFromServer ? 'overdue' : 'normal';
+  if (!SLA_ACTIVE_STATUSES.has(status)) return 'normal';
+  const deadline = new Date(slaDeadlineAt).getTime();
+  const now = Date.now();
+  if (deadline < now) return 'overdue';
+  if (deadline - now < 24 * 60 * 60 * 1000) return 'soon';
+  return 'normal';
+}

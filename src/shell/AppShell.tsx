@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Outlet } from 'react-router';
+import { Link, Outlet } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
 import { Bell, LogOut, Menu, RefreshCw, Trees, X } from 'lucide-react';
 import { api } from '../api/client';
@@ -92,7 +92,15 @@ export function AppShell() {
           }}
         />
 
-        <div className="relative flex items-center justify-center h-11 w-11 text-[#5A646D] shrink-0">
+        {/* C4: the bell now opens the inbox it has always counted for
+            (`/notifications` was already a real, ungated `NAVIGATION` entry
+            reachable from the side menu — this just makes the header's own
+            icon do what it looks like it should). */}
+        <Link
+          to="/notifications"
+          aria-label={t('cabinet.notifications.title')}
+          className="relative flex items-center justify-center h-11 w-11 text-[#5A646D] hover:bg-[#F8F9FA] rounded-md shrink-0"
+        >
           <Bell className="w-5 h-5" />
           {unreadQuery.data !== undefined && (
             <span
@@ -102,7 +110,7 @@ export function AppShell() {
               {unreadCount}
             </span>
           )}
-        </div>
+        </Link>
         <button
           type="button"
           data-testid="refresh-notifications"

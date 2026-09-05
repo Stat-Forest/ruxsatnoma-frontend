@@ -148,9 +148,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     clearLocalSession();
   }, [clearLocalSession]);
 
+  // See `AuthContextValue.applyMe`'s own docstring for why this exists
+  // instead of every screen re-implementing "set `me` from a response I
+  // already have".
+  const applyMe = useCallback((next: MeOut) => setMe(next), []);
+
+  // See `AuthContextValue.refreshMe`'s own docstring: for the writes that
+  // hand back something narrower than a whole `MeOut`.
+  const refreshMe = useCallback(async () => {
+    const { data, error } = await api.GET('/api/v1/auth/me', {});
+    if (error) throw apiError(error);
+    setCsrfToken(data.csrf_token);
+    setMe(data);
+  }, []);
+
   return (
     <AuthContext.Provider
-      value={{ me, loading, authError, requestMfa, verifyMfa, startOneId, loginViaEimzo, logout }}
+      value={{
+        me,
+        loading,
+        authError,
+        requestMfa,
+        verifyMfa,
+        startOneId,
+        loginViaEimzo,
+        logout,
+        applyMe,
+        refreshMe,
+      }}
     >
       {children}
     </AuthContext.Provider>
