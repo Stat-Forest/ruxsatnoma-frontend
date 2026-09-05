@@ -83,6 +83,7 @@ function renderDashboard(lang: 'uz_latn' | 'ru' = 'uz_latn') {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   const i18n = {
     lang,
+    backendLang: lang,
     // The real dictionary, and the real fallback: `I18nProvider` renders a key
     // it cannot find as the key itself, which is what the last test looks for.
     t: (key: string) => (DICTIONARIES[lang] as Record<string, string>)[key] ?? key,

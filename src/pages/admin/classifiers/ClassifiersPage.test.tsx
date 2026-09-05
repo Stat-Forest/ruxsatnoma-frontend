@@ -109,7 +109,7 @@ function renderPage(lang: 'uz_latn' | 'ru' = 'uz_latn') {
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   });
-  const i18n = { lang, t: (key: string) => key, setLanguage: async () => {} };
+  const i18n = { lang, backendLang: lang, t: (key: string) => key, setLanguage: async () => {} };
   return render(
     <QueryClientProvider client={client}>
       <I18nContext.Provider value={i18n}>

@@ -19,6 +19,7 @@ export const ru = {
   'nav.integrations': 'Интеграции',
   'nav.notifications': 'Уведомления',
   'nav.profile': 'Профиль',
+  'shell.language': 'Язык',
   'shell.openMenu': 'Меню',
   'shell.closeMenu': 'Закрыть',
   'shell.refresh': 'Обновить',

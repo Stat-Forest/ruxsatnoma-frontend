@@ -7,12 +7,8 @@ import { apiError } from '../api/errors';
 import { useAuth } from '../auth/useAuth';
 import type { UiLanguage } from '../i18n/context';
 import { useLanguage, useT } from '../i18n/useT';
+import { LanguageMenu } from './LanguageMenu';
 import { Nav } from './Nav';
-
-const LANGUAGES: { code: 'uz_latn' | 'ru'; label: string }[] = [
-  { code: 'uz_latn', label: 'UZ' },
-  { code: 'ru', label: 'RU' },
-];
 
 /**
  * `role.name` (`LocalizedName`) is a validated `{backend_lang_code: text}` map —
@@ -36,7 +32,7 @@ function pickLocalizedName(name: Record<string, unknown>, uiLang: UiLanguage): s
 export function AppShell() {
   const { me, logout } = useAuth();
   const t = useT();
-  const { lang, setLanguage } = useLanguage();
+  const { lang, backendLang, setLanguage } = useLanguage();
   const [drawerOpen, setDrawerOpen] = useState(false);
 
   // Ruling 10's global rule ("any ERR-AUTH-002 clears the session") is wired
@@ -80,31 +76,21 @@ export function AppShell() {
 
         <div className="flex-1" />
 
-        <div className="flex items-center border border-[#767F87] rounded-md overflow-hidden text-xs shrink-0">
-          {LANGUAGES.map(({ code, label }) => (
-            <button
-              key={code}
-              type="button"
-              onClick={() => {
-                // `setLanguage` throws on failure (see `I18nProvider`). The
-                // two error codes ruling 10 requires be handled globally
-                // (session gone, stale CSRF) are already caught by
-                // `sessionMiddleware` in `src/api/client.ts` before they ever
-                // reach here; this catch is the backstop against anything
-                // else turning into an unhandled promise rejection.
-                setLanguage(code).catch((err: unknown) => {
-                  console.error('Tilni almashtirishda xatolik:', err);
-                });
-              }}
-              aria-pressed={lang === code}
-              className={`h-11 min-w-11 px-3 font-semibold ${
-                lang === code ? 'bg-[#2E7D4F] text-white' : 'text-[#5A646D] hover:bg-[#F8F9FA]'
-              }`}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
+        <LanguageMenu
+          value={backendLang}
+          label={t('shell.language')}
+          onSelect={(code) => {
+            // `setLanguage` throws on failure (see `I18nProvider`). The two
+            // error codes ruling 10 requires be handled globally (session
+            // gone, stale CSRF) are already caught by `sessionMiddleware` in
+            // `src/api/client.ts` before they ever reach here; this catch is
+            // the backstop against anything else turning into an unhandled
+            // promise rejection.
+            setLanguage(code).catch((err: unknown) => {
+              console.error('Tilni almashtirishda xatolik:', err);
+            });
+          }}
+        />
 
         <div className="relative flex items-center justify-center h-11 w-11 text-[#5A646D] shrink-0">
           <Bell className="w-5 h-5" />
