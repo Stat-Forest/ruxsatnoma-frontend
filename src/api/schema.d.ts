@@ -131,7 +131,14 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Oneid Callback */
+        /**
+         * Oneid Callback
+         * @description Answers a BROWSER, not an API client — hence a redirect rather than
+         *     `MeOut`. The session cookies are set on the returned response object, not
+         *     on an injected `Response`: FastAPI only merges the injected one's headers
+         *     into a body it serialises itself, so setting them there and returning this
+         *     object would send the browser on with no session at all.
+         */
         get: operations["oneid_callback_api_v1_auth_oneid_callback_get"];
         put?: never;
         post?: never;
@@ -2461,6 +2468,35 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/applications/{application_id}/clone": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Clone Application
+         * @description 201 with a fresh DRAFT pre-filled from an application the caller owns,
+         *     in whatever status it holds — so a herder renewing next season's grazing
+         *     does not retype the plot, the activity or the herd.
+         *
+         *     `applications.create` is the gate, the same one `POST /applications`
+         *     itself uses: filing a fresh draft, pre-filled or not, is one right.
+         *     Ownership is the service's own check, so a holder of the code who does not
+         *     own the source gets 404 — never a 403, which would confirm the
+         *     application exists (`service.clone`'s own docstring has the field-by-field
+         *     account of what is carried over and what is deliberately left behind).
+         */
+        post: operations["clone_application_api_v1_applications__application_id__clone_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/applications/{application_id}/timeline": {
         parameters: {
             query?: never;
@@ -2476,7 +2512,8 @@ export interface paths {
          *     A SUBMISSION signature sits on its own `status_history` entry (ruling 25:
          *     the history row's id IS the signed object's id); the top-level `signatures`
          *     is the DECISION line, and is empty until task 7's approve/reject signs one.
-         *     `info_requests` is `[]` until 3.9b writes that table.
+         *     `info_requests` lists every pause this application has had, open or closed,
+         *     oldest first.
          *
          *     404 `ERR-SYS-003` for an id that does not exist, for an application this
          *     caller has no claim on, and for one outside a staff caller's zone — the same
@@ -2485,6 +2522,172 @@ export interface paths {
         get: operations["get_application_timeline_api_v1_applications__application_id__timeline_get"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/applications/{application_id}/assign": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Assign Application
+         * @description Name who holds an application, superseding whatever assignment it has
+         *     now — or claiming one auto-assignment left with no reviewer.
+         *
+         *     403 `ERR-ACL-001` for anyone but `sys_admin`, from the dependency, before
+         *     the service is ever reached. 404 `ERR-SYS-003` for an id that does not
+         *     exist. 409 `ERR-APP-004` (`reason="no_organization"`) for a DRAFT with no
+         *     contour yet — unreachable once an application is genuinely SUBMITTED.
+         */
+        post: operations["assign_application_api_v1_applications__application_id__assign_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/applications/{application_id}/return": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Return Application
+         * @description SUBMITTED or IN_REVIEW -> RETURNED, with a typed reason, the fields to
+         *     fix and a legal basis — so the applicant can correct and resubmit.
+         *
+         *     422 `ERR-VAL-001`: `unknown_rejection_reason` for a `reason_item_id`
+         *     outside the `rejection_reasons` classifier; `reason_not_returnable` for
+         *     one that IS in it but types a refusal or a withdrawal rather than a return
+         *     (RJ-03 is a REFUSAL — returning under it would misdescribe the decision);
+         *     `fields_to_fix_required` for an empty object; `unknown_field` for a key
+         *     naming no real column of the application. 404 `ERR-SYS-003` for an id that
+         *     does not exist and for an application outside the caller's zone. 409
+         *     `ERR-APP-004` in any status but SUBMITTED or IN_REVIEW.
+         */
+        post: operations["return_application_api_v1_applications__application_id__return_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/applications/{application_id}/request-info": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Request Info Application
+         * @description SUBMITTED or IN_REVIEW -> PENDING_INFO, opening the `info_requests` row
+         *     that pauses the SLA clock (ruling 8) until `respond-info` closes it.
+         *
+         *     404 `ERR-SYS-003` for an id that does not exist and for an application
+         *     outside the caller's zone. 409 `ERR-APP-004` in any status but SUBMITTED
+         *     or IN_REVIEW, and (`reason="info_request_already_open"`) for a second
+         *     request while one is already open — two open pauses would make the pause
+         *     arithmetic ambiguous.
+         */
+        post: operations["request_info_application_api_v1_applications__application_id__request_info_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/applications/{application_id}/respond-info": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Respond Info Application
+         * @description The owner's own reply: PENDING_INFO -> IN_REVIEW, closing the newest
+         *     open `info_requests` row, attaching `file_ids` as `application_documents`,
+         *     and shifting `sla_deadline_at` forward by exactly the length of the pause
+         *     (ruling 8) — never re-derived, never left untouched.
+         *
+         *     404 `ERR-SYS-003` for a stranger. 409 `ERR-APP-004` in any status but
+         *     PENDING_INFO. 422 `ERR-VAL-001` for a `file_ids` entry that is missing,
+         *     archived or somebody else's upload.
+         */
+        post: operations["respond_info_application_api_v1_applications__application_id__respond_info_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/applications/{application_id}/conclusion": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Add Conclusion
+         * @description A specialist's written finding on the application (tz/04 С8) — the
+         *     hodim's `kind="executor"` (`applications.review`) or the GIS specialist's
+         *     `kind="gis"` (`applications.conclude_gis`, see `service.add_conclusion`).
+         *     Immutable: no PATCH, no DELETE anywhere in this module — a repeat
+         *     conclusion after rework is a new row (ruling 10).
+         *
+         *     403 `ERR-ACL-001` for a caller who does not hold the permission `kind`
+         *     requires. 404 `ERR-SYS-003` for an id that does not exist or an
+         *     application outside the caller's zone.
+         */
+        post: operations["add_conclusion_api_v1_applications__application_id__conclusion_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/applications/{application_id}/recalculate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Recalculate Application
+         * @description A new `calculations` row, priced off the application's current stored
+         *     fields against whatever `norms` reads as effective right now — for the
+         *     hodim or the head to call during review (ruling 17; tz/04 С5: after the
+         *     vet/cadastre checks, confirm the price or send it for recalculation).
+         *
+         *     409 `ERR-NORM-005` (`norms`' own state-conflict code, never
+         *     `ERR-APP-004`) once the application is APPROVED or beyond — by then the
+         *     figure has been billed and, once a permit exists, printed on a signed
+         *     document.
+         */
+        post: operations["recalculate_application_api_v1_applications__application_id__recalculate_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2558,6 +2761,61 @@ export interface paths {
          *     as on `/approve` above.
          */
         post: operations["reject_application_api_v1_applications__application_id__reject_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/applications/{application_id}/checks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Add Application Check
+         * @description Either `{check_type}` alone (calls the live vet/cadastre adapter) or
+         *     the paper fallback (`source="manual_fallback"`, `result`, `doc_file_id`) —
+         *     `service.add_check` tells them apart. A paper result is written with
+         *     `confirmed_by=None`; it is not usable until a DIFFERENT reviewer confirms
+         *     it through `POST .../checks/{id}/confirm` below (Oybek's ruling,
+         *     2026-09-05: the paper fallback is exactly the case a second pair of eyes
+         *     exists for).
+         *
+         *     404 `ERR-SYS-003` for an id that does not exist or an application outside
+         *     the caller's zone. 422 `ERR-VAL-001` for the paper shape missing `result`
+         *     or `doc_file_id`, or naming a `doc_file_id` that is missing or archived.
+         */
+        post: operations["add_application_check_api_v1_applications__application_id__checks_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/applications/{application_id}/checks/{check_id}/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Confirm Application Check
+         * @description The second person a paper result needs. 409 `ERR-APP-004` refuses the
+         *     MAKER of the same row (`reason="maker_cannot_confirm_own_record"`), a row
+         *     that is not `source="manual_fallback"`, and one already confirmed.
+         *
+         *     404 `ERR-SYS-003` for an id that does not exist, an application outside
+         *     the caller's zone, or a `check_id` that does not belong to it.
+         */
+        post: operations["confirm_application_check_api_v1_applications__application_id__checks__check_id__confirm_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -3115,6 +3373,186 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/permits/{permit_id}/suspend": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Suspend Permit
+         * @description С13: suspend an ACTIVE permit on a named ground, with the leshoz head's
+         *     ERI signature over the decision itself (`decisions.py`'s module docstring).
+         *
+         *     A supporting document is required (`ERR-VAL-001`, `doc_file_required`) —
+         *     PS-04's fire-danger restriction and every other suspension ground name an
+         *     order behind them. 409 `ERR-PERM-001` when the permit is not `active`; 403
+         *     `ERR-ACL-002` outside the caller's leshoz, `ERR-ACL-001` when the caller
+         *     holds `permits.manage` but not `executor_head` OF this leshoz.
+         */
+        post: operations["suspend_permit_api_v1_permits__permit_id__suspend_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/permits/{permit_id}/resume": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Resume Permit
+         * @description С13: resume a SUSPENDED permit, back to `active`. No supporting document
+         *     is required — PS-06 «сабаб бартараф этилди» is a fact about the world a
+         *     document cannot add to; 409 `ERR-PERM-001` when the permit is not
+         *     `suspended`.
+         */
+        post: operations["resume_permit_api_v1_permits__permit_id__resume_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/permits/{permit_id}/revoke": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Revoke Permit
+         * @description С13: cancel a permit for cause, from `active` or from `suspended`
+         *     (`PERMIT_TRANSITIONS`) — terminal but for 4.7's `archived`. The permit's
+         *     live forest ticket is revoked in the same transaction (ruling 14,
+         *     `service.revoke`'s own docstring); no refund is created here (ruling 15).
+         *
+         *     A supporting document is required (`ERR-VAL-001`, `doc_file_required`) —
+         *     the same rule `suspend` carries, for the same reason: an authoritative act
+         *     needs an order behind it. 409 `ERR-PERM-001` when the permit is neither
+         *     `active` nor `suspended` (a repeat carries `from == to` in `details`); 403
+         *     `ERR-ACL-002` outside the caller's leshoz, `ERR-ACL-001`
+         *     `signer_not_authorized` when the caller holds `permits.manage` but not
+         *     `executor_head` OF this leshoz; 422 `ERR-SIGN-001` when the envelope does
+         *     not verify, in which case the permit is untouched and the attempt is
+         *     stored as evidence.
+         */
+        post: operations["revoke_permit_api_v1_permits__permit_id__revoke_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/permits/{permit_id}/duplicates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Permit Duplicates
+         * @description The permit's whole register, newest first. 404 `ERR-SYS-003` for an id
+         *     that does not exist or that this caller has no claim on — the same
+         *     permit-existence-oracle avoidance `GET /permits/{id}` uses, through the
+         *     identical function (`service._readable_permit`).
+         */
+        get: operations["list_permit_duplicates_api_v1_permits__permit_id__duplicates_get"];
+        put?: never;
+        /**
+         * Create Permit Duplicate
+         * @description С13's нусха: register a copy of the permit's OWN stored PDF — never a
+         *     re-render (`service.issue_duplicate`'s own docstring spells out why, and
+         *     what a duplicate inherits unchanged: the original's QR, correct or not).
+         *
+         *     409 `ERR-PERM-001` with `details.reason`: `"not_duplicable"` for a permit
+         *     in `pending_signatures` or `archived`; `"no_document"` for one with no
+         *     stored PDF at all (defensive — not reachable through normal issuance).
+         */
+        post: operations["create_permit_duplicate_api_v1_permits__permit_id__duplicates_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/permits/{permit_id}/forest-tickets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Forest Tickets
+         * @description The permit's whole ВМҚ 506 register, newest first. 404 `ERR-SYS-003`
+         *     for an id that does not exist; 403 `ERR-ACL-002` outside the caller's
+         *     leshoz.
+         */
+        get: operations["list_forest_tickets_api_v1_permits__permit_id__forest_tickets_get"];
+        put?: never;
+        /**
+         * Create Forest Ticket
+         * @description ВМҚ 506: one ўрмон чиптаси against an ACTIVE permit (ruling 11).
+         *
+         *     409 `ERR-PERM-001` `permit_not_active` when the permit is not `active`;
+         *     422 `ERR-VAL-001` `period_outside_permit` when the requested period
+         *     reaches outside the permit's own; 409 `ERR-PERM-003`
+         *     `active_ticket_exists` when `uq_forest_tickets_active` already holds one
+         *     live ticket for this permit. 403 `ERR-ACL-002` outside the caller's
+         *     leshoz.
+         */
+        post: operations["create_forest_ticket_api_v1_permits__permit_id__forest_tickets_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/permits/{permit_id}/extend": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Extend Permit
+         * @description С13: file a new DRAFT `kind='extension'` application against a permit
+         *     still in force — never an edit of the issued document itself
+         *     (`service.extend`'s own docstring: nothing about an issued permit is
+         *     mutable).
+         *
+         *     404 `ERR-SYS-003` for an id that does not exist or that this caller is
+         *     not the holder of — the same answer either gets, so the route is not a
+         *     permit-existence oracle. 409 `ERR-PERM-001` `not_extendable` when the
+         *     permit is not `active` or its period has already ended (applied for
+         *     afresh instead, never extended). 409 `ERR-APP-002`
+         *     `extension_already_open` with the existing draft's id when one is
+         *     already open against this permit.
+         */
+        post: operations["extend_permit_api_v1_permits__permit_id__extend_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/public/permits/check": {
         parameters: {
             query?: never;
@@ -3380,6 +3818,25 @@ export interface components {
             pkcs7: string;
         };
         /**
+         * ApplicationAssignIn
+         * @description `POST /applications/{id}/assign` — `sys_admin` only (Task 1 ANSWERED
+         *     (б), 2026-09-05). `reason` is restricted to the two HUMAN values
+         *     `application_assignments.reason`'s CHECK allows for a manual act —
+         *     `"auto"` is `assignment.py`'s own, never a client's to name.
+         */
+        ApplicationAssignIn: {
+            /**
+             * User Id
+             * Format: uuid
+             */
+            user_id: string;
+            /**
+             * Reason
+             * @enum {string}
+             */
+            reason: "manual" | "absence";
+        };
+        /**
          * ApplicationCalculationOut
          * @description The application's CURRENT price — `applications.service.
          *     current_calculation`, which is the newest `calculations` row and exactly
@@ -3428,7 +3885,7 @@ export interface components {
         };
         /**
          * ApplicationCardOut
-         * @description `GET /applications/{id}` — the columns above, flat, plus the four things
+         * @description `GET /applications/{id}` — the columns above, flat, plus the six things
          *     that are not columns of `applications` at all.
          */
         ApplicationCardOut: {
@@ -3518,12 +3975,48 @@ export interface components {
             /** Checks */
             checks: components["schemas"]["ApplicationCheckOut"][];
             calculation: components["schemas"]["ApplicationCalculationOut"] | null;
+            /** Sla Overdue */
+            sla_overdue: boolean;
+            /** Conclusions */
+            conclusions: components["schemas"]["ApplicationConclusionOut"][];
+        };
+        /**
+         * ApplicationCheckIn
+         * @description `POST /applications/{id}/checks` — task 7 (3.9b), tz/04 С5: the
+         *     office's veterinary and cadastre checks against outside registries, and
+         *     the paper fallback for when one cannot be reached.
+         *
+         *     Two shapes, told apart by `service.add_check` rather than a
+         *     Literal-discriminated union: `check_type` alone calls the live adapter
+         *     (`vet`/`cadastre`); add `source="manual_fallback"` with both `result` and
+         *     `doc_file_id` to record a paper result instead (422 `ERR-VAL-001` if
+         *     either is missing). A paper result is maker-checker (ruling 5, Oybek's
+         *     choice 2026-09-05): it is written with `confirmed_by=None` and is not
+         *     usable until a DIFFERENT reviewer calls `POST .../checks/{id}/confirm`.
+         */
+        ApplicationCheckIn: {
+            /**
+             * Check Type
+             * @enum {string}
+             */
+            check_type: "vet" | "cadastre";
+            /** Source */
+            source?: "manual_fallback" | null;
+            /** Result */
+            result?: ("pass" | "fail" | "warning") | null;
+            /** Doc File Id */
+            doc_file_id?: string | null;
         };
         /**
          * ApplicationCheckOut
          * @description One check result — evidence, and evidence is a LIST: every run is kept
          *     and none is superseded (ruling 12), so a card shows the history rather than
          *     "the latest per type".
+         *
+         *     `created_by`/`confirmed_by`/`confirmed_at` are task 7's maker-checker
+         *     columns (migration `0025`): every row names who created it, and only a
+         *     manual paper result that has actually been confirmed carries the other
+         *     two — `confirmed_by is None` is exactly "not usable yet" on the wire.
          */
         ApplicationCheckOut: {
             /**
@@ -3544,6 +4037,76 @@ export interface components {
              * Format: date-time
              */
             checked_at: string;
+            /**
+             * Created By
+             * Format: uuid
+             */
+            created_by: string;
+            /** Confirmed By */
+            confirmed_by: string | null;
+            /** Confirmed At */
+            confirmed_at: string | null;
+        };
+        /**
+         * ApplicationConclusionIn
+         * @description `POST /applications/{id}/conclusion` — task 5 (3.9b): a specialist's
+         *     written finding (tz/04 С8), immutable (ruling 10 — no PATCH, no DELETE; a
+         *     correction is a new row, never an edit of this one).
+         *
+         *     `kind` names WHICH specialist is writing and is not decoration:
+         *     `service.add_conclusion` gates each value on its own permission —
+         *     `"executor"` on `applications.review` (the hodim), and `"gis"` refused
+         *     with `ERR-ACL-001` for EVERY caller today, because `app/modules/gis/
+         *     permissions.py` registers no code yet that means "authorised to write an
+         *     application conclusion" (see that function's docstring — a gap for
+         *     `decisions.md`/`design/03`, not something this schema can paper over).
+         */
+        ApplicationConclusionIn: {
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "executor" | "gis";
+            /** Text */
+            text: string;
+            /** Recommendation */
+            recommendation?: ("approve" | "reject") | null;
+        };
+        /**
+         * ApplicationConclusionOut
+         * @description One specialist's written finding (task 5, 3.9b; tz/04 С8) — as `POST
+         *     /applications/{id}/conclusion` answers the one it just wrote, and as the
+         *     card lists them.
+         *
+         *     Immutable (ruling 10): a correction is a NEW row, so — like
+         *     `ApplicationCheckOut` beside it — the card's `conclusions` is the FULL
+         *     list, never "the latest per kind".
+         */
+        ApplicationConclusionOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Author Id
+             * Format: uuid
+             */
+            author_id: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "executor" | "gis";
+            /** Text */
+            text: string;
+            /** Recommendation */
+            recommendation: ("approve" | "reject") | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
         };
         /**
          * ApplicationCreate
@@ -3899,6 +4462,75 @@ export interface components {
             legal_basis: string;
         };
         /**
+         * ApplicationRequestInfoIn
+         * @description `POST /applications/{id}/request-info` — task 4 (3.9b): the reviewer
+         *     asks the applicant for more information, opening the `info_requests` row
+         *     that pauses the SLA clock (`sla.py`, ruling 8) until `respond-info` closes
+         *     it.
+         *
+         *     `message` is required and non-empty (`min_length=1`, the same gap
+         *     `ApplicationRejectIn`'s own `legal_basis` closes) — a paused clock with
+         *     nothing asked for leaves the applicant with no way to answer.
+         */
+        ApplicationRequestInfoIn: {
+            /** Message */
+            message: string;
+        };
+        /**
+         * ApplicationRespondInfoIn
+         * @description `POST /applications/{id}/respond-info` — the applicant's own reply,
+         *     closing the newest open `info_requests` row and resuming the SLA clock by
+         *     the length of the pause (ruling 8).
+         *
+         *     `file_ids` names already-uploaded `media_files` rows — the bytes go
+         *     through `POST /files` first, the same two-step `ApplicationDocumentIn`
+         *     uses — and every one must be the caller's OWN active upload
+         *     (`service._own_document_file`). An empty list is a text-only reply and is
+         *     legal: not every request for information needs a document back.
+         */
+        ApplicationRespondInfoIn: {
+            /** Text */
+            text: string;
+            /** File Ids */
+            file_ids: string[];
+        };
+        /**
+         * ApplicationReturnIn
+         * @description `POST /applications/{id}/return` — task 3 (3.9b): send an application
+         *     back for correction, with a typed reason, the fields to fix, and a legal
+         *     basis.
+         *
+         *     **No `pkcs7` here, unlike `ApplicationApproveIn`/`ApplicationRejectIn`** —
+         *     returning a package for correction is not a decision the state signs
+         *     (`applications.review`, the hodim's own permission, holds no ERI purpose
+         *     at all); only approve/reject spend one.
+         *
+         *     `legal_basis` is required with the same `min_length=1` as
+         *     `ApplicationRejectIn`'s own, closing the identical gap a plain `str` would
+         *     leave open. `fields_to_fix` is a JSON **OBJECT** — field name -> what is
+         *     wrong with it, e.g. `{"period_to": "срок выходит за пределы сезона
+         *     выпаса"}` — never a bare list of names, which would tell the applicant
+         *     WHAT to fix but not why; `ApplicationStatusHistory.fields_to_fix` and
+         *     `TimelineHistoryRow.fields_to_fix` are both `dict[str, Any] | None` for
+         *     exactly this shape. Pydantic checks the TYPE only — that it is non-empty
+         *     and that its keys name real columns of the application is the service's
+         *     own check (`service.return_to_applicant`), which needs the row to answer
+         *     "real column of THIS application".
+         */
+        ApplicationReturnIn: {
+            /**
+             * Reason Item Id
+             * Format: uuid
+             */
+            reason_item_id: string;
+            /** Fields To Fix */
+            fields_to_fix: {
+                [key: string]: unknown;
+            };
+            /** Legal Basis */
+            legal_basis: string;
+        };
+        /**
          * ApplicationSubmitIn
          * @description `POST /applications/{id}/submit` — the detached PKCS#7 the client
          *     produced over the bytes `GET /applications/{id}/package` served, and
@@ -3925,7 +4557,8 @@ export interface components {
          *     each sits on its own `status_history` entry, which is the whole point of
          *     ruling 25 giving the history row and the signed object the same id.
          *
-         *     `info_requests` is present and empty until 3.9b writes the table.
+         *     `info_requests` lists every pause this application has had, open or
+         *     closed, oldest first (final whole-branch review, IMPORTANT).
          */
         ApplicationTimelineOut: {
             /** Status History */
@@ -3934,11 +4567,8 @@ export interface components {
             assignments: components["schemas"]["TimelineAssignmentRow"][];
             /** Signatures */
             signatures: components["schemas"]["TimelineSignatureRow"][];
-            /**
-             * Info Requests
-             * @default []
-             */
-            info_requests: unknown[];
+            /** Info Requests */
+            info_requests: components["schemas"]["TimelineInfoRequestRow"][];
         };
         /**
          * ApproveIn
@@ -4476,6 +5106,30 @@ export interface components {
             /** Processed At */
             processed_at: string | null;
         };
+        /**
+         * DecisionIn
+         * @description The body `/suspend`, `/resume` and `/revoke` share (plan
+         *     `03.11b-permits-lifecycle`, `lifecycle_router.py` and Task 4's own route).
+         *
+         *     `legal_basis` and `doc_file_id` are optional at the SCHEMA level because
+         *     their true requirement is PER-ACT (ruling 6: a document is required for
+         *     `suspend`/`revoke`, and `PS-07` alone forces a non-blank `legal_basis`) —
+         *     only the service knows which act is running, and a schema-level
+         *     `Field(...)` cannot vary by the URL a body was posted to.
+         */
+        DecisionIn: {
+            /**
+             * Reason Item Id
+             * Format: uuid
+             */
+            reason_item_id: string;
+            /** Legal Basis */
+            legal_basis?: string | null;
+            /** Doc File Id */
+            doc_file_id?: string | null;
+            /** Pkcs7 */
+            pkcs7: string;
+        };
         /** DistrictOut */
         DistrictOut: {
             /**
@@ -4496,6 +5150,60 @@ export interface components {
              * Format: uuid
              */
             region_id: string;
+        };
+        /**
+         * DuplicateIn
+         * @description `POST /permits/{id}/duplicates` — the нусха register (plan
+         *     `03.11b-permits-lifecycle` ruling 9). `reason` is the whole body: a
+         *     duplicate carries no document and no ERI signature of its own, because it
+         *     changes nothing about the permit — it points a new register row at the
+         *     SAME `pdf_file_id` (`service.issue_duplicate`'s own docstring).
+         *
+         *     `StringConstraints(strip_whitespace=True, ...)`, not a plain
+         *     `Field(min_length=1, ...)`: a reason of pure whitespace has a nonzero
+         *     length and would otherwise pass as if it said something.
+         */
+        DuplicateIn: {
+            /** Reason */
+            reason: string;
+        };
+        /**
+         * DuplicateOut
+         * @description One row of the register — what both `POST` and `GET
+         *     /permits/{id}/duplicates` answer.
+         *
+         *     `file_id` is always the ORIGINAL permit's `pdf_file_id`: a duplicate is a
+         *     copy of that one document, never a re-render, so every row of one
+         *     permit's register names the identical file (ruling 9).
+         */
+        DuplicateOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Permit Id
+             * Format: uuid
+             */
+            permit_id: string;
+            /** Reason */
+            reason: string;
+            /**
+             * File Id
+             * Format: uuid
+             */
+            file_id: string;
+            /**
+             * Issued By
+             * Format: uuid
+             */
+            issued_by: string;
+            /**
+             * Issued At
+             * Format: date-time
+             */
+            issued_at: string;
         };
         /** EimzoChallengeOut */
         EimzoChallengeOut: {
@@ -4704,6 +5412,92 @@ export interface components {
             created_at: string;
             /** Amount Matches Invoice */
             amount_matches_invoice: boolean;
+        };
+        /**
+         * ForestTicketIn
+         * @description `POST /permits/{id}/forest-tickets` — one ўрмон чиптаси against an
+         *     ACTIVE permit (ВМҚ 506, plan `03.11b-permits-lifecycle` ruling 11).
+         *
+         *     `restrictions` is stored exactly as given and validated only as an
+         *     object with string keys — the real ВМҚ 506 field list is `tz/12` #34 and
+         *     inventing one now is ruling 11(б). The documented shape a caller is
+         *     expected to send:
+         *
+         *         {"fire_ban_days": [...], "allowed_tools": [...], "notes": "..."}
+         *
+         *     `valid_to >= valid_from` is checked HERE rather than left for the DB
+         *     CHECK (`forest_tickets.period_ordered`) to catch as an `IntegrityError`
+         *     a caller would have to decode — the same reasoning `gis.schemas`'
+         *     `_validate_period` already gives its own two callers (lesson: an enum-ish
+         *     or ordered pair guarded by a DB CHECK is validated in the schema too, so
+         *     the CHECK is never the first thing a caller meets).
+         */
+        ForestTicketIn: {
+            /**
+             * Valid From
+             * Format: date
+             */
+            valid_from: string;
+            /**
+             * Valid To
+             * Format: date
+             */
+            valid_to: string;
+            /** Restrictions */
+            restrictions: {
+                [key: string]: unknown;
+            };
+        };
+        /**
+         * ForestTicketOut
+         * @description One row of the ВМҚ 506 register — what `POST` answers the moment a
+         *     ticket is issued, and what one row of `GET /permits/{id}/forest-tickets`
+         *     carries.
+         */
+        ForestTicketOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Number */
+            number: string;
+            /**
+             * Permit Id
+             * Format: uuid
+             */
+            permit_id: string;
+            /**
+             * Valid From
+             * Format: date
+             */
+            valid_from: string;
+            /**
+             * Valid To
+             * Format: date
+             */
+            valid_to: string;
+            /** Restrictions */
+            restrictions: {
+                [key: string]: unknown;
+            };
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "active" | "expired" | "revoked";
+            /** File Id */
+            file_id: string | null;
+            /**
+             * Issued By
+             * Format: uuid
+             */
+            issued_by: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
         };
         /** HTTPValidationError */
         HTTPValidationError: {
@@ -7106,6 +7900,38 @@ export interface components {
             signatures: components["schemas"]["TimelineSignatureRow"][];
         };
         /**
+         * TimelineInfoRequestRow
+         * @description One row of the `info_requests` register — final whole-branch review,
+         *     IMPORTANT: the pause it records is the one event on this branch that
+         *     silently moves a legally-consequential deadline (`sla_deadline_at`), and
+         *     this is the only audit view that shows it happened at all. `responded_at`/
+         *     `response_text` are `None` for a still-open pause, the same shape the
+         *     table itself carries.
+         */
+        TimelineInfoRequestRow: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Requested By
+             * Format: uuid
+             */
+            requested_by: string;
+            /** Message */
+            message: string;
+            /**
+             * Requested At
+             * Format: date-time
+             */
+            requested_at: string;
+            /** Responded At */
+            responded_at: string | null;
+            /** Response Text */
+            response_text: string | null;
+        };
+        /**
          * TimelineSignatureRow
          * @description One ERI signature as the timeline shows it.
          *
@@ -7649,7 +8475,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["MeOut"];
+                    "application/json": unknown;
                 };
             };
             /** @description Validation Error */
@@ -12088,6 +12914,37 @@ export interface operations {
             };
         };
     };
+    clone_application_api_v1_applications__application_id__clone_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                application_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApplicationOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     get_application_timeline_api_v1_applications__application_id__timeline_get: {
         parameters: {
             query?: never;
@@ -12106,6 +12963,212 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ApplicationTimelineOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    assign_application_api_v1_applications__application_id__assign_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                application_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ApplicationAssignIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApplicationOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    return_application_api_v1_applications__application_id__return_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                application_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ApplicationReturnIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApplicationOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    request_info_application_api_v1_applications__application_id__request_info_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                application_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ApplicationRequestInfoIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApplicationOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    respond_info_application_api_v1_applications__application_id__respond_info_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                application_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ApplicationRespondInfoIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApplicationOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    add_conclusion_api_v1_applications__application_id__conclusion_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                application_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ApplicationConclusionIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApplicationConclusionOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    recalculate_application_api_v1_applications__application_id__recalculate_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                application_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApplicationCalculationOut"];
                 };
             };
             /** @description Validation Error */
@@ -12176,6 +13239,73 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ApplicationDecisionOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    add_application_check_api_v1_applications__application_id__checks_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                application_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ApplicationCheckIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApplicationCheckOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    confirm_application_check_api_v1_applications__application_id__checks__check_id__confirm_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                application_id: string;
+                check_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApplicationCheckOut"];
                 };
             };
             /** @description Validation Error */
@@ -12867,6 +13997,274 @@ export interface operations {
                 };
                 content: {
                     "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    suspend_permit_api_v1_permits__permit_id__suspend_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                permit_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DecisionIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PermitOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    resume_permit_api_v1_permits__permit_id__resume_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                permit_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DecisionIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PermitOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    revoke_permit_api_v1_permits__permit_id__revoke_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                permit_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DecisionIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PermitOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_permit_duplicates_api_v1_permits__permit_id__duplicates_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                permit_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DuplicateOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_permit_duplicate_api_v1_permits__permit_id__duplicates_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                permit_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DuplicateIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DuplicateOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_forest_tickets_api_v1_permits__permit_id__forest_tickets_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                permit_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ForestTicketOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_forest_ticket_api_v1_permits__permit_id__forest_tickets_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                permit_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ForestTicketIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ForestTicketOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    extend_permit_api_v1_permits__permit_id__extend_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                permit_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApplicationOut"];
                 };
             };
             /** @description Validation Error */
