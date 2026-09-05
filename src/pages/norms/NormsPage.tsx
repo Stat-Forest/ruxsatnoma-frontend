@@ -22,10 +22,9 @@
  * not the same as inactive. `ParamsTab` takes an `active` prop for exactly
  * this (see its own file header and `.superpowers/sdd/06.5-norms-screens/
  * task-3-report.md`), gating its
- * queries with react-query's `enabled`. `NormsTab`/`TariffsTab` can take the
- * same prop when they grow real data fetching — it is not on them by
- * default, so choosing to skip it and fetch regardless is also a valid
- * choice, as long as it is a deliberate one.
+ * queries with react-query's `enabled`. Task 5's `TariffsTab` takes the same
+ * `active` prop for the identical reason (`TariffsTab.tsx`'s own file
+ * header); task 6's `NormsTab` follows suit.
  */
 import { useState } from 'react';
 import { Tabs } from '../../components/ui/Navigation';
@@ -67,7 +66,7 @@ export function NormsPage() {
         <NormsTab />
       </div>
       <div hidden={tab !== 'tariffs'}>
-        <TariffsTab />
+        <TariffsTab active={tab === 'tariffs'} />
       </div>
     </div>
   );

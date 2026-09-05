@@ -370,6 +370,27 @@ test('a published row offers no edit control at all, but a draft row does', asyn
   expect(screen.queryByTestId('row-edit-bhm')).not.toBeInTheDocument();
 });
 
+describe('the Add-parameter button is gated on norms.tariffs.manage alone', () => {
+  // Deferred by task 4's own review ("no test that the 'Add parameter'
+  // button hides without norms.tariffs.manage" — task-4-report.md's closing
+  // section) and closed here, alongside the identical case for tariffs
+  // (`TariffsTab.test.tsx`), since it fell naturally in this task's own
+  // path: both screens share the exact same `canManage` gate.
+  test('hidden for a caller holding only publish', async () => {
+    mockList([]);
+    renderTab([PUBLISH]);
+    await findTableLoaded();
+    expect(screen.queryByTestId('params-add')).not.toBeInTheDocument();
+  });
+
+  test('shown for a caller holding manage', async () => {
+    mockList([]);
+    renderTab([MANAGE]);
+    await findTableLoaded();
+    expect(screen.getByTestId('params-add')).toBeInTheDocument();
+  });
+});
+
 describe('archive is offered per the draft/published permission asymmetry', () => {
   test('a draft row offers archive to a caller holding manage alone', async () => {
     mockList([param({ code: 'coef_sb:tuya', status: 'draft' })]);
