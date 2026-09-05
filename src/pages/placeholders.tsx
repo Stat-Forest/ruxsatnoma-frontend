@@ -45,9 +45,10 @@ export function InvoicesPage() {
 // (`src/pages/permits/PermitsPage.tsx`).
 export { PermitsPage } from './permits/PermitsPage';
 
-export function NotificationsPage() {
-  return <div data-testid="notifications-page">Bildirishnomalar</div>;
-}
+// C4 — the real screen (`src/pages/notifications/NotificationsPage.tsx`),
+// re-exported rather than defined here for the same reason
+// `MyApplicationsPage` is.
+export { NotificationsPage } from './notifications/NotificationsPage';
 
 // C5 — the real screen (`src/pages/admin/profile/ProfilePage.tsx`), re-exported
 // rather than defined here for the same reason `MyApplicationsPage` is.
