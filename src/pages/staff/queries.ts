@@ -6,7 +6,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '../../api/client';
 import { apiError } from '../../api/errors';
-import { rawPost } from '../../api/untyped';
 import type { components } from '../../api/schema';
 
 export type ApplicationOut = components['schemas']['ApplicationOut'];
@@ -15,18 +14,10 @@ export type ActivityTypeOut = components['schemas']['ActivityTypeOut'];
 export type ClassifierItemOut = components['schemas']['ClassifierItemOut'];
 export type ContourCardOut = components['schemas']['ContourCardOut'];
 
-/** One row of `application_conclusions` (task 5, 3.9b) — mirrors
- *  `app/modules/applications/schemas.py::ApplicationConclusionOut` verbatim.
- *  Absent from `schema.d.ts` (see `src/api/untyped.ts`'s own docstring): the
- *  generated client predates 3.9b. */
-export interface ApplicationConclusionOut {
-  id: string;
-  author_id: string;
-  kind: 'executor' | 'gis';
-  text: string;
-  recommendation: 'approve' | 'reject' | null;
-  created_at: string;
-}
+/** One row of `application_conclusions` (task 5, 3.9b) — now present in
+ *  `schema.d.ts` since its regeneration; re-exported under this name so
+ *  every existing import of it keeps working unchanged. */
+export type ApplicationConclusionOut = components['schemas']['ApplicationConclusionOut'];
 
 /** `ApplicationCardOut`, augmented by INTERSECTION rather than by editing
  *  `schema.d.ts` — `sla_overdue` and `conclusions` are real fields the
@@ -328,30 +319,25 @@ export function useReject(applicationId: string) {
 
 // --- D3 (3.9b task 3-4): return for correction, request-info --------------
 //
-// Both routes are absent from `schema.d.ts` (see `src/api/untyped.ts`'s own
-// docstring) — reached through `rawPost` instead of `api.POST`. Neither
-// carries a `pkcs7`: `applications.review` holds no ERI purpose
-// (`ApplicationReturnIn`'s own docstring, `app/modules/applications/
-// schemas.py`).
+// Both routes are now present in `schema.d.ts` since its regeneration —
+// reached through the ordinary typed `api.POST`. Neither carries a
+// `pkcs7`: `applications.review` holds no ERI purpose (`ApplicationReturnIn`'s
+// own docstring, `app/modules/applications/schemas.py`).
 
-/** Mirrors `ApplicationReturnIn` — `fields_to_fix` is a JSON OBJECT (field
- *  name -> what is wrong with it), never a bare list of names. */
-export interface ApplicationReturnIn {
-  reason_item_id: string;
-  fields_to_fix: Record<string, string>;
-  legal_basis: string;
-}
+/** `fields_to_fix` is a JSON OBJECT (field name -> what is wrong with it),
+ *  never a bare list of names. */
+export type ApplicationReturnIn = components['schemas']['ApplicationReturnIn'];
 
 export function useReturnApplication(applicationId: string) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (input: ApplicationReturnIn) => {
-      const { data, error } = await rawPost<ApplicationOut>(
-        `/api/v1/applications/${applicationId}/return`,
-        { body: input },
-      );
+      const { data, error } = await api.POST('/api/v1/applications/{application_id}/return', {
+        params: { path: { application_id: applicationId } },
+        body: input,
+      });
       if (error) throw apiError(error);
-      return data!;
+      return data;
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['staff', 'application', applicationId] });
@@ -364,12 +350,12 @@ export function useRequestInfo(applicationId: string) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (message: string) => {
-      const { data, error } = await rawPost<ApplicationOut>(
-        `/api/v1/applications/${applicationId}/request-info`,
-        { body: { message } },
-      );
+      const { data, error } = await api.POST('/api/v1/applications/{application_id}/request-info', {
+        params: { path: { application_id: applicationId } },
+        body: { message },
+      });
       if (error) throw apiError(error);
-      return data!;
+      return data;
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['staff', 'application', applicationId] });
@@ -380,22 +366,18 @@ export function useRequestInfo(applicationId: string) {
 
 // --- D4 (3.9b task 5): conclusions -----------------------------------------
 
-export interface ApplicationConclusionIn {
-  kind: 'executor' | 'gis';
-  text: string;
-  recommendation: 'approve' | 'reject' | null;
-}
+export type ApplicationConclusionIn = components['schemas']['ApplicationConclusionIn'];
 
 export function useAddConclusion(applicationId: string) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (input: ApplicationConclusionIn) => {
-      const { data, error } = await rawPost<ApplicationConclusionOut>(
-        `/api/v1/applications/${applicationId}/conclusion`,
-        { body: input },
-      );
+      const { data, error } = await api.POST('/api/v1/applications/{application_id}/conclusion', {
+        params: { path: { application_id: applicationId } },
+        body: input,
+      });
       if (error) throw apiError(error);
-      return data!;
+      return data;
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['staff', 'application', applicationId] });

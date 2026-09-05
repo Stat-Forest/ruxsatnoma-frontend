@@ -4,9 +4,9 @@
  * The three things this panel must not get wrong, one test each:
  *   1. the two review-time actions are gated on the real permission codes,
  *      never a role name, and hidden entirely for someone holding neither;
- *   2. a request-info submits exactly `{ message }` to the 3.9b route (not
- *      in `schema.d.ts` — reached through `src/api/untyped.ts`) and the
- *      modal closes on success;
+ *   2. a request-info submits exactly `{ message }` to the 3.9b route
+ *      (in `schema.d.ts` since its regeneration — reached through the
+ *      ordinary typed `api.POST`) and the modal closes on success;
  *   3. PENDING_INFO renders the open info-request's own text and the SLA
  *      pause honestly, never a stale countdown (`docs/status.md`'s fact #1).
  */

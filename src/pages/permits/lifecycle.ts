@@ -7,14 +7,13 @@
  * already use one file over for the permit document page's other action.
  *
  * The three write routes (`/permits/{id}/{suspend,resume,revoke}`) live in
- * the backend's own `lifecycle_router.py`, added by 3.11b — absent from
- * `schema.d.ts` (see `src/api/untyped.ts`'s own docstring) and reached the
- * same way D3/D4 reach their 3.9b routes.
+ * the backend's own `lifecycle_router.py`, added by 3.11b — now present in
+ * `schema.d.ts` since its regeneration, reached through the ordinary typed
+ * `api.POST` the rest of the app uses.
  */
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '../../api/client';
 import { apiError } from '../../api/errors';
-import { rawPost } from '../../api/untyped';
 import type { components } from '../../api/schema';
 
 export type PermitCardOut = components['schemas']['PermitCardOut'];
@@ -55,22 +54,29 @@ export function reasonAppliesTo(item: ClassifierItemOut, act: LifecycleAct): boo
  *  the same fact and could drift from it). */
 export const EXPLANATION_REQUIRED_CODE = 'PS-07';
 
-export interface DecisionInput {
-  reason_item_id: string;
-  legal_basis: string | null;
-  doc_file_id: string | null;
-  pkcs7: string;
-}
+export type DecisionInput = components['schemas']['DecisionIn'];
 
-function useLifecycleMutation(permitId: string, path: 'suspend' | 'resume' | 'revoke') {
+/** The three routes share one request shape (`DecisionIn`) and one response
+ *  shape (`PermitOut` — the permit's own columns, NOT the fuller
+ *  `PermitCardOut` with `signatures`/`history`/`missing_signatures`; no
+ *  caller here reads the mutation's own response, only invalidates and
+ *  re-fetches the card). */
+const LIFECYCLE_PATH = {
+  suspend: '/api/v1/permits/{permit_id}/suspend',
+  resume: '/api/v1/permits/{permit_id}/resume',
+  revoke: '/api/v1/permits/{permit_id}/revoke',
+} as const;
+
+function useLifecycleMutation(permitId: string, act: LifecycleAct) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (input: DecisionInput) => {
-      const { data, error } = await rawPost<PermitCardOut>(`/api/v1/permits/${permitId}/${path}`, {
+      const { data, error } = await api.POST(LIFECYCLE_PATH[act], {
+        params: { path: { permit_id: permitId } },
         body: input,
       });
       if (error) throw apiError(error);
-      return data!;
+      return data;
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['permit', permitId] });
