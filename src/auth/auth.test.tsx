@@ -238,6 +238,10 @@ test('a failed initial session check does not lock a user out who then logs in s
   await renderAt('/login');
   expect(await screen.findByTestId('login-page')).toBeInTheDocument();
 
+  // The password form now lives behind the "Login/Parol" tab — OneID is the
+  // default landing tab (citizen-first) — so the staff flow this test
+  // exercises must select it first.
+  await userEvent.click(await screen.findByRole('tab', { name: 'Login/Parol' }));
   await userEvent.type(screen.getByLabelText(/login/i), '30491823410019');
   await userEvent.type(screen.getByLabelText(/parol/i), 'Head123!');
   await userEvent.click(screen.getByRole('button', { name: /kirish/i }));

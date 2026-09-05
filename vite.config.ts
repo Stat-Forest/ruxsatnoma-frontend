@@ -23,6 +23,9 @@ export default defineConfig({
     // how CI caught `TemplatesPage.test.tsx` while every local run passed.
     // Uzbekistan has one zone and no DST, so pinning it makes every such test
     // deterministic without weakening what it asserts.
-    env: { TZ: 'Asia/Tashkent' },
+    // VITE_EIMZO_MOCK on by default in tests so the E-IMZO tab's form (gated
+    // on the same flag in LoginPage.tsx) renders instead of the "not
+    // connected" placeholder — the real key/plugin flow is stage 5.2.
+    env: { TZ: 'Asia/Tashkent', VITE_EIMZO_MOCK: 'true' },
   },
 })
