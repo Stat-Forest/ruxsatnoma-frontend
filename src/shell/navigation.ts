@@ -78,7 +78,12 @@ export const NAVIGATION: NavItem[] = [
   },
   { to: '/gis', labelKey: 'nav.gis', permission: 'gis.contours.manage', icon: Map },
   { to: '/norms', labelKey: 'nav.norms', permission: 'norms.manage', icon: Scale },
-  { to: '/invoices', labelKey: 'nav.invoices', permission: 'payments.view', icon: Wallet },
+  // `payments.confirm` is `executor_head`'s own code (migration 0022), NOT
+  // `payments.view` — the same reviewer/approver asymmetry `/applications`
+  // already documents below. Without it here, the checker half of G4's
+  // manual-PAID maker-checker flow and G5's refund approval have no page to
+  // stand on at all (06.5-accountant.md ruling R4).
+  { to: '/invoices', labelKey: 'nav.invoices', permission: ['payments.view', 'payments.confirm'], icon: Wallet },
   { to: '/permits', labelKey: 'nav.permits', permission: 'permits.view_any', icon: Stamp },
   { to: '/admin/users', labelKey: 'nav.users', permission: 'auth.users.manage', icon: Users },
   { to: '/admin/roles', labelKey: 'nav.roles', permission: 'auth.users.manage', icon: ShieldCheck },

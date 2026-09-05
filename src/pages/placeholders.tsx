@@ -37,9 +37,8 @@ export function NormsPage() {
   return <div data-testid="norms-page">Me'yorlar</div>;
 }
 
-export function InvoicesPage() {
-  return <div data-testid="invoices-page">Hisob-fakturalar</div>;
-}
+/** Track F3 — the accountant's whole workspace (screens G1–G5, real screen). */
+export { AccountantWorkspace as InvoicesPage } from './accountant/AccountantWorkspace';
 
 // Track 4 — real screen: the staff permit registry
 // (`src/pages/permits/PermitsPage.tsx`).
