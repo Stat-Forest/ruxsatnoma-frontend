@@ -4,9 +4,14 @@ import { api, setCsrfToken, setSessionGoneHandler } from '../api/client';
 import { apiError, SESSION_GONE } from '../api/errors';
 import type { ApiError } from '../api/errors';
 import type { components } from '../api/schema';
+import { buildMockSignedChallenge } from '../lib/eimzoMock';
+import { navigation } from '../lib/navigation';
 import { AuthContext } from './AuthContext';
 
 type MeOut = components['schemas']['MeOut'];
+
+/** Shared with `OneIdReturnPage`, which consumes what `startOneId` stores. */
+export const ONEID_NEXT_KEY = 'ruxsatnoma.oneid.next';
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [me, setMe] = useState<MeOut | null>(null);
@@ -91,13 +96,49 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setAuthError(null);
   }, []);
 
+  const startOneId = useCallback(async (next: string) => {
+    const { data, error } = await api.GET('/api/v1/auth/oneid/authorize', {});
+    if (error) throw apiError(error);
+    // Stored only after the authorize call succeeded: a stale `next` left
+    // behind by a failed attempt would hijack the NEXT successful login.
+    try {
+      sessionStorage.setItem(ONEID_NEXT_KEY, next);
+    } catch {
+      // Private mode or a storage quota — the login still works, it just
+      // lands on the dashboard instead of the remembered page.
+    }
+    navigation.assign(data.redirect_url);
+  }, []);
+
+  const loginViaEimzo = useCallback(async (pinfl: string, fullName: string) => {
+    const { data: challengeData, error: challengeError } = await api.POST(
+      '/api/v1/auth/eimzo/challenge',
+      {},
+    );
+    if (challengeError) throw apiError(challengeError);
+    const signed = await buildMockSignedChallenge({
+      challenge: challengeData.challenge,
+      pinfl,
+      fullName,
+    });
+    const { data, error } = await api.POST('/api/v1/auth/eimzo/login', {
+      body: { signed_challenge: signed },
+    });
+    if (error) throw apiError(error);
+    setCsrfToken(data.csrf_token);
+    setMe(data);
+    setAuthError(null);
+  }, []);
+
   const logout = useCallback(async () => {
     await api.POST('/api/v1/auth/logout', {});
     clearLocalSession();
   }, [clearLocalSession]);
 
   return (
-    <AuthContext.Provider value={{ me, loading, authError, requestMfa, verifyMfa, logout }}>
+    <AuthContext.Provider
+      value={{ me, loading, authError, requestMfa, verifyMfa, startOneId, loginViaEimzo, logout }}
+    >
       {children}
     </AuthContext.Provider>
   );

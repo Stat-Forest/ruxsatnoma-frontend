@@ -18,6 +18,18 @@ export interface AuthContextValue {
   authError: ApiError | null;
   requestMfa: (login: string, password: string) => Promise<void>;
   verifyMfa: (code: string) => Promise<void>;
+  /**
+   * Sends the browser to OneID, remembering `next` in sessionStorage first —
+   * the round trip leaves this origin entirely and comes back through the
+   * backend's callback, so React state and router history do not survive it.
+   */
+  startOneId: (next: string) => Promise<void>;
+  /**
+   * Mock-mode E-IMZO login: fetch a challenge, build the envelope the mock
+   * adapter verifies, exchange it for a session. A real E-IMZO key would
+   * produce the envelope in its own plugin instead — stage 5.2.
+   */
+  loginViaEimzo: (pinfl: string, fullName: string) => Promise<void>;
   logout: () => Promise<void>;
 }
 
