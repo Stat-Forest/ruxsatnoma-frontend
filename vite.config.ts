@@ -25,7 +25,17 @@ export default defineConfig({
     // deterministic without weakening what it asserts.
     // VITE_EIMZO_MOCK on by default in tests so the E-IMZO tab's form (gated
     // on the same flag in LoginPage.tsx) renders instead of the "not
-    // connected" placeholder — the real key/plugin flow is stage 5.2.
+    // connected" placeholder — the real key/plugin flow is stage 5.2. A test
+    // that needs the other branch (the one every real build shows, since the
+    // flag defaults off) overrides it locally with `vi.stubEnv`; `unstubEnvs`
+    // below is what makes that override local to that one test.
     env: { TZ: 'Asia/Tashkent', VITE_EIMZO_MOCK: 'true' },
+    // Both restore automatically after every test instead of relying on each
+    // test file to remember its own `afterEach`: `restoreMocks` puts every
+    // `vi.spyOn` back to its original implementation (a `navigation.assign`
+    // spy must not survive past the test that set it), `unstubEnvs` reverts
+    // any `vi.stubEnv` override back to this file's own defaults above.
+    restoreMocks: true,
+    unstubEnvs: true,
   },
 })

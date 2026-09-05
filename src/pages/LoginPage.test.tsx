@@ -207,3 +207,16 @@ it('leaving the E-IMZO tab and coming back clears a stale bad-PINFL alert', asyn
   await userEvent.click(screen.getByRole('tab', { name: 'E-IMZO' }));
   expect(screen.queryByTestId('eimzo-bad-pinfl')).not.toBeInTheDocument();
 });
+
+it('the E-IMZO tab shows the plugin-required notice when the mock flag is off — the branch every real build shows', async () => {
+  // `vite.config.ts` turns the mock on for the whole suite so the form
+  // above can be tested; the flag defaults OFF in every real build, and
+  // nothing else in this file ever exercises that branch. Overridden here
+  // only, not suite-wide — `unstubEnvs` in `vite.config.ts` reverts it once
+  // this test ends.
+  vi.stubEnv('VITE_EIMZO_MOCK', 'false');
+  render(<App />);
+  await userEvent.click(await screen.findByRole('tab', { name: 'E-IMZO' }));
+  expect(await screen.findByText(/E-IMZO kaliti va brauzer plagini talab qilinadi/)).toBeInTheDocument();
+  expect(screen.queryByLabelText(/PINFL/)).not.toBeInTheDocument();
+});
