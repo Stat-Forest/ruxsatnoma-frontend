@@ -55,6 +55,19 @@ export interface MockSignatureInput {
   pinfl: string;
   /** The exact bytes `GET /applications/{id}/package` served. */
   documentBytes: ArrayBuffer;
+  /**
+   * A human name for the mock certificate's `subject` field. Not cosmetic:
+   * `subject` is persisted and served as signature evidence, not merely
+   * parsed and discarded — `certificates.subject` (`signatures/repo.py:47`,
+   * `models.py:28`) and `signatures.verification.certificate_subject`
+   * (`signatures/verify.py:94`) both store it, and `GET /certificates` /
+   * `GET /signatures` return it to the document's owner and to
+   * `signatures.view_any` oversight. Omit it (the staff decision routes do)
+   * and `subject` falls back to `PINFL=${pinfl}`; give it (the applicant
+   * wizard does, from the signed-in user's own name) and the audit trail
+   * reads a name instead of a bare PINFL.
+   */
+  fullName?: string;
 }
 
 /**
@@ -66,7 +79,11 @@ export interface MockSignatureInput {
  * per signature so this never collides with a certificate somebody else's
  * mock session already bound.
  */
-export async function buildMockSignature({ pinfl, documentBytes }: MockSignatureInput): Promise<string> {
+export async function buildMockSignature({
+  pinfl,
+  documentBytes,
+  fullName,
+}: MockSignatureInput): Promise<string> {
   const now = new Date();
   const validFrom = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
   const validTo = new Date(now.getTime() + 365 * 24 * 60 * 60 * 1000);
@@ -74,8 +91,13 @@ export async function buildMockSignature({ pinfl, documentBytes }: MockSignature
   const serial = `MOCK-${crypto.randomUUID()}`;
   return base64UrlEncodeJson({
     serial_number: serial,
+    // A fixed value: nothing on the backend reads it (the certificate's
+    // identity comes from `pinfl_or_stir`, not `issuer`), so there is no
+    // correctness reason to prefer one string over another — this is simply
+    // the one this module now always uses, rather than an accident of which
+    // of the two merged copies happened to win.
     issuer: 'MOCK-CA-DEMO',
-    subject: `PINFL=${pinfl}`,
+    subject: fullName ? `CN=${fullName}` : `PINFL=${pinfl}`,
     pinfl_or_stir: pinfl,
     valid_from: validFrom.toISOString(),
     valid_to: validTo.toISOString(),

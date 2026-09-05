@@ -244,7 +244,7 @@ export function ApplicationWizardPage() {
         return;
       }
       const packageBytes = await getApplicationPackage(applicationId);
-      const pkcs7 = await buildMockSignature({ documentBytes: packageBytes, pinfl });
+      const pkcs7 = await buildMockSignature({ documentBytes: packageBytes, pinfl, fullName: me?.applicant?.name });
       await submitApplication(applicationId, pkcs7);
       navigate(`/my/applications/${applicationId}`);
     } catch (err) {

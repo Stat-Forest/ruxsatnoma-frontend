@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildMockSignedChallenge, PINFL_PATTERN } from './eimzoMock';
+import { buildMockSignature, buildMockSignedChallenge, PINFL_PATTERN } from './eimzoMock';
 
 function decode(envelope: string): Record<string, unknown> {
   const b64 = envelope.replace(/-/g, '+').replace(/_/g, '/');
@@ -31,6 +31,27 @@ describe('buildMockSignedChallenge', () => {
       fullName: 'TEST USER',
     });
     expect(envelope).not.toMatch(/[+/]/);
+  });
+});
+
+describe('buildMockSignature', () => {
+  it('uses CN=<fullName> for the subject when a name is given', async () => {
+    const envelope = await buildMockSignature({
+      pinfl: '30491823410019',
+      documentBytes: new TextEncoder().encode('doc').buffer,
+      fullName: 'SAIDOV OTABEK',
+    });
+    const payload = decode(envelope);
+    expect(payload.subject).toBe('CN=SAIDOV OTABEK');
+  });
+
+  it('falls back to PINFL=<pinfl> for the subject when no name is given', async () => {
+    const envelope = await buildMockSignature({
+      pinfl: '30491823410019',
+      documentBytes: new TextEncoder().encode('doc').buffer,
+    });
+    const payload = decode(envelope);
+    expect(payload.subject).toBe('PINFL=30491823410019');
   });
 });
 
