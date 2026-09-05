@@ -16,14 +16,9 @@ import 'maplibre-gl/dist/maplibre-gl.css';
 // error. Do not remove the `?worker&url` suffix.
 import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url';
 import type { Feature, FeatureCollection, Geometry } from 'geojson';
-import {
-  TerraDraw,
-  TerraDrawLineStringMode,
-  TerraDrawPointMode,
-  TerraDrawPolygonMode,
-  TerraDrawRenderMode,
-} from 'terra-draw';
+import { TerraDraw } from 'terra-draw';
 import { TerraDrawMapLibreGLAdapter } from 'terra-draw-maplibre-gl-adapter';
+import { createDrawModes } from './drawModes';
 
 setWorkerUrl(workerUrl);
 
@@ -138,17 +133,7 @@ export function DrawMap({
 
     const draw = new TerraDraw({
       adapter: new TerraDrawMapLibreGLAdapter({ map }),
-      // `render` first and with no drawing behaviour of its own — the idle
-      // mode this component sits in whenever `active` is false, so the map
-      // is a plain viewer without ever calling `draw.stop()` (which detaches
-      // the adapter's own listeners entirely and made re-arming a second
-      // draw unreliable across a mode switch).
-      modes: [
-        new TerraDrawRenderMode({ styles: {} }),
-        new TerraDrawPolygonMode(),
-        new TerraDrawLineStringMode(),
-        new TerraDrawPointMode(),
-      ],
+      modes: createDrawModes(),
     });
     drawRef.current = draw;
 
