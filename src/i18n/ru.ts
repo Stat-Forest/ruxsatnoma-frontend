@@ -144,4 +144,64 @@ export const ru = {
     'Пока хотя бы один из них не опубликован, плата за выпас не может быть рассчитана ни для одной заявки в стране.',
   'norms.params.banner.source':
     'Реальные значения должны прийти из приложения 5 к ВМҚ 689; Агентство их пока не предоставило.',
+
+  // F7 — task 4's write screen (create/edit/publish/archive).
+  'norms.params.actions.add': 'Добавить параметр',
+  'norms.params.actions.edit': 'Изменить',
+  'norms.params.actions.publish': 'Опубликовать',
+  'norms.params.actions.archive': 'Архивировать',
+
+  'norms.params.form.createTitle': 'Новый параметр правила',
+  'norms.params.form.editTitle': 'Изменить параметр правила',
+  'norms.params.form.code': 'Код',
+  'norms.params.form.codeHint':
+    'Строчные латинские буквы, цифры и «_», необязательный «:раздел» через двоеточие.',
+  'norms.params.form.codeInvalid': 'Код не соответствует формату «a-z0-9_» (не более 100 символов).',
+  'norms.params.form.value': 'Значение (JSON)',
+  'norms.params.form.valueHint':
+    'Число вводится как есть — 10, строка — в кавычках «0.8», логическое значение — true/false.',
+  'norms.params.form.valueInvalidNumber': 'Введите число.',
+  'norms.params.form.valueInvalidJson': 'Не удалось разобрать значение как JSON',
+  'norms.params.form.unit': 'Единица',
+  'norms.params.form.effectiveFrom': 'Действует с',
+  'norms.params.form.effectiveFromRequired': 'Укажите дату начала действия.',
+  'norms.params.form.effectiveTo': 'Действует по',
+  'norms.params.form.basis': 'Основание',
+  'norms.params.form.basisHint': 'До 500 символов.',
+  'norms.params.form.basisRequired': 'Укажите основание (до 500 символов).',
+  'norms.params.form.save': 'Сохранить',
+  'norms.params.form.cancel': 'Отмена',
+  'norms.params.form.saveFailed': 'Не удалось сохранить параметр.',
+
+  // Rulings R3/R4 — the publish confirmation. Copy for the SHARED
+  // `PublishConfirmDialog` (`pages/norms/components/`); task 5's tariffs
+  // dialog uses the same component with its own `norms.tariffs.*` copy.
+  'norms.params.publish.title': 'Публикация параметра',
+  'norms.params.publish.question':
+    'Опубликовать этот параметр? После публикации значение вступает в силу для новых расчётов.',
+  'norms.params.publish.effectiveFromLabel': 'Действует с',
+  'norms.params.publish.retroactiveWarning':
+    'Дата вступления в силу — в прошлом. Значение будет считаться действующим задним числом.',
+  'norms.params.publish.selfWarning': 'Вы и изменили это значение, и публикуете его.',
+  'norms.params.publish.confirm': 'Опубликовать',
+  'norms.params.publish.cancel': 'Отмена',
+  'norms.params.publish.resultTitle': 'Опубликовано. Предупреждения сервера:',
+  'norms.params.publish.resultEmpty': 'Сервер не вернул дополнительных предупреждений.',
+  'norms.params.publish.close': 'Закрыть',
+  // The four distinct refusals (task-4 brief) — each says what the operator
+  // can actually do next, not just that the call failed.
+  'norms.params.publish.error.notDraft': 'Этот параметр уже не черновик — публикация недоступна.',
+  'norms.params.publish.error.notMakerChecker':
+    'Вы сами создали этот черновик — опубликовать его должен коллега, у которого есть право публикации.',
+  'norms.params.publish.error.forbidden': 'У вас нет права публиковать параметры (norms.tariffs.publish).',
+  'norms.params.publish.error.periodOverlap':
+    'Уже есть опубликованная запись, действующая в этот период — сначала закройте или сдвиньте её период.',
+  'norms.params.publish.error.generic': 'Не удалось опубликовать параметр.',
+
+  'norms.params.archive.title': 'Архивирование параметра',
+  'norms.params.archive.question':
+    'Архивировать этот параметр? Дата окончания действия будет закрыта вчерашним днём.',
+  'norms.params.archive.confirm': 'Архивировать',
+  'norms.params.archive.cancel': 'Отмена',
+  'norms.params.archive.error.generic': 'Не удалось архивировать параметр.',
 };

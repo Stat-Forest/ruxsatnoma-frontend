@@ -1,7 +1,7 @@
 /**
  * F7 — the rule-parameters register.
  *
- * The five things task-3's brief pins down, one test each:
+ * The five things task-3's brief pinned down (still one test each, read-only):
  *   1. the banner fires and names the right count when a `coef_sb:*` draft
  *      exists;
  *   2. it stops firing once every `coef_sb:*` row is published, even with an
@@ -13,19 +13,35 @@
  *   5. filters/paging reach the query as `status`/`code`/`limit`/`offset`,
  *      and the table reads `total` off the envelope.
  *
+ * Task 4 adds the write flows, integration-level (dialog-only behaviour —
+ * the R3/R4 warnings, the `warnings` display — is covered in
+ * `components/PublishConfirmDialog.test.tsx` instead, with plain props and
+ * no network):
+ *   6. each of the four publish refusals renders its own distinct message;
+ *   7. a published row offers no edit control at all;
+ *   8. archive is offered per the draft/published permission asymmetry;
+ *   9. publishing a `coef_sb:*` draft from the BANNER drops its own count —
+ *      end to end against MSW, the track's whole reason to exist.
+ *
  * `t` returns the key itself — same precedent as `NormsPage.test.tsx` and
  * `IntegrationsPage.test.tsx` for a page rendered outside `I18nProvider`;
  * assertions below key off `data-testid`s and the runtime-typed VALUES
  * (`"0.8"`, `10`, `true`), never off translated copy.
  */
+import type { ReactNode } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { setupServer } from 'msw/node';
 import { ParamsTab } from './ParamsTab';
+import { AuthContext } from '../../auth/AuthContext';
+import type { AuthContextValue } from '../../auth/AuthContext';
 import { I18nContext } from '../../i18n/context';
 import type { RuleParameterOut } from './params/api';
+
+const MANAGE = 'norms.tariffs.manage';
+const PUBLISH = 'norms.tariffs.publish';
 
 let idCounter = 0;
 function param(over: Partial<RuleParameterOut> = {}): RuleParameterOut {
@@ -60,6 +76,11 @@ afterAll(() => server.close());
  * request) — exactly like the real route, it filters `store` by an EXACT
  * `code`/`status` match and then pages by `offset`/`limit`, deriving `total`
  * from the filtered set before paging (never from `store` as a whole).
+ *
+ * `store` is a mutable array reference: write-route mocks below (`mockPublish`
+ * etc.) mutate the SAME array in place on success, so a re-fetch after a
+ * mutation's `invalidateQueries` sees the new state — the same thing the real
+ * backend would do, without a second layer of fake persistence.
  */
 function mockList(store: RuleParameterOut[], onRequest?: (params: URLSearchParams) => void) {
   server.use(
@@ -84,15 +105,68 @@ function mockList(store: RuleParameterOut[], onRequest?: (params: URLSearchParam
   );
 }
 
-function renderTab() {
+/**
+ * `publish` is registered BEFORE the bare `/rule-parameters/:id` handlers a
+ * test might add later, per the brief's own MSW warning — kept as separate,
+ * narrowly-pathed handlers (`/publish`, `/archive`) rather than one handler
+ * inspecting the URL, so registration order cannot silently matter here.
+ */
+function mockPublish(store: RuleParameterOut[], respond: (row: RuleParameterOut) => Response) {
+  server.use(
+    http.post('*/api/v1/rule-parameters/:id/publish', ({ params }) => {
+      const row = store.find((r) => r.id === params.id);
+      if (!row) return HttpResponse.json({ error: { code: 'ERR-SYS-000', message: 'not found' } }, { status: 404 });
+      return respond(row);
+    }),
+  );
+}
+
+function publishSuccess(store: RuleParameterOut[], row: RuleParameterOut, warnings: { code: string; message: string }[] = []) {
+  const index = store.findIndex((r) => r.id === row.id);
+  if (index >= 0) store[index] = { ...row, status: 'published' };
+  return HttpResponse.json({ item: store[index] ?? row, warnings });
+}
+
+function publishRefusal(code: string, message: string, details?: unknown, status = 422) {
+  return HttpResponse.json({ error: { code, message, details } }, { status });
+}
+
+function mockArchive(store: RuleParameterOut[]) {
+  server.use(
+    http.post('*/api/v1/rule-parameters/:id/archive', ({ params }) => {
+      const index = store.findIndex((r) => r.id === params.id);
+      if (index < 0) return HttpResponse.json({ error: { code: 'ERR-SYS-000', message: 'not found' } }, { status: 404 });
+      store[index] = { ...store[index], status: 'archived', effective_to: '2026-01-01' };
+      return HttpResponse.json(store[index]);
+    }),
+  );
+}
+
+function renderTab(permissions: string[] = [MANAGE, PUBLISH]) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
   const i18n = { lang: 'ru' as const, backendLang: 'ru' as const, t: (key: string) => key, setLanguage: async () => {} };
+  const me = {
+    user: { id: 'u-1', full_name: 'Test', login: 'test', language: 'uz_latn' },
+    role: { code: 'norms_admin', name: {} },
+    permissions,
+    zone: {},
+    csrf_token: 'tok',
+    is_superuser: false,
+    applicant: null,
+    representations: [],
+    registration_complete: true,
+  };
+  const authValue = { me, loading: false, authError: null } as unknown as AuthContextValue;
+  const wrapper = ({ children }: { children: ReactNode }) => (
+    <AuthContext.Provider value={authValue}>{children}</AuthContext.Provider>
+  );
   return render(
     <QueryClientProvider client={client}>
       <I18nContext.Provider value={i18n}>
         <ParamsTab active />
       </I18nContext.Provider>
     </QueryClientProvider>,
+    { wrapper },
   );
 }
 
@@ -201,4 +275,156 @@ test('filters and paging reach the query as status/code/limit/offset, and total 
     expect(pageRequest).toBeTruthy();
     expect(pageRequest!.get('offset')).toBe('50');
   });
+});
+
+// ── Task 4 — write flows ────────────────────────────────────────────────────
+
+describe('the four publish refusals, each its own message (task-4 brief)', () => {
+  async function openPublishDialog(user: ReturnType<typeof userEvent.setup>, code: string) {
+    const banner = await screen.findByTestId('coef-sb-draft-banner');
+    await user.click(within(banner).getByTestId(`coef-sb-publish-${code}`));
+    await user.click(await screen.findByTestId('publish-dialog-confirm'));
+  }
+
+  test('not_draft', async () => {
+    const user = userEvent.setup();
+    mockList([param({ code: 'coef_sb:qoramol', status: 'draft' })]);
+    server.use(
+      http.post('*/api/v1/rule-parameters/:id/publish', () =>
+        publishRefusal('ERR-NORM-005', 'not a draft', { reason: 'not_draft' }),
+      ),
+    );
+    renderTab();
+
+    await openPublishDialog(user, 'coef_sb:qoramol');
+    expect(await screen.findByText('norms.params.publish.error.notDraft')).toBeInTheDocument();
+  });
+
+  test('not_maker_checker', async () => {
+    const user = userEvent.setup();
+    mockList([param({ code: 'coef_sb:qoramol', status: 'draft' })]);
+    server.use(
+      http.post('*/api/v1/rule-parameters/:id/publish', () =>
+        publishRefusal('ERR-NORM-005', 'maker cannot check own draft', { reason: 'not_maker_checker' }),
+      ),
+    );
+    renderTab();
+
+    await openPublishDialog(user, 'coef_sb:qoramol');
+    expect(await screen.findByText('norms.params.publish.error.notMakerChecker')).toBeInTheDocument();
+  });
+
+  test('forbidden (ERR-ACL-001, no details.reason)', async () => {
+    const user = userEvent.setup();
+    mockList([param({ code: 'coef_sb:qoramol', status: 'draft' })]);
+    server.use(
+      http.post('*/api/v1/rule-parameters/:id/publish', () =>
+        publishRefusal('ERR-ACL-001', 'forbidden', undefined, 403),
+      ),
+    );
+    renderTab();
+
+    await openPublishDialog(user, 'coef_sb:qoramol');
+    expect(await screen.findByText('norms.params.publish.error.forbidden')).toBeInTheDocument();
+  });
+
+  test('period_overlap', async () => {
+    const user = userEvent.setup();
+    mockList([param({ code: 'coef_sb:qoramol', status: 'draft' })]);
+    server.use(
+      http.post('*/api/v1/rule-parameters/:id/publish', () =>
+        publishRefusal('ERR-NORM-005', 'period already covered', { reason: 'period_overlap' }),
+      ),
+    );
+    renderTab();
+
+    await openPublishDialog(user, 'coef_sb:qoramol');
+    expect(await screen.findByText('norms.params.publish.error.periodOverlap')).toBeInTheDocument();
+  });
+});
+
+test('a published row offers no edit control at all, but a draft row does', async () => {
+  mockList([
+    param({ code: 'coef_sb:qoy', status: 'draft' }),
+    param({ code: 'bhm', status: 'published', value: 1 }),
+  ]);
+  renderTab();
+  await findTableLoaded();
+
+  expect(screen.getByTestId('row-edit-coef_sb:qoy')).toBeInTheDocument();
+  expect(screen.queryByTestId('row-edit-bhm')).not.toBeInTheDocument();
+});
+
+describe('archive is offered per the draft/published permission asymmetry', () => {
+  test('a draft row offers archive to a caller holding manage alone', async () => {
+    mockList([param({ code: 'coef_sb:tuya', status: 'draft' })]);
+    renderTab([MANAGE]);
+    await findTableLoaded();
+
+    expect(screen.getByTestId('row-archive-coef_sb:tuya')).toBeInTheDocument();
+  });
+
+  test('a draft row does NOT offer archive to a caller holding only publish', async () => {
+    mockList([param({ code: 'coef_sb:tuya', status: 'draft' })]);
+    renderTab([PUBLISH]);
+    await findTableLoaded();
+
+    expect(screen.queryByTestId('row-archive-coef_sb:tuya')).not.toBeInTheDocument();
+  });
+
+  test('a published row does NOT offer archive to a caller holding only manage', async () => {
+    mockList([param({ code: 'bhm', status: 'published', value: 1 })]);
+    renderTab([MANAGE]);
+    await findTableLoaded();
+
+    expect(screen.queryByTestId('row-archive-bhm')).not.toBeInTheDocument();
+  });
+
+  test('a published row offers archive to a caller holding publish', async () => {
+    mockList([param({ code: 'bhm', status: 'published', value: 1 })]);
+    renderTab([PUBLISH]);
+    await findTableLoaded();
+
+    expect(screen.getByTestId('row-archive-bhm')).toBeInTheDocument();
+  });
+});
+
+test('publishing a coef_sb draft from the banner drops its own count end to end — the track\'s whole purpose', async () => {
+  const user = userEvent.setup();
+  const store = [
+    param({ code: 'coef_sb:qoramol', status: 'draft' }),
+    param({ code: 'coef_sb:qoy', status: 'draft' }),
+  ];
+  mockList(store);
+  mockPublish(store, (row) => publishSuccess(store, row));
+  renderTab();
+
+  const banner = await screen.findByTestId('coef-sb-draft-banner');
+  expect(within(banner).getByTestId('coef-sb-draft-count')).toHaveTextContent('2');
+
+  await user.click(within(banner).getByTestId('coef-sb-publish-coef_sb:qoramol'));
+  await user.click(await screen.findByTestId('publish-dialog-confirm'));
+  await screen.findByTestId('publish-result');
+  await user.click(screen.getByTestId('publish-dialog-close'));
+
+  await waitFor(() => {
+    expect(within(screen.getByTestId('coef-sb-draft-banner')).getByTestId('coef-sb-draft-count')).toHaveTextContent(
+      '1',
+    );
+  });
+});
+
+test('archiving a draft row, end to end, removes it from the register on refetch', async () => {
+  const user = userEvent.setup();
+  const store = [param({ code: 'coef_sb:tuya', status: 'draft' })];
+  mockList(store);
+  mockArchive(store);
+  renderTab([MANAGE]);
+  await findTableLoaded();
+
+  await user.click(screen.getByTestId('row-archive-coef_sb:tuya'));
+  await user.click(await screen.findByTestId('archive-dialog-confirm'));
+
+  await waitFor(() => expect(screen.queryByTestId('row-archive-coef_sb:tuya')).not.toBeInTheDocument());
+  expect(store[0].status).toBe('archived');
 });

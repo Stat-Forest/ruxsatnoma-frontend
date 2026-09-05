@@ -151,4 +151,65 @@ export const uz_latn = {
     'Ulardan kamida bittasi eʼlon qilinmaguncha, mamlakat boʻyicha birorta ariza uchun ham yaylov toʻlovini hisoblab boʻlmaydi.',
   'norms.params.banner.source':
     'Haqiqiy qiymatlar VMQ 689-son qarorining 5-ilovasidan kelishi kerak; Agentlik ularni hali taqdim etmagan.',
+
+  // F7 — task 4's write screen (create/edit/publish/archive).
+  'norms.params.actions.add': 'Parametr qoʻshish',
+  'norms.params.actions.edit': 'Oʻzgartirish',
+  'norms.params.actions.publish': 'Eʼlon qilish',
+  'norms.params.actions.archive': 'Arxivlash',
+
+  'norms.params.form.createTitle': 'Yangi qoida parametri',
+  'norms.params.form.editTitle': 'Qoida parametrini oʻzgartirish',
+  'norms.params.form.code': 'Kod',
+  'norms.params.form.codeHint':
+    "Kichik lotin harflari, raqamlar va «_», ixtiyoriy «:boʻlim» ikki nuqta bilan.",
+  'norms.params.form.codeInvalid': 'Kod «a-z0-9_» formatiga mos emas (koʻpi bilan 100 belgi).',
+  'norms.params.form.value': 'Qiymat (JSON)',
+  'norms.params.form.valueHint':
+    "Son boricha kiritiladi — 10, satr — qoʻshtirnoqda «0.8», mantiqiy qiymat — true/false.",
+  'norms.params.form.valueInvalidNumber': 'Sonni kiriting.',
+  'norms.params.form.valueInvalidJson': 'Qiymatni JSON sifatida oʻqib boʻlmadi',
+  'norms.params.form.unit': "O'lchov birligi",
+  'norms.params.form.effectiveFrom': 'Amal qilish boshlanishi',
+  'norms.params.form.effectiveFromRequired': 'Amal qilish boshlanish sanasini kiriting.',
+  'norms.params.form.effectiveTo': 'Amal qilish tugashi',
+  'norms.params.form.basis': 'Asos',
+  'norms.params.form.basisHint': "Koʻpi bilan 500 belgi.",
+  'norms.params.form.basisRequired': 'Asosni kiriting (koʻpi bilan 500 belgi).',
+  'norms.params.form.save': 'Saqlash',
+  'norms.params.form.cancel': 'Bekor qilish',
+  'norms.params.form.saveFailed': 'Parametrni saqlab boʻlmadi.',
+
+  // R3/R4 qarorlari — eʼlon qilishni tasdiqlash. UMUMIY
+  // `PublishConfirmDialog` (`pages/norms/components/`) uchun matn; 5-topshiriq
+  // (tariflar) xuddi shu komponentni oʻz `norms.tariffs.*` matni bilan
+  // qayta ishlatadi.
+  'norms.params.publish.title': 'Parametrni eʼlon qilish',
+  'norms.params.publish.question':
+    "Bu parametrni eʼlon qilasizmi? Eʼlon qilingandan soʻng qiymat yangi hisob-kitoblar uchun kuchga kiradi.",
+  'norms.params.publish.effectiveFromLabel': 'Amal qilish boshlanishi',
+  'norms.params.publish.retroactiveWarning':
+    "Amal qilish boshlanish sanasi — oʻtmishda. Qiymat orqaga qaytib kuchga kirgan hisoblanadi.",
+  'norms.params.publish.selfWarning': 'Siz bu qiymatni oʻzgartirdingiz va endi oʻzingiz eʼlon qilyapsiz.',
+  'norms.params.publish.confirm': 'Eʼlon qilish',
+  'norms.params.publish.cancel': 'Bekor qilish',
+  'norms.params.publish.resultTitle': "Eʼlon qilindi. Server ogohlantirishlari:",
+  'norms.params.publish.resultEmpty': 'Server qoʻshimcha ogohlantirish qaytarmadi.',
+  'norms.params.publish.close': 'Yopish',
+  // Toʻrtta aniq rad javobi (4-topshiriq brifi) — har biri operator
+  // NIMA QILISHI kerakligini aytadi, shunchaki xatolik emas.
+  'norms.params.publish.error.notDraft': 'Bu parametr endi qoralama emas — eʼlon qilib boʻlmaydi.',
+  'norms.params.publish.error.notMakerChecker':
+    "Bu qoralamani siz yaratgansiz — uni eʼlon qilish huquqiga ega hamkasbingiz eʼlon qilishi kerak.",
+  'norms.params.publish.error.forbidden': 'Sizda parametrlarni eʼlon qilish huquqi yoʻq (norms.tariffs.publish).',
+  'norms.params.publish.error.periodOverlap':
+    "Shu davrni qamrab oluvchi eʼlon qilingan yozuv allaqachon mavjud — avval uning davrini yoping yoki suring.",
+  'norms.params.publish.error.generic': 'Parametrni eʼlon qilib boʻlmadi.',
+
+  'norms.params.archive.title': 'Parametrni arxivlash',
+  'norms.params.archive.question':
+    "Bu parametrni arxivlaysizmi? Amal qilish tugash sanasi kechagi kun bilan yopiladi.",
+  'norms.params.archive.confirm': 'Arxivlash',
+  'norms.params.archive.cancel': 'Bekor qilish',
+  'norms.params.archive.error.generic': 'Parametrni arxivlab boʻlmadi.',
 };

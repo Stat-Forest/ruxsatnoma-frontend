@@ -30,3 +30,24 @@ export function statusLabelKey(status: string): string {
     ? `norms.params.status.${status}`
     : status;
 }
+
+/** Task 4 — the two permission codes the write routes are gated on (task-4
+ *  brief's own contract table). Named constants rather than inline string
+ *  literals scattered across `ParamsTab`/`RuleParameterFormModal`: a typo in
+ *  either place would silently hide or wrongly expose a control, and
+ *  `grep`ping one constant finds every gate at once. */
+export const MANAGE_PERMISSION = 'norms.tariffs.manage';
+export const PUBLISH_PERMISSION = 'norms.tariffs.publish';
+
+/** `code` is validated server-side against this exact pattern (task-4
+ *  brief), max 100 chars — checked client-side in the create form so a typo
+ *  reads as a field error instead of a 422 round trip. Not applied to `code`
+ *  on PATCH: `RuleParameterPatch` has no such field at all, so there is
+ *  nothing here for the edit form to validate. */
+export const RULE_PARAMETER_CODE_PATTERN = /^[a-z0-9_]+(:[a-z0-9_]+)?$/;
+export const RULE_PARAMETER_CODE_MAX_LENGTH = 100;
+
+/** `basis` (`RuleParameterIn.basis`/`.RuleParameterPatch.basis`) is 1..500
+ *  chars server-side — checked client-side for the same reason as the code
+ *  pattern above. */
+export const RULE_PARAMETER_BASIS_MAX_LENGTH = 500;

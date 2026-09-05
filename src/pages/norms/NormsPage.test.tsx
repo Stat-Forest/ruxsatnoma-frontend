@@ -1,8 +1,11 @@
+import type { ReactNode } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { setupServer } from 'msw/node';
+import { AuthContext } from '../../auth/AuthContext';
+import type { AuthContextValue } from '../../auth/AuthContext';
 import { I18nContext } from '../../i18n/context';
 import { NormsPage } from './NormsPage';
 
@@ -20,15 +23,35 @@ afterAll(() => server.close());
 // `t` returns the key itself — the tab-switch behaviour under test does not
 // depend on which language is active, and IntegrationsPage.test.tsx sets the
 // same precedent for a page rendered outside `I18nProvider`.
+//
+// Task 4's `ParamsTab` calls `useAuth()` to gate its write controls, so this
+// suite now needs an `AuthContext` — a permissive `me` (task-4 brief's own
+// two permissions) is enough; this file still only asserts tab visibility.
 function renderPage() {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
   const i18n = { lang: 'ru' as const, backendLang: 'ru' as const, t: (key: string) => key, setLanguage: async () => {} };
+  const me = {
+    user: { id: 'u-1', full_name: 'Test', login: 'test', language: 'uz_latn' },
+    role: { code: 'norms_admin', name: {} },
+    permissions: ['norms.tariffs.manage', 'norms.tariffs.publish'],
+    zone: {},
+    csrf_token: 'tok',
+    is_superuser: false,
+    applicant: null,
+    representations: [],
+    registration_complete: true,
+  };
+  const authValue = { me, loading: false, authError: null } as unknown as AuthContextValue;
+  const wrapper = ({ children }: { children: ReactNode }) => (
+    <AuthContext.Provider value={authValue}>{children}</AuthContext.Provider>
+  );
   return render(
     <QueryClientProvider client={client}>
       <I18nContext.Provider value={i18n}>
         <NormsPage />
       </I18nContext.Provider>
     </QueryClientProvider>,
+    { wrapper },
   );
 }
 
