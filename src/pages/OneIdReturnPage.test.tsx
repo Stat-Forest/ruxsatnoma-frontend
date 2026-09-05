@@ -5,7 +5,7 @@ import { setupServer } from 'msw/node';
 import { beforeEach } from 'vitest';
 import App from '../App';
 import { ONEID_NEXT_KEY } from '../auth/AuthProvider';
-import { resetOneIdReturnCache } from './OneIdReturnPage';
+import { resetOneIdReturnCache } from './oneIdReturnCache';
 
 // ME and the server setup mirror LoginPage.test.tsx — a session EXISTS here,
 // because the browser arrives on this route already carrying the cookies the
@@ -21,7 +21,10 @@ const ME = {
     language: 'uz',
   },
   role: { code: 'applicant', name: { uz_cyrl: 'Ariza beruvchi' } },
-  permissions: [],
+  // `applications.create` — the wizard's own gate in `routes.tsx` — so the
+  // first test below lands where a real citizen actually can: on the
+  // wizard, not bounced to `Forbidden` by an under-permissioned fixture.
+  permissions: ['applications.create'],
   zone: { region_id: null, district_id: null, organization_id: null },
   csrf_token: 'tok-1',
   is_superuser: false,
@@ -78,6 +81,16 @@ it('falls back to the dashboard when nothing was remembered', async () => {
 
 it('refuses an absolute URL in storage and goes to the dashboard', async () => {
   sessionStorage.setItem(ONEID_NEXT_KEY, 'https://evil.example/steal');
+  arriveAt('/auth/oneid/return');
+  render(<App />);
+  await waitFor(() => expect(window.location.pathname).toBe('/'));
+});
+
+// The interesting case: a protocol-relative URL passes `startsWith('/')` —
+// it needs the explicit `startsWith('//')` check `takeNext` also applies, or
+// the browser would be sent off-origin to whatever host follows the slashes.
+it('refuses a protocol-relative URL in storage and goes to the dashboard', async () => {
+  sessionStorage.setItem(ONEID_NEXT_KEY, '//evil.example/steal');
   arriveAt('/auth/oneid/return');
   render(<App />);
   await waitFor(() => expect(window.location.pathname).toBe('/'));
