@@ -91,6 +91,19 @@ test('the approver reaches the worklist through his own permission, not the revi
   expect(approver.map((i) => i.to)).not.toContain('/admin/users');
 });
 
+test('the norms menu entry appears for norms.manage alone', () => {
+  const items = visibleNav({ permissions: ['norms.manage'], is_superuser: false });
+  expect(items.map((i) => i.to)).toContain('/norms');
+});
+
+test('the norms menu entry appears for norms.tariffs.manage alone', () => {
+  // The regression task 2 exists to prevent: before the array permission,
+  // the account that maintains grazing coefficients (norms.tariffs.manage,
+  // not norms.manage) could not see this entry at all.
+  const items = visibleNav({ permissions: ['norms.tariffs.manage'], is_superuser: false });
+  expect(items.map((i) => i.to)).toContain('/norms');
+});
+
 test('an array permission means ANY of them, never all', () => {
   const holdsOne = satisfies(['applications.review', 'applications.decide'], {
     permissions: ['applications.decide'],

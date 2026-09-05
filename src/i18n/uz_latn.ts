@@ -112,4 +112,11 @@ export const uz_latn = {
   'dash.month.10': 'Okt',
   'dash.month.11': 'Noy',
   'dash.month.12': 'Dek',
+  // F5-F7 — norms/tariffs/rule-parameters (`pages/norms/`). Namespaced under
+  // `norms.` so tasks 3-6's own `norms.params.*` / `norms.tariffs.*` /
+  // `norms.norms.*` blocks can land beside these without colliding.
+  'norms.title': "Me'yorlar",
+  'norms.tab.params': 'Qoida parametrlari',
+  'norms.tab.norms': "Me'yorlar",
+  'norms.tab.tariffs': 'Tariflar',
 };

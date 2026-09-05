@@ -33,9 +33,9 @@ export function GisPage() {
   return <div data-testid="gis-page">GIS xaritasi</div>;
 }
 
-export function NormsPage() {
-  return <div data-testid="norms-page">Me'yorlar</div>;
-}
+// F5-F7 — the real screen (`src/pages/norms/NormsPage.tsx`), re-exported
+// rather than defined here for the same reason `MyApplicationsPage` is.
+export { NormsPage } from './norms/NormsPage';
 
 export function InvoicesPage() {
   return <div data-testid="invoices-page">Hisob-fakturalar</div>;

@@ -105,4 +105,11 @@ export const ru = {
   'dash.month.10': 'окт',
   'dash.month.11': 'ноя',
   'dash.month.12': 'дек',
+  // F5-F7 — norms/tariffs/rule-parameters (`pages/norms/`). Namespaced under
+  // `norms.` so tasks 3-6's own `norms.params.*` / `norms.tariffs.*` /
+  // `norms.norms.*` blocks can land beside these without colliding.
+  'norms.title': 'Нормативы',
+  'norms.tab.params': 'Параметры правил',
+  'norms.tab.norms': 'Нормы',
+  'norms.tab.tariffs': 'Тарифы',
 };

@@ -77,7 +77,12 @@ export const NAVIGATION: NavItem[] = [
     icon: Inbox,
   },
   { to: '/gis', labelKey: 'nav.gis', permission: 'gis.contours.manage', icon: Map },
-  { to: '/norms', labelKey: 'nav.norms', permission: 'norms.manage', icon: Scale },
+  // Two DIFFERENT permissions reach the three tabs behind this one entry:
+  // rule parameters and tariffs are gated on `norms.tariffs.manage`, not
+  // `norms.manage` — see `NavItem.permission`. Before this array, the
+  // account that maintains grazing coefficients held only the tariffs code
+  // and could not see this menu entry at all (ruling R1, task 2).
+  { to: '/norms', labelKey: 'nav.norms', permission: ['norms.manage', 'norms.tariffs.manage'], icon: Scale },
   { to: '/invoices', labelKey: 'nav.invoices', permission: 'payments.view', icon: Wallet },
   { to: '/permits', labelKey: 'nav.permits', permission: 'permits.view_any', icon: Stamp },
   { to: '/admin/users', labelKey: 'nav.users', permission: 'auth.users.manage', icon: Users },
