@@ -63,6 +63,28 @@ const CONTOUR_LAYERS = ['contour-fill', 'contour-casing', 'contour-line'] as con
  * to a tint and the outline carries the shape. */
 const FILL_OPACITY: Record<BasemapId, number> = { osm: 0.45, satellite: 0.15 };
 
+/** The map is locked to Uzbekistan (Oybek, 2026-09-05): every forest-fund
+ * parcel this system will ever issue a permit for is inside these bounds, so
+ * panning beyond them can only ever be a viewer getting lost. Roughly the
+ * country's extent — Ustyurt in the west, the Ferghana valley in the east,
+ * Termez in the south, Karakalpakstan in the north — with a small margin so a
+ * contour touching a national border still has context around it.
+ *
+ * **What this does NOT do:** it stops the map being *moved* off Uzbekistan; it
+ * cannot stop neighbouring territory being *seen*. Tiles are square and the
+ * providers draw whatever falls in them, so near a border a strip of Kazakh,
+ * Kyrgyz, Tajik, Afghan or Turkmen ground stays visible. Hiding that needs a
+ * mask polygon of the national boundary drawn over the basemap — a separate
+ * change, and one that needs boundary geometry we do not have yet. */
+const UZBEKISTAN_BOUNDS: [[number, number], [number, number]] = [
+  [55.6, 36.9],
+  [73.4, 45.8],
+];
+
+/** Fits the whole country in the preview's own 360×256 frame and no further:
+ * zooming out to a world map has nothing to offer here. */
+const MIN_ZOOM = 4.5;
+
 const BASEMAP_STYLE: StyleSpecification = {
   version: 8,
   sources: {
@@ -142,6 +164,8 @@ export function ContourMapPreview({ geometry }: { geometry: Record<string, unkno
       style: BASEMAP_STYLE,
       center: [69.2401, 41.2995], // Tashkent — a reasonable default before anything is picked
       zoom: 7,
+      maxBounds: UZBEKISTAN_BOUNDS,
+      minZoom: MIN_ZOOM,
       attributionControl: { compact: true },
     });
     mapRef.current = map;
