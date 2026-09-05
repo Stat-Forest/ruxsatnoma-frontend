@@ -15,6 +15,17 @@
  * here the opposite holds: task 3 needs a tab switch to NOT reset
  * Parameters' own filters, and conditionally rendering only the active tab
  * would remount it (and reset that state) on every switch.
+ *
+ * WARNING for tasks 5-6 (raised by task 2's review, handled by task 3):
+ * because every tab body mounts up front, a `useQuery` inside one fires on
+ * page load even while a DIFFERENT tab is showing — mounted-but-`hidden` is
+ * not the same as inactive. `ParamsTab` takes an `active` prop for exactly
+ * this (see its own file header and `.superpowers/sdd/06.5-norms-screens/
+ * task-3-report.md`), gating its
+ * queries with react-query's `enabled`. `NormsTab`/`TariffsTab` can take the
+ * same prop when they grow real data fetching — it is not on them by
+ * default, so choosing to skip it and fetch regardless is also a valid
+ * choice, as long as it is a deliberate one.
  */
 import { useState } from 'react';
 import { Tabs } from '../../components/ui/Navigation';
@@ -50,7 +61,7 @@ export function NormsPage() {
       />
 
       <div hidden={tab !== 'params'}>
-        <ParamsTab />
+        <ParamsTab active={tab === 'params'} />
       </div>
       <div hidden={tab !== 'norms'}>
         <NormsTab />

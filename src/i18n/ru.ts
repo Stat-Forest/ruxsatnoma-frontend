@@ -112,4 +112,36 @@ export const ru = {
   'norms.tab.params': 'Параметры правил',
   'norms.tab.norms': 'Нормы',
   'norms.tab.tariffs': 'Тарифы',
+
+  // F7 — rule parameters, task 3's own screen (`pages/norms/ParamsTab.tsx`
+  // and `pages/norms/params/`).
+  'norms.params.filter.code': 'Код параметра',
+  'norms.params.filter.status': 'Статус',
+  'norms.params.filter.statusAll': 'Все',
+  'norms.params.filter.reset': 'Сбросить',
+  'norms.params.filter.apply': 'Применить',
+  'norms.params.col.code': 'Код',
+  'norms.params.col.value': 'Значение',
+  'norms.params.col.unit': 'Единица',
+  'norms.params.col.status': 'Статус',
+  'norms.params.col.effectiveFrom': 'Действует с',
+  'norms.params.col.effectiveTo': 'Действует по',
+  'norms.params.col.basis': 'Основание',
+  'norms.params.col.createdBy': 'Кем создан',
+  'norms.params.col.createdAt': 'Создан',
+  'norms.params.seededByMigration': 'Заполнено миграцией',
+  'norms.params.loadError': 'Не удалось загрузить параметры.',
+  'norms.params.emptyTitle': 'Параметры не найдены',
+  'norms.params.emptyDescription': 'Измените фильтры или проверьте позже.',
+  'norms.params.status.draft': 'Черновик',
+  'norms.params.status.published': 'Опубликовано',
+  'norms.params.status.archived': 'В архиве',
+  // The banner (ruling R2): fires on `code` starting with `coef_sb:` AND
+  // `status === 'draft'` — never on `basis`. See `ParamsTab.tsx`.
+  'norms.params.banner.title': 'Коэффициенты поголовья не опубликованы',
+  'norms.params.banner.countSuffix': 'коэффициент(ов) поголовья всё ещё в статусе «черновик».',
+  'norms.params.banner.consequence':
+    'Пока хотя бы один из них не опубликован, плата за выпас не может быть рассчитана ни для одной заявки в стране.',
+  'norms.params.banner.source':
+    'Реальные значения должны прийти из приложения 5 к ВМҚ 689; Агентство их пока не предоставило.',
 };

@@ -119,4 +119,36 @@ export const uz_latn = {
   'norms.tab.params': 'Qoida parametrlari',
   'norms.tab.norms': "Me'yorlar",
   'norms.tab.tariffs': 'Tariflar',
+
+  // F7 — rule parameters, task 3's own screen (`pages/norms/ParamsTab.tsx`
+  // and `pages/norms/params/`).
+  'norms.params.filter.code': 'Parametr kodi',
+  'norms.params.filter.status': 'Holati',
+  'norms.params.filter.statusAll': 'Barchasi',
+  'norms.params.filter.reset': 'Tiklash',
+  'norms.params.filter.apply': "Qo'llash",
+  'norms.params.col.code': 'Kod',
+  'norms.params.col.value': 'Qiymat',
+  'norms.params.col.unit': "O'lchov birligi",
+  'norms.params.col.status': 'Holati',
+  'norms.params.col.effectiveFrom': 'Amal qilish boshlanishi',
+  'norms.params.col.effectiveTo': 'Amal qilish tugashi',
+  'norms.params.col.basis': 'Asos',
+  'norms.params.col.createdBy': 'Kim yaratgan',
+  'norms.params.col.createdAt': 'Yaratilgan sana',
+  'norms.params.seededByMigration': 'Migratsiya orqali toʻldirilgan',
+  'norms.params.loadError': 'Parametrlar yuklanmadi.',
+  'norms.params.emptyTitle': 'Parametrlar topilmadi',
+  'norms.params.emptyDescription': 'Filtrlarni oʻzgartiring yoki keyinroq tekshiring.',
+  'norms.params.status.draft': 'Qoralama',
+  'norms.params.status.published': 'Eʼlon qilingan',
+  'norms.params.status.archived': 'Arxivlangan',
+  // Banner (ruling R2): fires on `code` starting with `coef_sb:` AND
+  // `status === 'draft'` — never on `basis`. See `ParamsTab.tsx`.
+  'norms.params.banner.title': 'Bosh chorva koeffitsientlari eʼlon qilinmagan',
+  'norms.params.banner.countSuffix': 'ta bosh chorva koeffitsienti hali ham «qoralama» holatida.',
+  'norms.params.banner.consequence':
+    'Ulardan kamida bittasi eʼlon qilinmaguncha, mamlakat boʻyicha birorta ariza uchun ham yaylov toʻlovini hisoblab boʻlmaydi.',
+  'norms.params.banner.source':
+    'Haqiqiy qiymatlar VMQ 689-son qarorining 5-ilovasidan kelishi kerak; Agentlik ularni hali taqdim etmagan.',
 };
