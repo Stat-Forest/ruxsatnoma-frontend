@@ -33,11 +33,42 @@ const ME = {
   registration_complete: true,
 };
 
+// Empty pages/lists for every read the landing screens below fire once
+// `me` resolves: the dashboard (`/`) queries `applications`, `permits` and
+// `refs/activity-types` (`dashboard/queries.ts`); the wizard (reached by the
+// first test) additionally reads `refs/livestock-types` and
+// `refs/classifiers/:code/items`. This file only asserts on
+// `window.location.pathname`, never on what these screens render, so an
+// empty response is enough to let them mount without error.
+function page<T>(items: T[]) {
+  return { items, total: items.length, page: 1, page_size: 100 };
+}
+
 const server = setupServer(
   http.get('*/auth/me', () => HttpResponse.json(ME)),
   http.get('*/notifications/unread-count', () => HttpResponse.json({ count: 0 })),
+  http.get('*/api/v1/applications', () => HttpResponse.json(page([]))),
+  http.get('*/api/v1/permits', () => HttpResponse.json(page([]))),
+  http.get('*/api/v1/refs/activity-types', () => HttpResponse.json([])),
+  http.get('*/api/v1/refs/livestock-types', () => HttpResponse.json([])),
+  http.get('*/api/v1/refs/classifiers/:code/items', () => HttpResponse.json([])),
 );
-beforeAll(() => server.listen());
+// `onUnhandledRequest: 'error'` (the convention every other test file in this
+// suite follows — this one and 4 others predate it) is what actually fixes
+// the flake below, not just what matches convention: without it, a request
+// this file forgot to mock does not fail loudly, it falls through to
+// whatever is reachable at `api/client.ts`'s real `BASE_URL`
+// (`http://localhost:8000` by default) — nothing, in ordinary CI, but a real
+// backend when one happens to be running on that port on the machine running
+// the tests (as one was, for manual verification, when this test started
+// failing with no code change). That real server then answers an
+// unauthenticated request with a genuine `ERR-AUTH-002`, which
+// `client.ts`'s `sessionMiddleware` reacts to exactly as it would for the
+// genuine article: it clears `me`, `RequireAuth` redirects to `/login`, and
+// whichever assertion is polling at that moment fails. `error` turns that
+// silent, environment-dependent leak into an immediate, deterministic test
+// failure the moment a new screen's dependency goes unmocked.
+beforeAll(() => server.listen({ onUnhandledRequest: 'error' }));
 afterEach(() => server.resetHandlers());
 afterAll(() => server.close());
 
