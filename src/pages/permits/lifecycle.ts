@@ -1,0 +1,107 @@
+/**
+ * Data layer for E3 — permit lifecycle (suspend/resume/revoke, С13, plan
+ * `03.11b-permits-lifecycle`). Kept in its own file rather than appended to
+ * `queries.ts` (scoped to the list screens by its own docstring) or inlined
+ * in the panel, the same split `eimzo.ts` (data/crypto helpers) and
+ * `PermitSignaturesPanel.tsx` (the component, its own inline mutation)
+ * already use one file over for the permit document page's other action.
+ *
+ * The three write routes (`/permits/{id}/{suspend,resume,revoke}`) live in
+ * the backend's own `lifecycle_router.py`, added by 3.11b — absent from
+ * `schema.d.ts` (see `src/api/untyped.ts`'s own docstring) and reached the
+ * same way D3/D4 reach their 3.9b routes.
+ */
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { api } from '../../api/client';
+import { apiError } from '../../api/errors';
+import { rawPost } from '../../api/untyped';
+import type { components } from '../../api/schema';
+
+export type PermitCardOut = components['schemas']['PermitCardOut'];
+export type ClassifierItemOut = components['schemas']['ClassifierItemOut'];
+
+export type LifecycleAct = 'suspend' | 'resume' | 'revoke';
+
+/** `grounds.CLASSIFIER_CODE` — `permit_status_reasons`, seeded by migration
+ *  0023 with PS-01…PS-07 (`app/modules/permits/grounds.py`). Shares the
+ *  generic classifier-items route every other reference list in this app
+ *  already uses (`staff/queries.ts::useRejectionReasons`, same shape). */
+export function usePermitStatusReasons() {
+  return useQuery({
+    queryKey: ['refs', 'classifiers', 'permit_status_reasons'],
+    queryFn: async () => {
+      const { data, error } = await api.GET('/api/v1/refs/classifiers/{code}/items', {
+        params: { path: { code: 'permit_status_reasons' } },
+      });
+      if (error) throw apiError(error);
+      return data;
+    },
+    staleTime: 10 * 60_000,
+  });
+}
+
+/** `grounds._kinds` — an item's `props.kinds` names which of
+ *  suspend/resume/revoke it applies to; defensively read (an admin-editable
+ *  classifier, same defensiveness the backend's own `_kinds` applies). */
+export function reasonAppliesTo(item: ClassifierItemOut, act: LifecycleAct): boolean {
+  const props = item.props as Record<string, unknown> | null;
+  const kinds = props?.kinds;
+  return Array.isArray(kinds) && kinds.includes(act);
+}
+
+/** `grounds.EXPLANATION_REQUIRED` — PS-07 is the one ground whose
+ *  `legal_basis` is not optional. Matched by CODE, mirroring the backend's
+ *  own constant exactly (a `props` flag would be a second place to encode
+ *  the same fact and could drift from it). */
+export const EXPLANATION_REQUIRED_CODE = 'PS-07';
+
+export interface DecisionInput {
+  reason_item_id: string;
+  legal_basis: string | null;
+  doc_file_id: string | null;
+  pkcs7: string;
+}
+
+function useLifecycleMutation(permitId: string, path: 'suspend' | 'resume' | 'revoke') {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: DecisionInput) => {
+      const { data, error } = await rawPost<PermitCardOut>(`/api/v1/permits/${permitId}/${path}`, {
+        body: input,
+      });
+      if (error) throw apiError(error);
+      return data!;
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['permit', permitId] });
+    },
+  });
+}
+
+export function useSuspendPermit(permitId: string) {
+  return useLifecycleMutation(permitId, 'suspend');
+}
+export function useResumePermit(permitId: string) {
+  return useLifecycleMutation(permitId, 'resume');
+}
+export function useRevokePermit(permitId: string) {
+  return useLifecycleMutation(permitId, 'revoke');
+}
+
+/** `POST /files`, the same two-step upload every attachment in this app
+ *  goes through — duplicated in miniature rather than imported from
+ *  `applicant/api.ts` (a different track's file; nothing in this app
+ *  reaches across that boundary today, `staff/format.ts`'s own comment
+ *  gives the same reason for its own duplication). Any authenticated user
+ *  may call it (`app/files_router.py::upload_file` takes `get_current_user`
+ *  alone), so `executor_head` uploading the suspend/revoke order needs
+ *  nothing beyond being signed in. */
+export async function uploadDecisionDocument(file: File): Promise<{ id: string }> {
+  const form = new FormData();
+  form.append('file', file);
+  const { data, error } = await api.POST('/api/v1/files', {
+    body: form as unknown as { file: string },
+  });
+  if (error) throw apiError(error);
+  return data;
+}
