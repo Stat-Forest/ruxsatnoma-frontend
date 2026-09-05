@@ -5,6 +5,8 @@ import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { setupServer } from 'msw/node';
 import { StatementsTab } from './StatementsTab';
+import { AuthContext } from '../../auth/AuthContext';
+import type { AuthContextValue } from '../../auth/AuthContext';
 import { DICTIONARIES, I18nContext } from '../../i18n/context';
 import * as accountantApi from './api';
 
@@ -24,8 +26,20 @@ beforeAll(() => server.listen({ onUnhandledRequest: 'error' }));
 afterEach(() => server.resetHandlers());
 afterAll(() => server.close());
 
-function renderTab() {
+function renderTab(permissions: string[] = ['payments.view', 'payments.manage']) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
+  const me = {
+    user: { id: 'u-1', full_name: 'Accountant', login: 'acc', language: 'uz_latn' },
+    role: { code: 'accountant', name: {} },
+    permissions,
+    zone: { region_id: null, district_id: null, organization_id: null },
+    csrf_token: 'tok',
+    is_superuser: false,
+    applicant: null,
+    representations: [],
+    registration_complete: true,
+  };
+  const authValue = { me, loading: false, authError: null } as unknown as AuthContextValue;
   const i18n = {
     lang: 'uz_latn' as const,
     backendLang: 'uz_latn' as const,
@@ -34,7 +48,9 @@ function renderTab() {
   };
   const wrapper = ({ children }: { children: ReactNode }) => (
     <QueryClientProvider client={client}>
-      <I18nContext.Provider value={i18n}>{children}</I18nContext.Provider>
+      <AuthContext.Provider value={authValue}>
+        <I18nContext.Provider value={i18n}>{children}</I18nContext.Provider>
+      </AuthContext.Provider>
     </QueryClientProvider>
   );
   return render(<StatementsTab />, { wrapper });
@@ -148,4 +164,12 @@ test('a 404 on open reads as "not found", never a raw error code', async () => {
   await user.click(screen.getByRole('button', { name: 'Ochish' }));
 
   expect(await screen.findByText('Bunday hisobot topilmadi.')).toBeInTheDocument();
+});
+
+test('a caller with neither payments.manage nor payments.view (e.g. the manual-PAID checker) sees neither the upload form nor the open-by-id search, never a button the backend would 403 on', () => {
+  renderTab(['payments.confirm']);
+
+  expect(screen.queryByLabelText('Fayl (CSV)')).not.toBeInTheDocument();
+  expect(screen.queryByLabelText('ID boʻyicha ochish')).not.toBeInTheDocument();
+  expect(screen.getByText(/Bank hisobotlariga kirish huquqi/)).toBeInTheDocument();
 });

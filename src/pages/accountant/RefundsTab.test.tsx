@@ -188,3 +188,38 @@ test('approving an in-review refund shows the allocations a "returned" resolutio
   expect(await within(dialog).findByText(/qaytarildi\.$/)).toBeInTheDocument();
   expect(within(dialog).getByText('tizimdan tashqarida hisoblanadi')).toBeInTheDocument();
 });
+
+test('a caller with only payments.confirm (no payments.view) never fires GET /refunds, which would 403, and sees the approve-by-id panel instead', async () => {
+  let listCalled = false;
+  server.use(
+    http.get('*/api/v1/refunds', () => {
+      listCalled = true;
+      return HttpResponse.json({ items: [], total: 0, page: 1, page_size: 100 });
+    }),
+  );
+  renderTab(['payments.confirm']);
+
+  expect(await screen.findByTestId('refund-approve-by-id-panel')).toBeInTheDocument();
+  expect(screen.queryByTestId(`refund-row-${REFUND_ID}`)).not.toBeInTheDocument();
+  expect(listCalled).toBe(false);
+});
+
+test('the approve-by-id panel approves a refund purely by its id, with no row ever loaded', async () => {
+  let approveBody: unknown;
+  server.use(
+    http.post('*/api/v1/refunds/:id/approve', async ({ request, params }) => {
+      approveBody = await request.json();
+      expect(params.id).toBe(REFUND_ID);
+      return HttpResponse.json(refund({ status: 'returned', allocations: [{ target: 'recipient', account: '2020...', amount: '-360000.00' }] }));
+    }),
+  );
+  const user = userEvent.setup();
+  renderTab(['payments.confirm']);
+
+  const panel = await screen.findByTestId('refund-approve-by-id-panel');
+  await user.type(within(panel).getByLabelText('Ariza (qaytarish) ID'), REFUND_ID);
+  await user.click(within(panel).getByRole('button', { name: 'Qaytarish' }));
+
+  expect(approveBody).toEqual({ resolution: 'returned', comment: null });
+  expect(await within(panel).findByText(/qaytarildi\.$/)).toBeInTheDocument();
+});

@@ -3,11 +3,15 @@ import { AlertTriangle, Search, UploadCloud } from 'lucide-react';
 import { Button } from '../../components/ui/button';
 import { FormField, Input } from '../../components/ui/FormControls';
 import { Alert } from '../../components/ui/Feedback';
+import { useAuth } from '../../auth/useAuth';
 import { ApiError } from '../../api/errors';
 import { useT } from '../../i18n/useT';
 import { formatDate, formatDateTime, formatMoney } from '../permits/format';
 import { MATCH_STATUS_LABEL, MATCH_STATUS_STYLE, STATEMENT_STATUS_LABEL, STATEMENT_STATUS_STYLE } from './statusMeta';
 import { useBankStatement, useCreateBankStatement } from './queries';
+
+const PAYMENTS_VIEW = 'payments.view';
+const PAYMENTS_MANAGE = 'payments.manage';
 
 /**
  * G3 — bank-statement import and reconciliation (matching itself is a
@@ -20,57 +24,83 @@ import { useBankStatement, useCreateBankStatement } from './queries';
  * statements at all — only a `POST` and a by-id `GET`. Opening one after
  * this session's own upload is a courtesy list kept in component state;
  * opening one from an earlier session works only by pasting its id.
+ *
+ * `POST /payments/bank-statements` requires `payments.manage`,
+ * `GET /payments/bank-statements/{id}` requires `payments.view`
+ * (`backoffice_router.py`) — re-verified against the current source
+ * 2026-09-05 after the backend worktree turned out to be 53 commits stale
+ * when this screen was first built. `accountant` holds both (migration
+ * 0017), so nothing changes for the maker; `executor_head` (reachable here
+ * via ruling R4's widened nav permission) holds neither, and has no
+ * legitimate business with bank statements at all — the tab shows neither
+ * half to that role rather than offering a button the backend would refuse.
  */
 export function StatementsTab() {
   const t = useT();
+  const { me } = useAuth();
+  const canUpload = Boolean(me?.is_superuser || me?.permissions.includes(PAYMENTS_MANAGE));
+  const canView = Boolean(me?.is_superuser || me?.permissions.includes(PAYMENTS_VIEW));
+
   const [uploadedIds, setUploadedIds] = useState<string[]>([]);
   const [openId, setOpenId] = useState<string | null>(null);
   const [openIdDraft, setOpenIdDraft] = useState('');
 
+  if (!canUpload && !canView) {
+    return (
+      <div data-testid="statements-tab">
+        <Alert variant="info">{t('accountant.statements.noAccess')}</Alert>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-5" data-testid="statements-tab">
-      <UploadForm
-        onAccepted={(id) => {
-          setUploadedIds((prev) => [id, ...prev]);
-          setOpenId(id);
-        }}
-      />
-
-      <section className="rounded-2xl border border-[#E4E7EA] bg-white p-4 shadow-xs">
-        <h2 className="mb-3 text-sm font-bold text-[#1A1F24]">{t('accountant.statements.openIdLabel')}</h2>
-        <form
-          className="flex items-end gap-2"
-          onSubmit={(e) => {
-            e.preventDefault();
-            if (openIdDraft.trim()) setOpenId(openIdDraft.trim());
+      {canUpload && (
+        <UploadForm
+          onAccepted={(id) => {
+            setUploadedIds((prev) => [id, ...prev]);
+            setOpenId(id);
           }}
-        >
-          <FormField label={t('accountant.statements.openIdLabel')} htmlFor="statement-open-id" className="flex-1">
-            <Input id="statement-open-id" value={openIdDraft} onChange={(e) => setOpenIdDraft(e.target.value)} placeholder="UUID" />
-          </FormField>
-          <Button type="submit" variant="secondary" leftIcon={<Search className="h-4 w-4" />}>
-            {t('accountant.statements.openButton')}
-          </Button>
-        </form>
+        />
+      )}
 
-        {uploadedIds.length > 0 && (
-          <ul className="mt-3 space-y-1 text-xs">
-            {uploadedIds.map((id) => (
-              <li key={id}>
-                <button
-                  type="button"
-                  className="font-mono text-[#2E7D4F] underline hover:text-[#23653F]"
-                  onClick={() => setOpenId(id)}
-                >
-                  {id}
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
+      {canView && (
+        <section className="rounded-2xl border border-[#E4E7EA] bg-white p-4 shadow-xs">
+          <h2 className="mb-3 text-sm font-bold text-[#1A1F24]">{t('accountant.statements.openIdLabel')}</h2>
+          <form
+            className="flex items-end gap-2"
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (openIdDraft.trim()) setOpenId(openIdDraft.trim());
+            }}
+          >
+            <FormField label={t('accountant.statements.openIdLabel')} htmlFor="statement-open-id" className="flex-1">
+              <Input id="statement-open-id" value={openIdDraft} onChange={(e) => setOpenIdDraft(e.target.value)} placeholder="UUID" />
+            </FormField>
+            <Button type="submit" variant="secondary" leftIcon={<Search className="h-4 w-4" />}>
+              {t('accountant.statements.openButton')}
+            </Button>
+          </form>
 
-      {openId && <StatementDetail statementId={openId} />}
+          {uploadedIds.length > 0 && (
+            <ul className="mt-3 space-y-1 text-xs">
+              {uploadedIds.map((id) => (
+                <li key={id}>
+                  <button
+                    type="button"
+                    className="font-mono text-[#2E7D4F] underline hover:text-[#23653F]"
+                    onClick={() => setOpenId(id)}
+                  >
+                    {id}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+      )}
+
+      {canView && openId && <StatementDetail statementId={openId} />}
     </div>
   );
 }

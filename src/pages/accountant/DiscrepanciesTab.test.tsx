@@ -234,3 +234,18 @@ test('rejecting requires a reason before it can be submitted', async () => {
   expect(rejectBody).toEqual({ reason: 'Hujjat notoʻgʻri' });
   expect(await screen.findByText('Rad etildi. Hisob-faktura toʻlanmagan holicha qoladi.')).toBeInTheDocument();
 });
+
+test('a caller with only payments.confirm (the checker, no payments.view) never fires GET /payments/reconciliations, which would 403', async () => {
+  let listCalled = false;
+  server.use(
+    http.get('*/api/v1/payments/reconciliations', () => {
+      listCalled = true;
+      return HttpResponse.json({ items: [], total: 0, page: 1, page_size: 100 });
+    }),
+  );
+  renderTab(['payments.confirm']);
+
+  expect(await screen.findByTestId('manual-check-panel')).toBeInTheDocument();
+  expect(screen.queryByText('Nomuvofiqliklar reestri')).not.toBeInTheDocument();
+  expect(listCalled).toBe(false);
+});

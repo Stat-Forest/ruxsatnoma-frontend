@@ -208,6 +208,7 @@ export const uz_latn = {
   'accountant.statements.emptyLines': "Qatorlar yoʻq.",
   'accountant.statements.colMatch': 'Moslik',
   'accountant.statements.updatedAt': 'Yaratildi',
+  'accountant.statements.noAccess': "Bank hisobotlariga kirish huquqi yoʻq.",
 
   'accountant.discrepancies.title': "Nomuvofiqliklar reestri",
   'accountant.discrepancies.filterOpen': 'Ochiq',
@@ -223,6 +224,8 @@ export const uz_latn = {
   'accountant.discrepancies.periodNote': "Butun hisobot boʻyicha",
   'accountant.discrepancies.loadFailed': "Yuklashda xatolik yuz berdi.",
   'accountant.discrepancies.empty': "Yozuvlar topilmadi.",
+  'accountant.discrepancies.noViewAccess':
+    "Nomuvofiqliklar reestrini koʻrish huquqi yoʻq — bu sizga qaydni ID orqali tasdiqlash/rad etish imkonini bermaydi, pastdagi panel orqali davom eting.",
   'accountant.discrepancies.resolveTitle': "Nomuvofiqlikni yopish",
   'accountant.discrepancies.resolveCommentLabel': 'Izoh',
   'accountant.discrepancies.resolveDocLabel': "Tasdiqlovchi hujjat (ixtiyoriy)",
@@ -254,6 +257,10 @@ export const uz_latn = {
   'accountant.refunds.noSuggestion': "Tavsiya yoʻq",
   'accountant.refunds.loadFailed': "Yuklashda xatolik yuz berdi.",
   'accountant.refunds.empty': "Arizalar topilmadi.",
+  'accountant.refunds.noViewAccess': "Qaytarishlar reestrini koʻrish huquqi yoʻq.",
+  'accountant.refunds.approveByIdHint':
+    "Reestrni koʻrish huquqi yoʻq — buxgalter tomonidan koʻrib chiqilgan ariza ID'sini kiriting.",
+  'accountant.refunds.refundIdLabel': 'Ariza (qaytarish) ID',
   'accountant.refunds.decisionTitle': "Qaror qabul qilish",
   'accountant.refunds.approveTitle': "Tasdiqlash (rahbar)",
   'accountant.refunds.applicationIdLabel': 'Ariza ID',

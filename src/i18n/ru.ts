@@ -201,6 +201,7 @@ export const ru = {
   'accountant.statements.emptyLines': 'Строк нет.',
   'accountant.statements.colMatch': 'Соответствие',
   'accountant.statements.updatedAt': 'Создано',
+  'accountant.statements.noAccess': 'Нет доступа к банковским выпискам.',
 
   'accountant.discrepancies.title': 'Реестр несоответствий',
   'accountant.discrepancies.filterOpen': 'Открытые',
@@ -216,6 +217,8 @@ export const ru = {
   'accountant.discrepancies.periodNote': 'По всей выписке',
   'accountant.discrepancies.loadFailed': 'Ошибка загрузки.',
   'accountant.discrepancies.empty': 'Записи не найдены.',
+  'accountant.discrepancies.noViewAccess':
+    'Нет доступа к просмотру реестра несоответствий — подтвердить/отклонить запись по ID можно ниже.',
   'accountant.discrepancies.resolveTitle': 'Закрыть несоответствие',
   'accountant.discrepancies.resolveCommentLabel': 'Комментарий',
   'accountant.discrepancies.resolveDocLabel': 'Подтверждающий документ (необязательно)',
@@ -247,6 +250,10 @@ export const ru = {
   'accountant.refunds.noSuggestion': 'Нет рекомендации',
   'accountant.refunds.loadFailed': 'Ошибка загрузки.',
   'accountant.refunds.empty': 'Заявки не найдены.',
+  'accountant.refunds.noViewAccess': 'Нет доступа к просмотру реестра возвратов.',
+  'accountant.refunds.approveByIdHint':
+    'Нет доступа к реестру — введите ID заявки, рассмотренной бухгалтером.',
+  'accountant.refunds.refundIdLabel': 'ID заявки (возврат)',
   'accountant.refunds.decisionTitle': 'Принять решение',
   'accountant.refunds.approveTitle': 'Утверждение (руководитель)',
   'accountant.refunds.applicationIdLabel': 'ID заявки',

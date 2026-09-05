@@ -12,6 +12,7 @@ import { REFUND_STATUS_LABEL, REFUND_STATUS_STYLE } from './statusMeta';
 import type { RefundOut } from './api';
 import { useApproveRefund, useRefunds, useRequestRefund, useSubmitRefundDecision } from './queries';
 
+const PAYMENTS_VIEW = 'payments.view';
 const PAYMENTS_MANAGE = 'payments.manage';
 const PAYMENTS_CONFIRM = 'payments.confirm';
 
@@ -41,13 +42,41 @@ type StatusFilter = '' | 'requested' | 'in_review' | 'returned' | 'rejected';
  * accountant's own job per the plan, not something to hand every role that
  * merely opens this page (an editorial choice, not a backend requirement —
  * `06.5-accountant.md`'s report names the cost if this reading is wrong).
+ *
+ * `GET /refunds` requires `payments.view` (`refunds_router.py`) —
+ * `executor_head` (the approver, holding only `payments.confirm`) does NOT
+ * have it. Re-verified against the current source 2026-09-05 after the
+ * backend worktree turned out to be 53 commits stale when this screen was
+ * first built: the register below only mounts (and only then fires
+ * `GET /refunds`) for a `payments.view` holder. A `payments.confirm`-only
+ * holder gets `ApproveByIdPanel` instead — the same id-handoff shape ruling
+ * R2 already uses for the manual-PAID checker, extended here because the
+ * same structural gap applies: no route lets that role discover which
+ * refund is `in_review` on its own.
  */
 export function RefundsTab() {
   const t = useT();
   const { me } = useAuth();
+  const canView = Boolean(me?.is_superuser || me?.permissions.includes(PAYMENTS_VIEW));
   const canFile = Boolean(me?.is_superuser || me?.permissions.includes(PAYMENTS_MANAGE));
-  const canDecide = canFile;
   const canApprove = Boolean(me?.is_superuser || me?.permissions.includes(PAYMENTS_CONFIRM));
+
+  return (
+    <div className="space-y-5" data-testid="refunds-tab">
+      {canView ? (
+        <RefundsRegister canFile={canFile} canApprove={canApprove} />
+      ) : canApprove ? (
+        <ApproveByIdPanel />
+      ) : (
+        <Alert variant="info">{t('accountant.refunds.noViewAccess')}</Alert>
+      )}
+    </div>
+  );
+}
+
+function RefundsRegister({ canFile, canApprove }: { canFile: boolean; canApprove: boolean }) {
+  const t = useT();
+  const canDecide = canFile;
 
   const [status, setStatus] = useState<StatusFilter>('');
   const [newRequestOpen, setNewRequestOpen] = useState(false);
@@ -57,7 +86,7 @@ export function RefundsTab() {
   const query = useRefunds({ status: status || undefined, limit: 100, offset: 0 });
 
   return (
-    <div className="space-y-5" data-testid="refunds-tab">
+    <>
       <section className="rounded-2xl border border-[#E4E7EA] bg-white shadow-xs">
         <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#E4E7EA] p-4">
           <h2 className="text-sm font-bold text-[#1A1F24]">{t('accountant.refunds.title')}</h2>
@@ -147,7 +176,83 @@ export function RefundsTab() {
       {newRequestOpen && <NewRequestModal onClose={() => setNewRequestOpen(false)} />}
       {decisionTarget && <DecisionModal refund={decisionTarget} onClose={() => setDecisionTarget(null)} />}
       {approveTarget && <ApproveModal refund={approveTarget} onClose={() => setApproveTarget(null)} />}
-    </div>
+    </>
+  );
+}
+
+/**
+ * The `payments.confirm`-only fallback (ruling R2, extended to refunds):
+ * approve or reject a refund by id, with no row ever loaded — `GET /refunds`
+ * is not open to this role at all, so there is nothing to show beside the
+ * id except what the two mutation responses themselves carry.
+ */
+function ApproveByIdPanel() {
+  const t = useT();
+  const [refundId, setRefundId] = useState('');
+  const [comment, setComment] = useState('');
+  const mutation = useApproveRefund();
+
+  const error =
+    mutation.error instanceof ApiError ? `${mutation.error.code}: ${mutation.error.message}` : mutation.isError ? t('accountant.refunds.approveFailed') : null;
+  const result = mutation.data;
+
+  return (
+    <section className="rounded-2xl border border-[#E4E7EA] bg-white p-4 shadow-xs" data-testid="refund-approve-by-id-panel">
+      <h2 className="mb-1 text-sm font-bold text-[#1A1F24]">{t('accountant.refunds.approveTitle')}</h2>
+      <p className="mb-3 text-xs text-[#5A646D]">{t('accountant.refunds.approveByIdHint')}</p>
+
+      <FormField label={t('accountant.refunds.refundIdLabel')} htmlFor="refund-approve-id">
+        <Input
+          id="refund-approve-id"
+          value={refundId}
+          onChange={(e) => {
+            setRefundId(e.target.value);
+            mutation.reset();
+          }}
+          placeholder="UUID"
+        />
+      </FormField>
+
+      {!result && (
+        <FormField label={t('accountant.refunds.approveCommentLabel')} htmlFor="refund-approve-by-id-comment" className="mt-3">
+          <Textarea id="refund-approve-by-id-comment" value={comment} onChange={(e) => setComment(e.target.value)} rows={2} />
+        </FormField>
+      )}
+
+      {error && (
+        <div className="mt-3">
+          <Alert variant="danger">{error}</Alert>
+        </div>
+      )}
+      {result && (
+        <div className="mt-3">
+          <Alert variant={result.status === 'returned' ? 'success' : 'warning'}>
+            {result.status === 'returned' ? t('accountant.refunds.approvedReturned') : t('accountant.refunds.approvedRejected')}
+          </Alert>
+        </div>
+      )}
+
+      <div className="mt-3 flex flex-wrap gap-2">
+        <Button
+          variant="danger"
+          size="sm"
+          disabled={!refundId.trim()}
+          isLoading={mutation.isPending && mutation.variables?.resolution === 'rejected'}
+          onClick={() => mutation.mutate({ id: refundId.trim(), resolution: 'rejected', comment: comment.trim() || null })}
+        >
+          {t('accountant.refunds.approveReject')}
+        </Button>
+        <Button
+          variant="success"
+          size="sm"
+          disabled={!refundId.trim()}
+          isLoading={mutation.isPending && mutation.variables?.resolution === 'returned'}
+          onClick={() => mutation.mutate({ id: refundId.trim(), resolution: 'returned', comment: comment.trim() || null })}
+        >
+          {t('accountant.refunds.approveReturn')}
+        </Button>
+      </div>
+    </section>
   );
 }
 

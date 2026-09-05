@@ -17,6 +17,7 @@ import {
   useResolveReconciliation,
 } from './queries';
 
+const PAYMENTS_VIEW = 'payments.view';
 const PAYMENTS_MANAGE = 'payments.manage';
 const PAYMENTS_CONFIRM = 'payments.confirm';
 
@@ -25,15 +26,31 @@ const PAYMENTS_CONFIRM = 'payments.confirm';
  * with a comment) plus the manual-PAID CHECKER half of the maker-checker
  * flow the invoice detail drawer's filing form starts (`06.5-accountant.md`
  * ruling R2): confirm/reject by id, since no route lists pending ones.
+ *
+ * `GET /payments/reconciliations` requires `payments.view`
+ * (`backoffice_router.py`) — a code `executor_head` (the checker, holding
+ * only `payments.confirm`) does NOT have. Re-verified against the current
+ * source 2026-09-05 after the backend worktree turned out to be 53 commits
+ * stale when this screen was first built. The register is therefore gated
+ * on `payments.view` here: rendering it unconditionally to whoever reaches
+ * this tab (which `06.5-accountant.md` ruling R4 widened to include
+ * `executor_head`) would fire a query the backend refuses on load, not on
+ * an offered action — the same house rule, one query earlier than a button.
  */
 export function DiscrepanciesTab() {
+  const t = useT();
   const { me } = useAuth();
+  const canView = Boolean(me?.is_superuser || me?.permissions.includes(PAYMENTS_VIEW));
   const canResolve = Boolean(me?.is_superuser || me?.permissions.includes(PAYMENTS_MANAGE));
   const canCheck = Boolean(me?.is_superuser || me?.permissions.includes(PAYMENTS_CONFIRM));
 
   return (
     <div className="space-y-5" data-testid="discrepancies-tab">
-      <ReconciliationRegister canResolve={canResolve} />
+      {canView ? (
+        <ReconciliationRegister canResolve={canResolve} />
+      ) : (
+        <Alert variant="info">{t('accountant.discrepancies.noViewAccess')}</Alert>
+      )}
       {canCheck && <ManualConfirmationCheckPanel />}
     </div>
   );
