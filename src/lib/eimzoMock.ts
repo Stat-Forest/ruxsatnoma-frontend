@@ -5,7 +5,12 @@
  * base64url-encoded JSON envelope carrying the certificate identity and the
  * sha256 of the bytes that were signed. `EIMZO_MODE=mock` everywhere this
  * runs (decision #46) — the real adapter is stage 5.2, behind a VPN reachable
- * only from inside Uzbekistan.
+ * only from inside Uzbekistan. There is no HTTP endpoint that hands a browser
+ * a mock PKCS#7 for arbitrary bytes — `encode_mock_signature` in that adapter
+ * is a pytest-only helper, never reachable over the API — so this module is
+ * the only way to exercise a document-signing route end to end against the
+ * mock ERI gate: it builds the exact envelope `MockEimzo.verify_attached`/
+ * `verify_detached` expect, here, matching their shape byte for byte.
  *
  * **Why a PINFL field asks the operator to type it.** A real E-IMZO client
  * reads the signer's identity off their own inserted key; nothing here has
@@ -81,3 +86,39 @@ export async function buildMockSignature({ pinfl, documentBytes }: MockSignature
 }
 
 export const PINFL_PATTERN = /^\d{14}$/;
+
+/**
+ * The login envelope, which is NOT the document-signing envelope above.
+ * `auth.service.login_via_eimzo` calls `verify_signed_challenge`, whose mock
+ * is `EimzoIdentity.from_payload(decode_payload(...))` — a dataclass
+ * constructor, so an unexpected key raises and a missing optional one must be
+ * present as null rather than absent. The fields are exactly
+ * `EimzoIdentity`'s: challenge, pinfl, full_name, tin, legal_name,
+ * cert_serial, cert_expires_at.
+ *
+ * `cert_expires_at` is deliberately null: `login_via_eimzo` refuses a
+ * certificate whose expiry is in the past, and treats null as "no expiry
+ * claimed" rather than expired. A mock that invented a date would be
+ * asserting something the mock key cannot know.
+ */
+export interface MockChallengeInput {
+  challenge: string;
+  pinfl: string;
+  fullName: string;
+}
+
+export async function buildMockSignedChallenge({
+  challenge,
+  pinfl,
+  fullName,
+}: MockChallengeInput): Promise<string> {
+  return base64UrlEncodeJson({
+    challenge,
+    pinfl,
+    full_name: fullName,
+    tin: null,
+    legal_name: null,
+    cert_serial: 'MOCK-CERT',
+    cert_expires_at: null,
+  });
+}

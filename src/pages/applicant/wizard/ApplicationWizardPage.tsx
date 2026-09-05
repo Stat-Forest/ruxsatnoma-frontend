@@ -30,7 +30,7 @@ import { fromApplicationChecks } from '../checkTypeLabels';
 import { ChecksList } from './ChecksList';
 import { ContourPicker, type PickedContour } from './ContourPicker';
 import { PricePreviewPanel } from './PricePreviewPanel';
-import { buildMockSignature } from '../eimzoMock';
+import { buildMockSignature } from '../../../lib/eimzoMock';
 
 const GRAZING_CODE = 'grazing';
 
@@ -244,7 +244,7 @@ export function ApplicationWizardPage() {
         return;
       }
       const packageBytes = await getApplicationPackage(applicationId);
-      const pkcs7 = await buildMockSignature({ document: packageBytes, pinfl, fullName: me?.applicant?.name });
+      const pkcs7 = await buildMockSignature({ documentBytes: packageBytes, pinfl });
       await submitApplication(applicationId, pkcs7);
       navigate(`/my/applications/${applicationId}`);
     } catch (err) {
