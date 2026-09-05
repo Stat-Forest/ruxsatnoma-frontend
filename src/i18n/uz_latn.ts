@@ -39,6 +39,22 @@ export const uz_latn = {
   'login.blockedAccount': "Hisob bloklangan. Administrator bilan bog'laning.",
   'login.rateLimited': "Urinishlar soni ko'p. Birozdan so'ng qayta urinib ko'ring.",
   'login.connectionError': "Ulanishda xatolik yuz berdi. Internetni tekshirib, qayta urinib ko'ring.",
+  'login.tabOneId': 'OneID',
+  'login.tabEimzo': 'E-IMZO',
+  'login.tabPassword': 'Login/Parol',
+  'login.oneidHint':
+    'Jismoniy va yuridik shaxslar uchun davlat portali orqali kirish.',
+  'login.oneidButton': 'OneID orqali kirish',
+  'login.oneidFailed': "OneID orqali kirishda xatolik. Qayta urinib ko'ring.",
+  'login.eimzoPinflLabel': 'PINFL',
+  'login.eimzoPinflHelp': '14 xonali shaxsiy identifikatsiya raqami',
+  'login.eimzoNameLabel': 'F.I.SH.',
+  'login.eimzoButton': 'E-IMZO kaliti bilan kirish',
+  'login.eimzoBadPinfl': "PINFL 14 ta raqamdan iborat bo'lishi kerak.",
+  'login.eimzoMockNotice':
+    'Sinov rejimi: kalit tekshirilmaydi. Haqiqiy E-IMZO — 5.2-bosqich.',
+  'login.eimzoUnavailable':
+    "E-IMZO kaliti va brauzer plagini talab qilinadi. Bu imkoniyat hali ulanmagan.",
   'dash.error': "Ma'lumotlarni yuklab bo'lmadi. Sahifani yangilab ko'ring.",
   'dash.loading': 'Yuklanmoqda…',
   'dash.activePermits.label': 'Amaldagi ruxsatnomalar',

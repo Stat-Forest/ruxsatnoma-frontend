@@ -5,6 +5,7 @@ import { AppShell } from './shell/AppShell';
 import { NAVIGATION } from './shell/navigation';
 import { RequireAuth } from './auth/RequireAuth';
 import { LoginPage } from './pages/LoginPage';
+import { OneIdReturnPage } from './pages/OneIdReturnPage';
 import { UsersPage } from './pages/UsersPage';
 import { AnnouncementsPage } from './pages/admin/announcements/AnnouncementsPage';
 import { ClassifiersPage } from './pages/admin/classifiers/ClassifiersPage';
@@ -103,6 +104,12 @@ const DETAIL_ROUTES: { path: string; element: ReactNode; permission?: string }[]
   { path: 'my/permits/:id', element: <MyPermitPage /> },
   { path: 'applications/:id', element: <StaffApplicationCardPage /> },
   { path: 'permits/:id', element: <PermitDocumentPage /> },
+  // Where `GET /auth/oneid/callback` (backend) redirects once the session
+  // cookies are set — part of that cross-repo contract, not a private path.
+  // Registered inside the `RequireAuth`-wrapped subtree so an unauthenticated
+  // arrival (a stale bookmark, a failed callback) is bounced to `/login`
+  // rather than looping.
+  { path: 'auth/oneid/return', element: <OneIdReturnPage /> },
 ];
 
 const detailRouteChildren: RouteObject[] = DETAIL_ROUTES.map(({ path, element, permission }) => ({

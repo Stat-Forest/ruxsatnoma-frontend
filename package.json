@@ -3,6 +3,9 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
+  "engines": {
+    "node": ">=22.4.0"
+  },
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
@@ -10,7 +13,7 @@
     "preview": "vite preview",
     "api:types": "bash scripts/gen-types.sh",
     "typecheck": "tsc -b",
-    "test": "vitest run",
+    "test": "NODE_OPTIONS=--no-experimental-webstorage vitest run",
     "check": "npm run lint && npm run typecheck && npm run test",
     "check:bundle": "bash scripts/check-bundle.sh dist"
   },

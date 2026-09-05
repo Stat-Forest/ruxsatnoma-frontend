@@ -1,12 +1,14 @@
 import { useState } from 'react';
-import { render, screen, within } from '@testing-library/react';
+import { act, render, renderHook, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { setupServer } from 'msw/node';
+import { vi } from 'vitest';
 import App from '../App';
 import { api, setCsrfToken } from '../api/client';
+import { navigation } from '../lib/navigation';
 import { router } from '../routes';
-import { AuthProvider } from './AuthProvider';
+import { AuthProvider, ONEID_NEXT_KEY } from './AuthProvider';
 import { useAuth } from './useAuth';
 
 const ME = {
@@ -236,6 +238,10 @@ test('a failed initial session check does not lock a user out who then logs in s
   await renderAt('/login');
   expect(await screen.findByTestId('login-page')).toBeInTheDocument();
 
+  // The password form now lives behind the "Login/Parol" tab — OneID is the
+  // default landing tab (citizen-first) — so the staff flow this test
+  // exercises must select it first.
+  await userEvent.click(await screen.findByRole('tab', { name: 'Login/Parol' }));
   await userEvent.type(screen.getByLabelText(/login/i), '30491823410019');
   await userEvent.type(screen.getByLabelText(/parol/i), 'Head123!');
   await userEvent.click(screen.getByRole('button', { name: /kirish/i }));
@@ -247,4 +253,47 @@ test('a failed initial session check does not lock a user out who then logs in s
   // would still show "session-check-failed" here instead of the app.
   expect(await screen.findByTestId('app-shell')).toBeInTheDocument();
   expect(screen.queryByTestId('session-check-failed')).not.toBeInTheDocument();
+});
+
+it('loginViaEimzo signs the challenge and lands a session', async () => {
+  const seen: { signed?: string } = {};
+  server.use(
+    // Not this test's concern, but needed so the provider's own boot-time
+    // `/auth/me` lands on the ordinary logged-out state instead of MSW's
+    // unhandled-request pass-through hitting a real socket (see the note
+    // on `server` above).
+    http.get('*/auth/me', () =>
+      HttpResponse.json({ error: { code: 'ERR-AUTH-002', message: 'no session' } }, { status: 401 }),
+    ),
+    http.post('*/auth/eimzo/challenge', () => HttpResponse.json({ challenge: 'chal-42' })),
+    http.post('*/auth/eimzo/login', async ({ request }) => {
+      seen.signed = ((await request.json()) as { signed_challenge: string }).signed_challenge;
+      return HttpResponse.json(ME);
+    }),
+  );
+  const { result } = renderHook(() => useAuth(), { wrapper: AuthProvider });
+  await waitFor(() => expect(result.current.loading).toBe(false));
+  await act(() => result.current.loginViaEimzo('30491823410019', 'TEST USER'));
+  await waitFor(() => expect(result.current.me).not.toBeNull());
+  const payload = JSON.parse(atob(seen.signed!.replace(/-/g, '+').replace(/_/g, '/')));
+  expect(payload.challenge).toBe('chal-42');
+  expect(payload.pinfl).toBe('30491823410019');
+});
+
+it('startOneId remembers where the user was heading before leaving for the provider', async () => {
+  const assign = vi.spyOn(navigation, 'assign').mockImplementation(() => {});
+  server.use(
+    // See the comment in the previous test — same reason.
+    http.get('*/auth/me', () =>
+      HttpResponse.json({ error: { code: 'ERR-AUTH-002', message: 'no session' } }, { status: 401 }),
+    ),
+    http.get('*/auth/oneid/authorize', () =>
+      HttpResponse.json({ redirect_url: 'https://id.egov.uz/?state=x' }),
+    ),
+  );
+  const { result } = renderHook(() => useAuth(), { wrapper: AuthProvider });
+  await waitFor(() => expect(result.current.loading).toBe(false));
+  await act(() => result.current.startOneId('/my/applications/new'));
+  expect(sessionStorage.getItem(ONEID_NEXT_KEY)).toBe('/my/applications/new');
+  expect(assign).toHaveBeenCalledWith('https://id.egov.uz/?state=x');
 });

@@ -4,7 +4,7 @@ import { Modal } from '../../../components/ui/Overlay';
 import { Button } from '../../../components/ui/button';
 import { FormField, Input, Select, Textarea } from '../../../components/ui/FormControls';
 import { ApiError } from '../../../api/errors';
-import { buildMockSignature, PINFL_PATTERN } from '../eriMock';
+import { buildMockSignature, PINFL_PATTERN } from '../../../lib/eimzoMock';
 import { useApplicationPackage, useRejectionReasons } from '../queries';
 import { localizedName } from '../format';
 
@@ -24,7 +24,7 @@ interface SignDecisionModalProps {
  * The one place both decision routes get their `pkcs7` from. A real E-IMZO
  * client reads the signer's own certificate off an inserted key; this mocks
  * that step by asking the operator for the PINFL their certificate would
- * carry (see `eriMock.ts`'s own docstring for why `GET /auth/me` cannot
+ * carry (see `lib/eimzoMock.ts`'s own docstring for why `GET /auth/me` cannot
  * supply it). Nothing about the DECISION itself is faked: the bytes signed
  * are the real `GET /applications/{id}/package` response, fetched fresh on
  * open (ruling 23 — the package is priced afresh on every call), and the

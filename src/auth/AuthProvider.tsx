@@ -4,9 +4,14 @@ import { api, setCsrfToken, setSessionGoneHandler } from '../api/client';
 import { apiError, SESSION_GONE } from '../api/errors';
 import type { ApiError } from '../api/errors';
 import type { components } from '../api/schema';
+import { buildMockSignedChallenge } from '../lib/eimzoMock';
+import { navigation } from '../lib/navigation';
 import { AuthContext } from './AuthContext';
 
 type MeOut = components['schemas']['MeOut'];
+
+/** Shared with `OneIdReturnPage`, which consumes what `startOneId` stores. */
+export const ONEID_NEXT_KEY = 'ruxsatnoma.oneid.next';
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [me, setMe] = useState<MeOut | null>(null);
@@ -91,13 +96,62 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setAuthError(null);
   }, []);
 
+  const startOneId = useCallback(async (next: string) => {
+    const { data, error } = await api.GET('/api/v1/auth/oneid/authorize', {});
+    if (error) throw apiError(error);
+    // Stored only after the authorize call itself succeeds: a FAILED
+    // authorize round trip (a dropped connection, before the browser ever
+    // leaves this origin) never touches storage, so it cannot leave a stale
+    // value behind.
+    //
+    // That is the one thing this ordering protects — it does NOT mean the
+    // stored value is wiped by every other kind of failure. Once storage IS
+    // written, an attempt the citizen abandons, or one that fails downstream
+    // (a stale `oneid_state` cookie, `/login?error=oneid`), leaves this same
+    // value alive on purpose: `LoginPage`'s own `next` falls back to reading
+    // it (`oneIdReturnCache.ts::peekStoredNext`) precisely so a retry does
+    // not lose the citizen's destination. It is cleared only by
+    // `OneIdReturnPage`'s `takeNext()`, reached solely by a successful
+    // return — an unrelated LATER login (password, E-IMZO) never reads this
+    // key at all, so there is no hijack risk left to guard against.
+    try {
+      sessionStorage.setItem(ONEID_NEXT_KEY, next);
+    } catch {
+      // Private mode or a storage quota — the login still works, it just
+      // lands on the dashboard instead of the remembered page.
+    }
+    navigation.assign(data.redirect_url);
+  }, []);
+
+  const loginViaEimzo = useCallback(async (pinfl: string, fullName: string) => {
+    const { data: challengeData, error: challengeError } = await api.POST(
+      '/api/v1/auth/eimzo/challenge',
+      {},
+    );
+    if (challengeError) throw apiError(challengeError);
+    const signed = await buildMockSignedChallenge({
+      challenge: challengeData.challenge,
+      pinfl,
+      fullName,
+    });
+    const { data, error } = await api.POST('/api/v1/auth/eimzo/login', {
+      body: { signed_challenge: signed },
+    });
+    if (error) throw apiError(error);
+    setCsrfToken(data.csrf_token);
+    setMe(data);
+    setAuthError(null);
+  }, []);
+
   const logout = useCallback(async () => {
     await api.POST('/api/v1/auth/logout', {});
     clearLocalSession();
   }, [clearLocalSession]);
 
   return (
-    <AuthContext.Provider value={{ me, loading, authError, requestMfa, verifyMfa, logout }}>
+    <AuthContext.Provider
+      value={{ me, loading, authError, requestMfa, verifyMfa, startOneId, loginViaEimzo, logout }}
+    >
       {children}
     </AuthContext.Provider>
   );
