@@ -3,7 +3,7 @@ import type { ReactNode } from 'react';
 import { api } from '../api/client';
 import { apiError } from '../api/errors';
 import { useAuth } from '../auth/useAuth';
-import { DICTIONARIES, I18nContext, resolveLanguage } from './context';
+import { DICTIONARIES, I18nContext, normalizeBackendLanguage, resolveLanguage } from './context';
 import type { BackendLanguage } from './context';
 
 /**
@@ -28,7 +28,7 @@ export function I18nProvider({ children }: { children: ReactNode }) {
     if (override !== null) setOverride(null);
   }
 
-  const backendLang = override ?? me?.user.language ?? 'uz_latn';
+  const backendLang = override ?? normalizeBackendLanguage(me?.user.language);
   const lang = resolveLanguage(backendLang);
   const dict = DICTIONARIES[lang];
 
@@ -44,5 +44,7 @@ export function I18nProvider({ children }: { children: ReactNode }) {
     setOverride(code);
   }, []);
 
-  return <I18nContext.Provider value={{ lang, t, setLanguage }}>{children}</I18nContext.Provider>;
+  return (
+    <I18nContext.Provider value={{ lang, backendLang, t, setLanguage }}>{children}</I18nContext.Provider>
+  );
 }
