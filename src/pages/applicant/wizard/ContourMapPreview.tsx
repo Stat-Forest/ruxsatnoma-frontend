@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   GeoJSONSource,
   LngLatBounds,
@@ -30,14 +30,33 @@ import type { Feature, Geometry } from 'geojson';
 
 setWorkerUrl(workerUrl);
 
-/** No tile source at all (decision #60.1 leaves the basemap itself open — a
- * hosting/licensing question, not a library one): a flat background is
- * enough to see the picked contour's own shape, which is all this preview
- * promises. */
-const EMPTY_STYLE: StyleSpecification = {
+/** OpenStreetMap raster tiles as the basemap (Oybek, 2026-09-05 — decision
+ * #60.1 had left the basemap open as a hosting/licensing question, not a
+ * library one). Without it the preview drew the picked contour alone on a
+ * flat field: correct in shape and size, but impossible to place — a viewer
+ * could not tell that a plot is in Burchmulla, next to which river, up which
+ * slope. The flat fill stays underneath as the `bg` layer, so a tile that
+ * fails to load leaves the project's own green rather than a black hole.
+ *
+ * OSM's tile policy is fine for a dev server and a demo, and requires the
+ * attribution below — which is why `attributionControl` is now on. Heavy or
+ * production traffic belongs on our own tile server or a paid provider;
+ * swapping this source is the only change that needs. */
+const BASEMAP_STYLE: StyleSpecification = {
   version: 8,
-  sources: {},
-  layers: [{ id: 'bg', type: 'background', paint: { 'background-color': '#EAF3EC' } }],
+  sources: {
+    osm: {
+      type: 'raster',
+      tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
+      tileSize: 256,
+      maxzoom: 19,
+      attribution: '© OpenStreetMap',
+    },
+  },
+  layers: [
+    { id: 'bg', type: 'background', paint: { 'background-color': '#EAF3EC' } },
+    { id: 'osm', type: 'raster', source: 'osm' },
+  ],
 };
 
 function collectCoordinates(geometry: unknown, out: [number, number][]): void {
@@ -67,64 +86,71 @@ function collectCoordinates(geometry: unknown, out: [number, number][]): void {
 export function ContourMapPreview({ geometry }: { geometry: Record<string, unknown> | null }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<MaplibreMap | null>(null);
+  // Whether the map has fired `load` ONCE, remembered rather than re-asked.
+  // The obvious `map.isStyleLoaded()` is not the same question: it also goes
+  // FALSE again whenever a source is mid-load, which a raster basemap is on
+  // every pan and zoom. Asking it at the moment geometry arrives and falling
+  // back to `map.once('load', …)` would then register a handler for an event
+  // that already fired and never fires again — and the contour would never
+  // be drawn at all.
+  const [mapReady, setMapReady] = useState(false);
 
   useEffect(() => {
     if (!containerRef.current) return;
     const map = new MaplibreMap({
       container: containerRef.current,
-      style: EMPTY_STYLE,
+      style: BASEMAP_STYLE,
       center: [69.2401, 41.2995], // Tashkent — a reasonable default before anything is picked
       zoom: 7,
-      attributionControl: false,
+      attributionControl: { compact: true },
     });
     mapRef.current = map;
+    map.once('load', () => setMapReady(true));
     return () => {
       map.remove();
       mapRef.current = null;
+      setMapReady(false);
     };
   }, []);
 
   useEffect(() => {
     const map = mapRef.current;
-    if (!map) return;
+    if (!map || !mapReady) return;
 
-    const apply = () => {
-      if (!geometry) {
-        if (map.getLayer('contour-fill')) map.removeLayer('contour-fill');
-        if (map.getLayer('contour-line')) map.removeLayer('contour-line');
-        if (map.getSource('contour')) map.removeSource('contour');
-        return;
-      }
-      const feature: Feature = { type: 'Feature', properties: {}, geometry: geometry as unknown as Geometry };
-      const source = map.getSource('contour') as GeoJSONSource | undefined;
-      if (source) {
-        source.setData(feature);
-      } else {
-        map.addSource('contour', { type: 'geojson', data: feature });
-        map.addLayer({
-          id: 'contour-fill',
-          type: 'fill',
-          source: 'contour',
-          paint: { 'fill-color': '#2E7D4F', 'fill-opacity': 0.35 },
-        });
-        map.addLayer({
-          id: 'contour-line',
-          type: 'line',
-          source: 'contour',
-          paint: { 'line-color': '#23653F', 'line-width': 2 },
-        });
-      }
-      const coords: [number, number][] = [];
-      collectCoordinates(geometry, coords);
-      if (coords.length > 0) {
-        const bounds = coords.reduce((b, c) => b.extend(c), new LngLatBounds(coords[0], coords[0]));
-        map.fitBounds(bounds, { padding: 40, maxZoom: 15, duration: 300 });
-      }
-    };
+    if (!geometry) {
+      if (map.getLayer('contour-fill')) map.removeLayer('contour-fill');
+      if (map.getLayer('contour-line')) map.removeLayer('contour-line');
+      if (map.getSource('contour')) map.removeSource('contour');
+      return;
+    }
 
-    if (map.isStyleLoaded()) apply();
-    else map.once('load', apply);
-  }, [geometry]);
+    const feature: Feature = { type: 'Feature', properties: {}, geometry: geometry as unknown as Geometry };
+    const source = map.getSource('contour') as GeoJSONSource | undefined;
+    if (source) {
+      source.setData(feature);
+    } else {
+      map.addSource('contour', { type: 'geojson', data: feature });
+      map.addLayer({
+        id: 'contour-fill',
+        type: 'fill',
+        source: 'contour',
+        paint: { 'fill-color': '#2E7D4F', 'fill-opacity': 0.45 },
+      });
+      map.addLayer({
+        id: 'contour-line',
+        type: 'line',
+        source: 'contour',
+        paint: { 'line-color': '#123522', 'line-width': 2.5 },
+      });
+    }
+
+    const coords: [number, number][] = [];
+    collectCoordinates(geometry, coords);
+    if (coords.length > 0) {
+      const bounds = coords.reduce((b, c) => b.extend(c), new LngLatBounds(coords[0], coords[0]));
+      map.fitBounds(bounds, { padding: 40, maxZoom: 15, duration: 300 });
+    }
+  }, [geometry, mapReady]);
 
   return <div ref={containerRef} className="w-full h-64 rounded-xl border border-[#E4E7EA] overflow-hidden" />;
 }
