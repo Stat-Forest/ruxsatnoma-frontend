@@ -196,6 +196,13 @@ export function ContoursTab({ t }: { t: (key: string) => string }) {
   const [drawnGeometry, setDrawnGeometry] = useState<Geometry | null>(null);
   const [bbox, setBbox] = useState<string | null>(null);
   const [pendingContourId, setPendingContourId] = useState<string | null>(null);
+  // The number the operator typed into `NewContourForm`, echoed back by the
+  // create response — kept only for `pendingContourId`'s own lifetime, so the
+  // "your contour was created, now draw it" message below can name it. The
+  // published-only list can never show this row (see `noVersionYet` below),
+  // so this is the one place its number appears at all until it has a
+  // version.
+  const [pendingContourNumber, setPendingContourNumber] = useState<string | null>(null);
   const [splitLine, setSplitLine] = useState<LineString | null>(null);
   // Bumped after a version mutation to force the panel to re-read the
   // localStorage cache (React state, not the cache itself, drives render).
@@ -203,7 +210,13 @@ export function ContoursTab({ t }: { t: (key: string) => string }) {
 
   const contoursQuery = useContours({ page, page_size: 50 });
   const organizationsQuery = useOrganizations();
-  const cardQuery = useContourCard(selectedContourId);
+  // Skipped for the contour we ourselves just created and have not yet drawn
+  // a version for: `contour_card` requires a published version (backend
+  // `gis/service.py::contour_card`), and a brand-new contour has none by
+  // construction — asking would only be a guaranteed, noisy 404.
+  const cardQuery = useContourCard(selectedContourId, {
+    enabled: selectedContourId !== pendingContourId,
+  });
   const featuresQuery = useContourFeatures(bbox);
   const createContour = useCreateContour();
   const createVersion = useCreateVersion(pendingContourId ?? selectedContourId ?? '');
@@ -251,6 +264,7 @@ export function ContoursTab({ t }: { t: (key: string) => string }) {
     });
     setShowCreateForm(false);
     setPendingContourId(contour.id);
+    setPendingContourNumber(contour.number);
     setSelectedContourId(contour.id);
     setMode('draw-new');
   }
@@ -264,6 +278,7 @@ export function ContoursTab({ t }: { t: (key: string) => string }) {
     await createVersion.mutateAsync({ ...fields, geom: drawnGeometry as unknown as Record<string, unknown> });
     setDrawnGeometry(null);
     setPendingContourId(null);
+    setPendingContourNumber(null);
     setMode('browse');
     setRecallTick((n) => n + 1);
   }
@@ -402,6 +417,21 @@ export function ContoursTab({ t }: { t: (key: string) => string }) {
                   onVersionChange={() => setRecallTick((n) => n + 1)}
                   t={t}
                 />
+              ) : selectedContourId === pendingContourId ? (
+                // The contour we just created ourselves — `cardQuery` is
+                // disabled for it (see above), so this is not the 404
+                // fallback below; it is the confirmation that create
+                // actually worked, naming the one thing the operator cannot
+                // see anywhere else on this screen: which contour they are
+                // now drawing for. The map is already armed (`mode` was set
+                // to `draw-new` on create) — no second "start drawing"
+                // button here, or there would be two ways to do the same
+                // thing on screen at once.
+                <Alert variant="info">
+                  {t('gis.contours.justCreatedPrefix')}{' '}
+                  <span className="font-mono font-semibold">{pendingContourNumber}</span>.{' '}
+                  {t('gis.contours.justCreatedHint')}
+                </Alert>
               ) : (
                 !cardQuery.data &&
                 !cardQuery.isLoading &&
@@ -475,6 +505,7 @@ export function ContoursTab({ t }: { t: (key: string) => string }) {
                 setDrawnGeometry(null);
                 setMode('browse');
                 setPendingContourId(null);
+                setPendingContourNumber(null);
               }}
               isPending={createVersion.isPending}
               t={t}

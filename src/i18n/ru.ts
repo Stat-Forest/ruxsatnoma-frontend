@@ -793,6 +793,9 @@ export const ru = {
   'gis.contours.occupied': 'Занятая часть',
   'gis.contours.noVersionYet': 'Для этого контура ещё не нарисована ни одна версия',
   'gis.contours.drawFirstVersion': 'Нарисовать первую версию',
+  'gis.contours.justCreatedPrefix': 'Контур создан:',
+  'gis.contours.justCreatedHint':
+    'Он пока не виден в списке — сначала нужно нарисовать его первую версию, чтобы опубликовать. Нарисуйте контур на карте.',
   'gis.contours.redraw': 'Перерисовать (новая версия)',
   'gis.contours.split': 'Разделить',
   'gis.contours.drawHint': 'Нарисуйте контур на карте',

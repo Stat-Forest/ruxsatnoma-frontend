@@ -801,6 +801,9 @@ export const uz_latn = {
   'gis.contours.occupied': 'Band qism',
   'gis.contours.noVersionYet': "Bu kontur uchun hali birorta versiya chizilmagan",
   'gis.contours.drawFirstVersion': 'Birinchi versiyani chizish',
+  'gis.contours.justCreatedPrefix': 'Kontur yaratildi:',
+  'gis.contours.justCreatedHint':
+    "U hali ro'yxatda ko'rinmaydi — nashr etish uchun avval birinchi versiyasini chizish kerak. Xaritada konturni chizing.",
   'gis.contours.redraw': "Qayta chizish (yangi versiya)",
   'gis.contours.split': "Bo'lish",
   'gis.contours.drawHint': 'Xaritada konturni chizing',

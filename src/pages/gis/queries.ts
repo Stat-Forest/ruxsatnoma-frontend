@@ -111,12 +111,18 @@ export function useContourFeatures(bbox: string | null, organizationId?: string)
  * that is an ORDINARY, expected outcome here (every brand-new contour starts
  * that way), not a fetch failure, so `retry: false` keeps a missing card from
  * hammering the API three times before the screen can show "not published
- * yet" instead of a spinner. */
-export function useContourCard(contourId: string | null) {
+ * yet" instead of a spinner.
+ *
+ * `options.enabled` (default `true`) lets a caller that ALREADY knows the
+ * answer skip the round trip entirely rather than wait for a guaranteed
+ * 404 — `ContoursTab` uses it for a contour it just created itself: it has
+ * zero versions by construction, so there is nothing this route could ever
+ * find yet. */
+export function useContourCard(contourId: string | null, options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: ['gis', 'contour-card', contourId],
     queryFn: () => gisApi.getContourCard(contourId!),
-    enabled: !!contourId,
+    enabled: !!contourId && (options?.enabled ?? true),
     retry: false,
   });
 }
