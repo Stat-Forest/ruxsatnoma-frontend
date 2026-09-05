@@ -75,6 +75,7 @@ const AUTH_VALUE: AuthContextValue = {
   startOneId: vi.fn(),
   loginViaEimzo: vi.fn(),
   logout: vi.fn(),
+  applyMe: vi.fn(),
 };
 
 const server = setupServer(

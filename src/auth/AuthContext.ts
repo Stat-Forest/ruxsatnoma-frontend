@@ -31,6 +31,18 @@ export interface AuthContextValue {
    */
   loginViaEimzo: (pinfl: string, fullName: string) => Promise<void>;
   logout: () => Promise<void>;
+  /**
+   * Adopts a fresh `MeOut` a screen already holds — `complete-registration`,
+   * `PATCH /auth/me` and `PUT /auth/me/language` all return the caller's
+   * whole session shape in the response body, unlike `POST
+   * /auth/password/change` (204, no body), which is why THAT gate reloads
+   * the page instead (`ChangePasswordForm`'s own `onChanged`). Calling this
+   * needs no extra round trip and, for a screen `RequireAuth` gates on a
+   * field of `me` (`registration_complete`, `must_change_password`), lifts
+   * the gate in place — nothing ever navigated away, so there is nothing to
+   * navigate back to.
+   */
+  applyMe: (next: MeOut) => void;
 }
 
 export const AuthContext = createContext<AuthContextValue | null>(null);

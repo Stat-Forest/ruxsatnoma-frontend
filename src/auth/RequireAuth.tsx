@@ -4,6 +4,7 @@ import { Forbidden } from '../components/Forbidden';
 import { satisfies } from '../shell/navigation';
 import { useAuth } from './useAuth';
 import { ChangePasswordForm } from '../pages/admin/profile/ChangePasswordForm';
+import { CompleteRegistrationGate } from '../pages/cabinet/registration/CompleteRegistrationGate';
 
 function FullPageSpinner() {
   return (
@@ -14,11 +15,12 @@ function FullPageSpinner() {
 }
 
 /**
- * Backstop for two "logged in but gated" backend states — both leave the
- * session valid but 403 every route except a couple this stage does not
- * ship yet, so the screens that resolve them belong to a later stage:
- * `must_change_password` (backend: ERR-AUTH-007 on every other route) and
- * `registration_complete === false` (backend: ERR-AUTH-008).
+ * Backstop for a "logged in but not going anywhere" backend state that has
+ * no screen of its own — a failed session re-check is the one case left
+ * (`session-check-failed`, below). `must_change_password` (backend:
+ * ERR-AUTH-007) and `registration_complete === false` (backend:
+ * ERR-AUTH-008) each render their own resolving form instead — see those
+ * branches below.
  */
 function BlockingNotice({ testId, message }: { testId: string; message: string }) {
   return (
@@ -75,13 +77,13 @@ export function RequireAuth({
       </div>
     );
   }
+  // No longer a dead end (screen B2): a citizen arriving through OneID for
+  // the first time has no `applicants` row yet, and only THEY can create
+  // one — an administrator has no route that does it on their behalf. The
+  // form's own comment explains why nothing here has to decide where to
+  // send the citizen once it succeeds.
   if (!me.registration_complete) {
-    return (
-      <BlockingNotice
-        testId="registration-incomplete"
-        message="Ro'yxatdan o'tishni yakunlash kerak. Bu funksiya hali mavjud emas — administrator bilan bog'laning."
-      />
-    );
+    return <CompleteRegistrationGate />;
   }
 
   // The is_superuser short-circuit is the whole point of the flag: sys_admin
