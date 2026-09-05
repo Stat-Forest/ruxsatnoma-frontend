@@ -1,12 +1,16 @@
 import { useState } from 'react';
-import { Loader2, RotateCcw } from 'lucide-react';
+import { Download, Loader2, RotateCcw } from 'lucide-react';
 import { useAuth } from '../../auth/useAuth';
+import { useT } from '../../i18n/useT';
 import { Button } from '../../components/ui/button';
 import { FormField, Input, Select } from '../../components/ui/FormControls';
 import { Pagination } from '../../components/ui/Navigation';
 import { ApiError } from '../../api/errors';
+import { api } from '../../api/client';
+import { apiError } from '../../api/errors';
+import { downloadCsv, fetchAllPages, toCsv } from '../../lib/csvExport';
 import { useActivityTypes, useApplicationsList, type ApplicationListFilters, type ApplicationOut } from './queries';
-import { localizedName, STATUS_LABELS } from './format';
+import { formatAmount, formatDate, localizedName, STATUS_LABELS, statusLabel } from './format';
 import { WorklistRow } from './components/WorklistRow';
 
 const REVIEW_PERMISSION = 'applications.review';
@@ -50,9 +54,12 @@ const EMPTY_FILTERS: FilterFormState = {
  */
 export function ApplicationsListPage() {
   const { me } = useAuth();
+  const t = useT();
   const [filters, setFilters] = useState(EMPTY_FILTERS);
   const [appliedFilters, setAppliedFilters] = useState(EMPTY_FILTERS);
   const [page, setPage] = useState(1);
+  const [exporting, setExporting] = useState(false);
+  const [exportTruncated, setExportTruncated] = useState(false);
 
   const queryFilters: ApplicationListFilters = {
     status: appliedFilters.status || undefined,
@@ -81,6 +88,42 @@ export function ApplicationsListPage() {
   }
 
   const totalPages = list.data ? Math.max(1, Math.ceil(list.data.total / PAGE_SIZE)) : 1;
+
+  /**
+   * I1 — the read-only register's export half (`docs/plans/06-frontend-
+   * screens.md`). Client-side only: no export ROUTE exists for this list,
+   * so this re-fetches every page matching the CURRENTLY APPLIED filters
+   * (never the on-screen page alone) at the server's own 100-row ceiling,
+   * bounded at 2000 rows total (`fetchAllPages`'s own comment) — wide
+   * enough for today's registers, with a visible warning rather than a
+   * silent truncation if that bound is ever actually hit.
+   */
+  async function exportCsv() {
+    setExporting(true);
+    setExportTruncated(false);
+    try {
+      const { rows, truncated } = await fetchAllPages<ApplicationOut>(async (p, pageSize) => {
+        const { data, error } = await api.GET('/api/v1/applications', {
+          params: { query: { ...queryFilters, page: p, page_size: pageSize } },
+        });
+        if (error) throw apiError(error);
+        return data;
+      });
+      const csv = toCsv(rows, [
+        { header: 'number', value: (r) => r.number ?? r.id },
+        { header: 'status', value: (r) => statusLabel(r.status) },
+        { header: 'contour_id', value: (r) => r.contour_id ?? '' },
+        { header: 'period_from', value: (r) => formatDate(r.period_from) },
+        { header: 'period_to', value: (r) => formatDate(r.period_to) },
+        { header: 'requested_area_ha', value: (r) => formatAmount(r.requested_area_ha) },
+        { header: 'sla_deadline_at', value: (r) => r.sla_deadline_at ?? '' },
+      ]);
+      downloadCsv(`applications-${new Date().toISOString().slice(0, 10)}.csv`, csv);
+      setExportTruncated(truncated);
+    } finally {
+      setExporting(false);
+    }
+  }
 
   return (
     <div className="space-y-6" data-testid="applications-page">
@@ -136,6 +179,15 @@ export function ApplicationsListPage() {
           </FormField>
         </div>
         <div className="flex justify-end gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            leftIcon={<Download className="w-3.5 h-3.5" />}
+            isLoading={exporting}
+            onClick={() => void exportCsv()}
+          >
+            {t('prosecutor.exportCsv')}
+          </Button>
           <Button variant="outline" size="sm" leftIcon={<RotateCcw className="w-3.5 h-3.5" />} onClick={resetFilters}>
             Tiklash
           </Button>
@@ -144,6 +196,12 @@ export function ApplicationsListPage() {
           </Button>
         </div>
       </div>
+
+      {exportTruncated && (
+        <div className="p-3 bg-[#FFFBEB] border border-[#FDE68A] rounded-xl text-xs text-[#92400E]" role="alert">
+          {t('prosecutor.exportTruncated')}
+        </div>
+      )}
 
       {list.error && (
         <div className="p-4 bg-[#FEF2F2] border border-[#FCA5A5] rounded-2xl text-sm text-[#991B1B]" role="alert">

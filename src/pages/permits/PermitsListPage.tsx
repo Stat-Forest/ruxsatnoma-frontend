@@ -1,13 +1,16 @@
 import { useState } from 'react';
-import { Loader2, RotateCcw } from 'lucide-react';
+import { Download, Loader2, RotateCcw } from 'lucide-react';
 import { Button } from '../../components/ui/button';
 import { FormField, Input, Select } from '../../components/ui/FormControls';
 import { Pagination } from '../../components/ui/Navigation';
 import { ApiError } from '../../api/errors';
-import { useLanguage } from '../../i18n/useT';
-import { usePermitsList, type PermitListFilters, type PermitStatus } from './queries';
+import { api } from '../../api/client';
+import { apiError } from '../../api/errors';
+import { useLanguage, useT } from '../../i18n/useT';
+import { downloadCsv, fetchAllPages, toCsv } from '../../lib/csvExport';
+import { toPermitsQuery, usePermitsList, type PermitListFilters, type PermitOut, type PermitStatus } from './queries';
 import { useLeshozOrganizations } from './useRefsLookup';
-import { pickLocalizedName } from './format';
+import { formatDate, formatMoney, formatPermitNumber, pickLocalizedName } from './format';
 import { PERMIT_STATUS_LABEL } from './statusMeta';
 import { PermitRow } from './components/PermitRow';
 import { PermitCard } from './components/PermitCard';
@@ -45,10 +48,13 @@ const EMPTY_FILTERS: FilterFormState = { status: '', series: '', number: '', org
  */
 export function PermitsListPage({ variant }: { variant: 'staff' | 'applicant' }) {
   const { lang } = useLanguage();
+  const t = useT();
   const isStaff = variant === 'staff';
   const [filters, setFilters] = useState(EMPTY_FILTERS);
   const [appliedFilters, setAppliedFilters] = useState(EMPTY_FILTERS);
   const [page, setPage] = useState(1);
+  const [exporting, setExporting] = useState(false);
+  const [exportTruncated, setExportTruncated] = useState(false);
 
   const queryFilters: PermitListFilters = {
     status: appliedFilters.status || undefined,
@@ -71,6 +77,37 @@ export function PermitsListPage({ variant }: { variant: 'staff' | 'applicant' })
     setFilters(EMPTY_FILTERS);
     setAppliedFilters(EMPTY_FILTERS);
     setPage(1);
+  }
+
+  /** I1's export half — see `ApplicationsListPage.tsx::exportCsv`'s own
+   *  comment for the shared reasoning (client-side, bounded, warns on
+   *  truncation rather than truncating silently). Staff registry only: the
+   *  applicant's own "My permits" is not a register anyone exports. */
+  async function exportCsv() {
+    setExporting(true);
+    setExportTruncated(false);
+    try {
+      const { rows, truncated } = await fetchAllPages<PermitOut>(async (p, pageSize) => {
+        const { data, error } = await api.GET('/api/v1/permits', {
+          params: { query: { ...toPermitsQuery(queryFilters), page: p, page_size: pageSize } },
+        });
+        if (error) throw apiError(error);
+        return data;
+      });
+      const csv = toCsv(rows, [
+        { header: 'number', value: (r) => formatPermitNumber(r.series, r.number) },
+        { header: 'status', value: (r) => PERMIT_STATUS_LABEL[r.status] ?? r.status },
+        { header: 'organization_id', value: (r) => r.organization_id },
+        { header: 'period_from', value: (r) => formatDate(r.period_from) },
+        { header: 'period_to', value: (r) => formatDate(r.period_to) },
+        { header: 'area_ha', value: (r) => r.area_ha ?? '' },
+        { header: 'amount', value: (r) => formatMoney(r.amount) },
+      ]);
+      downloadCsv(`permits-${new Date().toISOString().slice(0, 10)}.csv`, csv);
+      setExportTruncated(truncated);
+    } finally {
+      setExporting(false);
+    }
   }
 
   const totalPages = list.data ? Math.max(1, Math.ceil(list.data.total / PAGE_SIZE)) : 1;
@@ -130,6 +167,17 @@ export function PermitsListPage({ variant }: { variant: 'staff' | 'applicant' })
           )}
         </div>
         <div className="flex justify-end gap-2">
+          {isStaff && (
+            <Button
+              variant="outline"
+              size="sm"
+              leftIcon={<Download className="w-3.5 h-3.5" />}
+              isLoading={exporting}
+              onClick={() => void exportCsv()}
+            >
+              {t('prosecutor.exportCsv')}
+            </Button>
+          )}
           <Button variant="outline" size="sm" leftIcon={<RotateCcw className="w-3.5 h-3.5" />} onClick={resetFilters}>
             Tiklash
           </Button>
@@ -138,6 +186,12 @@ export function PermitsListPage({ variant }: { variant: 'staff' | 'applicant' })
           </Button>
         </div>
       </div>
+
+      {isStaff && exportTruncated && (
+        <div className="p-3 bg-[#FFFBEB] border border-[#FDE68A] rounded-xl text-xs text-[#92400E]" role="alert">
+          {t('prosecutor.exportTruncated')}
+        </div>
+      )}
 
       {list.error && (
         <div className="p-4 bg-[#FEF2F2] border border-[#FCA5A5] rounded-2xl text-sm text-[#991B1B]" role="alert">

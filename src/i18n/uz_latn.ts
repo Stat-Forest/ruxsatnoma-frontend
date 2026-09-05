@@ -204,4 +204,9 @@ export const uz_latn = {
   'permits.lifecycle.errWrongSigner': "Bu qarorni faqat shu oʻrmon xoʻjaligining rahbari imzolashi mumkin.",
   'permits.lifecycle.errSignatureInvalid': "Imzo tasdiqlanmadi — qaytadan urining.",
   'permits.lifecycle.errUploadFailed': "Fayl yuklanmadi.",
+
+  // --- I1: the prosecutor's read-only registers with export ---------------
+  'prosecutor.exportCsv': "CSV eksport",
+  'prosecutor.exportTruncated':
+    "Diqqat: roʻyxat 2000 tadan koʻp yozuvni oʻz ichiga oladi — faqat birinchi 2000 tasi eksport qilindi. Aniqroq natija uchun filtrlarni toraytiring.",
 };

@@ -197,4 +197,9 @@ export const ru = {
   'permits.lifecycle.errWrongSigner': 'Это решение может подписать только руководитель именно этого лесхоза.',
   'permits.lifecycle.errSignatureInvalid': 'Подпись не подтверждена — попробуйте ещё раз.',
   'permits.lifecycle.errUploadFailed': 'Файл не загружен.',
+
+  // --- I1: реестры прокурора только для чтения, с экспортом --------------
+  'prosecutor.exportCsv': 'Экспорт CSV',
+  'prosecutor.exportTruncated':
+    'Внимание: в списке более 2000 записей — экспортированы только первые 2000. Для точного результата сузьте фильтры.',
 };

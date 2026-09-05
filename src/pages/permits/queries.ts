@@ -29,11 +29,15 @@ export interface PermitListFilters {
   page_size: number;
 }
 
-export function usePermitsList(filters: PermitListFilters) {
+/** The `FilterFormState` -> real query mapping `GET /permits` accepts —
+ *  pulled out so I1's CSV export (`PermitsListPage.tsx::exportCsv`) can
+ *  build the identical query for every page it fetches without
+ *  re-deriving (and risking drifting from) this parsing by hand. */
+export function toPermitsQuery(filters: PermitListFilters) {
   const parsedNumber = filters.number ? Number(filters.number) : undefined;
   const number = parsedNumber !== undefined && Number.isInteger(parsedNumber) && parsedNumber > 0 ? parsedNumber : undefined;
 
-  const query = {
+  return {
     status: filters.status || undefined,
     series: filters.series || undefined,
     number,
@@ -41,6 +45,10 @@ export function usePermitsList(filters: PermitListFilters) {
     page: filters.page,
     page_size: filters.page_size,
   };
+}
+
+export function usePermitsList(filters: PermitListFilters) {
+  const query = toPermitsQuery(filters);
 
   return useQuery({
     queryKey: ['permits', 'list', query],

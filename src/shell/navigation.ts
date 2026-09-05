@@ -72,8 +72,13 @@ export const NAVIGATION: NavItem[] = [
     labelKey: 'nav.applications',
     // Both the reviewer and the approver, who hold DIFFERENT codes — see
     // `NavItem.permission`. The backend agrees: `applications.decide` is
-    // `executor_head`'s (migration 0015, left in place by 0016).
-    permission: ['applications.review', 'applications.decide'],
+    // `executor_head`'s (migration 0015, left in place by 0016). Plus
+    // `applications.view_any` (I1, migration 0015 grants it to `prosecutor`
+    // alone): `service._holds_staff_read`/`list_applications` already zone-
+    // scope and serve that caller, so leaving this array at just the two
+    // review codes hid a screen the backend already supported — the same
+    // omission `/permits` below did NOT make for its own `.view_any`.
+    permission: ['applications.review', 'applications.decide', 'applications.view_any'],
     icon: Inbox,
   },
   { to: '/gis', labelKey: 'nav.gis', permission: 'gis.contours.manage', icon: Map },
