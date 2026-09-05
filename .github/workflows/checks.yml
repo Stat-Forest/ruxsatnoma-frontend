@@ -32,6 +32,13 @@ jobs:
           # Baked into the bundle at build time; without it the browser calls localhost.
           VITE_API_BASE: ${{ inputs.api-base }}
         run: npm run build
+
+      # The build succeeding is not the same as the bundle being usable: a
+      # missing MapLibre worker breaks the map with no error anywhere. See the
+      # script's own header for why this cannot be a unit test.
+      - name: Check the bundle
+        run: ./scripts/check-bundle.sh dist
+
       - name: Upload the bundle
         if: ${{ inputs.upload-dist }}
         uses: actions/upload-artifact@v4
