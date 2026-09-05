@@ -136,3 +136,40 @@ export function formatAmount(value: string | null | undefined): string {
 export function shortId(id: string): string {
   return id.slice(0, 8);
 }
+
+// --- D3 (3.9b task 4): the SLA clock, honestly ------------------------------
+//
+// `docs/status.md`'s own fact: "the SLA clock PAUSES on an information
+// request, and a forwarded application keeps its ORIGINAL deadline rather
+// than starting a new one" (decision #67, ruling 9). `PENDING_INFO` is the
+// one status that means the clock is paused right now — nothing else in
+// `application_status_history` writes it — so a client that keeps comparing
+// the stored `sla_deadline_at` to the wall clock while PENDING_INFO would
+// show a countdown for a clock that has stopped, or worse, report the
+// application overdue for a delay it caused itself.
+
+export type SlaState = 'paused' | 'overdue' | 'soon' | 'normal' | null;
+
+/**
+ * `overdueFromServer`, when supplied, is `ApplicationCardOut.sla_overdue`
+ * (`sla.is_overdue`) — computed server-side with the same PENDING_INFO
+ * short-circuit this function applies client-side, plus knowledge this
+ * function does not have (today's business calendar). Preferred over the
+ * client's own `Date.now()` comparison whenever it is available; the list
+ * row (`ApplicationOut`) carries no such field, so `WorklistRow` calls this
+ * with it omitted and falls back to comparing the stored deadline itself.
+ */
+export function slaStatus(
+  status: ApplicationStatus,
+  slaDeadlineAt: string | null,
+  overdueFromServer?: boolean,
+): SlaState {
+  if (status === 'PENDING_INFO') return 'paused';
+  if (!slaDeadlineAt) return null;
+  if (overdueFromServer !== undefined) return overdueFromServer ? 'overdue' : 'normal';
+  const deadline = new Date(slaDeadlineAt).getTime();
+  const now = Date.now();
+  if (deadline < now) return 'overdue';
+  if (deadline - now < 24 * 60 * 60 * 1000) return 'soon';
+  return 'normal';
+}

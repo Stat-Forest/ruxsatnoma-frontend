@@ -112,4 +112,42 @@ export const uz_latn = {
   'dash.month.10': 'Okt',
   'dash.month.11': 'Noy',
   'dash.month.12': 'Dek',
+
+  // --- D3 (3.9b): return for correction / request-info -----------------
+  'staff.infoRequest.panelTitle': 'Tekshiruv harakatlari',
+  'staff.infoRequest.pendingBanner': "Arizachidan maʼlumot kutilmoqda",
+  'staff.infoRequest.pendingHint':
+    "SLA muddati toʻxtatilgan — arizachi javob bergach, qolgan muddatga davom etadi (asl muddat oʻzgarmaydi).",
+  'staff.infoRequest.requestedAt': "Soʻralgan:",
+  'staff.infoRequest.returnedBanner': 'Tuzatishga qaytarilgan',
+  'staff.infoRequest.requestInfoButton': "Maʼlumot soʻrash",
+  'staff.infoRequest.returnButton': 'Tuzatishga qaytarish',
+  'staff.infoRequest.noPermission': "Bu harakatlar uchun vakolat yoʻq.",
+  'staff.infoRequest.requestModalTitle': "Qoʻshimcha maʼlumot soʻrash",
+  'staff.infoRequest.requestModalSubtitle':
+    "Ariza 'Maʼlumot kutilmoqda' holatiga oʻtadi — SLA muddati shu vaqtga toʻxtatiladi",
+  'staff.infoRequest.cancel': 'Bekor qilish',
+  'staff.infoRequest.sendButton': "Soʻrov yuborish",
+  'staff.infoRequest.messageLabel': 'Arizachiga savol',
+  'staff.infoRequest.messagePlaceholder':
+    "Masalan: kontur chegarasi taqdim etilgan hujjat bilan mos kelmayapti, tasdiqlovchi hujjat yuklang.",
+  'staff.infoRequest.returnModalTitle': 'Tuzatishga qaytarish',
+  'staff.infoRequest.returnModalSubtitle':
+    "Ariza 'Tuzatishga qaytarilgan' holatiga oʻtadi — arizachi tuzatib qayta yuboradi",
+  'staff.infoRequest.reasonLabel': 'Sabab',
+  'staff.infoRequest.selectPlaceholder': 'Tanlang...',
+  'staff.infoRequest.legalBasisLabel': 'Huquqiy asos (legal_basis)',
+  'staff.infoRequest.legalBasisPlaceholder': 'Masalan: VMQ 278-son, 12-band',
+  'staff.infoRequest.fieldsToFixLabel': "Tuzatilishi kerak boʻlgan maydonlar",
+  'staff.infoRequest.fieldNotePlaceholder': "Nima notoʻgʻri — arizachi shu izohni koʻradi",
+  'staff.infoRequest.returnSubmitButton': 'Qaytarish',
+  'staff.infoRequest.field.contour': 'Kontur (uchastka)',
+  'staff.infoRequest.field.periodFrom': 'Davr boshlanishi',
+  'staff.infoRequest.field.periodTo': 'Davr tugashi',
+  'staff.infoRequest.field.quantity': 'Miqdor',
+  'staff.infoRequest.field.benefit': 'Imtiyoz toifasi',
+  'staff.infoRequest.field.activityType': 'Faoliyat turi',
+  'staff.infoRequest.field.area': "Soʻralgan maydon",
+  'staff.infoRequest.slaPausedBadge': "SLA toʻxtatilgan",
+  'staff.infoRequest.slaPausedShort': "Toʻxtatilgan",
 };

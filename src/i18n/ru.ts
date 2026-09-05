@@ -105,4 +105,42 @@ export const ru = {
   'dash.month.10': 'окт',
   'dash.month.11': 'ноя',
   'dash.month.12': 'дек',
+
+  // --- D3 (3.9b): возврат на доработку / запрос информации -------------
+  'staff.infoRequest.panelTitle': 'Действия по рассмотрению',
+  'staff.infoRequest.pendingBanner': 'Ожидается информация от заявителя',
+  'staff.infoRequest.pendingHint':
+    'Срок SLA приостановлен — после ответа заявителя отсчёт продолжится с оставшегося времени (исходный срок не меняется).',
+  'staff.infoRequest.requestedAt': 'Запрошено:',
+  'staff.infoRequest.returnedBanner': 'Возвращена на доработку',
+  'staff.infoRequest.requestInfoButton': 'Запросить информацию',
+  'staff.infoRequest.returnButton': 'Вернуть на доработку',
+  'staff.infoRequest.noPermission': 'Нет прав на эти действия.',
+  'staff.infoRequest.requestModalTitle': 'Запрос дополнительной информации',
+  'staff.infoRequest.requestModalSubtitle':
+    "Заявка перейдёт в статус «Ожидает информации» — срок SLA будет приостановлен на это время",
+  'staff.infoRequest.cancel': 'Отмена',
+  'staff.infoRequest.sendButton': 'Отправить запрос',
+  'staff.infoRequest.messageLabel': 'Вопрос заявителю',
+  'staff.infoRequest.messagePlaceholder':
+    'Например: граница контура не совпадает с представленным документом, приложите подтверждающий документ.',
+  'staff.infoRequest.returnModalTitle': 'Вернуть на доработку',
+  'staff.infoRequest.returnModalSubtitle':
+    'Заявка перейдёт в статус «Возвращена» — заявитель исправит и подаст повторно',
+  'staff.infoRequest.reasonLabel': 'Причина',
+  'staff.infoRequest.selectPlaceholder': 'Выберите...',
+  'staff.infoRequest.legalBasisLabel': 'Правовое основание (legal_basis)',
+  'staff.infoRequest.legalBasisPlaceholder': 'Например: ПКМ №278, пункт 12',
+  'staff.infoRequest.fieldsToFixLabel': 'Поля, требующие исправления',
+  'staff.infoRequest.fieldNotePlaceholder': 'Что не так — заявитель увидит именно этот комментарий',
+  'staff.infoRequest.returnSubmitButton': 'Вернуть',
+  'staff.infoRequest.field.contour': 'Контур (участок)',
+  'staff.infoRequest.field.periodFrom': 'Начало периода',
+  'staff.infoRequest.field.periodTo': 'Окончание периода',
+  'staff.infoRequest.field.quantity': 'Количество',
+  'staff.infoRequest.field.benefit': 'Категория льготы',
+  'staff.infoRequest.field.activityType': 'Вид деятельности',
+  'staff.infoRequest.field.area': 'Запрошенная площадь',
+  'staff.infoRequest.slaPausedBadge': 'SLA приостановлен',
+  'staff.infoRequest.slaPausedShort': 'Приостановлен',
 };
