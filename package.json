@@ -19,6 +19,10 @@
   },
   "dependencies": {
     "@tanstack/react-query": "^5.102.8",
+    "@turf/buffer": "^7.4.0",
+    "@turf/difference": "^7.4.0",
+    "@turf/flatten": "^7.4.0",
+    "@turf/helpers": "^7.4.0",
     "lucide-react": "^1.39.0",
     "maplibre-gl": "^6.7.0",
     "openapi-fetch": "^0.17.0",
@@ -27,6 +31,8 @@
     "react-hook-form": "^7.87.0",
     "react-router": "^8.3.1",
     "recharts": "^3.10.1",
+    "terra-draw": "^1.33.0",
+    "terra-draw-maplibre-gl-adapter": "^1.4.1",
     "zod": "^4.5.4"
   },
   "devDependencies": {
@@ -36,6 +42,7 @@
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.3",
     "@testing-library/user-event": "^14.6.7",
+    "@turf/area": "^7.4.0",
     "@types/geojson": "^7946.0.16",
     "@types/node": "^24.13.3",
     "@types/react": "^19.2.18",
