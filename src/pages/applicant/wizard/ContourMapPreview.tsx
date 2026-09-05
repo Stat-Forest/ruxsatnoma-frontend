@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import {
   GeoJSONSource,
   LngLatBounds,
@@ -26,7 +27,8 @@ import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url';
 // module import below is the same package's OTHER shape (`export as
 // namespace GeoJSON` in `@types/geojson` doubles as a real ES module), and
 // works regardless of that `types` list.
-import type { Feature, Geometry } from 'geojson';
+import type { Feature, FeatureCollection, Geometry } from 'geojson';
+import { listContourFeatures } from '../api';
 
 setWorkerUrl(workerUrl);
 
@@ -63,6 +65,12 @@ const CONTOUR_LAYERS = ['contour-fill', 'contour-casing', 'contour-line'] as con
  * to a tint and the outline carries the shape. */
 const FILL_OPACITY: Record<BasemapId, number> = { osm: 0.45, satellite: 0.15 };
 
+/** The browsable layer sits a step quieter than the selected one — several
+ * parcels at once, none of them chosen yet, so the fill marks territory
+ * without claiming attention. Same reasoning per basemap: over a photo it
+ * thins out so the ground stays readable. */
+const BROWSE_FILL_OPACITY: Record<BasemapId, number> = { osm: 0.3, satellite: 0.12 };
+
 /** The map is locked to Uzbekistan (Oybek, 2026-09-05): every forest-fund
  * parcel this system will ever issue a permit for is inside these bounds, so
  * panning beyond them can only ever be a viewer getting lost. Roughly the
@@ -84,6 +92,22 @@ const UZBEKISTAN_BOUNDS: [[number, number], [number, number]] = [
 /** Fits the whole country in the preview's own 360×256 frame and no further:
  * zooming out to a world map has nothing to offer here. */
 const MIN_ZOOM = 4.5;
+
+/** Below this the viewport covers more ground than a browsable layer: the
+ * request would ask for thousands of polygons, the server would clip the
+ * answer at its own cap, and the map would draw a partial layer as if it were
+ * the whole one. So nothing is fetched, and the map says why instead. */
+const MIN_FETCH_ZOOM = 10;
+
+/** The browsable layer — every published contour in view. Drawn UNDER the
+ * selected-contour layers, which are added later and therefore land on top.
+ * Same three-layer treatment as the selected one, one step quieter: a fill, a
+ * white casing and a dark outline. The casing is not decoration — a thin line
+ * over a satellite photo of forest is invisible, and a parcel nobody can see
+ * is a parcel nobody can click. */
+const ALL_LAYERS = ['contours-fill', 'contours-casing', 'contours-line'] as const;
+
+const EMPTY_COLLECTION: FeatureCollection = { type: 'FeatureCollection', features: [] };
 
 const BASEMAP_STYLE: StyleSpecification = {
   version: 8,
@@ -137,14 +161,25 @@ function collectCoordinates(geometry: unknown, out: [number, number][]): void {
   walk(geom.coordinates);
 }
 
-/** Renders exactly one contour's own geometry — the picker's list is the
- * primary way an applicant finds a plot (see `ContourPicker.tsx`); this is
- * the visual confirmation of what was found, per decision #60.1 (MapLibre GL
- * JS). There is no bulk-geometry endpoint for contours (`GET /gis/contours`
- * carries attributes only — `ContourListItem`'s own docstring), so browsing
- * every published polygon by clicking the map is out of reach without a new
- * backend route; this preview draws the SELECTED one only. */
-export function ContourMapPreview({ geometry }: { geometry: Record<string, unknown> | null }) {
+/** The map an applicant browses. With nothing picked it draws EVERY published
+ * contour in view (`GET /gis/contours/features`, added for this — the paged
+ * list carries no geometry and could never feed a map); clicking one narrows
+ * the map to that parcel alone, and clicking it again brings the rest back.
+ *
+ * The two states are drawn from two different sources on purpose. The
+ * browsable layer is whatever the last viewport returned, while the selected
+ * contour comes from its own card — so a parcel picked in the list stays
+ * drawn after the map is panned somewhere else entirely, which it would not
+ * if the selection were merely a filter over the viewport's features. */
+export function ContourMapPreview({
+  geometry,
+  selectedId,
+  onPick,
+}: {
+  geometry: Record<string, unknown> | null;
+  selectedId?: string | null;
+  onPick?: (contourId: string | null) => void;
+}) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<MaplibreMap | null>(null);
   // Whether the map has fired `load` ONCE, remembered rather than re-asked.
@@ -156,6 +191,24 @@ export function ContourMapPreview({ geometry }: { geometry: Record<string, unkno
   // be drawn at all.
   const [mapReady, setMapReady] = useState(false);
   const [basemap, setBasemap] = useState<BasemapId>('osm');
+  /** The viewport of the last settled move, as the API's `bbox` string. Set
+   * from `moveend`, which is its own debounce: it fires once the pan or zoom
+   * stops, not on every frame of it. */
+  const [bbox, setBbox] = useState<string | null>(null);
+  const [zoomedOut, setZoomedOut] = useState(false);
+  /** MapLibre's click handler is registered once and closes over whatever
+   * `selectedId` was at that moment. A ref is what makes the toggle work: the
+   * handler has to compare against the CURRENT selection to know whether this
+   * click is picking a parcel or clearing the one already picked. */
+  const selectedIdRef = useRef<string | null>(selectedId ?? null);
+  const onPickRef = useRef(onPick);
+  // Kept current in an effect, not during render: writing a ref while
+  // rendering is what `react-hooks/refs` forbids, and the click handler only
+  // ever reads these after a commit anyway.
+  useEffect(() => {
+    selectedIdRef.current = selectedId ?? null;
+    onPickRef.current = onPick;
+  }, [selectedId, onPick]);
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -169,13 +222,102 @@ export function ContourMapPreview({ geometry }: { geometry: Record<string, unkno
       attributionControl: { compact: true },
     });
     mapRef.current = map;
-    map.once('load', () => setMapReady(true));
+
+    const readViewport = () => {
+      if (map.getZoom() < MIN_FETCH_ZOOM) {
+        setZoomedOut(true);
+        setBbox(null);
+        return;
+      }
+      setZoomedOut(false);
+      const b = map.getBounds();
+      setBbox(
+        [b.getWest(), b.getSouth(), b.getEast(), b.getNorth()]
+          .map((n) => n.toFixed(5))
+          .join(','),
+      );
+    };
+
+    const pick = (event: { features?: { properties?: Record<string, unknown> }[] }) => {
+      const id = event.features?.[0]?.properties?.contour_id;
+      if (typeof id !== 'string') return;
+      // The toggle the whole interaction is built on: clicking the parcel that
+      // is already selected clears the selection rather than re-selecting it.
+      onPickRef.current?.(selectedIdRef.current === id ? null : id);
+    };
+    const clearOnSelected = () => onPickRef.current?.(null);
+
+    map.once('load', () => {
+      map.addSource('contours', { type: 'geojson', data: EMPTY_COLLECTION });
+      map.addLayer({
+        id: 'contours-fill',
+        type: 'fill',
+        source: 'contours',
+        paint: { 'fill-color': '#2E7D4F', 'fill-opacity': BROWSE_FILL_OPACITY.osm },
+      });
+      map.addLayer({
+        id: 'contours-casing',
+        type: 'line',
+        source: 'contours',
+        paint: { 'line-color': '#FFFFFF', 'line-width': 3, 'line-opacity': 0.9 },
+      });
+      map.addLayer({
+        id: 'contours-line',
+        type: 'line',
+        source: 'contours',
+        paint: { 'line-color': '#123522', 'line-width': 1.4 },
+      });
+      map.on('click', 'contours-fill', pick);
+      // The selected parcel is drawn from the OTHER source, so clearing it
+      // needs its own handler — without this the only way back to the full
+      // layer would be a control the interaction does not have.
+      map.on('click', 'contour-fill', clearOnSelected);
+      for (const layer of ['contours-fill', 'contour-fill']) {
+        map.on('mouseenter', layer, () => (map.getCanvas().style.cursor = 'pointer'));
+        map.on('mouseleave', layer, () => (map.getCanvas().style.cursor = ''));
+      }
+      readViewport();
+      setMapReady(true);
+    });
+    map.on('moveend', readViewport);
+
     return () => {
       map.remove();
       mapRef.current = null;
       setMapReady(false);
     };
   }, []);
+
+  const featuresQuery = useQuery({
+    queryKey: ['contour-features', bbox],
+    queryFn: () => listContourFeatures(bbox!),
+    // Only while nothing is picked: a selected parcel hides this layer, and
+    // fetching a viewport nobody can see is bandwidth spent on nothing.
+    enabled: !!bbox && !selectedId,
+    staleTime: 60_000,
+  });
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !mapReady) return;
+    const source = map.getSource('contours') as GeoJSONSource | undefined;
+    if (!source) return;
+    source.setData(
+      (featuresQuery.data as unknown as FeatureCollection | undefined) ?? EMPTY_COLLECTION,
+    );
+  }, [featuresQuery.data, mapReady]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !mapReady) return;
+    // One parcel picked means one parcel drawn — the browsable layer would
+    // otherwise keep every neighbour on screen underneath it.
+    for (const id of ALL_LAYERS) {
+      if (map.getLayer(id)) {
+        map.setLayoutProperty(id, 'visibility', selectedId ? 'none' : 'visible');
+      }
+    }
+  }, [selectedId, mapReady]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -187,6 +329,9 @@ export function ContourMapPreview({ geometry }: { geometry: Record<string, unkno
     // basemap can be switched before that.
     if (map.getLayer('contour-fill')) {
       map.setPaintProperty('contour-fill', 'fill-opacity', FILL_OPACITY[basemap]);
+    }
+    if (map.getLayer('contours-fill')) {
+      map.setPaintProperty('contours-fill', 'fill-opacity', BROWSE_FILL_OPACITY[basemap]);
     }
   }, [basemap, mapReady]);
 
@@ -252,6 +397,25 @@ export function ContourMapPreview({ geometry }: { geometry: Record<string, unkno
       <div ref={containerRef} className="w-full h-full" />
       {/* Top-LEFT: MapLibre's own attribution control sits bottom-right, and
           the credit is the one thing on this map that may not be covered. */}
+      {/* Says what the map is showing, because "no polygons" has two very
+          different causes: zoomed out past the fetch threshold, or zoomed in
+          on ground that simply has no published contours. Silence would look
+          identical in both cases — and identical to a broken layer. */}
+      {!selectedId && (
+        <div className="absolute bottom-2 left-2 z-10 rounded-md bg-white/90 border border-[#E4E7EA] px-2 py-1 text-[11px] text-[#5A646D] shadow-xs">
+          {/* `!mapReady` comes FIRST: before the map has loaded there is no
+              viewport to have read, so the count is not zero — it is not yet
+              known, and printing "0 ta uchastka" there says the ground is
+              empty when nothing has been asked yet. */}
+          {!mapReady
+            ? 'Yuklanmoqda...'
+            : zoomedOut
+              ? 'Uchastkalarni koʻrish uchun kattalashtiring'
+              : featuresQuery.isFetching
+                ? 'Yuklanmoqda...'
+                : `${featuresQuery.data?.features.length ?? 0} ta uchastka`}
+        </div>
+      )}
       <div className="absolute top-2 left-2 z-10 flex rounded-lg overflow-hidden border border-[#E4E7EA] shadow-xs bg-white">
         {BASEMAPS.map(({ id, label }) => (
           <button

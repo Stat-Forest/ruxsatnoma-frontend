@@ -80,7 +80,7 @@ export function ContourPicker({ value, onChange }: { value: PickedContour | null
             return (
               <button
                 key={c.id}
-                onClick={() => setHighlightedId(c.id)}
+                onClick={() => setHighlightedId((current) => (current === c.id ? null : c.id))}
                 className={`w-full text-left p-3 flex items-center justify-between gap-3 transition-colors cursor-pointer ${
                   highlightedId === c.id ? 'bg-[#F0F7F1]' : 'hover:bg-[#F8F9FA]'
                 }`}
@@ -105,7 +105,15 @@ export function ContourPicker({ value, onChange }: { value: PickedContour | null
       </div>
 
       <div className="space-y-3">
-        <ContourMapPreview geometry={previewQuery.data?.geometry ?? null} />
+        <ContourMapPreview
+          geometry={previewQuery.data?.geometry ?? null}
+          selectedId={highlightedId}
+          // Selection is one value shared by the list and the map, so picking
+          // a parcel on either shows it on both. `null` arrives when the map
+          // clears it — clicking the highlighted parcel a second time — and
+          // puts every contour in view back on screen.
+          onPick={setHighlightedId}
+        />
         {previewQuery.data && (
           <div className="bg-white border border-[#E4E7EA] rounded-2xl p-4 shadow-xs space-y-2 text-xs">
             <div className="font-mono text-lg font-bold text-[#1A1F24]">{previewQuery.data.number}</div>
