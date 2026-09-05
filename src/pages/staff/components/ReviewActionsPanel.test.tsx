@@ -17,6 +17,7 @@ import { http, HttpResponse } from 'msw';
 import { setupServer } from 'msw/node';
 import { AuthContext } from '../../../auth/AuthContext';
 import type { AuthContextValue } from '../../../auth/AuthContext';
+import { stubAuthActions } from '../../../auth/testAuthActions';
 import { I18nContext } from '../../../i18n/context';
 import { ReviewActionsPanel } from './ReviewActionsPanel';
 import type { ApplicationCardOut, ApplicationTimelineOut } from '../queries';
@@ -94,11 +95,7 @@ function authValue(permissions: string[]): AuthContextValue {
     },
     loading: false,
     authError: null,
-    requestMfa: async () => {},
-    verifyMfa: async () => {},
-    startOneId: async () => {},
-    loginViaEimzo: async () => {},
-    logout: async () => {},
+    ...stubAuthActions(),
   };
 }
 

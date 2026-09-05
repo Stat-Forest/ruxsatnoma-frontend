@@ -16,6 +16,7 @@ import { http, HttpResponse } from 'msw';
 import { setupServer } from 'msw/node';
 import { AuthContext } from '../../../auth/AuthContext';
 import type { AuthContextValue } from '../../../auth/AuthContext';
+import { stubAuthActions } from '../../../auth/testAuthActions';
 import { I18nContext } from '../../../i18n/context';
 import { ConclusionsPanel } from './ConclusionsPanel';
 import type { ApplicationCardOut, ApplicationConclusionOut } from '../queries';
@@ -65,7 +66,17 @@ function card(over: Partial<ApplicationCardOut> = {}): ApplicationCardOut {
     items: [],
     documents: [],
     checks: [
-      { id: 'chk-1', check_type: 'gis_within_fund', result: 'skipped', details: null, source: 'auto', checked_at: '2026-09-01T10:00:00+05:00' },
+      {
+        id: 'chk-1',
+        check_type: 'gis_within_fund',
+        result: 'skipped',
+        details: null,
+        source: 'auto',
+        checked_at: '2026-09-01T10:00:00+05:00',
+        created_by: 'u0000000-0000-4000-8000-000000000001',
+        confirmed_by: null,
+        confirmed_at: null,
+      },
     ],
     calculation: null,
     sla_overdue: false,
@@ -97,11 +108,7 @@ function authValue(permissions: string[]): AuthContextValue {
     },
     loading: false,
     authError: null,
-    requestMfa: async () => {},
-    verifyMfa: async () => {},
-    startOneId: async () => {},
-    loginViaEimzo: async () => {},
-    logout: async () => {},
+    ...stubAuthActions(),
   };
 }
 
