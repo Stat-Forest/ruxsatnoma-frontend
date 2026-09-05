@@ -322,4 +322,122 @@ export const uz_latn = {
   'norms.tariffs.archive.confirm': 'Arxivlash',
   'norms.tariffs.archive.cancel': 'Bekor qilish',
   'norms.tariffs.archive.error.generic': 'Tarifni arxivlab boʻlmadi.',
+
+  // F5 — 6-topshiriq me'yorlar ekrani (`pages/norms/NormsTab.tsx` va
+  // `pages/norms/norm/`). Oʻz ruxsat oilasi (`norms.manage`/`.approve`/
+  // `.publish`) va oʻz besh holatli hayot davri — bu yerdagi har bir yoʻl
+  // yalang'och `NormOut` qaytaradi, yuqoridagi `{item, warnings}` qobigʻisiz.
+  'norms.norms.filter.activityType': 'Faoliyat turi',
+  'norms.norms.filter.activityTypeAll': 'Barchasi',
+  'norms.norms.filter.status': 'Holati',
+  'norms.norms.filter.statusAll': 'Barchasi',
+  'norms.norms.filter.reset': 'Tiklash',
+  'norms.norms.filter.apply': "Qo'llash",
+  'norms.norms.col.contour': 'Kontur',
+  'norms.norms.col.activity': 'Faoliyat turi',
+  'norms.norms.col.status': 'Holati',
+  'norms.norms.col.yield': 'Hosildorlik, s/ga',
+  'norms.norms.col.maxSb': 'Limit, shartli bosh',
+  'norms.norms.col.effectiveFrom': 'Amal qilish boshlanishi',
+  'norms.norms.col.effectiveTo': 'Amal qilish tugashi',
+  'norms.norms.col.publishedAt': "Eʼlon qilingan",
+  'norms.norms.loadError': "Me'yorlar yuklanmadi.",
+  'norms.norms.emptyTitle': "Me'yorlar topilmadi",
+  'norms.norms.emptyDescription': 'Filtrlarni oʻzgartiring yoki keyinroq tekshiring.',
+  'norms.norms.status.draft': 'Qoralama',
+  'norms.norms.status.review': 'Koʻrib chiqilmoqda',
+  'norms.norms.status.approved': 'Kelishildi',
+  'norms.norms.status.published': "Eʼlon qilingan",
+  'norms.norms.status.archived': 'Arxivlangan',
+
+  'norms.norms.actions.add': "Me'yor qo'shish",
+  'norms.norms.actions.edit': "O'zgartirish",
+  'norms.norms.actions.submit-review': "Ko'rib chiqishga yuborish",
+  'norms.norms.actions.return-to-draft': 'Qoralamaga qaytarish',
+  'norms.norms.actions.approve': 'Kelishish',
+  'norms.norms.actions.return-to-review': "Ko'rib chiqishga qaytarish",
+  'norms.norms.actions.publish': 'Eʼlon qilish',
+  'norms.norms.actions.archive': 'Arxivlash',
+
+  'norms.norms.transition.cancel': 'Bekor qilish',
+  'norms.norms.transition.submit-review.title': "Ko'rib chiqishga yuborish",
+  'norms.norms.transition.submit-review.question':
+    "Bu me'yorni lesxoz rahbariga ko'rib chiqish uchun yuborasizmi? Qaytarilgunga qadar tahrirlash imkonsiz bo'ladi.",
+  'norms.norms.transition.return-to-draft.title': 'Qoralamaga qaytarish',
+  'norms.norms.transition.return-to-draft.question': "Bu me'yorni qayta ishlash uchun qoralamaga qaytarasizmi?",
+  'norms.norms.transition.return-to-review.title': "Ko'rib chiqishga qaytarish",
+  'norms.norms.transition.return-to-review.question':
+    "Bu kelishilgan me'yorni eʼlon qilish o'rniga ko'rib chiqishga qaytarasizmi?",
+  'norms.norms.transition.publish.title': "Me'yorni eʼlon qilish",
+  'norms.norms.transition.publish.question':
+    "Bu me'yorni eʼlon qilasizmi? Limit (shartli bosh) konturning joriy maydoni bo'yicha qat'iylashtiriladi va yangi hisob-kitoblar uchun kuchga kiradi.",
+  'norms.norms.transition.archive.title': "Me'yorni arxivlash",
+  'norms.norms.transition.archive.question':
+    "Bu me'yorni arxivlaysizmi? Amal qilish tugash sanasi kechagi kun bilan yopiladi.",
+  'norms.norms.transition.approve.title': "Me'yorni kelishish",
+  'norms.norms.transition.approve.question':
+    "Bu me'yorni kelishasizmi? Lesxoz rahbarining kelishuvini tasdiqlovchi hujjat talab qilinadi.",
+  'norms.norms.transition.approve.docLabel': 'Kelishuv hujjati',
+  'norms.norms.transition.approve.docRequired': "Me'yorni kelishish uchun hujjat yuklang.",
+
+  'norms.norms.form.createTitle': "Yangi me'yor",
+  'norms.norms.form.editTitle': "Me'yorni o'zgartirish",
+  'norms.norms.form.cancel': 'Bekor qilish',
+  'norms.norms.form.save': 'Saqlash',
+  'norms.norms.form.contour': 'Kontur',
+  'norms.norms.form.contourRequired': 'Konturni tanlang.',
+  'norms.norms.form.contourSearchPlaceholder': "Kontur raqami bo'yicha qidirish…",
+  'norms.norms.form.contourNoMatches': "Konturlar topilmadi.",
+  'norms.norms.form.activityType': 'Faoliyat turi',
+  'norms.norms.form.activityTypeRequired': 'Faoliyat turini tanlang.',
+  'norms.norms.form.activityTypePlaceholder': 'Tanlang…',
+  'norms.norms.form.yield': 'Hosildorlik, s/ga',
+  'norms.norms.form.yieldHint':
+    "Faqat yaylov uchun — shartli boshlar limiti shundan hisoblanadi. Boshqa faoliyat turlari uchun bo'sh qoldiring.",
+  'norms.norms.form.yieldError.invalid': 'Musbat son kiriting.',
+  'norms.norms.form.yieldError.negative': 'Hosildorlik manfiy boʻlishi mumkin emas.',
+  'norms.norms.form.yieldError.tooManyDigits':
+    "Ahamiyatli raqamlar juda ko'p (jami ko'pi bilan 10 ta, vergul dan keyin ko'pi bilan 4 ta).",
+  'norms.norms.form.season': 'Mavsumiy oynalar',
+  'norms.norms.form.seasonAdd': "Oyna qo'shish",
+  'norms.norms.form.seasonHint': "Sanalar OO-KK formatida, masalan yaylov mavsumi uchun 05-01 — 09-30.",
+  'norms.norms.form.seasonEmpty': 'Mavsumiy cheklovlar belgilanmagan.',
+  'norms.norms.form.seasonTo': '—',
+  'norms.norms.form.seasonRemove': "O'chirish",
+  'norms.norms.form.seasonInvalid': "Mavsumiy oynalar sanalarining formatini tekshiring (OO-KK).",
+  'norms.norms.form.rotation': "Dam olish yillari (rotatsiya)",
+  'norms.norms.form.rotationHint': "Yillar vergul yoki bo'sh joy bilan, masalan: 2027, 2029.",
+  'norms.norms.form.rotationInvalid': "Yillarni vergul yoki bo'sh joy bilan kiriting, masalan: 2027, 2029.",
+  'norms.norms.form.geobotanicDoc': 'Geobotanik tekshiruv',
+  'norms.norms.form.geobotanicDocHint': "Me'yorni ko'rib chiqishga yuborishdan oldin talab qilinadi.",
+  'norms.norms.form.geobotanicDocCurrent': 'Joriy hujjat',
+  'norms.norms.form.docUploading': 'Hujjat yuklanmoqda…',
+  'norms.norms.form.docUploadFailed': 'Hujjatni yuklab boʻlmadi.',
+  'norms.norms.form.effectiveFrom': 'Amal qilish boshlanishi',
+  'norms.norms.form.effectiveFromRequired': 'Amal qilish boshlanish sanasini kiriting.',
+  'norms.norms.form.effectiveTo': 'Amal qilish tugashi',
+  'norms.norms.form.effectiveToBeforeFrom': 'Tugash sanasi boshlanish sanasidan oldin boʻlishi mumkin emas.',
+  'norms.norms.form.saveFailed': "Me'yorni saqlab boʻlmadi.",
+
+  // F5 oʻz servis qoidalarining kengroq rad javoblari to'plami.
+  'norms.norms.action.error.forbidden': 'Sizda bu amal uchun huquq yoʻq.',
+  'norms.norms.action.error.outsideZone': "Bu me'yorning konturi sizning javobgarlik zonangizdan tashqarida.",
+  'norms.norms.action.error.centralPublicationRequired':
+    "Me'yorlarni eʼlon qilish markaziy ofisga biriktirilgan (norms_publish_scope sozlamasi).",
+  'norms.norms.action.error.badTransition': "Amal endi mavjud emas — me'yor holati o'zgargan. Roʻyxatni yangilang.",
+  'norms.norms.action.error.periodOverlap':
+    "Shu kontur va faoliyat turi uchun shu davrda amal qiluvchi eʼlon qilingan me'yor allaqachon mavjud.",
+  'norms.norms.action.error.noPublishedContour':
+    "Konturning eʼlon qilingan versiyasi yoʻq — avval uni GISda eʼlon qiling.",
+  'norms.norms.action.error.yieldRequired':
+    "Bu yaylov uchun me'yor — eʼlon qilishdan oldin hosildorlikni (s/ga) kiriting.",
+  'norms.norms.action.error.geobotanicDocRequired':
+    "Ko'rib chiqishga yuborishdan oldin geobotanik tekshiruv hujjatini biriktiring.",
+  'norms.norms.action.error.approvalDocRequired': 'Kelishuv hujjatini biriktiring.',
+  'norms.norms.action.error.submitReview.generic': "Me'yorni ko'rib chiqishga yuborib bo'lmadi.",
+  'norms.norms.action.error.returnToDraft.generic': "Me'yorni qoralamaga qaytarib bo'lmadi.",
+  'norms.norms.action.error.approve.generic': "Me'yorni kelishib bo'lmadi.",
+  'norms.norms.action.error.returnToReview.generic': "Me'yorni ko'rib chiqishga qaytarib bo'lmadi.",
+  'norms.norms.action.error.publish.generic': "Me'yorni eʼlon qilib bo'lmadi.",
+  'norms.norms.action.error.archive.generic': "Me'yorni arxivlab bo'lmadi.",
 };

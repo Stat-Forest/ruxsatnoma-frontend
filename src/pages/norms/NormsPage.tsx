@@ -63,7 +63,7 @@ export function NormsPage() {
         <ParamsTab active={tab === 'params'} />
       </div>
       <div hidden={tab !== 'norms'}>
-        <NormsTab />
+        <NormsTab active={tab === 'norms'} />
       </div>
       <div hidden={tab !== 'tariffs'}>
         <TariffsTab active={tab === 'tariffs'} />

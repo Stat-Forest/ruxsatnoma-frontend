@@ -12,9 +12,16 @@ import { NormsPage } from './NormsPage';
 // Params is mounted (hidden or not — see `NormsPage.tsx`'s file header) for
 // the whole test, so its own `useQuery` calls (task 3) fire regardless of
 // which tab this suite is exercising. A permissive handler is enough: this
-// file tests tab-switch visibility, never Parameters' own data.
+// file tests tab-switch visibility, never Parameters' own data. Task 6 adds
+// the identical need for Norms: switching to it flips its own `active` prop
+// to `true`, firing `useNormsList`/`useActivityTypes` for real (they were
+// never called at all while the tab stayed hidden — the whole point of
+// `active`) — permissive handlers for both keep this suite about
+// visibility, never about Norms' own data.
 const server = setupServer(
   http.get('*/api/v1/rule-parameters', () => HttpResponse.json({ items: [], total: 0, page: 1, page_size: 50 })),
+  http.get('*/api/v1/norms', () => HttpResponse.json({ items: [], total: 0, page: 1, page_size: 50 })),
+  http.get('*/api/v1/refs/activity-types', () => HttpResponse.json([])),
 );
 beforeAll(() => server.listen({ onUnhandledRequest: 'error' }));
 afterEach(() => server.resetHandlers());

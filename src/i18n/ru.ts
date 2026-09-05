@@ -315,4 +315,124 @@ export const ru = {
   'norms.tariffs.archive.confirm': 'Архивировать',
   'norms.tariffs.archive.cancel': 'Отмена',
   'norms.tariffs.archive.error.generic': 'Не удалось архивировать тариф.',
+
+  // F5 — task 6's norms screen (`pages/norms/NormsTab.tsx` and
+  // `pages/norms/norm/`). Own permission family (`norms.manage`/
+  // `.approve`/`.publish`) and its own five-status lifecycle — every route
+  // here answers a bare `NormOut`, never the `{item, warnings}` envelope
+  // above.
+  'norms.norms.filter.activityType': 'Вид деятельности',
+  'norms.norms.filter.activityTypeAll': 'Все',
+  'norms.norms.filter.status': 'Статус',
+  'norms.norms.filter.statusAll': 'Все',
+  'norms.norms.filter.reset': 'Сбросить',
+  'norms.norms.filter.apply': 'Применить',
+  'norms.norms.col.contour': 'Контур',
+  'norms.norms.col.activity': 'Вид деятельности',
+  'norms.norms.col.status': 'Статус',
+  'norms.norms.col.yield': 'Урожайность, ц/га',
+  'norms.norms.col.maxSb': 'Лимит, усл. голов',
+  'norms.norms.col.effectiveFrom': 'Действует с',
+  'norms.norms.col.effectiveTo': 'Действует по',
+  'norms.norms.col.publishedAt': 'Опубликована',
+  'norms.norms.loadError': 'Не удалось загрузить нормы.',
+  'norms.norms.emptyTitle': 'Нормы не найдены',
+  'norms.norms.emptyDescription': 'Измените фильтры или проверьте позже.',
+  'norms.norms.status.draft': 'Черновик',
+  'norms.norms.status.review': 'На рассмотрении',
+  'norms.norms.status.approved': 'Согласована',
+  'norms.norms.status.published': 'Опубликована',
+  'norms.norms.status.archived': 'В архиве',
+
+  'norms.norms.actions.add': 'Добавить норму',
+  'norms.norms.actions.edit': 'Изменить',
+  'norms.norms.actions.submit-review': 'На рассмотрение',
+  'norms.norms.actions.return-to-draft': 'Вернуть в черновик',
+  'norms.norms.actions.approve': 'Согласовать',
+  'norms.norms.actions.return-to-review': 'Вернуть на рассмотрение',
+  'norms.norms.actions.publish': 'Опубликовать',
+  'norms.norms.actions.archive': 'Архивировать',
+
+  'norms.norms.transition.cancel': 'Отмена',
+  'norms.norms.transition.submit-review.title': 'Отправка на рассмотрение',
+  'norms.norms.transition.submit-review.question':
+    'Отправить эту норму на рассмотрение руководителю лесхоза? Дальнейшее редактирование будет недоступно до возврата.',
+  'norms.norms.transition.return-to-draft.title': 'Возврат в черновик',
+  'norms.norms.transition.return-to-draft.question': 'Вернуть эту норму в черновик для доработки?',
+  'norms.norms.transition.return-to-review.title': 'Возврат на рассмотрение',
+  'norms.norms.transition.return-to-review.question':
+    'Вернуть эту согласованную норму на рассмотрение вместо публикации?',
+  'norms.norms.transition.publish.title': 'Публикация нормы',
+  'norms.norms.transition.publish.question':
+    'Опубликовать эту норму? Лимит (усл. голов) будет зафиксирован по текущей площади контура и вступит в силу для новых расчётов.',
+  'norms.norms.transition.archive.title': 'Архивирование нормы',
+  'norms.norms.transition.archive.question':
+    'Архивировать эту норму? Дата окончания действия будет закрыта вчерашним днём.',
+  'norms.norms.transition.approve.title': 'Согласование нормы',
+  'norms.norms.transition.approve.question':
+    'Согласовать эту норму? Требуется документ, подтверждающий согласование руководителя лесхоза.',
+  'norms.norms.transition.approve.docLabel': 'Документ согласования',
+  'norms.norms.transition.approve.docRequired': 'Загрузите документ, чтобы согласовать норму.',
+
+  'norms.norms.form.createTitle': 'Новая норма',
+  'norms.norms.form.editTitle': 'Изменить норму',
+  'norms.norms.form.cancel': 'Отмена',
+  'norms.norms.form.save': 'Сохранить',
+  'norms.norms.form.contour': 'Контур',
+  'norms.norms.form.contourRequired': 'Выберите контур.',
+  'norms.norms.form.contourSearchPlaceholder': 'Поиск по номеру контура…',
+  'norms.norms.form.contourNoMatches': 'Контуры не найдены.',
+  'norms.norms.form.activityType': 'Вид деятельности',
+  'norms.norms.form.activityTypeRequired': 'Выберите вид деятельности.',
+  'norms.norms.form.activityTypePlaceholder': 'Выберите…',
+  'norms.norms.form.yield': 'Урожайность, ц/га',
+  'norms.norms.form.yieldHint':
+    'Только для выпаса — по ней вычисляется лимит условных голов. Для остальных видов деятельности оставьте пустым.',
+  'norms.norms.form.yieldError.invalid': 'Введите положительное число.',
+  'norms.norms.form.yieldError.negative': 'Урожайность не может быть отрицательной.',
+  'norms.norms.form.yieldError.tooManyDigits':
+    'Слишком много значащих цифр (не более 10 всего, не более 4 после запятой).',
+  'norms.norms.form.season': 'Сезонные окна',
+  'norms.norms.form.seasonAdd': 'Добавить окно',
+  'norms.norms.form.seasonHint': 'Даты в формате ММ-ДД, например 05-01 — 09-30 для выпасного сезона.',
+  'norms.norms.form.seasonEmpty': 'Сезонные ограничения не заданы.',
+  'norms.norms.form.seasonTo': '—',
+  'norms.norms.form.seasonRemove': 'Удалить',
+  'norms.norms.form.seasonInvalid': 'Проверьте формат дат сезонных окон (ММ-ДД).',
+  'norms.norms.form.rotation': 'Годы отдыха (ротация)',
+  'norms.norms.form.rotationHint': 'Список лет через запятую или пробел, например: 2027, 2029.',
+  'norms.norms.form.rotationInvalid': 'Укажите годы через запятую или пробел, например: 2027, 2029.',
+  'norms.norms.form.geobotanicDoc': 'Геоботаническое обследование',
+  'norms.norms.form.geobotanicDocHint': 'Требуется перед отправкой нормы на рассмотрение.',
+  'norms.norms.form.geobotanicDocCurrent': 'Текущий документ',
+  'norms.norms.form.docUploading': 'Загрузка документа…',
+  'norms.norms.form.docUploadFailed': 'Не удалось загрузить документ.',
+  'norms.norms.form.effectiveFrom': 'Действует с',
+  'norms.norms.form.effectiveFromRequired': 'Укажите дату начала действия.',
+  'norms.norms.form.effectiveTo': 'Действует по',
+  'norms.norms.form.effectiveToBeforeFrom': 'Дата окончания не может быть раньше даты начала.',
+  'norms.norms.form.saveFailed': 'Не удалось сохранить норму.',
+
+  // The wider set of refusals F5's own service rules raise (task-6 brief:
+  // this screen has its own rules beyond F6/F7's four) — `errorText.ts`.
+  'norms.norms.action.error.forbidden': 'У вас нет права для этого действия.',
+  'norms.norms.action.error.outsideZone': 'Контур этой нормы вне вашей зоны ответственности.',
+  'norms.norms.action.error.centralPublicationRequired':
+    'Публикация норм закреплена за центральным офисом (настройка norms_publish_scope).',
+  'norms.norms.action.error.badTransition': 'Действие недоступно — статус нормы уже изменился. Обновите список.',
+  'norms.norms.action.error.periodOverlap':
+    'Уже есть опубликованная норма, действующая в этот период для этого контура и вида деятельности.',
+  'norms.norms.action.error.noPublishedContour':
+    'У контура нет опубликованной версии — сначала опубликуйте её в ГИС.',
+  'norms.norms.action.error.yieldRequired':
+    'Это норма для выпаса — укажите урожайность (ц/га) перед публикацией.',
+  'norms.norms.action.error.geobotanicDocRequired':
+    'Прикрепите документ геоботанического обследования перед отправкой на рассмотрение.',
+  'norms.norms.action.error.approvalDocRequired': 'Прикрепите документ согласования.',
+  'norms.norms.action.error.submitReview.generic': 'Не удалось отправить норму на рассмотрение.',
+  'norms.norms.action.error.returnToDraft.generic': 'Не удалось вернуть норму в черновик.',
+  'norms.norms.action.error.approve.generic': 'Не удалось согласовать норму.',
+  'norms.norms.action.error.returnToReview.generic': 'Не удалось вернуть норму на рассмотрение.',
+  'norms.norms.action.error.publish.generic': 'Не удалось опубликовать норму.',
+  'norms.norms.action.error.archive.generic': 'Не удалось архивировать норму.',
 };
