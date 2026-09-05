@@ -31,3 +31,10 @@ test('the server verdict (sla_overdue) is preferred over recomputing from the de
   expect(slaStatus('IN_REVIEW', PAST, false)).toBe('normal');
   expect(slaStatus('IN_REVIEW', FUTURE, true)).toBe('overdue');
 });
+
+test('RETURNED is never overdue, mirroring sla.SLA_ACTIVE_STATUSES exactly', () => {
+  // `submit()` keeps the ORIGINAL deadline on a resubmission (ruling 16.1) —
+  // a deadline that looks lapsed by the wall clock must not read as overdue
+  // while the clock is not running.
+  expect(slaStatus('RETURNED', PAST)).toBe('normal');
+});
