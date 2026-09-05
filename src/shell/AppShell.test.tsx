@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { setupServer } from 'msw/node';
@@ -110,9 +110,9 @@ test('a stale CSRF token on the language switch recovers transparently, not as a
   );
 
   await screen.findByTestId('app-shell');
-  await userEvent.click(screen.getByRole('button', { name: 'RU' }));
+  await userEvent.selectOptions(screen.getByTestId('language-select'), 'ru');
 
-  expect(await screen.findByRole('button', { name: 'RU' })).toHaveAttribute('aria-pressed', 'true');
+  await waitFor(() => expect(screen.getByTestId('language-select')).toHaveValue('ru'));
   expect(putCalls).toBe(2);
 });
 
@@ -129,10 +129,40 @@ test('a language switch failure that is not session/CSRF related does not throw 
   );
 
   await screen.findByTestId('app-shell');
-  await userEvent.click(screen.getByRole('button', { name: 'RU' }));
+  await userEvent.selectOptions(screen.getByTestId('language-select'), 'ru');
   // Give the rejected promise a tick to surface as an unhandled rejection,
   // were it not caught.
   await new Promise((resolve) => setTimeout(resolve, 0));
 
-  expect(screen.getByRole('button', { name: 'UZ' })).toHaveAttribute('aria-pressed', 'true');
+  expect(screen.getByTestId('language-select')).toHaveValue('uz_latn');
+});
+
+// Decision #18: the switcher offers all five languages the backend accepts
+// (`LanguageIn`) from V1, not only the two that have a string map of their own.
+// Picking one of the other three stores it on the account — which is what makes
+// server-side text (notifications, documents) arrive in it — while the UI copy
+// falls back to Latin Uzbek through `resolveLanguage()`.
+test('the switcher offers all five backend languages, and one without a string map still stores', async () => {
+  await renderShell();
+  let stored: string | null = null;
+  server.use(
+    http.put('*/auth/me/language', async ({ request }) => {
+      stored = ((await request.json()) as { language: string }).language;
+      return HttpResponse.json({ language: stored });
+    }),
+  );
+
+  await screen.findByTestId('app-shell');
+  const select = screen.getByTestId('language-select');
+  expect(
+    Array.from(select.querySelectorAll('option')).map((option) => option.value),
+  ).toEqual(['uz_cyrl', 'uz_latn', 'ru', 'kaa', 'en']);
+
+  await userEvent.selectOptions(select, 'kaa');
+
+  await waitFor(() => expect(select).toHaveValue('kaa'));
+  expect(stored).toBe('kaa');
+  // `kaa` has no dictionary yet, so the copy stays Latin Uzbek rather than
+  // rendering raw keys — the fallback, not a missing translation.
+  expect(screen.getByRole('button', { name: 'Chiqish' })).toBeInTheDocument();
 });

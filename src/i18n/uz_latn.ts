@@ -23,6 +23,7 @@ export const uz_latn = {
   'nav.integrations': 'Integratsiyalar',
   'nav.notifications': 'Bildirishnomalar',
   'nav.profile': 'Profil',
+  'shell.language': 'Til',
   'shell.openMenu': 'Menyu',
   'shell.closeMenu': 'Yopish',
   'shell.refresh': 'Yangilash',

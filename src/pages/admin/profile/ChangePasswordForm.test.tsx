@@ -14,7 +14,7 @@ afterAll(() => server.close());
 
 function renderForm(onDone = () => {}) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
-  const i18n = { lang: 'uz_latn' as const, t: (key: string) => key, setLanguage: async () => {} };
+  const i18n = { lang: 'uz_latn' as const, backendLang: 'uz_latn' as const, t: (key: string) => key, setLanguage: async () => {} };
   const wrapper = ({ children }: { children: ReactNode }) => (
     <QueryClientProvider client={client}>
       <I18nContext.Provider value={i18n}>{children}</I18nContext.Provider>

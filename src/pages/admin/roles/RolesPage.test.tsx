@@ -84,6 +84,7 @@ function renderPage(lang: 'uz_latn' | 'ru' = 'uz_latn') {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
   const i18n = {
     lang,
+    backendLang: lang,
     t: (key: string) => (DICTIONARIES[lang] as Record<string, string>)[key] ?? key,
     setLanguage: async () => {},
   };
