@@ -30,18 +30,30 @@ import type { Feature, Geometry } from 'geojson';
 
 setWorkerUrl(workerUrl);
 
-/** OpenStreetMap raster tiles as the basemap (Oybek, 2026-09-05 — decision
- * #60.1 had left the basemap open as a hosting/licensing question, not a
- * library one). Without it the preview drew the picked contour alone on a
- * flat field: correct in shape and size, but impossible to place — a viewer
- * could not tell that a plot is in Burchmulla, next to which river, up which
- * slope. The flat fill stays underneath as the `bg` layer, so a tile that
- * fails to load leaves the project's own green rather than a black hole.
+/** Two basemaps, one shown at a time (Oybek, 2026-09-05 — decision #60.1 had
+ * left the basemap open as a hosting/licensing question, not a library one).
+ * Without any of them the preview drew the picked contour alone on a flat
+ * field: correct in shape and size, but impossible to place — a viewer could
+ * not tell that a plot is in Burchmulla, next to which river, up which slope.
+ * The scheme answers "where is it"; the imagery answers "what is actually
+ * growing there", which for a grazing or haymaking permit is the question.
+ * The flat fill stays underneath as the `bg` layer, so a tile that fails to
+ * load leaves the project's own green rather than a black hole.
  *
- * OSM's tile policy is fine for a dev server and a demo, and requires the
- * attribution below — which is why `attributionControl` is now on. Heavy or
- * production traffic belongs on our own tile server or a paid provider;
- * swapping this source is the only change that needs. */
+ * Both providers serve without a key and both REQUIRE the credit the
+ * attribution control now shows. Neither is a production answer: OSM's tile
+ * policy covers a dev server and a demo, not public traffic, and Esri's
+ * imagery is served for use inside its own platform. Before real users, this
+ * moves to our own tile server or a licensed provider — swapping the `tiles`
+ * arrays is the whole change, which is why both are declared here and
+ * nowhere else. */
+const BASEMAPS = [
+  { id: 'osm', label: 'Xarita' },
+  { id: 'satellite', label: 'Sputnik' },
+] as const;
+
+type BasemapId = (typeof BASEMAPS)[number]['id'];
+
 const BASEMAP_STYLE: StyleSpecification = {
   version: 8,
   sources: {
@@ -52,10 +64,28 @@ const BASEMAP_STYLE: StyleSpecification = {
       maxzoom: 19,
       attribution: '© OpenStreetMap',
     },
+    satellite: {
+      type: 'raster',
+      // {y}/{x}, not {x}/{y} — ArcGIS orders the path row-then-column, and
+      // getting it backwards yields tiles of the wrong place rather than an
+      // error. Imagery over Burchmulla runs to z18; `maxzoom` caps requests
+      // there so a deeper zoom upscales the last real tile instead of asking
+      // for one that does not exist.
+      tiles: [
+        'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+      ],
+      tileSize: 256,
+      maxzoom: 18,
+      attribution: '© Esri, Maxar, Earthstar Geographics',
+    },
   },
   layers: [
     { id: 'bg', type: 'background', paint: { 'background-color': '#EAF3EC' } },
     { id: 'osm', type: 'raster', source: 'osm' },
+    // Declared hidden rather than added on demand: MapLibre requests no tiles
+    // for an invisible layer, so the unused provider costs nothing until it is
+    // switched to, and switching is then a visibility flip with no reload.
+    { id: 'satellite', type: 'raster', source: 'satellite', layout: { visibility: 'none' } },
   ],
 };
 
@@ -94,6 +124,7 @@ export function ContourMapPreview({ geometry }: { geometry: Record<string, unkno
   // that already fired and never fires again — and the contour would never
   // be drawn at all.
   const [mapReady, setMapReady] = useState(false);
+  const [basemap, setBasemap] = useState<BasemapId>('osm');
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -112,6 +143,14 @@ export function ContourMapPreview({ geometry }: { geometry: Record<string, unkno
       setMapReady(false);
     };
   }, []);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !mapReady) return;
+    for (const { id } of BASEMAPS) {
+      map.setLayoutProperty(id, 'visibility', id === basemap ? 'visible' : 'none');
+    }
+  }, [basemap, mapReady]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -152,5 +191,26 @@ export function ContourMapPreview({ geometry }: { geometry: Record<string, unkno
     }
   }, [geometry, mapReady]);
 
-  return <div ref={containerRef} className="w-full h-64 rounded-xl border border-[#E4E7EA] overflow-hidden" />;
+  return (
+    <div className="relative w-full h-64 rounded-xl border border-[#E4E7EA] overflow-hidden">
+      <div ref={containerRef} className="absolute inset-0" />
+      {/* Top-LEFT: MapLibre's own attribution control sits bottom-right, and
+          the credit is the one thing on this map that may not be covered. */}
+      <div className="absolute top-2 left-2 z-10 flex rounded-lg overflow-hidden border border-[#E4E7EA] shadow-xs bg-white">
+        {BASEMAPS.map(({ id, label }) => (
+          <button
+            key={id}
+            type="button"
+            aria-pressed={basemap === id}
+            onClick={() => setBasemap(id)}
+            className={`px-3 py-1 text-[11px] font-semibold cursor-pointer transition-colors ${
+              basemap === id ? 'bg-[#2E7D4F] text-white' : 'text-[#5A646D] hover:bg-[#F0F7F1]'
+            }`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
 }
