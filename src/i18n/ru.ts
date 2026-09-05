@@ -406,4 +406,334 @@ export const ru = {
   'accountant.refunds.approveFailed': 'Не удалось выполнить.',
   'accountant.refunds.approvedReturned': 'Средства возвращены.',
   'accountant.refunds.approvedRejected': 'Заявка отклонена.',
+  // F5-F7 — norms/tariffs/rule-parameters (`pages/norms/`). Namespaced under
+  // `norms.` so tasks 3-6's own `norms.params.*` / `norms.tariffs.*` /
+  // `norms.norms.*` blocks can land beside these without colliding.
+  'norms.title': 'Нормативы',
+  'norms.tab.params': 'Параметры правил',
+  'norms.tab.norms': 'Нормы',
+  'norms.tab.tariffs': 'Тарифы',
+
+  // F7 — rule parameters, task 3's own screen (`pages/norms/ParamsTab.tsx`
+  // and `pages/norms/params/`).
+  'norms.params.filter.code': 'Код параметра',
+  'norms.params.filter.status': 'Статус',
+  'norms.params.filter.statusAll': 'Все',
+  'norms.params.filter.reset': 'Сбросить',
+  'norms.params.filter.apply': 'Применить',
+  'norms.params.col.code': 'Код',
+  'norms.params.col.value': 'Значение',
+  'norms.params.col.unit': 'Единица',
+  'norms.params.col.status': 'Статус',
+  'norms.params.col.effectiveFrom': 'Действует с',
+  'norms.params.col.effectiveTo': 'Действует по',
+  'norms.params.col.basis': 'Основание',
+  'norms.params.col.createdBy': 'Кем создан',
+  'norms.params.col.createdAt': 'Создан',
+  'norms.params.seededByMigration': 'Заполнено миграцией',
+  'norms.params.loadError': 'Не удалось загрузить параметры.',
+  'norms.params.emptyTitle': 'Параметры не найдены',
+  'norms.params.emptyDescription': 'Измените фильтры или проверьте позже.',
+  'norms.params.status.draft': 'Черновик',
+  'norms.params.status.published': 'Опубликовано',
+  'norms.params.status.archived': 'В архиве',
+  // The banner (ruling R2): fires on `code` starting with `coef_sb:` AND
+  // `status === 'draft'` — never on `basis`. See `ParamsTab.tsx`.
+  'norms.params.banner.title': 'Коэффициенты поголовья не опубликованы',
+  'norms.params.banner.countSuffix': 'коэффициент(ов) поголовья всё ещё в статусе «черновик».',
+  'norms.params.banner.consequence':
+    'Пока хотя бы один из них не опубликован, плата за выпас не может быть рассчитана ни для одной заявки в стране.',
+  'norms.params.banner.source':
+    'Реальные значения должны прийти из приложения 5 к ВМҚ 689; Агентство их пока не предоставило.',
+
+  // F7 — task 4's write screen (create/edit/publish/archive).
+  'norms.params.actions.add': 'Добавить параметр',
+  'norms.params.actions.edit': 'Изменить',
+  'norms.params.actions.publish': 'Опубликовать',
+  'norms.params.actions.archive': 'Архивировать',
+
+  'norms.params.form.createTitle': 'Новый параметр правила',
+  'norms.params.form.editTitle': 'Изменить параметр правила',
+  'norms.params.form.code': 'Код',
+  'norms.params.form.codeHint':
+    'Строчные латинские буквы, цифры и «_», необязательный «:раздел» через двоеточие.',
+  'norms.params.form.codeInvalid': 'Код не соответствует формату «a-z0-9_» (не более 100 символов).',
+  'norms.params.form.value': 'Значение (JSON)',
+  'norms.params.form.valueHint':
+    'Число вводится как есть — 10, строка — в кавычках «0.8», логическое значение — true/false.',
+  'norms.params.form.valueInvalidNumber': 'Введите число.',
+  'norms.params.form.valueInvalidJson': 'Не удалось разобрать значение как JSON',
+  'norms.params.form.valueRequired': 'Укажите значение — поле обязательно.',
+  'norms.params.form.unit': 'Единица',
+  'norms.params.form.effectiveFrom': 'Действует с',
+  'norms.params.form.effectiveFromRequired': 'Укажите дату начала действия.',
+  'norms.params.form.effectiveTo': 'Действует по',
+  'norms.params.form.basis': 'Основание',
+  'norms.params.form.basisHint': 'До 500 символов.',
+  'norms.params.form.basisRequired': 'Укажите основание (до 500 символов).',
+  'norms.params.form.save': 'Сохранить',
+  'norms.params.form.cancel': 'Отмена',
+  'norms.params.form.saveFailed': 'Не удалось сохранить параметр.',
+
+  // Rulings R3/R4 — the publish confirmation. Copy for the SHARED
+  // `PublishConfirmDialog` (`pages/norms/components/`); task 5's tariffs
+  // dialog uses the same component with its own `norms.tariffs.*` copy.
+  'norms.params.publish.title': 'Публикация параметра',
+  'norms.params.publish.question':
+    'Опубликовать этот параметр? После публикации значение вступает в силу для новых расчётов.',
+  'norms.params.publish.effectiveFromLabel': 'Действует с',
+  'norms.params.publish.retroactiveWarning':
+    'Дата вступления в силу — в прошлом. Значение будет считаться действующим задним числом.',
+  'norms.params.publish.selfWarning': 'Вы и изменили это значение, и публикуете его.',
+  'norms.params.publish.confirm': 'Опубликовать',
+  'norms.params.publish.cancel': 'Отмена',
+  'norms.params.publish.resultTitle': 'Опубликовано. Предупреждения сервера:',
+  'norms.params.publish.resultEmpty': 'Сервер не вернул дополнительных предупреждений.',
+  'norms.params.publish.close': 'Закрыть',
+  // The four distinct refusals (task-4 brief) — each says what the operator
+  // can actually do next, not just that the call failed.
+  'norms.params.publish.error.notDraft': 'Этот параметр уже не черновик — публикация недоступна.',
+  'norms.params.publish.error.notMakerChecker':
+    'Вы сами создали этот черновик — опубликовать его должен коллега, у которого есть право публикации.',
+  'norms.params.publish.error.forbidden': 'У вас нет права публиковать параметры (norms.tariffs.publish).',
+  'norms.params.publish.error.periodOverlap':
+    'Уже есть опубликованная запись, действующая в этот период — сначала закройте или сдвиньте её период.',
+  'norms.params.publish.error.generic': 'Не удалось опубликовать параметр.',
+
+  'norms.params.archive.title': 'Архивирование параметра',
+  'norms.params.archive.question':
+    'Архивировать этот параметр? Дата окончания действия будет закрыта вчерашним днём.',
+  'norms.params.archive.confirm': 'Архивировать',
+  'norms.params.archive.cancel': 'Отмена',
+  'norms.params.archive.error.generic': 'Не удалось архивировать параметр.',
+
+  // F6 — task 5's tariffs screen (`pages/norms/TariffsTab.tsx` and
+  // `pages/norms/tariffs/`). Same `_Versioned` lifecycle as rule parameters
+  // above, so this block mirrors `norms.params.*`'s own shape wherever the
+  // two entities agree, and only differs where `TariffIn` itself does.
+  'norms.tariffs.filter.activityType': 'Вид деятельности',
+  'norms.tariffs.filter.activityTypeAll': 'Все',
+  'norms.tariffs.filter.status': 'Статус',
+  'norms.tariffs.filter.statusAll': 'Все',
+  'norms.tariffs.filter.onDate': 'На дату',
+  'norms.tariffs.filter.onDateHint':
+    'По умолчанию — сегодня. Список показывает только записи, действующие на эту дату; черновик с датой начала в будущем виден только на свою дату.',
+  'norms.tariffs.filter.reset': 'Сбросить',
+  'norms.tariffs.filter.apply': 'Применить',
+  'norms.tariffs.col.activity': 'Вид деятельности',
+  'norms.tariffs.col.livestockGroup': 'Группа скота',
+  'norms.tariffs.col.coefficient': 'Коэффициент',
+  'norms.tariffs.col.quantityUnit': 'Единица',
+  'norms.tariffs.col.benefitModifiers': 'Льготы',
+  'norms.tariffs.col.status': 'Статус',
+  'norms.tariffs.col.effectiveFrom': 'Действует с',
+  'norms.tariffs.col.effectiveTo': 'Действует по',
+  'norms.tariffs.col.basis': 'Основание',
+  'norms.tariffs.loadError': 'Не удалось загрузить тарифы.',
+  'norms.tariffs.emptyTitle': 'Тарифы не найдены',
+  'norms.tariffs.emptyDescription': 'Измените фильтры или проверьте позже.',
+  'norms.tariffs.status.draft': 'Черновик',
+  'norms.tariffs.status.published': 'Опубликовано',
+  'norms.tariffs.status.archived': 'В архиве',
+  'norms.tariffs.livestockGroup.large_adult': 'Крупный скот, взрослый',
+  'norms.tariffs.livestockGroup.large_young': 'Крупный скот, молодняк',
+  'norms.tariffs.livestockGroup.small_adult': 'Мелкий скот, взрослый',
+  'norms.tariffs.livestockGroup.small_young': 'Мелкий скот, молодняк',
+  'norms.tariffs.quantityUnit.head': 'голова',
+  'norms.tariffs.quantityUnit.ton': 'тонна',
+  'norms.tariffs.quantityUnit.hive': 'улей',
+  'norms.tariffs.quantityUnit.ha': 'га',
+  'norms.tariffs.quantityUnit.person_day': 'человеко-день',
+  'norms.tariffs.quantityUnit.m3': 'м³',
+  'norms.tariffs.quantityUnit.unit': 'штука',
+
+  'norms.tariffs.actions.add': 'Добавить тариф',
+  'norms.tariffs.actions.edit': 'Изменить',
+  'norms.tariffs.actions.publish': 'Опубликовать',
+  'norms.tariffs.actions.archive': 'Архивировать',
+
+  'norms.tariffs.form.createTitle': 'Новый тариф',
+  'norms.tariffs.form.editTitle': 'Изменить тариф',
+  'norms.tariffs.form.activityType': 'Вид деятельности',
+  'norms.tariffs.form.activityTypeRequired': 'Выберите вид деятельности.',
+  'norms.tariffs.form.activityTypePlaceholder': 'Выберите…',
+  'norms.tariffs.form.livestockGroup': 'Группа скота',
+  'norms.tariffs.form.livestockGroupHint': 'Только для выпаса скота; для остальных видов деятельности оставьте пустым.',
+  'norms.tariffs.form.livestockGroupNone': 'Не применимо',
+  'norms.tariffs.form.coefficient': 'Коэффициент',
+  'norms.tariffs.form.coefficientHint': 'Число ≥ 0, не более 6 знаков после запятой.',
+  'norms.tariffs.form.coefficientError.required': 'Укажите коэффициент.',
+  'norms.tariffs.form.coefficientError.invalid': 'Введите положительное число, например 1.5.',
+  'norms.tariffs.form.coefficientError.negative': 'Коэффициент не может быть отрицательным.',
+  'norms.tariffs.form.coefficientError.tooManyDigits':
+    'Слишком много значащих цифр (не более 12 всего, не более 6 после запятой).',
+  'norms.tariffs.form.quantityUnit': 'Единица измерения',
+  'norms.tariffs.form.benefitModifiers': 'Льготные модификаторы',
+  'norms.tariffs.form.benefitAdd': 'Добавить льготу',
+  'norms.tariffs.form.benefitEmpty': 'Льготы не заданы — тариф применяется без скидок.',
+  'norms.tariffs.form.benefitCodePlaceholder': 'Выберите льготу…',
+  'norms.tariffs.form.benefitModifierError.required': 'Укажите коэффициент льготы.',
+  'norms.tariffs.form.benefitModifierError.invalid': 'Введите число от 0 до 1.',
+  'norms.tariffs.form.benefitModifierError.outOfRange': 'Значение должно быть от 0 до 1.',
+  'norms.tariffs.form.effectiveFrom': 'Действует с',
+  'norms.tariffs.form.effectiveFromRequired': 'Укажите дату начала действия.',
+  'norms.tariffs.form.effectiveTo': 'Действует по',
+  'norms.tariffs.form.basis': 'Основание',
+  'norms.tariffs.form.basisHint': 'До 500 символов.',
+  'norms.tariffs.form.basisRequired': 'Укажите основание (до 500 символов).',
+  'norms.tariffs.form.save': 'Сохранить',
+  'norms.tariffs.form.cancel': 'Отмена',
+  'norms.tariffs.form.saveFailed': 'Не удалось сохранить тариф.',
+  'norms.tariffs.form.unknownBenefitCategory': 'Неизвестный код льготы (справочник мог измениться)',
+
+  // Rulings R3/R4 — the SAME shared `PublishConfirmDialog` as
+  // `norms.params.publish.*`, this screen's own copy under its own
+  // namespace (task 4's brief: every string is a prop, no dialog change
+  // needed for a second caller).
+  'norms.tariffs.publish.title': 'Публикация тарифа',
+  'norms.tariffs.publish.question':
+    'Опубликовать этот тариф? После публикации коэффициент вступает в силу для новых расчётов.',
+  'norms.tariffs.publish.effectiveFromLabel': 'Действует с',
+  'norms.tariffs.publish.retroactiveWarning':
+    'Дата вступления в силу — в прошлом. Тариф будет считаться действующим задним числом.',
+  'norms.tariffs.publish.selfWarning': 'Вы и изменили этот тариф, и публикуете его.',
+  'norms.tariffs.publish.confirm': 'Опубликовать',
+  'norms.tariffs.publish.cancel': 'Отмена',
+  'norms.tariffs.publish.resultTitle': 'Опубликовано. Предупреждения сервера:',
+  'norms.tariffs.publish.resultEmpty': 'Сервер не вернул дополнительных предупреждений.',
+  'norms.tariffs.publish.close': 'Закрыть',
+  'norms.tariffs.publish.error.notDraft': 'Этот тариф уже не черновик — публикация недоступна.',
+  'norms.tariffs.publish.error.notMakerChecker':
+    'Вы сами создали этот черновик — опубликовать его должен коллега, у которого есть право публикации.',
+  'norms.tariffs.publish.error.forbidden': 'У вас нет права публиковать тарифы (norms.tariffs.publish).',
+  'norms.tariffs.publish.error.periodOverlap':
+    'Уже есть опубликованная запись, действующая в этот период — сначала закройте или сдвиньте её период.',
+  'norms.tariffs.publish.error.generic': 'Не удалось опубликовать тариф.',
+
+  'norms.tariffs.archive.title': 'Архивирование тарифа',
+  'norms.tariffs.archive.question':
+    'Архивировать этот тариф? Дата окончания действия будет закрыта вчерашним днём.',
+  'norms.tariffs.archive.confirm': 'Архивировать',
+  'norms.tariffs.archive.cancel': 'Отмена',
+  'norms.tariffs.archive.error.generic': 'Не удалось архивировать тариф.',
+
+  // F5 — task 6's norms screen (`pages/norms/NormsTab.tsx` and
+  // `pages/norms/norm/`). Own permission family (`norms.manage`/
+  // `.approve`/`.publish`) and its own five-status lifecycle — every route
+  // here answers a bare `NormOut`, never the `{item, warnings}` envelope
+  // above.
+  'norms.norms.filter.activityType': 'Вид деятельности',
+  'norms.norms.filter.activityTypeAll': 'Все',
+  'norms.norms.filter.status': 'Статус',
+  'norms.norms.filter.statusAll': 'Все',
+  'norms.norms.filter.reset': 'Сбросить',
+  'norms.norms.filter.apply': 'Применить',
+  'norms.norms.col.contour': 'Контур',
+  'norms.norms.col.activity': 'Вид деятельности',
+  'norms.norms.col.status': 'Статус',
+  'norms.norms.col.yield': 'Урожайность, ц/га',
+  'norms.norms.col.maxSb': 'Лимит, усл. голов',
+  'norms.norms.col.effectiveFrom': 'Действует с',
+  'norms.norms.col.effectiveTo': 'Действует по',
+  'norms.norms.col.publishedAt': 'Опубликована',
+  'norms.norms.loadError': 'Не удалось загрузить нормы.',
+  'norms.norms.emptyTitle': 'Нормы не найдены',
+  'norms.norms.emptyDescription': 'Измените фильтры или проверьте позже.',
+  'norms.norms.status.draft': 'Черновик',
+  'norms.norms.status.review': 'На рассмотрении',
+  'norms.norms.status.approved': 'Согласована',
+  'norms.norms.status.published': 'Опубликована',
+  'norms.norms.status.archived': 'В архиве',
+
+  'norms.norms.actions.add': 'Добавить норму',
+  'norms.norms.actions.edit': 'Изменить',
+  'norms.norms.actions.submit-review': 'На рассмотрение',
+  'norms.norms.actions.return-to-draft': 'Вернуть в черновик',
+  'norms.norms.actions.approve': 'Согласовать',
+  'norms.norms.actions.return-to-review': 'Вернуть на рассмотрение',
+  'norms.norms.actions.publish': 'Опубликовать',
+  'norms.norms.actions.archive': 'Архивировать',
+
+  'norms.norms.transition.cancel': 'Отмена',
+  'norms.norms.transition.submit-review.title': 'Отправка на рассмотрение',
+  'norms.norms.transition.submit-review.question':
+    'Отправить эту норму на рассмотрение руководителю лесхоза? Дальнейшее редактирование будет недоступно до возврата.',
+  'norms.norms.transition.return-to-draft.title': 'Возврат в черновик',
+  'norms.norms.transition.return-to-draft.question': 'Вернуть эту норму в черновик для доработки?',
+  'norms.norms.transition.return-to-review.title': 'Возврат на рассмотрение',
+  'norms.norms.transition.return-to-review.question':
+    'Вернуть эту согласованную норму на рассмотрение вместо публикации?',
+  'norms.norms.transition.publish.title': 'Публикация нормы',
+  'norms.norms.transition.publish.question':
+    'Опубликовать эту норму? Лимит (усл. голов) будет зафиксирован по текущей площади контура и вступит в силу для новых расчётов.',
+  'norms.norms.transition.archive.title': 'Архивирование нормы',
+  'norms.norms.transition.archive.question':
+    'Архивировать эту норму? Дата окончания действия будет закрыта вчерашним днём.',
+  'norms.norms.transition.approve.title': 'Согласование нормы',
+  'norms.norms.transition.approve.question':
+    'Согласовать эту норму? Требуется документ, подтверждающий согласование руководителя лесхоза.',
+  'norms.norms.transition.approve.docLabel': 'Документ согласования',
+  'norms.norms.transition.approve.docRequired': 'Загрузите документ, чтобы согласовать норму.',
+
+  'norms.norms.form.createTitle': 'Новая норма',
+  'norms.norms.form.editTitle': 'Изменить норму',
+  'norms.norms.form.cancel': 'Отмена',
+  'norms.norms.form.save': 'Сохранить',
+  'norms.norms.form.contour': 'Контур',
+  'norms.norms.form.contourRequired': 'Выберите контур.',
+  'norms.norms.form.contourSearchPlaceholder': 'Поиск по номеру контура…',
+  'norms.norms.form.contourNoMatches': 'Контуры не найдены.',
+  'norms.norms.form.activityType': 'Вид деятельности',
+  'norms.norms.form.activityTypeRequired': 'Выберите вид деятельности.',
+  'norms.norms.form.activityTypePlaceholder': 'Выберите…',
+  'norms.norms.form.yield': 'Урожайность, ц/га',
+  'norms.norms.form.yieldHint':
+    'Только для выпаса — по ней вычисляется лимит условных голов. Для остальных видов деятельности оставьте пустым.',
+  'norms.norms.form.yieldError.invalid': 'Введите положительное число.',
+  'norms.norms.form.yieldError.negative': 'Урожайность не может быть отрицательной.',
+  'norms.norms.form.yieldError.tooManyDigits':
+    'Слишком много значащих цифр (не более 10 всего, не более 4 после запятой).',
+  'norms.norms.form.season': 'Сезонные окна',
+  'norms.norms.form.seasonAdd': 'Добавить окно',
+  'norms.norms.form.seasonHint': 'Даты в формате ММ-ДД, например 05-01 — 09-30 для выпасного сезона.',
+  'norms.norms.form.seasonEmpty': 'Сезонные ограничения не заданы.',
+  'norms.norms.form.seasonTo': '—',
+  'norms.norms.form.seasonRemove': 'Удалить',
+  'norms.norms.form.seasonInvalid': 'Проверьте формат дат сезонных окон (ММ-ДД).',
+  'norms.norms.form.rotation': 'Годы отдыха (ротация)',
+  'norms.norms.form.rotationHint': 'Список лет через запятую или пробел, например: 2027, 2029.',
+  'norms.norms.form.rotationInvalid': 'Укажите годы через запятую или пробел, например: 2027, 2029.',
+  'norms.norms.form.geobotanicDoc': 'Геоботаническое обследование',
+  'norms.norms.form.geobotanicDocHint': 'Требуется перед отправкой нормы на рассмотрение.',
+  'norms.norms.form.geobotanicDocCurrent': 'Текущий документ',
+  'norms.norms.form.docUploading': 'Загрузка документа…',
+  'norms.norms.form.docUploadFailed': 'Не удалось загрузить документ.',
+  'norms.norms.form.effectiveFrom': 'Действует с',
+  'norms.norms.form.effectiveFromRequired': 'Укажите дату начала действия.',
+  'norms.norms.form.effectiveTo': 'Действует по',
+  'norms.norms.form.effectiveToBeforeFrom': 'Дата окончания не может быть раньше даты начала.',
+  'norms.norms.form.saveFailed': 'Не удалось сохранить норму.',
+
+  // The wider set of refusals F5's own service rules raise (task-6 brief:
+  // this screen has its own rules beyond F6/F7's four) — `errorText.ts`.
+  'norms.norms.action.error.forbidden': 'У вас нет права для этого действия.',
+  'norms.norms.action.error.outsideZone': 'Контур этой нормы вне вашей зоны ответственности.',
+  'norms.norms.action.error.centralPublicationRequired':
+    'Публикация норм закреплена за центральным офисом (настройка norms_publish_scope).',
+  'norms.norms.action.error.badTransition': 'Действие недоступно — статус нормы уже изменился. Обновите список.',
+  'norms.norms.action.error.periodOverlap':
+    'Уже есть опубликованная норма, действующая в этот период для этого контура и вида деятельности.',
+  'norms.norms.action.error.noPublishedContour':
+    'У контура нет опубликованной версии — сначала опубликуйте её в ГИС.',
+  'norms.norms.action.error.yieldRequired':
+    'Это норма для выпаса — укажите урожайность (ц/га) перед публикацией.',
+  'norms.norms.action.error.geobotanicDocRequired':
+    'Прикрепите документ геоботанического обследования перед отправкой на рассмотрение.',
+  'norms.norms.action.error.approvalDocRequired': 'Прикрепите документ согласования.',
+  'norms.norms.action.error.submitReview.generic': 'Не удалось отправить норму на рассмотрение.',
+  'norms.norms.action.error.returnToDraft.generic': 'Не удалось вернуть норму в черновик.',
+  'norms.norms.action.error.approve.generic': 'Не удалось согласовать норму.',
+  'norms.norms.action.error.returnToReview.generic': 'Не удалось вернуть норму на рассмотрение.',
+  'norms.norms.action.error.publish.generic': 'Не удалось опубликовать норму.',
+  'norms.norms.action.error.archive.generic': 'Не удалось архивировать норму.',
 };

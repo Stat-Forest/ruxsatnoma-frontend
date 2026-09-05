@@ -416,4 +416,332 @@ export const uz_latn = {
   'accountant.refunds.approveFailed': "Amalga oshmadi.",
   'accountant.refunds.approvedReturned': "Mablagʻ qaytarildi.",
   'accountant.refunds.approvedRejected': "Ariza rad etildi.",
+  // F5-F7 — norms/tariffs/rule-parameters (`pages/norms/`). Namespaced under
+  // `norms.` so tasks 3-6's own `norms.params.*` / `norms.tariffs.*` /
+  // `norms.norms.*` blocks can land beside these without colliding.
+  'norms.title': "Me'yorlar",
+  'norms.tab.params': 'Qoida parametrlari',
+  'norms.tab.norms': "Me'yorlar",
+  'norms.tab.tariffs': 'Tariflar',
+
+  // F7 — rule parameters, task 3's own screen (`pages/norms/ParamsTab.tsx`
+  // and `pages/norms/params/`).
+  'norms.params.filter.code': 'Parametr kodi',
+  'norms.params.filter.status': 'Holati',
+  'norms.params.filter.statusAll': 'Barchasi',
+  'norms.params.filter.reset': 'Tiklash',
+  'norms.params.filter.apply': "Qo'llash",
+  'norms.params.col.code': 'Kod',
+  'norms.params.col.value': 'Qiymat',
+  'norms.params.col.unit': "O'lchov birligi",
+  'norms.params.col.status': 'Holati',
+  'norms.params.col.effectiveFrom': 'Amal qilish boshlanishi',
+  'norms.params.col.effectiveTo': 'Amal qilish tugashi',
+  'norms.params.col.basis': 'Asos',
+  'norms.params.col.createdBy': 'Kim yaratgan',
+  'norms.params.col.createdAt': 'Yaratilgan sana',
+  'norms.params.seededByMigration': 'Migratsiya orqali toʻldirilgan',
+  'norms.params.loadError': 'Parametrlar yuklanmadi.',
+  'norms.params.emptyTitle': 'Parametrlar topilmadi',
+  'norms.params.emptyDescription': 'Filtrlarni oʻzgartiring yoki keyinroq tekshiring.',
+  'norms.params.status.draft': 'Qoralama',
+  'norms.params.status.published': 'Eʼlon qilingan',
+  'norms.params.status.archived': 'Arxivlangan',
+  // Banner (ruling R2): fires on `code` starting with `coef_sb:` AND
+  // `status === 'draft'` — never on `basis`. See `ParamsTab.tsx`.
+  'norms.params.banner.title': 'Bosh chorva koeffitsientlari eʼlon qilinmagan',
+  'norms.params.banner.countSuffix': 'ta bosh chorva koeffitsienti hali ham «qoralama» holatida.',
+  'norms.params.banner.consequence':
+    'Ulardan kamida bittasi eʼlon qilinmaguncha, mamlakat boʻyicha birorta ariza uchun ham yaylov toʻlovini hisoblab boʻlmaydi.',
+  'norms.params.banner.source':
+    'Haqiqiy qiymatlar VMQ 689-son qarorining 5-ilovasidan kelishi kerak; Agentlik ularni hali taqdim etmagan.',
+
+  // F7 — task 4's write screen (create/edit/publish/archive).
+  'norms.params.actions.add': 'Parametr qoʻshish',
+  'norms.params.actions.edit': 'Oʻzgartirish',
+  'norms.params.actions.publish': 'Eʼlon qilish',
+  'norms.params.actions.archive': 'Arxivlash',
+
+  'norms.params.form.createTitle': 'Yangi qoida parametri',
+  'norms.params.form.editTitle': 'Qoida parametrini oʻzgartirish',
+  'norms.params.form.code': 'Kod',
+  'norms.params.form.codeHint':
+    "Kichik lotin harflari, raqamlar va «_», ixtiyoriy «:boʻlim» ikki nuqta bilan.",
+  'norms.params.form.codeInvalid': 'Kod «a-z0-9_» formatiga mos emas (koʻpi bilan 100 belgi).',
+  'norms.params.form.value': 'Qiymat (JSON)',
+  'norms.params.form.valueHint':
+    "Son boricha kiritiladi — 10, satr — qoʻshtirnoqda «0.8», mantiqiy qiymat — true/false.",
+  'norms.params.form.valueInvalidNumber': 'Sonni kiriting.',
+  'norms.params.form.valueInvalidJson': 'Qiymatni JSON sifatida oʻqib boʻlmadi',
+  'norms.params.form.valueRequired': 'Qiymatni kiriting — maydon majburiy.',
+  'norms.params.form.unit': "O'lchov birligi",
+  'norms.params.form.effectiveFrom': 'Amal qilish boshlanishi',
+  'norms.params.form.effectiveFromRequired': 'Amal qilish boshlanish sanasini kiriting.',
+  'norms.params.form.effectiveTo': 'Amal qilish tugashi',
+  'norms.params.form.basis': 'Asos',
+  'norms.params.form.basisHint': "Koʻpi bilan 500 belgi.",
+  'norms.params.form.basisRequired': 'Asosni kiriting (koʻpi bilan 500 belgi).',
+  'norms.params.form.save': 'Saqlash',
+  'norms.params.form.cancel': 'Bekor qilish',
+  'norms.params.form.saveFailed': 'Parametrni saqlab boʻlmadi.',
+
+  // R3/R4 qarorlari — eʼlon qilishni tasdiqlash. UMUMIY
+  // `PublishConfirmDialog` (`pages/norms/components/`) uchun matn; 5-topshiriq
+  // (tariflar) xuddi shu komponentni oʻz `norms.tariffs.*` matni bilan
+  // qayta ishlatadi.
+  'norms.params.publish.title': 'Parametrni eʼlon qilish',
+  'norms.params.publish.question':
+    "Bu parametrni eʼlon qilasizmi? Eʼlon qilingandan soʻng qiymat yangi hisob-kitoblar uchun kuchga kiradi.",
+  'norms.params.publish.effectiveFromLabel': 'Amal qilish boshlanishi',
+  'norms.params.publish.retroactiveWarning':
+    "Amal qilish boshlanish sanasi — oʻtmishda. Qiymat orqaga qaytib kuchga kirgan hisoblanadi.",
+  'norms.params.publish.selfWarning': 'Siz bu qiymatni oʻzgartirdingiz va endi oʻzingiz eʼlon qilyapsiz.',
+  'norms.params.publish.confirm': 'Eʼlon qilish',
+  'norms.params.publish.cancel': 'Bekor qilish',
+  'norms.params.publish.resultTitle': "Eʼlon qilindi. Server ogohlantirishlari:",
+  'norms.params.publish.resultEmpty': 'Server qoʻshimcha ogohlantirish qaytarmadi.',
+  'norms.params.publish.close': 'Yopish',
+  // Toʻrtta aniq rad javobi (4-topshiriq brifi) — har biri operator
+  // NIMA QILISHI kerakligini aytadi, shunchaki xatolik emas.
+  'norms.params.publish.error.notDraft': 'Bu parametr endi qoralama emas — eʼlon qilib boʻlmaydi.',
+  'norms.params.publish.error.notMakerChecker':
+    "Bu qoralamani siz yaratgansiz — uni eʼlon qilish huquqiga ega hamkasbingiz eʼlon qilishi kerak.",
+  'norms.params.publish.error.forbidden': 'Sizda parametrlarni eʼlon qilish huquqi yoʻq (norms.tariffs.publish).',
+  'norms.params.publish.error.periodOverlap':
+    "Shu davrni qamrab oluvchi eʼlon qilingan yozuv allaqachon mavjud — avval uning davrini yoping yoki suring.",
+  'norms.params.publish.error.generic': 'Parametrni eʼlon qilib boʻlmadi.',
+
+  'norms.params.archive.title': 'Parametrni arxivlash',
+  'norms.params.archive.question':
+    "Bu parametrni arxivlaysizmi? Amal qilish tugash sanasi kechagi kun bilan yopiladi.",
+  'norms.params.archive.confirm': 'Arxivlash',
+  'norms.params.archive.cancel': 'Bekor qilish',
+  'norms.params.archive.error.generic': 'Parametrni arxivlab boʻlmadi.',
+
+  // F6 — 5-topshiriq tariflar ekrani (`pages/norms/TariffsTab.tsx` va
+  // `pages/norms/tariffs/`). Yuqoridagi qoida parametrlari bilan bir xil
+  // `_Versioned` hayot davri, shuning uchun bu blok ikkala mavjudot bir xil
+  // boʻlgan joyda `norms.params.*` shaklini takrorlaydi.
+  'norms.tariffs.filter.activityType': 'Faoliyat turi',
+  'norms.tariffs.filter.activityTypeAll': 'Barchasi',
+  'norms.tariffs.filter.status': 'Holati',
+  'norms.tariffs.filter.statusAll': 'Barchasi',
+  'norms.tariffs.filter.onDate': 'Sana boʻyicha',
+  'norms.tariffs.filter.onDateHint':
+    "Standart — bugun. Roʻyxatda faqat shu sanada amal qiluvchi yozuvlar koʻrinadi; boshlanish sanasi kelajakda boʻlgan qoralama faqat oʻz sanasida koʻrinadi.",
+  'norms.tariffs.filter.reset': 'Tiklash',
+  'norms.tariffs.filter.apply': "Qo'llash",
+  'norms.tariffs.col.activity': 'Faoliyat turi',
+  'norms.tariffs.col.livestockGroup': 'Chorva guruhi',
+  'norms.tariffs.col.coefficient': 'Koeffitsient',
+  'norms.tariffs.col.quantityUnit': "O'lchov birligi",
+  'norms.tariffs.col.benefitModifiers': 'Imtiyozlar',
+  'norms.tariffs.col.status': 'Holati',
+  'norms.tariffs.col.effectiveFrom': 'Amal qilish boshlanishi',
+  'norms.tariffs.col.effectiveTo': 'Amal qilish tugashi',
+  'norms.tariffs.col.basis': 'Asos',
+  'norms.tariffs.loadError': 'Tariflar yuklanmadi.',
+  'norms.tariffs.emptyTitle': 'Tariflar topilmadi',
+  'norms.tariffs.emptyDescription': 'Filtrlarni oʻzgartiring yoki keyinroq tekshiring.',
+  'norms.tariffs.status.draft': 'Qoralama',
+  'norms.tariffs.status.published': 'Eʼlon qilingan',
+  'norms.tariffs.status.archived': 'Arxivlangan',
+  'norms.tariffs.livestockGroup.large_adult': 'Yirik chorva, katta',
+  'norms.tariffs.livestockGroup.large_young': 'Yirik chorva, yosh',
+  'norms.tariffs.livestockGroup.small_adult': 'Mayda chorva, katta',
+  'norms.tariffs.livestockGroup.small_young': 'Mayda chorva, yosh',
+  'norms.tariffs.quantityUnit.head': 'bosh',
+  'norms.tariffs.quantityUnit.ton': 'tonna',
+  'norms.tariffs.quantityUnit.hive': 'ari uyasi',
+  'norms.tariffs.quantityUnit.ha': 'ga',
+  'norms.tariffs.quantityUnit.person_day': 'kishi-kun',
+  'norms.tariffs.quantityUnit.m3': 'm³',
+  'norms.tariffs.quantityUnit.unit': 'dona',
+
+  'norms.tariffs.actions.add': "Tarif qo'shish",
+  'norms.tariffs.actions.edit': "O'zgartirish",
+  'norms.tariffs.actions.publish': 'Eʼlon qilish',
+  'norms.tariffs.actions.archive': 'Arxivlash',
+
+  'norms.tariffs.form.createTitle': 'Yangi tarif',
+  'norms.tariffs.form.editTitle': "Tarifni o'zgartirish",
+  'norms.tariffs.form.activityType': 'Faoliyat turi',
+  'norms.tariffs.form.activityTypeRequired': 'Faoliyat turini tanlang.',
+  'norms.tariffs.form.activityTypePlaceholder': 'Tanlang…',
+  'norms.tariffs.form.livestockGroup': 'Chorva guruhi',
+  'norms.tariffs.form.livestockGroupHint':
+    "Faqat yaylovda boqish uchun; boshqa faoliyat turlari uchun bo'sh qoldiring.",
+  'norms.tariffs.form.livestockGroupNone': "Qo'llanilmaydi",
+  'norms.tariffs.form.coefficient': 'Koeffitsient',
+  'norms.tariffs.form.coefficientHint': "Son ≥ 0, vergul dan keyin koʻpi bilan 6 xona.",
+  'norms.tariffs.form.coefficientError.required': 'Koeffitsientni kiriting.',
+  'norms.tariffs.form.coefficientError.invalid': 'Musbat son kiriting, masalan 1.5.',
+  'norms.tariffs.form.coefficientError.negative': 'Koeffitsient manfiy boʻlishi mumkin emas.',
+  'norms.tariffs.form.coefficientError.tooManyDigits':
+    "Ahamiyatli raqamlar juda ko'p (jami ko'pi bilan 12 ta, vergul dan keyin ko'pi bilan 6 ta).",
+  'norms.tariffs.form.quantityUnit': "O'lchov birligi",
+  'norms.tariffs.form.benefitModifiers': 'Imtiyoz koeffitsientlari',
+  'norms.tariffs.form.benefitAdd': "Imtiyoz qo'shish",
+  'norms.tariffs.form.benefitEmpty': "Imtiyozlar belgilanmagan — tarif chegirmasiz qo'llanadi.",
+  'norms.tariffs.form.benefitCodePlaceholder': 'Imtiyozni tanlang…',
+  'norms.tariffs.form.benefitModifierError.required': 'Imtiyoz koeffitsientini kiriting.',
+  'norms.tariffs.form.benefitModifierError.invalid': '0 dan 1 gacha son kiriting.',
+  'norms.tariffs.form.benefitModifierError.outOfRange': 'Qiymat 0 dan 1 gacha boʻlishi kerak.',
+  'norms.tariffs.form.effectiveFrom': 'Amal qilish boshlanishi',
+  'norms.tariffs.form.effectiveFromRequired': 'Amal qilish boshlanish sanasini kiriting.',
+  'norms.tariffs.form.effectiveTo': 'Amal qilish tugashi',
+  'norms.tariffs.form.basis': 'Asos',
+  'norms.tariffs.form.basisHint': "Koʻpi bilan 500 belgi.",
+  'norms.tariffs.form.basisRequired': 'Asosni kiriting (koʻpi bilan 500 belgi).',
+  'norms.tariffs.form.save': 'Saqlash',
+  'norms.tariffs.form.cancel': 'Bekor qilish',
+  'norms.tariffs.form.saveFailed': 'Tarifni saqlab boʻlmadi.',
+  'norms.tariffs.form.unknownBenefitCategory': "Notanish imtiyoz kodi (maʼlumotnoma oʻzgargan boʻlishi mumkin)",
+
+  // R3/R4 — xuddi shu umumiy `PublishConfirmDialog`, oʻz nomlar
+  // fazosidagi matn bilan.
+  'norms.tariffs.publish.title': 'Tarifni eʼlon qilish',
+  'norms.tariffs.publish.question':
+    "Bu tarifni eʼlon qilasizmi? Eʼlon qilingandan soʻng koeffitsient yangi hisob-kitoblar uchun kuchga kiradi.",
+  'norms.tariffs.publish.effectiveFromLabel': 'Amal qilish boshlanishi',
+  'norms.tariffs.publish.retroactiveWarning':
+    "Amal qilish boshlanish sanasi — oʻtmishda. Tarif orqaga qaytib kuchga kirgan hisoblanadi.",
+  'norms.tariffs.publish.selfWarning': 'Siz bu tarifni oʻzgartirdingiz va endi oʻzingiz eʼlon qilyapsiz.',
+  'norms.tariffs.publish.confirm': 'Eʼlon qilish',
+  'norms.tariffs.publish.cancel': 'Bekor qilish',
+  'norms.tariffs.publish.resultTitle': "Eʼlon qilindi. Server ogohlantirishlari:",
+  'norms.tariffs.publish.resultEmpty': 'Server qoʻshimcha ogohlantirish qaytarmadi.',
+  'norms.tariffs.publish.close': 'Yopish',
+  'norms.tariffs.publish.error.notDraft': 'Bu tarif endi qoralama emas — eʼlon qilib boʻlmaydi.',
+  'norms.tariffs.publish.error.notMakerChecker':
+    "Bu qoralamani siz yaratgansiz — uni eʼlon qilish huquqiga ega hamkasbingiz eʼlon qilishi kerak.",
+  'norms.tariffs.publish.error.forbidden': 'Sizda tariflarni eʼlon qilish huquqi yoʻq (norms.tariffs.publish).',
+  'norms.tariffs.publish.error.periodOverlap':
+    "Shu davrni qamrab oluvchi eʼlon qilingan yozuv allaqachon mavjud — avval uning davrini yoping yoki suring.",
+  'norms.tariffs.publish.error.generic': 'Tarifni eʼlon qilib boʻlmadi.',
+
+  'norms.tariffs.archive.title': 'Tarifni arxivlash',
+  'norms.tariffs.archive.question':
+    "Bu tarifni arxivlaysizmi? Amal qilish tugash sanasi kechagi kun bilan yopiladi.",
+  'norms.tariffs.archive.confirm': 'Arxivlash',
+  'norms.tariffs.archive.cancel': 'Bekor qilish',
+  'norms.tariffs.archive.error.generic': 'Tarifni arxivlab boʻlmadi.',
+
+  // F5 — 6-topshiriq me'yorlar ekrani (`pages/norms/NormsTab.tsx` va
+  // `pages/norms/norm/`). Oʻz ruxsat oilasi (`norms.manage`/`.approve`/
+  // `.publish`) va oʻz besh holatli hayot davri — bu yerdagi har bir yoʻl
+  // yalang'och `NormOut` qaytaradi, yuqoridagi `{item, warnings}` qobigʻisiz.
+  'norms.norms.filter.activityType': 'Faoliyat turi',
+  'norms.norms.filter.activityTypeAll': 'Barchasi',
+  'norms.norms.filter.status': 'Holati',
+  'norms.norms.filter.statusAll': 'Barchasi',
+  'norms.norms.filter.reset': 'Tiklash',
+  'norms.norms.filter.apply': "Qo'llash",
+  'norms.norms.col.contour': 'Kontur',
+  'norms.norms.col.activity': 'Faoliyat turi',
+  'norms.norms.col.status': 'Holati',
+  'norms.norms.col.yield': 'Hosildorlik, s/ga',
+  'norms.norms.col.maxSb': 'Limit, shartli bosh',
+  'norms.norms.col.effectiveFrom': 'Amal qilish boshlanishi',
+  'norms.norms.col.effectiveTo': 'Amal qilish tugashi',
+  'norms.norms.col.publishedAt': "Eʼlon qilingan",
+  'norms.norms.loadError': "Me'yorlar yuklanmadi.",
+  'norms.norms.emptyTitle': "Me'yorlar topilmadi",
+  'norms.norms.emptyDescription': 'Filtrlarni oʻzgartiring yoki keyinroq tekshiring.',
+  'norms.norms.status.draft': 'Qoralama',
+  'norms.norms.status.review': 'Koʻrib chiqilmoqda',
+  'norms.norms.status.approved': 'Kelishildi',
+  'norms.norms.status.published': "Eʼlon qilingan",
+  'norms.norms.status.archived': 'Arxivlangan',
+
+  'norms.norms.actions.add': "Me'yor qo'shish",
+  'norms.norms.actions.edit': "O'zgartirish",
+  'norms.norms.actions.submit-review': "Ko'rib chiqishga yuborish",
+  'norms.norms.actions.return-to-draft': 'Qoralamaga qaytarish',
+  'norms.norms.actions.approve': 'Kelishish',
+  'norms.norms.actions.return-to-review': "Ko'rib chiqishga qaytarish",
+  'norms.norms.actions.publish': 'Eʼlon qilish',
+  'norms.norms.actions.archive': 'Arxivlash',
+
+  'norms.norms.transition.cancel': 'Bekor qilish',
+  'norms.norms.transition.submit-review.title': "Ko'rib chiqishga yuborish",
+  'norms.norms.transition.submit-review.question':
+    "Bu me'yorni lesxoz rahbariga ko'rib chiqish uchun yuborasizmi? Qaytarilgunga qadar tahrirlash imkonsiz bo'ladi.",
+  'norms.norms.transition.return-to-draft.title': 'Qoralamaga qaytarish',
+  'norms.norms.transition.return-to-draft.question': "Bu me'yorni qayta ishlash uchun qoralamaga qaytarasizmi?",
+  'norms.norms.transition.return-to-review.title': "Ko'rib chiqishga qaytarish",
+  'norms.norms.transition.return-to-review.question':
+    "Bu kelishilgan me'yorni eʼlon qilish o'rniga ko'rib chiqishga qaytarasizmi?",
+  'norms.norms.transition.publish.title': "Me'yorni eʼlon qilish",
+  'norms.norms.transition.publish.question':
+    "Bu me'yorni eʼlon qilasizmi? Limit (shartli bosh) konturning joriy maydoni bo'yicha qat'iylashtiriladi va yangi hisob-kitoblar uchun kuchga kiradi.",
+  'norms.norms.transition.archive.title': "Me'yorni arxivlash",
+  'norms.norms.transition.archive.question':
+    "Bu me'yorni arxivlaysizmi? Amal qilish tugash sanasi kechagi kun bilan yopiladi.",
+  'norms.norms.transition.approve.title': "Me'yorni kelishish",
+  'norms.norms.transition.approve.question':
+    "Bu me'yorni kelishasizmi? Lesxoz rahbarining kelishuvini tasdiqlovchi hujjat talab qilinadi.",
+  'norms.norms.transition.approve.docLabel': 'Kelishuv hujjati',
+  'norms.norms.transition.approve.docRequired': "Me'yorni kelishish uchun hujjat yuklang.",
+
+  'norms.norms.form.createTitle': "Yangi me'yor",
+  'norms.norms.form.editTitle': "Me'yorni o'zgartirish",
+  'norms.norms.form.cancel': 'Bekor qilish',
+  'norms.norms.form.save': 'Saqlash',
+  'norms.norms.form.contour': 'Kontur',
+  'norms.norms.form.contourRequired': 'Konturni tanlang.',
+  'norms.norms.form.contourSearchPlaceholder': "Kontur raqami bo'yicha qidirish…",
+  'norms.norms.form.contourNoMatches': "Konturlar topilmadi.",
+  'norms.norms.form.activityType': 'Faoliyat turi',
+  'norms.norms.form.activityTypeRequired': 'Faoliyat turini tanlang.',
+  'norms.norms.form.activityTypePlaceholder': 'Tanlang…',
+  'norms.norms.form.yield': 'Hosildorlik, s/ga',
+  'norms.norms.form.yieldHint':
+    "Faqat yaylov uchun — shartli boshlar limiti shundan hisoblanadi. Boshqa faoliyat turlari uchun bo'sh qoldiring.",
+  'norms.norms.form.yieldError.invalid': 'Musbat son kiriting.',
+  'norms.norms.form.yieldError.negative': 'Hosildorlik manfiy boʻlishi mumkin emas.',
+  'norms.norms.form.yieldError.tooManyDigits':
+    "Ahamiyatli raqamlar juda ko'p (jami ko'pi bilan 10 ta, vergul dan keyin ko'pi bilan 4 ta).",
+  'norms.norms.form.season': 'Mavsumiy oynalar',
+  'norms.norms.form.seasonAdd': "Oyna qo'shish",
+  'norms.norms.form.seasonHint': "Sanalar OO-KK formatida, masalan yaylov mavsumi uchun 05-01 — 09-30.",
+  'norms.norms.form.seasonEmpty': 'Mavsumiy cheklovlar belgilanmagan.',
+  'norms.norms.form.seasonTo': '—',
+  'norms.norms.form.seasonRemove': "O'chirish",
+  'norms.norms.form.seasonInvalid': "Mavsumiy oynalar sanalarining formatini tekshiring (OO-KK).",
+  'norms.norms.form.rotation': "Dam olish yillari (rotatsiya)",
+  'norms.norms.form.rotationHint': "Yillar vergul yoki bo'sh joy bilan, masalan: 2027, 2029.",
+  'norms.norms.form.rotationInvalid': "Yillarni vergul yoki bo'sh joy bilan kiriting, masalan: 2027, 2029.",
+  'norms.norms.form.geobotanicDoc': 'Geobotanik tekshiruv',
+  'norms.norms.form.geobotanicDocHint': "Me'yorni ko'rib chiqishga yuborishdan oldin talab qilinadi.",
+  'norms.norms.form.geobotanicDocCurrent': 'Joriy hujjat',
+  'norms.norms.form.docUploading': 'Hujjat yuklanmoqda…',
+  'norms.norms.form.docUploadFailed': 'Hujjatni yuklab boʻlmadi.',
+  'norms.norms.form.effectiveFrom': 'Amal qilish boshlanishi',
+  'norms.norms.form.effectiveFromRequired': 'Amal qilish boshlanish sanasini kiriting.',
+  'norms.norms.form.effectiveTo': 'Amal qilish tugashi',
+  'norms.norms.form.effectiveToBeforeFrom': 'Tugash sanasi boshlanish sanasidan oldin boʻlishi mumkin emas.',
+  'norms.norms.form.saveFailed': "Me'yorni saqlab boʻlmadi.",
+
+  // F5 oʻz servis qoidalarining kengroq rad javoblari to'plami.
+  'norms.norms.action.error.forbidden': 'Sizda bu amal uchun huquq yoʻq.',
+  'norms.norms.action.error.outsideZone': "Bu me'yorning konturi sizning javobgarlik zonangizdan tashqarida.",
+  'norms.norms.action.error.centralPublicationRequired':
+    "Me'yorlarni eʼlon qilish markaziy ofisga biriktirilgan (norms_publish_scope sozlamasi).",
+  'norms.norms.action.error.badTransition': "Amal endi mavjud emas — me'yor holati o'zgargan. Roʻyxatni yangilang.",
+  'norms.norms.action.error.periodOverlap':
+    "Shu kontur va faoliyat turi uchun shu davrda amal qiluvchi eʼlon qilingan me'yor allaqachon mavjud.",
+  'norms.norms.action.error.noPublishedContour':
+    "Konturning eʼlon qilingan versiyasi yoʻq — avval uni GISda eʼlon qiling.",
+  'norms.norms.action.error.yieldRequired':
+    "Bu yaylov uchun me'yor — eʼlon qilishdan oldin hosildorlikni (s/ga) kiriting.",
+  'norms.norms.action.error.geobotanicDocRequired':
+    "Ko'rib chiqishga yuborishdan oldin geobotanik tekshiruv hujjatini biriktiring.",
+  'norms.norms.action.error.approvalDocRequired': 'Kelishuv hujjatini biriktiring.',
+  'norms.norms.action.error.submitReview.generic': "Me'yorni ko'rib chiqishga yuborib bo'lmadi.",
+  'norms.norms.action.error.returnToDraft.generic': "Me'yorni qoralamaga qaytarib bo'lmadi.",
+  'norms.norms.action.error.approve.generic': "Me'yorni kelishib bo'lmadi.",
+  'norms.norms.action.error.returnToReview.generic': "Me'yorni ko'rib chiqishga qaytarib bo'lmadi.",
+  'norms.norms.action.error.publish.generic': "Me'yorni eʼlon qilib bo'lmadi.",
+  'norms.norms.action.error.archive.generic': "Me'yorni arxivlab bo'lmadi.",
 };
