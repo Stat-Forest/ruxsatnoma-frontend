@@ -102,6 +102,8 @@ test('the norms menu entry appears for norms.tariffs.manage alone', () => {
   // not norms.manage) could not see this entry at all.
   const items = visibleNav({ permissions: ['norms.tariffs.manage'], is_superuser: false });
   expect(items.map((i) => i.to)).toContain('/norms');
+});
+
 test('I1 — the prosecutor reaches /applications through view_any, the same as /permits already does', () => {
   // Migration 0015 grants `applications.view_any` to `prosecutor` alone, and
   // `service.list_applications`/`_holds_staff_read` already zone-scope and
