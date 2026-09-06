@@ -1024,4 +1024,17 @@ export const uz_latn = {
   'inspector.tasks.kind.permitInspection': "Ruxsatnomani tekshirish",
   'inspector.tasks.openButton': "Ochish",
   'inspector.tasks.startButton': "Boshlash",
+
+  // --- J1 (stage 6.7): task detail page -----------------------------------
+  'inspector.taskDetail.title': "Topshiriq",
+  'inspector.taskDetail.loading': "Yuklanmoqda...",
+  'inspector.taskDetail.notFound': "Topshiriq topilmadi.",
+  'inspector.taskDetail.kindLabel': "Turi:",
+  'inspector.taskDetail.statusLabel': "Holati:",
+  'inspector.taskDetail.organizationLabel': "Oʻrmon xoʻjaligi:",
+  'inspector.taskDetail.viewPermitButton': "Ruxsatnomani ochish",
+  'inspector.taskDetail.viewApplicationButton': "Arizani ochish",
+  'inspector.taskDetail.startButton': "Topshiriqni boshlash",
+  'inspector.taskDetail.cancelButton': "Topshiriqni bekor qilish",
+  'inspector.taskDetail.startActButton': "Tekshiruv aktini boshlash",
 };

@@ -1016,4 +1016,17 @@ export const ru = {
   'inspector.tasks.kind.permitInspection': 'Проверка разрешения',
   'inspector.tasks.openButton': 'Открыть',
   'inspector.tasks.startButton': 'Начать',
+
+  // --- J1 (stage 6.7): task detail page -----------------------------------
+  'inspector.taskDetail.title': 'Задание',
+  'inspector.taskDetail.loading': 'Загрузка...',
+  'inspector.taskDetail.notFound': 'Задание не найдено.',
+  'inspector.taskDetail.kindLabel': 'Тип:',
+  'inspector.taskDetail.statusLabel': 'Статус:',
+  'inspector.taskDetail.organizationLabel': 'Лесхоз:',
+  'inspector.taskDetail.viewPermitButton': 'Открыть разрешение',
+  'inspector.taskDetail.viewApplicationButton': 'Открыть заявку',
+  'inspector.taskDetail.startButton': 'Начать задание',
+  'inspector.taskDetail.cancelButton': 'Отменить задание',
+  'inspector.taskDetail.startActButton': 'Начать акт проверки',
 };
