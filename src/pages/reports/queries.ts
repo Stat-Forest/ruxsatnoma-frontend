@@ -15,6 +15,8 @@
  * whose own detail query has never been fetched and needs no invalidation.
  */
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { api } from '../../api/client';
+import { apiError } from '../../api/errors';
 import {
   activateForm,
   approveReport,
@@ -180,6 +182,29 @@ export function useApproveReport(reportId: string) {
   return useMutation({
     mutationFn: () => approveReport(reportId),
     onSuccess: invalidate,
+  });
+}
+
+/** `GET /api/v1/refs/organizations?kind=leshoz` — the exact query
+ *  `pages/permits/useRefsLookup.ts::useLeshozOrganizations` already uses,
+ *  duplicated locally per Global Constraint 11 (this module keeps its own
+ *  small copies rather than importing across page folders). Lives here
+ *  (not in `ReportsListTab.tsx`, which also imports it) so that file keeps
+ *  exporting only its own component — a file that exports both a component
+ *  and a hook trips this codebase's `react-refresh/only-export-components`
+ *  lint rule. */
+export function useLeshozOrganizations(active: boolean) {
+  return useQuery({
+    queryKey: ['reports', 'refs', 'organizations', 'leshoz'],
+    queryFn: async () => {
+      const { data, error } = await api.GET('/api/v1/refs/organizations', {
+        params: { query: { kind: 'leshoz', page_size: 100 } },
+      });
+      if (error) throw apiError(error);
+      return data;
+    },
+    enabled: active,
+    staleTime: 5 * 60_000,
   });
 }
 

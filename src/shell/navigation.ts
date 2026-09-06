@@ -4,6 +4,7 @@ import {
   Bell,
   BookMarked,
   Building2,
+  ClipboardList,
   FileText,
   Home,
   Inbox,
@@ -107,6 +108,13 @@ export const NAVIGATION: NavItem[] = [
   // stand on at all (06.5-accountant.md ruling R4).
   { to: '/invoices', labelKey: 'nav.invoices', permission: ['payments.view', 'payments.confirm'], icon: Wallet },
   { to: '/permits', labelKey: 'nav.permits', permission: 'permits.view_any', icon: Stamp },
+  // J2 (stage 6.7) — `reports.view` alone is correct and sufficient:
+  // `permissions.py`'s own docstring grants it to every role that holds ANY
+  // other `reports.*` code (central_admin, executor_staff, executor_head,
+  // accountant) plus two read-only roles (gis_specialist, prosecutor,
+  // leadership) — there is no role with `reports.manage`/`.sign`/`.accept`/
+  // `.forms.manage` that lacks `reports.view`.
+  { to: '/reports', labelKey: 'nav.reports', permission: 'reports.view', icon: ClipboardList },
   { to: '/admin/users', labelKey: 'nav.users', permission: 'auth.users.manage', icon: Users },
   { to: '/admin/roles', labelKey: 'nav.roles', permission: 'auth.users.manage', icon: ShieldCheck },
   { to: '/admin/organizations', labelKey: 'nav.organizations', permission: 'admin.organizations.manage', icon: Building2 },

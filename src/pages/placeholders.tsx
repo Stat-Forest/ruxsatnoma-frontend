@@ -75,3 +75,11 @@ export function StaffApplicationCardPage() {
 
 /** The permit document as staff sees it — issue, download PDF, the 3+1 ERI signatures (Track 4 — real screen). */
 export { PermitDocumentPage } from './PermitDocumentPage';
+
+// J2 (stage 6.7) — the central apparatus's reporting screens, С20 (real
+// screen: `src/pages/reports/ReportsPage.tsx`). Re-exported rather than
+// defined here for the same reason `MyApplicationsPage` above is.
+export { ReportsPage } from './reports/ReportsPage';
+
+/** J2 (stage 6.7) — one report's own lifecycle page (real screen). */
+export { ReportDetailPage } from './ReportDetailPage';
