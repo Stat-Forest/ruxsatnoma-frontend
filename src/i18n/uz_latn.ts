@@ -254,6 +254,7 @@ export const uz_latn = {
   'accountant.common.copied': 'Nusxalandi',
   'accountant.common.close': 'Yopish',
   'accountant.common.cancel': 'Bekor qilish',
+  'accountant.common.all': 'Barchasi',
   'accountant.zone.label': 'Sizning zonangiz:',
   'accountant.zone.republicWarning':
     "Sizning hisobingizga tashkilot biriktirilmagan — bu butun respublika boʻyicha barcha hisob-fakturalarni koʻrishingiz mumkinligini anglatadi.",
@@ -263,8 +264,8 @@ export const uz_latn = {
   'accountant.tabs.statements': 'Bank hisobotlari',
   'accountant.tabs.discrepancies': 'Nomuvofiqliklar',
   'accountant.tabs.refunds': "Qaytarishlar",
-  'accountant.invoices.noRoute':
-    "Bu yerda barcha hisob-fakturalarni sanab koʻrsatish imkoni yoʻq — tizimda bunday marshrut mavjud emas. Ariza ID orqali qidiring yoki hisob-faktura ID ma'lum boʻlsa, uni toʻgʻridan-toʻgʻri oching.",
+  'accountant.invoices.registerTitle': "Hisob-fakturalar reyestri",
+  'accountant.invoices.registerHint': "Sizning zonangizdagi barcha hisob-fakturalar — kerak boʻlsa, aynan bitta ariza boʻyicha yoki ID orqali qidiring.",
   'accountant.invoices.searchByApplication': 'Ariza boʻyicha qidirish',
   'accountant.invoices.applicationIdLabel': 'Ariza ID',
   'accountant.invoices.applicationIdPlaceholder': 'UUID',
@@ -276,6 +277,11 @@ export const uz_latn = {
   'accountant.invoices.notFound': "Bunday hisob-faktura mavjud emas yoki sizga tegishli emas.",
   'accountant.invoices.loadFailed': "Yuklashda xatolik yuz berdi.",
   'accountant.invoices.emptyResults': "Bu ariza boʻyicha hisob-fakturalar topilmadi.",
+  'accountant.invoices.registerEmpty': "Bu filtr boʻyicha hisob-fakturalar topilmadi.",
+  'accountant.invoices.statusFilterLabel': 'Holati',
+  'accountant.invoices.filteredByApplication': 'Ariza boʻyicha filtrlangan',
+  'accountant.invoices.clearFilter': 'Filtrni tozalash',
+  'accountant.invoices.colApplication': 'Ariza',
   'accountant.invoices.colNumber': 'Raqami',
   'accountant.invoices.colStatus': 'Holati',
   'accountant.invoices.colAmount': 'Summa',
@@ -369,7 +375,15 @@ export const uz_latn = {
   'accountant.discrepancies.resolveUploadFailed': "Hujjatni yuklashda xatolik yuz berdi.",
   'accountant.discrepancies.manualCheckTitle': "Qoʻlda toʻlovni tasdiqlash (tekshiruvchi)",
   'accountant.discrepancies.manualCheckHint':
-    "Buxgalter qayd etgan toʻlov ID'sini kiriting. Tizimda kutilayotgan qaydlar roʻyxati yoʻq — ID buxgalterdan olinadi.",
+    "Quyida sizning tasdigʻingizni kutayotgan qaydlar roʻyxati — bevosita shu yerdan tasdiqlang yoki rad eting.",
+  'accountant.discrepancies.manualByIdHint': "Yoki qayd ID'sini toʻgʻridan-toʻgʻri kiriting:",
+  'accountant.discrepancies.manualPendingEmpty': "Hozircha tasdiqlashingizni kutayotgan qaydlar yoʻq.",
+  'accountant.discrepancies.manualPendingLoadFailed': "Kutilayotgan qaydlar roʻyxatini yuklab boʻlmadi.",
+  'accountant.discrepancies.manualPendingColAmount': 'Summa',
+  'accountant.discrepancies.manualPendingColPaidAt': "Toʻlangan sana",
+  'accountant.discrepancies.manualPendingColDoc': 'Hujjat',
+  'accountant.discrepancies.manualPendingColActions': 'Amal',
+  'accountant.discrepancies.manualPendingViewDoc': "Hujjatni koʻrish",
   'accountant.discrepancies.manualConfirmationIdLabel': 'Qayd ID',
   'accountant.discrepancies.manualRejectReasonLabel': 'Rad etish sababi',
   'accountant.discrepancies.manualCheckMakerIsChecker':
@@ -881,6 +895,17 @@ export const uz_latn = {
   'gis.imports.recent': "So'nggi importlar (shu brauzerda)",
   'gis.imports.noneSelected': "Import tanlanmagan",
 
+  'gis.imports.list.title': "Importlar reyestri",
+  'gis.imports.list.statusFilterAll': 'Barchasi',
+  'gis.imports.list.empty': "Bu filtr bo'yicha importlar topilmadi.",
+  'gis.imports.list.loadFailed': "Ro'yxatni yuklab bo'lmadi.",
+  'gis.imports.list.colCreatedAt': 'Yuklangan sana',
+  'gis.imports.list.colStatus': 'Holati',
+  'gis.imports.list.colLayer': 'Qatlam',
+  'gis.imports.list.colOrganization': 'Tashkilot',
+  'gis.imports.list.colFormat': 'Format',
+  'gis.imports.list.colActions': 'Amal',
+
   'gis.layers.form.shapeType': 'Shakl turi',
   'gis.layers.form.drawHint': 'Xaritada shaklni chizing',
   'gis.layers.form.name': 'Nomi',
@@ -1050,6 +1075,11 @@ export const uz_latn = {
     "Tekshiruvlar koʻrsatkichi mavjud emas — «Inspeksiyalar» moduli hali ulanmagan.",
   'leadership.dash.omitted.violations':
     "Buzilishlar koʻrsatkichi mavjud emas — «Inspeksiyalar» moduli hali ulanmagan.",
+
+  // --- KpiOut.inspections — real data now (F19), shared by every KPI dashboard ---
+  'dashboard.inspections.tileLabel': "Tekshiruvlar",
+  'dashboard.inspections.violationsHint': "Buzilishlar",
+  'dashboard.staff.noAccess': "Sizning rolingiz uchun boshqaruv paneli sozlanmagan.",
 
   // --- J3: oversight register -----------------------------------------------
   'leadership.oversight.title': "Nazorat reyestri",
@@ -1404,6 +1434,14 @@ export const uz_latn = {
   'inspector.scan.signaturesValidLabel': "Imzolar haqiqiy:",
   'inspector.scan.signaturesValidYes': "ha",
   'inspector.scan.signaturesValidNo': "yoʻq",
+  'inspector.scan.authResultTitle': "Toʻliq maʼlumot (tizim yozuvi)",
+  'inspector.scan.statusLabel': "Holati:",
+  'inspector.scan.contourLabel': "Kontur:",
+  'inspector.scan.areaLabel': "Maydon:",
+  'inspector.scan.sbLoadLabel': "Yuklama (shartli bosh):",
+  'inspector.scan.sbLoadNotRequired': "talab qilinmaydi",
+  'inspector.scan.permitIdLabel': "Ruxsatnoma ID:",
+  'inspector.scan.openFullRecord': "Toʻliq hujjatni ochish →",
   'inspector.tasks.status.all': "Barchasi",
   'inspector.tasks.status.assigned': "Tayinlangan",
   'inspector.tasks.status.inProgress': "Jarayonda",

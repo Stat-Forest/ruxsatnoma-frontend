@@ -25,6 +25,7 @@ import { apiError } from '../../api/errors';
 import type { components } from '../../api/schema';
 
 export type InvoiceOut = components['schemas']['InvoiceOut'];
+export type InvoiceStatus = InvoiceOut['status'];
 export type AllocationOut = components['schemas']['AllocationOut'];
 export type StatementAccepted = components['schemas']['StatementAccepted'];
 export type StatementOut = components['schemas']['StatementOut'];
@@ -48,15 +49,27 @@ export async function getInvoice(invoiceId: string): Promise<InvoiceOut> {
   return data;
 }
 
-/** `GET /invoices` has no route that lists without a filter — `application_id`
- *  is REQUIRED (`06.5-accountant.md` ruling R1). There is no "browse every
- *  invoice" screen behind this function because no such route exists. */
-export async function listInvoicesByApplication(applicationId: string): Promise<InvoiceOut[]> {
-  const { data, error } = await api.GET('/api/v1/invoices', {
-    params: { query: { application_id: applicationId, limit: 200, offset: 0 } },
-  });
+export interface ListInvoicesParams {
+  application_id?: string;
+  status?: InvoiceStatus;
+  limit?: number;
+  offset?: number;
+}
+
+/**
+ * `GET /invoices` — F12a. `06.5-accountant.md` ruling R1 read the route as
+ * "no list without a filter" because `application_id` was required at the
+ * time; the live route now takes it as an optional narrowing on top of the
+ * caller's own zone (`core#49`'s zone-scoping fix, plus an added `status`
+ * filter) — verified against a regenerated `schema.d.ts`, not against that
+ * stale ruling. Returns the whole `Page<InvoiceOut>`, not just `.items`: the
+ * register needs `.total` for pagination, which the old application-only
+ * helper this replaces never had to carry.
+ */
+export async function listInvoices(params: ListInvoicesParams) {
+  const { data, error } = await api.GET('/api/v1/invoices', { params: { query: params } });
   if (error) throw apiError(error);
-  return data.items;
+  return data;
 }
 
 // ── G2 — the 50/50 allocation ledger ────────────────────────────────────
@@ -164,6 +177,40 @@ export async function fileManualConfirmation(
   const { data, error } = await api.POST('/api/v1/payments/manual-confirmations', { body });
   if (error) throw apiError(error);
   return data;
+}
+
+export interface ListManualConfirmationsParams {
+  status?: 'pending_check' | 'confirmed' | 'rejected';
+  limit?: number;
+  offset?: number;
+}
+
+/**
+ * F12b — `GET /payments/manual-confirmations`, the checker's own worklist
+ * (defaults to `pending_check` server-side, same open-by-default shape
+ * `listReconciliations` already has). Built for the same reason that route
+ * exists at all, per its own router docstring: "a manual-PAID confirmation
+ * awaiting its checker can be listed instead of having its id handed over
+ * out of band" — which is exactly what this screen used to require.
+ */
+export async function listManualConfirmations(params: ListManualConfirmationsParams = {}) {
+  const { data, error } = await api.GET('/api/v1/payments/manual-confirmations', { params: { query: params } });
+  if (error) throw apiError(error);
+  return data;
+}
+
+/** `GET /files/{id}` streams the bytes directly (no metadata-only route) —
+ *  a plain link opened in a new tab is the whole download affordance a
+ *  signed-in session needs, the browser sending the session cookie on this
+ *  top-level navigation like any other same-site link (same idiom as
+ *  `staff/queries.ts::fileUrl`, duplicated here per this module's own
+ *  header). `ManualConfirmationOut.bank_doc_file_id`'s own docstring: "the
+ *  document is the whole legal basis of a manual PAID, so a checker asked
+ *  to approve one must be able to reach it from this response alone" — F13
+ *  made the read permission-reachable; this is what makes it clickable. */
+export function fileUrl(fileId: string): string {
+  const base = import.meta.env.VITE_API_BASE ?? 'http://localhost:8000';
+  return `${base}/api/v1/files/${fileId}`;
 }
 
 export async function confirmManualConfirmation(confirmationId: string): Promise<ManualConfirmationOut> {

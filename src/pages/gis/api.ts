@@ -319,6 +319,25 @@ export async function createImport(input: CreateImportInput): Promise<{ import_i
   return data;
 }
 
+export interface ListImportsParams {
+  status?: string;
+  page: number;
+  page_size: number;
+}
+
+/**
+ * F12c — `GET /gis/imports`, verified against a regenerated `schema.d.ts`
+ * (the version this file was written against had no `get` on this path at
+ * all, per `./imports/localImports.ts`'s own comment — that gap has closed).
+ * Zone-scoping and the permission gate are the service layer's concern, the
+ * same as every other list route here.
+ */
+export async function listImports(params: ListImportsParams): Promise<Paged<ImportOut>> {
+  const { data, error } = await api.GET('/api/v1/gis/imports', { params: { query: params } });
+  if (error) throw apiError(error);
+  return data;
+}
+
 export async function getImport(importId: string): Promise<ImportOut> {
   const { data, error } = await api.GET('/api/v1/gis/imports/{import_id}', {
     params: { path: { import_id: importId } },

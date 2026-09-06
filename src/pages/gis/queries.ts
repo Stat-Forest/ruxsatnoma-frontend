@@ -264,6 +264,18 @@ export function useCreateImport() {
   });
 }
 
+/** F12c — the register `useCreateImport`'s own `['gis', 'imports']`
+ *  invalidation above already anticipated (that key's prefix matches this
+ *  query's own `['gis', 'imports', 'list', ...]`, so a freshly created batch
+ *  refreshes this list too, without a second invalidation to keep in sync). */
+export function useImportsList(params: gisApi.ListImportsParams) {
+  return useQuery({
+    queryKey: ['gis', 'imports', 'list', params],
+    queryFn: () => gisApi.listImports(params),
+    placeholderData: (previous) => previous,
+  });
+}
+
 /** Polls while the batch is still being parsed — `pending`/`processing` are
  * the job's own transient states (`import_service.py`), and there is no
  * push notification path this screen can subscribe to instead. Stops on its

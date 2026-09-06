@@ -55,6 +55,7 @@ function kpiFixture(overrides: Partial<KpiOut> = {}): KpiOut {
     inspections: { inspections_count: 0, violations_count: 0 },
     rejections: [],
     risk_indicators: { by_code: {}, by_level: {} },
+    inspections: { inspections_count: 0, violations_count: 0 },
     omitted: [],
     ...overrides,
   };
@@ -128,6 +129,15 @@ test('the tiles carry the figures the backend actually computed', async () => {
   expect(screen.getByTestId('occupancy-value')).toHaveTextContent('42.5%');
   expect(screen.getByTestId('tile-sla')).toHaveTextContent('8');
   expect(screen.getByTestId('tile-sla')).toHaveTextContent('2');
+});
+
+test('the inspections tile renders KpiOut.inspections — real data now that the module has shipped', async () => {
+  mockBackend({ kpi: { inspections: { inspections_count: 4, violations_count: 1 } } });
+  renderDashboard();
+
+  const tile = await screen.findByTestId('tile-inspections');
+  expect(tile).toHaveTextContent('4');
+  expect(tile).toHaveTextContent('1');
 });
 
 test('a recognized omitted entry renders its localized sentence, never the raw backend string', async () => {
