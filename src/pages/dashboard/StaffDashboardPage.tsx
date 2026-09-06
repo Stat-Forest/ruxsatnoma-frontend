@@ -11,21 +11,17 @@ import { KpiTile, TileCount } from './components/KpiTile';
 import { OmittedNotice } from './components/OmittedNotice';
 import { RejectionsCard, type RejectionRow } from './components/RejectionsCard';
 import { RiskIndicatorsCard } from './components/RiskIndicatorsCard';
-import { TerritoryDrilldown } from './components/TerritoryDrilldown';
 import { formatCompactMoney, formatDelta, formatPercent } from './format';
-import { useKpi, useRejectionReasonItems, useTerritorySlice, type KpiParams } from './queries';
+import { useKpi, useRejectionReasonItems, type KpiParams } from './queries';
 
-/** Today as a plain `YYYY-MM-DD` in the viewer's own zone — the same
- *  computation `ApplicantDashboardPage.tsx::todayIso()` uses, kept as its own
- *  copy here rather than shared (this folder's own convention). */
+/** Same local-`Date`-getters computation `LeadershipDashboardPage.tsx`'s own
+ *  `todayIso()`/`firstOfMonthIso()` use — kept as its own copy per this
+ *  folder's stated convention rather than imported across dashboard pages. */
 function todayIso(): string {
   const now = new Date();
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
 }
 
-/** The first day of the viewer's own current month, same local-`Date`-getters
- *  approach as `todayIso()` above — correct under the suite's fixed
- *  `TZ=Asia/Tashkent`, never a UTC-shifted date. */
 function firstOfMonthIso(): string {
   const now = new Date();
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
@@ -35,37 +31,60 @@ function defaultFilters(): KpiParams {
   return { period_from: firstOfMonthIso(), period_to: todayIso(), compare_previous: false };
 }
 
+const DASHBOARD_VIEW = 'dashboard.view';
+
 /**
- * The leadership role's home screen (J3) — what the Agency's leadership sees
- * the moment they log in: how many permits and applications moved this
- * period, what was paid, which SLAs slipped, where occupancy and grazing
- * load stand, why applications were rejected, what risk indicators fired,
- * and a territorial drill-down down to the contour. Built on the two routes
- * this stage adds (`GET /dashboard/kpi`, `GET /dashboard/territory-slice`) —
- * no other endpoint, no invented tile beyond what `KpiOut`/`TerritorySliceOut`
- * actually carry, and `KpiOut.omitted` renders as an honest notice rather
- * than a filled-in gap.
+ * F19 — the home screen for every staff role that is neither the applicant
+ * (its own screen, B1) nor leadership (its own screen plus the territory
+ * drill-down, J3): the leshoz officer, the GIS specialist, the accountant,
+ * the inspector, the prosecutor, `central_admin`, `sys_admin`, and any role
+ * an admin creates later — role codes are an open, admin-editable set
+ * (`RoleCreateIn`), not a fixed enum, so this branches on the PERMISSION
+ * every one of them holds (`dashboard.view`, granted to every staff role
+ * but the applicant, per `tz/03`'s matrix) rather than on a closed list of
+ * role-code strings `DashboardPage.tsx` would have to keep in step with the
+ * admin's own role editor.
+ *
+ * Built on the same `GET /dashboard/kpi` `LeadershipDashboardPage.tsx` reads
+ * — the backend ANDs the actor's own zone into every figure without being
+ * asked (`dashboard/repo.py::_combined`), so a leshoz officer simply sees
+ * their own leshoz's numbers through the identical route and the identical
+ * screen a republic-wide reader sees the whole country through. No
+ * territory drill-down here: `GET /dashboard/territory-slice` is a
+ * republic→region→district→organization→contour walk that has nothing to
+ * add for a caller whose own zone is already the narrowest node in it.
+ * Every component below is reused verbatim from the leadership dashboard
+ * (`KpiFilters`, `KpiTile`, `DashboardCard`, `RejectionsCard`,
+ * `RiskIndicatorsCard`, `OmittedNotice`) — none of them is leadership-
+ * specific in what it does, only in which page happened to build them
+ * first.
  */
-export function LeadershipDashboardPage() {
+export function StaffDashboardPage() {
   const t = useT();
   const { lang } = useLanguage();
   const { me } = useAuth();
   const [appliedFilters, setAppliedFilters] = useState<KpiParams>(defaultFilters);
-  const canOpenOversightRegister = !!me && (me.is_superuser || me.permissions.includes('oversight.view'));
 
-  const kpi = useKpi(appliedFilters);
-  // Region-level (no filter) slice — independent of whatever region/district/
-  // organization `KpiFilters` currently has selected. Fetched here purely to
-  // gate this screen's own initial loading/error state the way `useKpi` does;
-  // `TerritoryDrilldown` fetches the identical query key for its own initial
-  // render, so this is one network request, not two.
-  const territoryRoot = useTerritorySlice({
-    period_from: appliedFilters.period_from,
-    period_to: appliedFilters.period_to,
-  });
+  const canViewDashboard = Boolean(me?.is_superuser || me?.permissions.includes(DASHBOARD_VIEW));
+  const canOpenOversightRegister = Boolean(me?.is_superuser || me?.permissions.includes('oversight.view'));
+
+  const kpi = useKpi(appliedFilters, { enabled: canViewDashboard });
   const rejectionReasons = useRejectionReasonItems();
 
-  if (kpi.isPending || territoryRoot.isPending) {
+  if (!canViewDashboard) {
+    // No `dashboard.view` holder should exist among the staff roles this
+    // page is reached for (`DashboardPage.tsx` only renders it when the
+    // permission is present) — kept as an honest fallback rather than
+    // firing a query the backend would refuse, the same house rule every
+    // gated panel in this app follows.
+    return (
+      <div data-testid="dashboard-no-access" className="p-6 text-sm text-[#5A646D]">
+        {t('dashboard.staff.noAccess')}
+      </div>
+    );
+  }
+
+  if (kpi.isPending) {
     return (
       <div data-testid="dashboard-loading" className="p-6 text-sm text-[#5A646D]">
         {t('leadership.dash.loading')}
@@ -73,13 +92,12 @@ export function LeadershipDashboardPage() {
     );
   }
 
-  if (kpi.isError || territoryRoot.isError) {
-    const firstError = [kpi.error, territoryRoot.error].find((error) => error instanceof ApiError) as
-      | ApiError
-      | undefined;
+  if (kpi.isError) {
     return (
       <div data-testid="dashboard-error" className="p-1">
-        <Alert variant="danger">{firstError ? firstError.message : t('leadership.dash.error')}</Alert>
+        <Alert variant="danger">
+          {kpi.error instanceof ApiError ? kpi.error.message : t('leadership.dash.error')}
+        </Alert>
       </div>
     );
   }
@@ -181,8 +199,6 @@ export function LeadershipDashboardPage() {
           canOpenRegister={canOpenOversightRegister}
         />
       </div>
-
-      <TerritoryDrilldown periodFrom={appliedFilters.period_from} periodTo={appliedFilters.period_to} t={t} />
 
       <OmittedNotice omitted={data.omitted} t={t} />
     </div>

@@ -130,6 +130,15 @@ test('the tiles carry the figures the backend actually computed', async () => {
   expect(screen.getByTestId('tile-sla')).toHaveTextContent('2');
 });
 
+test('the inspections tile renders KpiOut.inspections — real data now that the module has shipped', async () => {
+  mockBackend({ kpi: { inspections: { inspections_count: 4, violations_count: 1 } } });
+  renderDashboard();
+
+  const tile = await screen.findByTestId('tile-inspections');
+  expect(tile).toHaveTextContent('4');
+  expect(tile).toHaveTextContent('1');
+});
+
 test('a recognized omitted entry renders its localized sentence, never the raw backend string', async () => {
   mockBackend({
     kpi: { omitted: ['inspections_count: the 4.1 inspections module is not merged into dev yet'] },

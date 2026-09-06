@@ -1067,6 +1067,11 @@ export const uz_latn = {
   'leadership.dash.omitted.violations':
     "Buzilishlar koʻrsatkichi mavjud emas — «Inspeksiyalar» moduli hali ulanmagan.",
 
+  // --- KpiOut.inspections — real data now (F19), shared by every KPI dashboard ---
+  'dashboard.inspections.tileLabel': "Tekshiruvlar",
+  'dashboard.inspections.violationsHint': "Buzilishlar",
+  'dashboard.staff.noAccess': "Sizning rolingiz uchun boshqaruv paneli sozlanmagan.",
+
   // --- J3: oversight register -----------------------------------------------
   'leadership.oversight.title': "Nazorat reyestri",
   'leadership.oversight.openRegister': "Toʻliq reyestrni ochish →",

@@ -1060,6 +1060,11 @@ export const ru = {
   'leadership.dash.omitted.violations':
     'Показатель по нарушениям недоступен — модуль «Инспекции» ещё не подключён.',
 
+  // --- KpiOut.inspections — real data now (F19), shared by every KPI dashboard ---
+  'dashboard.inspections.tileLabel': 'Проверки',
+  'dashboard.inspections.violationsHint': 'Нарушения',
+  'dashboard.staff.noAccess': 'Для вашей роли панель управления не настроена.',
+
   // --- J3: надзорный реестр (oversight register) --------------------------
   'leadership.oversight.title': 'Надзорный реестр',
   'leadership.oversight.openRegister': 'Открыть полный реестр →',
