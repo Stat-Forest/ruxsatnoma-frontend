@@ -13,6 +13,7 @@ import {
   Radio,
   Scale,
   Settings,
+  ShieldAlert,
   ShieldCheck,
   Stamp,
   User,
@@ -107,6 +108,12 @@ export const NAVIGATION: NavItem[] = [
   // stand on at all (06.5-accountant.md ruling R4).
   { to: '/invoices', labelKey: 'nav.invoices', permission: ['payments.view', 'payments.confirm'], icon: Wallet },
   { to: '/permits', labelKey: 'nav.permits', permission: 'permits.view_any', icon: Stamp },
+  // С22's read-only register (task 2, stage 6.7 J3) — `central_admin`,
+  // `leadership`, `executor_head` (zone-scoped to their own organization) and
+  // `prosecutor` all hold `oversight.view` (migration 0028); `sys_admin`
+  // passes as superuser. No other code opens this screen — it is a single
+  // gate, unlike `/applications`'s reviewer/approver pair above.
+  { to: '/oversight', labelKey: 'nav.oversight', permission: 'oversight.view', icon: ShieldAlert },
   { to: '/admin/users', labelKey: 'nav.users', permission: 'auth.users.manage', icon: Users },
   { to: '/admin/roles', labelKey: 'nav.roles', permission: 'auth.users.manage', icon: ShieldCheck },
   { to: '/admin/organizations', labelKey: 'nav.organizations', permission: 'admin.organizations.manage', icon: Building2 },
