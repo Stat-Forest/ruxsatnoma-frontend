@@ -65,3 +65,26 @@ export function formatMoney(value: string | null | undefined): string {
   }
   return withSeparators;
 }
+
+/** A decimal quantity (area, SB load) — trims trailing zeros the same way
+ *  the backend's own `_trim_decimal` does, so `"42.6000"` reads as `"42,6"`.
+ *  Copied from `permits/format.ts::formatDecimal` (F17, this file's own
+ *  header). */
+export function formatDecimal(value: string | null | undefined): string | null {
+  if (value == null) return null;
+  const trimmed = value.includes('.') ? value.replace(/0+$/, '').replace(/\.$/, '') : value;
+  return (trimmed || '0').replace('.', ',');
+}
+
+/** The permit's own display number: `"А"` + `4182` -> `"А № 004182"`. Copied
+ *  from `permits/format.ts::formatPermitNumber` (F17). */
+export function formatPermitNumber(series: string, number: number): string {
+  return `${series} № ${String(number).padStart(6, '0')}`;
+}
+
+/** A UUID, shortened for display where the full value only adds noise.
+ *  Copied from `permits/format.ts::shortId` (F17). */
+export function shortId(value: string | null | undefined): string {
+  if (!value) return '—';
+  return value.slice(0, 8);
+}

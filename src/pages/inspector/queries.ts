@@ -14,6 +14,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '../../api/client';
 import { apiError, type ApiError } from '../../api/errors';
 import type { components } from '../../api/schema';
+import { pickLocalizedName } from './format';
 
 export type GpsPoint = components['schemas']['GpsPoint'];
 export type ChecklistQuestion = components['schemas']['ChecklistQuestion'];
@@ -45,6 +46,7 @@ export type ClassifierItemOut = components['schemas']['ClassifierItemOut'];
 export type PublicCheckResult =
   | components['schemas']['PublicCheckCard']
   | components['schemas']['PublicCheckMiss'];
+export type PermitOut = components['schemas']['PermitOut'];
 
 // --- Checklists -------------------------------------------------------
 
@@ -87,6 +89,98 @@ export function usePublicPermitCheck(input: PublicPermitCheckInput | null) {
     enabled: input != null,
     retry: false,
   });
+}
+
+// --- Authenticated permit lookup (F17) ----------------------------------
+
+/**
+ * `GET /permits?series=&number=` — the SAME zone-scoped `permits.view_any`
+ * route the staff registry (`permits/queries.ts::usePermitsList`) already
+ * calls, reached here with its own thin `useQuery` rather than an import
+ * across the track boundary (this file's own header, `formatMoney`/
+ * `formatDate` above it in `./format.ts`) — the same duplicate-a-small-call
+ * convention, not a second implementation of pagination or filtering.
+ *
+ * This is the inspector's OWN read: unlike `usePublicPermitCheck`, it never
+ * masks the holder and it returns the permit's real id, so a result can
+ * link straight into `/permits/{id}` (`permits.view_any` already unlocks
+ * that route — F17's whole point). There is no authenticated equivalent for
+ * a scanned QR token: `PublicCheckCard`'s own docstring rules out ever
+ * returning `qr_token` from any route, including this one, because it is
+ * "the key to this very page" (anti-enumeration, ruling 8) — so the token
+ * path in `ScanTab` keeps using `usePublicPermitCheck`, by design, not by
+ * oversight. `number` carries the same upper bound the backend enforces
+ * (`list_permits`'s own int64 guard) — anything else 422s server-side. */
+export function usePermitByNumber(input: { series: string; number: number } | null) {
+  return useQuery({
+    queryKey: ['inspector', 'permitByNumber', input],
+    queryFn: async () => {
+      if (!input) throw new Error('usePermitByNumber: called while disabled');
+      const { data, error } = await api.GET('/api/v1/permits', {
+        params: { query: { series: input.series, number: input.number, page: 1, page_size: 1 } },
+      });
+      if (error) throw apiError(error);
+      return data.items[0] ?? null;
+    },
+    enabled: input != null,
+    retry: false,
+  });
+}
+
+// --- Ref-name resolution for the authenticated result (F17) -------------
+//
+// The same three read-only, permission-free lookups `permits/useRefsLookup
+// .ts` already defines (`refs_router.py`'s own docstring: every route here
+// admits any authenticated user, no permission code, no zone filtering) —
+// duplicated here rather than imported across the track boundary, per this
+// file's own module-boundary convention, with the SAME query keys so the
+// QueryClient still shares one cache entry with whichever screen fetched
+// them first.
+
+export function useActivityTypeName(activityTypeId: string | undefined, lang: 'uz_latn' | 'ru'): string | null {
+  const query = useQuery({
+    queryKey: ['refs', 'activity-types'],
+    queryFn: async () => {
+      const { data, error } = await api.GET('/api/v1/refs/activity-types', {});
+      if (error) throw apiError(error);
+      return data;
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+  const found = query.data?.find((item) => item.id === activityTypeId);
+  return found ? pickLocalizedName(found.name, lang) : null;
+}
+
+export function useOrganizationName(organizationId: string | undefined, lang: 'uz_latn' | 'ru'): string | null {
+  const query = useQuery({
+    queryKey: ['refs', 'organizations', 'leshoz'],
+    queryFn: async () => {
+      const { data, error } = await api.GET('/api/v1/refs/organizations', {
+        params: { query: { kind: 'leshoz', page_size: 100 } },
+      });
+      if (error) throw apiError(error);
+      return data;
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+  const found = query.data?.items.find((item) => item.id === organizationId);
+  return found ? pickLocalizedName(found.name, lang) : null;
+}
+
+export function useContourNumber(contourId: string | undefined): string | null {
+  const query = useQuery({
+    queryKey: ['gis', 'contour', contourId],
+    queryFn: async () => {
+      const { data, error } = await api.GET('/api/v1/gis/contours/{contour_id}', {
+        params: { path: { contour_id: contourId! } },
+      });
+      if (error) throw apiError(error);
+      return data;
+    },
+    enabled: !!contourId,
+    staleTime: 5 * 60 * 1000,
+  });
+  return query.data?.number ?? null;
 }
 
 // --- Tasks ---------------------------------------------------------------
