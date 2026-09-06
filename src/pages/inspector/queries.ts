@@ -105,8 +105,11 @@ export const taskKeys = {
 /** `GET /inspections/tasks` — `view_any`/`tasks.manage` see the zone, a
  *  plain inspector sees only their own `assigned_to`; the backend narrows
  *  this without the caller asking (`service.py::list_tasks`), so this hook
- *  sends only the filters the route actually accepts. */
-export function useTasksList(filters: TaskListFilters) {
+ *  sends only the filters the route actually accepts. `options.enabled`
+ *  lets `InspectionsPage`'s tab shell (every tab body mounts up front,
+ *  toggled with `hidden`) keep a hidden tab's own query from firing —
+ *  `ParamsTab.tsx`'s own `active` prop is the same pattern one track over. */
+export function useTasksList(filters: TaskListFilters, options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: taskKeys.list(filters),
     queryFn: async () => {
@@ -115,6 +118,7 @@ export function useTasksList(filters: TaskListFilters) {
       return data;
     },
     placeholderData: (previous) => previous,
+    enabled: options?.enabled ?? true,
   });
 }
 
