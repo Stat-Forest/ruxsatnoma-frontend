@@ -879,6 +879,17 @@ export const ru = {
   'gis.imports.recent': 'Последние импорты (в этом браузере)',
   'gis.imports.noneSelected': 'Импорт не выбран',
 
+  'gis.imports.list.title': 'Реестр импортов',
+  'gis.imports.list.statusFilterAll': 'Все',
+  'gis.imports.list.empty': 'По этому фильтру импорты не найдены.',
+  'gis.imports.list.loadFailed': 'Не удалось загрузить список.',
+  'gis.imports.list.colCreatedAt': 'Дата загрузки',
+  'gis.imports.list.colStatus': 'Статус',
+  'gis.imports.list.colLayer': 'Слой',
+  'gis.imports.list.colOrganization': 'Организация',
+  'gis.imports.list.colFormat': 'Формат',
+  'gis.imports.list.colActions': 'Действие',
+
   'gis.layers.form.shapeType': 'Тип фигуры',
   'gis.layers.form.drawHint': 'Нарисуйте фигуру на карте',
   'gis.layers.form.name': 'Название',

@@ -886,6 +886,17 @@ export const uz_latn = {
   'gis.imports.recent': "So'nggi importlar (shu brauzerda)",
   'gis.imports.noneSelected': "Import tanlanmagan",
 
+  'gis.imports.list.title': "Importlar reyestri",
+  'gis.imports.list.statusFilterAll': 'Barchasi',
+  'gis.imports.list.empty': "Bu filtr bo'yicha importlar topilmadi.",
+  'gis.imports.list.loadFailed': "Ro'yxatni yuklab bo'lmadi.",
+  'gis.imports.list.colCreatedAt': 'Yuklangan sana',
+  'gis.imports.list.colStatus': 'Holati',
+  'gis.imports.list.colLayer': 'Qatlam',
+  'gis.imports.list.colOrganization': 'Tashkilot',
+  'gis.imports.list.colFormat': 'Format',
+  'gis.imports.list.colActions': 'Amal',
+
   'gis.layers.form.shapeType': 'Shakl turi',
   'gis.layers.form.drawHint': 'Xaritada shaklni chizing',
   'gis.layers.form.name': 'Nomi',
