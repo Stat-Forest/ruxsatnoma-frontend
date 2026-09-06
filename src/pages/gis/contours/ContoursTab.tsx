@@ -484,6 +484,7 @@ export function ContoursTab({ t }: { t: (key: string) => string }) {
             geometryType={mode === 'split' ? 'LineString' : 'Polygon'}
             active={mode !== 'browse'}
             referenceGeometry={mode === 'edit-draft' || mode === 'split' ? knownGeometry : null}
+            selectedGeometry={mode === 'browse' ? knownGeometry : null}
             browsableFeatures={featuresQuery.data as never}
             onViewportChange={setBbox}
             onDrawFinish={(geometry) => {

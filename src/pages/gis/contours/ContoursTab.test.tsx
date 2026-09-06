@@ -18,8 +18,20 @@ const t = (key: string) => key;
 // (`geometryType`), the same way `ApplicationWizardPage.test.tsx` mocks out
 // `ContourPicker`'s own map.
 vi.mock('./DrawMap', () => ({
-  DrawMap: (props: { geometryType: string; active: boolean; onDrawFinish: (g: unknown) => void }) => (
-    <div data-testid="draw-map-mock" data-active={String(props.active)} data-geometry-type={props.geometryType}>
+  DrawMap: (props: {
+    geometryType: string;
+    active: boolean;
+    referenceGeometry?: { type: string } | null;
+    selectedGeometry?: { type: string } | null;
+    onDrawFinish: (g: unknown) => void;
+  }) => (
+    <div
+      data-testid="draw-map-mock"
+      data-active={String(props.active)}
+      data-geometry-type={props.geometryType}
+      data-reference-geometry-type={props.referenceGeometry?.type ?? ''}
+      data-selected-geometry-type={props.selectedGeometry?.type ?? ''}
+    >
       <button
         onClick={() =>
           props.onDrawFinish(
@@ -150,6 +162,19 @@ test('creating a contour, drawing its first version, and holding it through to a
 
   const panel = await screen.findByTestId('version-panel');
   expect(within(panel).getByTestId('version-status-badge')).toHaveTextContent('gis.versions.status.draft');
+
+  // Back in browse mode with a held draft: its geometry now reaches the map
+  // as the selection, not the edit reference (no editing is in progress).
+  const map = screen.getByTestId('draw-map-mock');
+  expect(map).toHaveAttribute('data-selected-geometry-type', 'Polygon');
+  expect(map).toHaveAttribute('data-reference-geometry-type', '');
+
+  // "Redraw" enters edit-draft mode — the SAME geometry now moves to the
+  // edit reference, and the selection highlight (redundant with the draw
+  // guide, and drawn over it) drops.
+  await ui.click(screen.getByRole('button', { name: 'gis.contours.redraw' }));
+  expect(map).toHaveAttribute('data-reference-geometry-type', 'Polygon');
+  expect(map).toHaveAttribute('data-selected-geometry-type', '');
 });
 
 test('a published contour with no held draft shows its card and, for an approver, an archive action', async () => {
@@ -171,6 +196,48 @@ test('a published contour with no held draft shows its card and, for an approver
   // "draw first version" prompt must not appear.
   expect(screen.queryByRole('button', { name: 'gis.contours.drawFirstVersion' })).not.toBeInTheDocument();
   expect(screen.getByRole('button', { name: 'gis.versions.actions.archive' })).toBeInTheDocument();
+});
+
+test('selecting a published contour in browse mode hands its geometry to the map as the selection, not the edit reference — and clearing it drops both', async () => {
+  server.use(
+    ...referenceHandlers(),
+    http.get('*/api/v1/gis/contours', () =>
+      HttpResponse.json({ items: [{ id: 'c-pub', number: 'K-050', organization_id: 'org-1', area_ha: '5.0000', occupied_ha: '0.0000', s_available_ha: '5.0000', occupancy_source: 'none' }], total: 1 }),
+    ),
+    http.get('*/api/v1/gis/contours/c-pub', () =>
+      HttpResponse.json({
+        id: 'c-pub',
+        number: 'K-050',
+        organization_id: 'org-1',
+        kind: 'contour',
+        version_id: 'v-pub',
+        area_ha: '5.0000',
+        geometry: { type: 'Polygon', coordinates: [[[69.1, 41.2], [69.2, 41.2], [69.2, 41.3], [69.1, 41.2]]] },
+        occupied_ha: '0.0000',
+        s_available_ha: '5.0000',
+        occupancy_source: 'none',
+      }),
+    ),
+  );
+  const ui = userEvent.setup();
+  renderTab(['gis.contours.manage', 'gis.contours.approve']);
+
+  // Nothing selected yet — the map holds neither a selection nor a reference.
+  const map = await screen.findByTestId('draw-map-mock');
+  expect(map).toHaveAttribute('data-selected-geometry-type', '');
+  expect(map).toHaveAttribute('data-reference-geometry-type', '');
+
+  await ui.click(await screen.findByTestId('contour-row-c-pub'));
+  await screen.findAllByText('K-050');
+
+  // Browse mode (the default after picking a row): the geometry reaches the
+  // map as the selection highlight, never as the edit/split reference.
+  await waitFor(() => expect(map).toHaveAttribute('data-selected-geometry-type', 'Polygon'));
+  expect(map).toHaveAttribute('data-reference-geometry-type', '');
+
+  // "New contour" clears `selectedContourId` — the highlight must not linger.
+  await ui.click(await screen.findByRole('button', { name: 'gis.contours.newContour' }));
+  expect(map).toHaveAttribute('data-selected-geometry-type', '');
 });
 
 test('a contour with neither a published card nor a held draft offers "draw first version" to a specialist', async () => {
