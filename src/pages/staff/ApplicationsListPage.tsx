@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Download, Loader2, RotateCcw } from 'lucide-react';
 import { useAuth } from '../../auth/useAuth';
-import { useT } from '../../i18n/useT';
+import { useLanguage, useT } from '../../i18n/useT';
 import { Button } from '../../components/ui/button';
 import { FormField, Input, Select } from '../../components/ui/FormControls';
 import { Pagination } from '../../components/ui/Navigation';
@@ -55,6 +55,7 @@ const EMPTY_FILTERS: FilterFormState = {
 export function ApplicationsListPage() {
   const { me } = useAuth();
   const t = useT();
+  const { lang } = useLanguage();
   const [filters, setFilters] = useState(EMPTY_FILTERS);
   const [appliedFilters, setAppliedFilters] = useState(EMPTY_FILTERS);
   const [page, setPage] = useState(1);
@@ -152,7 +153,7 @@ export function ApplicationsListPage() {
               onChange={(e) => setFilters((f) => ({ ...f, activity_type_id: e.target.value }))}
               options={[
                 { value: '', label: 'Barchasi' },
-                ...(activityTypes.data ?? []).map((a) => ({ value: a.id, label: localizedName(a.name) || a.code })),
+                ...(activityTypes.data ?? []).map((a) => ({ value: a.id, label: localizedName(a.name, lang) || a.code })),
               ]}
             />
           </FormField>

@@ -52,21 +52,32 @@ export function formatPermitNumber(series: string, number: number): string {
   return `${series} № ${String(number).padStart(6, '0')}`;
 }
 
-/** A `LocalizedName`-shaped map (`{uz_cyrl, ru, ...}`) picked for the two UI
- *  languages this stage ships — the same fallback chain `AppShell.tsx`'s own
- *  `pickLocalizedName` uses, duplicated here rather than imported: it is a
- *  four-line, page-local concern and `AppShell` does not export it. */
+/** A `LocalizedName`-shaped map (`{uz_latn, uz_cyrl, ru, ...}`) picked for
+ *  the two UI languages this stage ships. F14 (`docs/plans/07.3-findings.md`):
+ *  this used to hard-code `uz_cyrl` for the `uz_latn` UI — true only before
+ *  decision #90, when `uz_latn` was optional and often absent from the
+ *  seed. #90 made `uz_latn` the REQUIRED field (backfilled first), so a
+ *  `uz_latn` reader is now owed their own field, not the Cyrillic one —
+ *  which is exactly why the permit document used to print
+ *  `Vakolatli organ: Бурчмулла ДЎХ` on an otherwise-Latin page. */
 export function pickLocalizedName(name: Record<string, unknown> | null | undefined, uiLang: 'uz_latn' | 'ru'): string {
   if (!name) return '';
-  const preferred = uiLang === 'ru' ? name.ru : name.uz_cyrl;
-  const candidate = preferred ?? name.ru ?? name.uz_cyrl ?? Object.values(name)[0];
+  const preferred = uiLang === 'ru' ? name.ru : name.uz_latn;
+  const candidate = preferred ?? name.uz_latn ?? name.uz_cyrl ?? name.ru ?? Object.values(name)[0];
   return typeof candidate === 'string' ? candidate : '';
 }
 
 /** A UUID, shortened for display where the full value only adds noise —
  *  never used where the value must be copied verbatim (the sha256 hash and
- *  full ids stay in a `title` attribute for that). */
+ *  full ids stay in a `title` attribute for that).
+ *
+ *  F15 (`docs/plans/07.3-findings.md`): the seeded ids are uuid7, whose
+ *  LEADING hex characters are a millisecond timestamp, so slicing from the
+ *  front showed two different applicants/organizations, created moments
+ *  apart in the same seed run, as the identical "eight characters". The
+ *  TRAILING characters are the random tail (RFC 9562), not derived from the
+ *  clock — a distinct fingerprint rather than a colliding one. */
 export function shortId(value: string | null | undefined): string {
   if (!value) return '—';
-  return value.slice(0, 8);
+  return value.slice(-8);
 }

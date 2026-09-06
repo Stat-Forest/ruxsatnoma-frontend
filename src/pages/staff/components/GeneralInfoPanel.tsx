@@ -1,4 +1,5 @@
 import { UserCheck, FileText } from 'lucide-react';
+import { useLanguage } from '../../../i18n/useT';
 import { useActivityTypes, useBenefitCategories, useContour, useLivestockTypes, type ApplicationCardOut } from '../queries';
 import { formatAmount, formatDate, localizedName, shortId } from '../format';
 
@@ -27,26 +28,25 @@ function Fact({ label, value, sub }: { label: string; value: string; sub?: strin
  * reference's own `GeneralInfoPanel` invents a Solik.uz/OneID/passport
  * narrative with no backing route; none of that is reproduced here. */
 export function GeneralInfoPanel({ card }: { card: ApplicationCardOut }) {
+  const { lang } = useLanguage();
   const activityTypes = useActivityTypes();
   const livestockTypes = useLivestockTypes();
   const benefitCategories = useBenefitCategories();
   const contour = useContour(card.contour_id);
 
   const benefitName = card.benefit_category_item_id
-    ? localizedName(benefitCategories.data?.find((b) => b.id === card.benefit_category_item_id)?.name)
+    ? localizedName(benefitCategories.data?.find((b) => b.id === card.benefit_category_item_id)?.name, lang)
     : null;
 
   const activityName = card.activity_type_id
-    ? localizedName(activityTypes.data?.find((a) => a.id === card.activity_type_id)?.name)
+    ? localizedName(activityTypes.data?.find((a) => a.id === card.activity_type_id)?.name, lang)
     : null;
 
   return (
     <section className="bg-white border border-[#E4E7EA] rounded-2xl shadow-xs font-sans overflow-hidden">
       <div className="p-6 border-b border-[#E4E7EA]">
         <h2 className="text-lg font-bold text-[#1A1F24]">Umumiy maʼlumotlar</h2>
-        <p className="text-xs text-[#5A646D] mt-0.5">
-          Ariza rekvizitlari — GET /api/v1/applications/{'{id}'} javobidan
-        </p>
+        <p className="text-xs text-[#5A646D] mt-0.5">Ariza rekvizitlari</p>
       </div>
 
       <div className="p-6 grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -104,7 +104,7 @@ export function GeneralInfoPanel({ card }: { card: ApplicationCardOut }) {
       {card.items.length > 0 && (
         <div className="px-6 pb-6">
           <h3 className="text-xs font-bold uppercase tracking-wider text-[#5A646D] border-b border-[#E4E7EA] pb-2 mb-3">
-            Chorva mollari (application_items)
+            Chorva mollari
           </h3>
           <div className="overflow-x-auto border border-[#E4E7EA] rounded-xl">
             <table className="w-full text-xs text-left">
@@ -118,7 +118,7 @@ export function GeneralInfoPanel({ card }: { card: ApplicationCardOut }) {
                 {card.items.map((item) => (
                   <tr key={item.id}>
                     <td className="py-2 px-3 font-medium text-[#1A1F24]">
-                      {localizedName(livestockTypes.data?.find((l) => l.id === item.livestock_type_id)?.name) ||
+                      {localizedName(livestockTypes.data?.find((l) => l.id === item.livestock_type_id)?.name, lang) ||
                         shortId(item.livestock_type_id)}
                     </td>
                     <td className="py-2 px-3 text-right font-mono font-bold text-[#1A1F24]">{item.head_count}</td>

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { HelpCircle, MessageCircleQuestion, Undo2 } from 'lucide-react';
 import { useAuth } from '../../../auth/useAuth';
-import { useT } from '../../../i18n/useT';
+import { useLanguage, useT } from '../../../i18n/useT';
 import { Button } from '../../../components/ui/button';
 import { Modal } from '../../../components/ui/Overlay';
 import { Checkbox, FormField, Select, Textarea } from '../../../components/ui/FormControls';
@@ -84,6 +84,7 @@ function RequestInfoModal({ applicationId, onClose }: { applicationId: string; o
 
 function ReturnModal({ applicationId, onClose }: { applicationId: string; onClose: () => void }) {
   const t = useT();
+  const { lang } = useLanguage();
   const [reasonItemId, setReasonItemId] = useState('');
   const [legalBasis, setLegalBasis] = useState('');
   const [fields, setFields] = useState<Record<string, string>>({});
@@ -151,7 +152,7 @@ function ReturnModal({ applicationId, onClose }: { applicationId: string; onClos
             onChange={(e) => setReasonItemId(e.target.value)}
             options={[
               { value: '', label: t('staff.infoRequest.selectPlaceholder') },
-              ...returnable.map((r) => ({ value: r.id, label: localizedName(r.name) || r.code })),
+              ...returnable.map((r) => ({ value: r.id, label: localizedName(r.name, lang) || r.code })),
             ]}
           />
         </FormField>
