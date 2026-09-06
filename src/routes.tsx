@@ -14,6 +14,7 @@ import { OrganizationsPage } from './pages/admin/organizations/OrganizationsPage
 import { RolesPage } from './pages/admin/roles/RolesPage';
 import { SettingsPage } from './pages/admin/settings/SettingsPage';
 import { TemplatesPage } from './pages/admin/templates/TemplatesPage';
+import { SupportPage } from './pages/support/SupportPage';
 import {
   ApplicationsPage,
   ApplicationWizardPage,
@@ -62,6 +63,7 @@ const CHILD_PAGES: Record<string, ReactNode> = {
   '/admin/integrations': <IntegrationsPage />,
   '/notifications': <NotificationsPage />,
   '/profile': <ProfilePage />,
+  '/support': <SupportPage />,
 };
 
 /** Generated from `NAVIGATION`, not hand-written — see `CHILD_PAGES` above. */

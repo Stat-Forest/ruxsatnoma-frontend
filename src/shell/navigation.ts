@@ -7,6 +7,7 @@ import {
   FileText,
   Home,
   Inbox,
+  LifeBuoy,
   MailPlus,
   Map,
   Megaphone,
@@ -116,6 +117,7 @@ export const NAVIGATION: NavItem[] = [
   { to: '/admin/notification-templates', labelKey: 'nav.templates', permission: 'notifications.templates.manage', icon: MailPlus },
   { to: '/admin/integrations', labelKey: 'nav.integrations', permission: 'admin.integrations.view', icon: Radio },
   { to: '/notifications', labelKey: 'nav.notifications', icon: Bell },
+  { to: '/support', labelKey: 'nav.support', icon: LifeBuoy },
   { to: '/profile', labelKey: 'nav.profile', icon: User },
 ];
 
