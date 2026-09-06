@@ -51,3 +51,17 @@ export function pickLocalizedName(
 export function formatCoord(value: number): string {
   return value.toFixed(5);
 }
+
+/** `CaseOut.damage_amount` — the same house convention `permits/format.ts`'s
+ *  own `formatMoney` uses (space-separated thousands, fractional so'm
+ *  dropped unless non-zero), copied rather than imported — this module's
+ *  own small self-contained copy, per this file's own header comment. */
+export function formatMoney(value: string | null | undefined): string {
+  if (value == null) return '—';
+  const [whole, fraction] = value.split('.');
+  const withSeparators = whole.replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+  if (fraction && Number(fraction) !== 0) {
+    return `${withSeparators},${fraction.slice(0, 2)}`;
+  }
+  return withSeparators;
+}
