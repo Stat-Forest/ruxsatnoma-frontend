@@ -4,6 +4,7 @@ import {
   Bell,
   BookMarked,
   Building2,
+  ClipboardCheck,
   FileText,
   Home,
   Inbox,
@@ -107,6 +108,29 @@ export const NAVIGATION: NavItem[] = [
   // stand on at all (06.5-accountant.md ruling R4).
   { to: '/invoices', labelKey: 'nav.invoices', permission: ['payments.view', 'payments.confirm'], icon: Wallet },
   { to: '/permits', labelKey: 'nav.permits', permission: 'permits.view_any', icon: Stamp },
+  // Five codes, any ONE of them (`NavItem.permission` semantics): the
+  // inspector's own `inspections.acts.write` (checklists, acts, ERI
+  // signing), `inspections.tasks.manage` for the executor_staff/
+  // executor_head who assign and cancel field tasks, `inspections.cases
+  // .manage` for the executor_head who decides violation cases,
+  // `inspections.checklists.manage` for the central_admin who maintains
+  // checklist versions, and `inspections.view_any` — oversight read access
+  // to the whole zone (executor_head, central_admin, leadership,
+  // prosecutor). Gating on the inspector's own code alone would hide this
+  // entire menu entry from every other role the backend already lets see
+  // or manage some part of it.
+  {
+    to: '/inspections',
+    labelKey: 'nav.inspections',
+    permission: [
+      'inspections.acts.write',
+      'inspections.tasks.manage',
+      'inspections.cases.manage',
+      'inspections.checklists.manage',
+      'inspections.view_any',
+    ],
+    icon: ClipboardCheck,
+  },
   { to: '/admin/users', labelKey: 'nav.users', permission: 'auth.users.manage', icon: Users },
   { to: '/admin/roles', labelKey: 'nav.roles', permission: 'auth.users.manage', icon: ShieldCheck },
   { to: '/admin/organizations', labelKey: 'nav.organizations', permission: 'admin.organizations.manage', icon: Building2 },

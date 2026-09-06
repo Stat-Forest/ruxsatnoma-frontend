@@ -9,6 +9,7 @@ export const ru = {
   'nav.norms': 'Нормативы',
   'nav.invoices': 'Счета',
   'nav.permits': 'Разрешения',
+  'nav.inspections': 'Проверки',
   'nav.users': 'Пользователи',
   'nav.roles': 'Роли и права',
   'nav.organizations': 'Организации',

@@ -13,6 +13,7 @@ export const uz_latn = {
   'nav.norms': "Me'yorlar",
   'nav.invoices': 'Hisob-fakturalar',
   'nav.permits': 'Ruxsatnomalar',
+  'nav.inspections': 'Tekshiruvlar',
   'nav.users': 'Foydalanuvchilar',
   'nav.roles': 'Rollar va huquqlar',
   'nav.organizations': 'Tashkilotlar',
