@@ -171,3 +171,31 @@ test('edit mode offers an input only for the manual column, auto columns stay pl
   expect(table).toHaveTextContent('12');
   expect(table).toHaveTextContent('150000.00');
 });
+
+test('saving an edit PATCHes the full rows array and shows savedNote', async () => {
+  let sentBody: { rows: Record<string, unknown>[] } | undefined;
+  server.use(
+    http.patch(`*/api/v1/reports/${REPORT_ID}/data`, async ({ request }) => {
+      sentBody = (await request.json()) as typeof sentBody;
+      return HttpResponse.json(
+        report({ status: 'created', data: { rows: sentBody!.rows } }),
+      );
+    }),
+  );
+  const user = userEvent.setup();
+  renderPanel(
+    report({
+      status: 'created',
+      data: { rows: [{ head_count: '12', note: 'birinchi', amount: '150000.00' }] },
+    }),
+  );
+
+  await user.click(await screen.findByTestId('report-data-edit'));
+  const noteInput = await screen.findByTestId('report-data-cell-note-0');
+  await user.clear(noteInput);
+  await user.type(noteInput, 'yangilandi');
+  await user.click(screen.getByTestId('report-data-save'));
+
+  await screen.findByTestId('report-data-saved');
+  expect(sentBody).toEqual({ rows: [{ head_count: '12', note: 'yangilandi', amount: '150000.00' }] });
+});

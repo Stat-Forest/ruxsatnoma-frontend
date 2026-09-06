@@ -53,6 +53,7 @@ export function ReportDataPanel({ report }: { report: ReportOut }) {
 
   const [editing, setEditing] = useState(false);
   const [draftRows, setDraftRows] = useState<Row[]>([]);
+  const [justSaved, setJustSaved] = useState(false);
 
   const columns = (formQuery.data?.columns ?? []) as ReportFormColumn[];
   const rows = ((report.data as { rows?: unknown }).rows as Row[] | undefined) ?? [];
@@ -68,6 +69,7 @@ export function ReportDataPanel({ report }: { report: ReportOut }) {
 
   function startEdit() {
     update.reset();
+    setJustSaved(false);
     setDraftRows(rows.map((row) => ({ ...row })));
     setEditing(true);
   }
@@ -83,7 +85,15 @@ export function ReportDataPanel({ report }: { report: ReportOut }) {
   }
 
   function saveEdit() {
-    update.mutate({ rows: draftRows }, { onSuccess: () => setEditing(false) });
+    update.mutate(
+      { rows: draftRows },
+      {
+        onSuccess: () => {
+          setEditing(false);
+          setJustSaved(true);
+        },
+      },
+    );
   }
 
   return (
@@ -98,7 +108,10 @@ export function ReportDataPanel({ report }: { report: ReportOut }) {
               isLoading={generate.isPending}
               leftIcon={<RefreshCw className="h-4 w-4" />}
               data-testid="report-data-generate"
-              onClick={() => generate.mutate()}
+              onClick={() => {
+                setJustSaved(false);
+                generate.mutate();
+              }}
             >
               {t('reports.data.generateButton')}
             </Button>
@@ -142,6 +155,12 @@ export function ReportDataPanel({ report }: { report: ReportOut }) {
       </div>
 
       {canGenerate && <p className="text-xs text-[#5A646D]">{t('reports.data.generateHint')}</p>}
+
+      {justSaved && !editing && (
+        <p data-testid="report-data-saved" className="text-xs font-semibold text-[#15803D]">
+          {t('reports.data.savedNote')}
+        </p>
+      )}
 
       {generateErr && <Alert variant="danger">{reportErrorMessage(t, generateErr)}</Alert>}
       {updateErr && <Alert variant="danger">{reportErrorMessage(t, updateErr)}</Alert>}
