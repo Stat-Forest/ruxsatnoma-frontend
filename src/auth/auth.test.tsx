@@ -68,7 +68,7 @@ const server = setupServer(
   http.get('*/notifications/unread-count', () => HttpResponse.json({ count: 0 })),
   http.post('*/auth/logout', () => new HttpResponse(null, { status: 204 })),
 );
-beforeAll(() => server.listen());
+beforeAll(() => server.listen({ onUnhandledRequest: 'error' }));
 afterEach(() => {
   server.resetHandlers();
   setCsrfToken(null);
@@ -196,6 +196,21 @@ test('RequireAuth refuses a route whose permission the user lacks', async () => 
 test('the superuser passes a gate for a code nobody granted', async () => {
   server.use(
     http.get('*/auth/me', () => HttpResponse.json({ ...ME, permissions: [], is_superuser: true })),
+    // `UsersPage` itself fires these the moment it mounts — this test only
+    // cares that the gate lets a superuser through to it, not what it shows,
+    // so empty answers are enough to let it render without leaking to
+    // whatever is actually listening at `localhost:8000`.
+    http.get('*/api/v1/admin/users', () =>
+      HttpResponse.json({ items: [], total: 0, page: 1, page_size: 20 }),
+    ),
+    http.get('*/api/v1/admin/users/stats', () =>
+      HttpResponse.json({ total: 0, by_status: {}, by_role: {}, active_sessions: 0 }),
+    ),
+    http.get('*/api/v1/admin/roles', () => HttpResponse.json([])),
+    http.get('*/api/v1/refs/organizations', () =>
+      HttpResponse.json({ items: [], total: 0, page: 1, page_size: 100 }),
+    ),
+    http.get('*/api/v1/refs/regions', () => HttpResponse.json([])),
   );
   await renderAt('/admin/users');
   expect(await screen.findByTestId('users-page')).toBeInTheDocument();

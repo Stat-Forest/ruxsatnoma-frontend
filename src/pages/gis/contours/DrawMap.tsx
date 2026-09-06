@@ -19,6 +19,7 @@ import type { Feature, FeatureCollection, Geometry } from 'geojson';
 import { TerraDraw } from 'terra-draw';
 import { TerraDrawMapLibreGLAdapter } from 'terra-draw-maplibre-gl-adapter';
 import { createDrawModes } from './drawModes';
+import { computeGeometryBounds } from './geometryBounds';
 
 setWorkerUrl(workerUrl);
 
@@ -69,6 +70,15 @@ export interface DrawMapProps {
   referenceGeometry?: Geometry | null;
   /** Read-only context, e.g. every published contour in the viewport. */
   browsableFeatures?: FeatureCollection;
+  /** The contour picked in the list, while merely browsing (not editing or
+   * splitting — those already get their own guide via `referenceGeometry`).
+   * Drawn in its own solid, high-contrast style so it stands out among
+   * `browsableFeatures`'s many quieter parcels, and the map fits itself to
+   * its bounds whenever this prop changes to a new geometry. `null`/`undefined`
+   * clears both the highlight and any pending fit — it does NOT recentre the
+   * map, so clearing a selection leaves the operator wherever they were
+   * looking, just without a stale highlight left behind. */
+  selectedGeometry?: Geometry | null;
   onViewportChange?: (bbox: string) => void;
   /** Fired once, when the operator finishes one shape (a polygon's closing
    * click, a line's double-click, a point's single click). The drawn feature
@@ -92,6 +102,7 @@ export function DrawMap({
   active,
   referenceGeometry,
   browsableFeatures,
+  selectedGeometry,
   onViewportChange,
   onDrawFinish,
   height = '420px',
@@ -203,6 +214,32 @@ export function DrawMap({
         paint: { 'line-color': '#0369A1', 'line-width': 2, 'line-dasharray': [2, 2] },
       });
 
+      // The list selection, drawn ON TOP of `browsable` and in a deliberately
+      // different register from `reference`'s muted dashed guide: this is not
+      // "here is what you are replacing", it is "this is the one you picked"
+      // — solid fill, a white casing so the outline reads against
+      // `browsable-fill`'s own green, and an amber line color that appears
+      // nowhere else on this map.
+      map.addSource('selected', { type: 'geojson', data: EMPTY_COLLECTION });
+      map.addLayer({
+        id: 'selected-fill',
+        type: 'fill',
+        source: 'selected',
+        paint: { 'fill-color': '#F59E0B', 'fill-opacity': 0.28 },
+      });
+      map.addLayer({
+        id: 'selected-casing',
+        type: 'line',
+        source: 'selected',
+        paint: { 'line-color': '#FFFFFF', 'line-width': 5, 'line-opacity': 0.9 },
+      });
+      map.addLayer({
+        id: 'selected-line',
+        type: 'line',
+        source: 'selected',
+        paint: { 'line-color': '#B45309', 'line-width': 2.5 },
+      });
+
       draw.start();
       readViewport();
       setMapReady(true);
@@ -250,6 +287,28 @@ export function DrawMap({
       : EMPTY_COLLECTION;
     source?.setData(data);
   }, [referenceGeometry, mapReady]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !mapReady) return;
+    const source = map.getSource('selected') as GeoJSONSource | undefined;
+    if (!selectedGeometry) {
+      // Clears the highlight and leaves the viewport exactly where it was —
+      // no fit here, so deselecting never yanks the map back out to wherever
+      // it happened to be before something was picked.
+      source?.setData(EMPTY_COLLECTION);
+      return;
+    }
+    source?.setData({ type: 'FeatureCollection', features: [{ type: 'Feature', properties: {}, geometry: selectedGeometry } as Feature] });
+    const bounds = computeGeometryBounds(selectedGeometry);
+    if (bounds) {
+      // `maxZoom` is a floor under how far a degenerate (single-point or
+      // near-zero-area) geometry could zoom in, NOT a fixed zoom for the
+      // normal case — a real parcel's zoom still comes entirely out of its
+      // own bounds plus this padding.
+      map.fitBounds(bounds, { padding: 48, maxZoom: 17, duration: 300 });
+    }
+  }, [selectedGeometry, mapReady]);
 
   return (
     <div ref={shellRef} className="relative bg-white border border-[#E4E7EA] rounded-2xl overflow-hidden">
