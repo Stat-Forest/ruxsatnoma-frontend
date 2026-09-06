@@ -31,9 +31,11 @@ import { FormField, Input, Select } from '../../components/ui/FormControls';
 import { Alert } from '../../components/ui/Feedback';
 import { StatusBadge, type StatusType } from '../../components/ui/StatusBadge';
 import { Button } from '../../components/ui/button';
-import { ApiError } from '../../api/errors';
 import { useAuth } from '../../auth/useAuth';
-import { useT } from '../../i18n/useT';
+import { apiErrorMessage } from '../../i18n/errorMessages';
+import type { UiLanguage } from '../../i18n/context';
+import { useApiErrorText } from '../../i18n/useApiErrorText';
+import { useLanguage, useT } from '../../i18n/useT';
 import { satisfies } from '../../shell/navigation';
 import { ArchiveConfirmDialog } from './components/ArchiveConfirmDialog';
 import { PublishConfirmDialog } from './components/PublishConfirmDialog';
@@ -92,10 +94,6 @@ function statusTone(status: string): StatusType {
   }
 }
 
-function errorText(error: unknown, fallback: string): string {
-  return error instanceof ApiError ? `${error.code}: ${error.message}` : fallback;
-}
-
 /** Read through `Date.now()` rather than constructing a bare `new Date()`,
  *  so a test can pin "today" without faking timers — the same reason
  *  `ClassifiersPage.tsx`'s own `todayIso()` does it this way. Ruling R4's
@@ -129,7 +127,7 @@ function canArchiveRow(
  *  sentence an operator reads — the DECISION (`publishRefusalReason`) is
  *  shared with task 5's tariffs dialog; the sentence stays local, under
  *  this track's own `norms.params.*` namespace. */
-function publishErrorText(error: unknown, t: (key: string) => string): string {
+function publishErrorText(error: unknown, t: (key: string) => string, lang: UiLanguage): string {
   switch (publishRefusalReason(error)) {
     case 'not_draft':
       return t('norms.params.publish.error.notDraft');
@@ -140,7 +138,7 @@ function publishErrorText(error: unknown, t: (key: string) => string): string {
     case 'period_overlap':
       return t('norms.params.publish.error.periodOverlap');
     default:
-      return errorText(error, t('norms.params.publish.error.generic'));
+      return apiErrorMessage(error, lang);
   }
 }
 
@@ -241,6 +239,8 @@ const EMPTY_FILTERS: FilterState = { code: '', status: '' };
  */
 export function ParamsTab({ active }: { active: boolean }) {
   const t = useT();
+  const { lang } = useLanguage();
+  const errorText = useApiErrorText();
   const { me } = useAuth();
   const [filters, setFilters] = useState<FilterState>(EMPTY_FILTERS);
   const [applied, setApplied] = useState<FilterState>(EMPTY_FILTERS);
@@ -527,7 +527,7 @@ export function ParamsTab({ active }: { active: boolean }) {
             close: t('norms.params.publish.close'),
           }}
           isPending={publish.isPending}
-          errorMessage={publish.error ? publishErrorText(publish.error, t) : null}
+          errorMessage={publish.error ? publishErrorText(publish.error, t, lang) : null}
           result={publish.data ?? null}
           onConfirm={() => publish.mutate(publishTarget.id)}
           onClose={closePublish}

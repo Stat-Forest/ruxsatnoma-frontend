@@ -15,7 +15,7 @@ import { FormField, Input, Select } from '../../../components/ui/FormControls';
 import { Alert } from '../../../components/ui/Feedback';
 import { Button } from '../../../components/ui/button';
 import { Modal } from '../../../components/ui/Overlay';
-import { ApiError } from '../../../api/errors';
+import { useApiErrorText } from '../../../i18n/useApiErrorText';
 import { useLanguage, useT } from '../../../i18n/useT';
 import { pickLocalizedName, useActivityTypes } from '../refs';
 import { fileUrl, uploadDocument, type NormOut } from './api';
@@ -24,10 +24,6 @@ import { parseRestYears, restYearsToText, rotationYears } from './rotation';
 import { rowsToSeason, seasonToRows, seasonWindowError, type SeasonWindowRow } from './season';
 import { useCreateNorm, useUpdateNorm } from './queries';
 import { yieldError } from './yield';
-
-function errorText(error: unknown, fallback: string): string {
-  return error instanceof ApiError ? `${error.code}: ${error.message}` : fallback;
-}
 
 export type NormFormMode = 'create' | 'edit';
 
@@ -42,6 +38,7 @@ export interface NormFormModalProps {
 export function NormFormModal({ mode, row, contourNumber, onClose, onSaved }: NormFormModalProps) {
   const t = useT();
   const { lang } = useLanguage();
+  const errorText = useApiErrorText();
   const activityTypes = useActivityTypes();
   const create = useCreateNorm();
   const update = useUpdateNorm();

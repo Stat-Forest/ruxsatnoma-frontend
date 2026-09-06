@@ -4,6 +4,7 @@ import { Button } from '../../../components/ui/button';
 import { FormField, Input, Select } from '../../../components/ui/FormControls';
 import { Modal } from '../../../components/ui/Overlay';
 import { ApiError } from '../../../api/errors';
+import { useApiErrorText } from '../../../i18n/useApiErrorText';
 import { useLanguage } from '../../../i18n/useT';
 import { pickName } from '../../applicant/format';
 import type { UserAdminOut, UserCreatedOut } from '../api';
@@ -30,6 +31,7 @@ export interface UserFormModalProps {
 
 export function UserFormModal({ mode, user, onClose, onCreated }: UserFormModalProps) {
   const { lang } = useLanguage();
+  const errorText = useApiErrorText();
   const L = labelsFor(lang);
 
   const initial = mode === 'edit' && user ? formFromUser(user) : EMPTY_FORM;
@@ -131,7 +133,7 @@ export function UserFormModal({ mode, user, onClose, onCreated }: UserFormModalP
       <form onSubmit={submit} data-testid="user-form" className="space-y-5" noValidate>
         {failure && (
           <Alert variant="danger">
-            {failure instanceof ApiError ? `${failure.code}: ${failure.message}` : L.saveFailed}
+            {failure instanceof ApiError ? errorText(failure) : L.saveFailed}
           </Alert>
         )}
         {notice && <Alert variant="info">{notice}</Alert>}

@@ -1,21 +1,16 @@
 import { useState } from 'react';
 import type { FormEvent } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { ApiError } from '../../../../api/errors';
 import { Alert } from '../../../../components/ui/Feedback';
 import { Button } from '../../../../components/ui/button';
 import { FormField, Input } from '../../../../components/ui/FormControls';
 import { useAuth } from '../../../../auth/useAuth';
+import { useApiErrorText } from '../../../../i18n/useApiErrorText';
 import { useT } from '../../../../i18n/useT';
 import { PINFL_PATTERN, buildMockAttachedSignature } from '../../../../lib/eimzoMock';
 import { bindCertificate, listMyCertificates, unbindCertificate } from './api';
 
 const CERTIFICATES_KEY = ['profile', 'certificates'] as const;
-
-function apiErrorText(err: unknown, t: (key: string) => string): string {
-  if (err instanceof ApiError) return `${err.code}: ${err.message}`;
-  return t('cabinet.registration.genericError');
-}
 
 function statusLabel(status: string, t: (key: string) => string): string {
   if (status === 'revoked') return t('cabinet.certificates.statusRevoked');
@@ -45,6 +40,7 @@ function formatDateTime(value: string): string {
 export function CertificatesSection() {
   const { me } = useAuth();
   const t = useT();
+  const errorText = useApiErrorText();
   const queryClient = useQueryClient();
 
   const query = useQuery({ queryKey: CERTIFICATES_KEY, queryFn: listMyCertificates });
@@ -69,7 +65,7 @@ export function CertificatesSection() {
       setPinfl('');
       await queryClient.invalidateQueries({ queryKey: CERTIFICATES_KEY });
     } catch (err) {
-      setBindError(apiErrorText(err, t));
+      setBindError(errorText(err, t('cabinet.registration.genericError')));
     } finally {
       setBinding(false);
     }
@@ -88,7 +84,7 @@ export function CertificatesSection() {
       await unbindCertificate(certificateId);
       await queryClient.invalidateQueries({ queryKey: CERTIFICATES_KEY });
     } catch (err) {
-      setUnbindError(apiErrorText(err, t));
+      setUnbindError(errorText(err, t('cabinet.registration.genericError')));
     } finally {
       setUnbindingId(null);
     }

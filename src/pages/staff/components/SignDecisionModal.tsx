@@ -4,6 +4,7 @@ import { Modal } from '../../../components/ui/Overlay';
 import { Button } from '../../../components/ui/button';
 import { FormField, Input, Select, Textarea } from '../../../components/ui/FormControls';
 import { ApiError } from '../../../api/errors';
+import { useApiErrorText } from '../../../i18n/useApiErrorText';
 import { buildMockSignature, PINFL_PATTERN } from '../../../lib/eimzoMock';
 import { useLanguage } from '../../../i18n/useT';
 import { useApplicationPackage, useRejectionReasons } from '../queries';
@@ -41,6 +42,7 @@ export function SignDecisionModal({
   onSubmitReject,
 }: SignDecisionModalProps) {
   const { lang } = useLanguage();
+  const errorText = useApiErrorText();
   const [pinfl, setPinfl] = useState('');
   const [reasonItemId, setReasonItemId] = useState('');
   const [legalBasis, setLegalBasis] = useState('');
@@ -54,7 +56,7 @@ export function SignDecisionModal({
   const loadingPackage = packageQuery.isLoading;
   const packageError = packageQuery.error
     ? packageQuery.error instanceof ApiError
-      ? `${packageQuery.error.code}: ${packageQuery.error.message}`
+      ? errorText(packageQuery.error)
       : 'Hujjat yuklanmadi.'
     : null;
 
@@ -166,11 +168,7 @@ export function SignDecisionModal({
 
         {apiError && (
           <div className="p-3 bg-[#FEF2F2] border border-[#FCA5A5] rounded-xl text-xs text-[#991B1B] space-y-1">
-            <p className="font-bold">{apiError.code}</p>
-            <p>{apiError.message}</p>
-            {apiError.details !== undefined && (
-              <p className="font-mono text-[10px] break-all opacity-80">{JSON.stringify(apiError.details)}</p>
-            )}
+            <p>{errorText(apiError)}</p>
           </div>
         )}
       </div>

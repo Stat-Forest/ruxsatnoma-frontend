@@ -4,6 +4,7 @@ import { AlertTriangle, ArrowUpCircle, Award, CheckCircle2, Inbox, XCircle } fro
 import { useAuth } from '../../../auth/useAuth';
 import { Button } from '../../../components/ui/button';
 import { ApiError } from '../../../api/errors';
+import { useApiErrorText } from '../../../i18n/useApiErrorText';
 import { useApprove, useReject, useStartReview, type ApplicationCardOut } from '../queries';
 import { shortId, statusLabel } from '../format';
 import { formatPermitNumber } from '../../permits/format';
@@ -30,6 +31,7 @@ const DECIDE_PERMISSION = 'applications.decide';
  */
 export function DecisionPanel({ card }: { card: ApplicationCardOut }) {
   const { me } = useAuth();
+  const errorText = useApiErrorText();
   const [modalMode, setModalMode] = useState<DecisionMode | null>(null);
   const [forwardedTo, setForwardedTo] = useState<string | null>(null);
   const [decided, setDecided] = useState<'approved' | 'rejected' | null>(null);
@@ -143,7 +145,7 @@ export function DecisionPanel({ card }: { card: ApplicationCardOut }) {
         ))}
       {startReview.error && (
         <p className="text-xs text-[#B91C1C]" role="alert">
-          {startReview.error instanceof ApiError ? `${startReview.error.code}: ${startReview.error.message}` : 'Xatolik'}
+          {startReview.error instanceof ApiError ? errorText(startReview.error) : 'Xatolik'}
         </p>
       )}
 

@@ -22,6 +22,7 @@ import { useRef, useState } from 'react';
 import { useParams } from 'react-router';
 import { Loader2 } from 'lucide-react';
 import { useAuth } from '../../auth/useAuth';
+import { useApiErrorText } from '../../i18n/useApiErrorText';
 import { useLanguage, useT } from '../../i18n/useT';
 import { Button } from '../../components/ui/button';
 import { FormField, Input, Select, Textarea } from '../../components/ui/FormControls';
@@ -94,10 +95,11 @@ function InfoRow({ label, value }: { label: string; value: string }) {
 }
 
 function MutationError({ error }: { error: unknown }) {
+  const errorText = useApiErrorText();
   if (!(error instanceof ApiError)) return null;
   return (
     <p className="text-xs text-[#B91C1C]" role="alert">
-      {error.code}: {error.message}
+      {errorText(error)}
     </p>
   );
 }
@@ -121,6 +123,7 @@ function RequestExplanationBlock({ caseId }: { caseId: string }) {
  *  duplicated or renamed, to keep this stage's diff to what it needs. */
 function RecordExplanationBlock({ caseId }: { caseId: string }) {
   const t = useT();
+  const errorText = useApiErrorText();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [text, setText] = useState('');
   const [fileId, setFileId] = useState<string | null>(null);
@@ -135,7 +138,7 @@ function RecordExplanationBlock({ caseId }: { caseId: string }) {
       const uploaded = await uploadActFile(file);
       setFileId(uploaded.id);
     } catch (err) {
-      setUploadError(err instanceof ApiError ? `${err.code}: ${err.message}` : t('inspector.caseDetail.attachFileError'));
+      setUploadError(errorText(err, t('inspector.caseDetail.attachFileError')));
     } finally {
       setUploading(false);
     }
@@ -307,6 +310,7 @@ export function CaseDetailPage() {
   const { me } = useAuth();
   const t = useT();
   const { lang } = useLanguage();
+  const errorText = useApiErrorText();
 
   const caseQuery = useCase(id);
   const violationTypesQuery = useViolationTypes();
@@ -322,7 +326,7 @@ export function CaseDetailPage() {
   if (caseQuery.error || !caseQuery.data) {
     return (
       <div className="py-16 text-center text-sm text-[#991B1B]" data-testid="case-detail-page" role="alert">
-        {caseQuery.error instanceof ApiError ? `${caseQuery.error.code}: ${caseQuery.error.message}` : t('inspector.caseDetail.notFound')}
+        {caseQuery.error instanceof ApiError ? errorText(caseQuery.error) : t('inspector.caseDetail.notFound')}
       </div>
     );
   }

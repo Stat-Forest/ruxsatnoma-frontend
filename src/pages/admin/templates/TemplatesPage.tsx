@@ -24,6 +24,7 @@ import { Alert } from '../../../components/ui/Feedback';
 import { StatusBadge } from '../../../components/ui/StatusBadge';
 import { Button } from '../../../components/ui/button';
 import { ApiError } from '../../../api/errors';
+import { useApiErrorText } from '../../../i18n/useApiErrorText';
 import { useLanguage } from '../../../i18n/useT';
 import { formatDateTime } from '../../applicant/format';
 import { TEMPLATE_CHANNELS, TEMPLATE_STATUSES, type TemplateOut } from './api';
@@ -44,6 +45,7 @@ const EMPTY_FILTERS: FilterState = { event_code: '', channel: '', status: '' };
 
 export function TemplatesPage() {
   const { lang } = useLanguage();
+  const errorText = useApiErrorText();
   const L = LABELS[lang];
 
   const [filters, setFilters] = useState(EMPTY_FILTERS);
@@ -185,7 +187,7 @@ export function TemplatesPage() {
       {list.error && (
         <Alert variant="danger">
           <span data-testid="templates-error">
-            {list.error instanceof ApiError ? `${list.error.code}: ${list.error.message}` : L.loadError}
+            {list.error instanceof ApiError ? errorText(list.error) : L.loadError}
           </span>
         </Alert>
       )}
@@ -268,9 +270,7 @@ export function TemplatesPage() {
             <p>{L.archiveQuestion}</p>
             {archive.error && (
               <Alert variant="danger" title={L.archiveError}>
-                {archive.error instanceof ApiError
-                  ? `${archive.error.code}: ${archive.error.message}`
-                  : String(archive.error)}
+                {archive.error instanceof ApiError ? errorText(archive.error) : String(archive.error)}
               </Alert>
             )}
           </div>

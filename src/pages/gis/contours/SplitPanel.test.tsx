@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { setupServer } from 'msw/node';
 import type { LineString, Polygon } from 'geojson';
+import { I18nContext } from '../../../i18n/context';
 import { SplitPanel } from './SplitPanel';
 
 const t = (key: string) => key;
@@ -32,19 +33,22 @@ const MISS_LINE: LineString = { type: 'LineString', coordinates: [[1, 1], [2, 2]
 
 function renderPanel(line: LineString | null, overrides: Partial<Parameters<typeof SplitPanel>[0]> = {}) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
+  const i18n = { lang: 'uz_latn' as const, backendLang: 'uz_latn' as const, t, setLanguage: async () => {} };
   return render(
     <QueryClientProvider client={client}>
-      <SplitPanel
-        contourId="parent-1"
-        parentGeometry={SQUARE}
-        line={line}
-        parentNumber="K-042"
-        onRetryLine={vi.fn()}
-        onDone={vi.fn()}
-        onCancel={vi.fn()}
-        t={t}
-        {...overrides}
-      />
+      <I18nContext.Provider value={i18n}>
+        <SplitPanel
+          contourId="parent-1"
+          parentGeometry={SQUARE}
+          line={line}
+          parentNumber="K-042"
+          onRetryLine={vi.fn()}
+          onDone={vi.fn()}
+          onCancel={vi.fn()}
+          t={t}
+          {...overrides}
+        />
+      </I18nContext.Provider>
     </QueryClientProvider>,
   );
 }
@@ -176,7 +180,10 @@ test('the backend refusing the split (e.g. the parent already has children) is s
   renderPanel(CUT_LINE);
   await ui.click(screen.getByRole('button', { name: 'gis.contours.split.confirm' }));
 
-  await waitFor(() => expect(screen.getByText(/ERR-GIS-005/)).toBeInTheDocument());
+  await waitFor(() =>
+    expect(screen.getByText(/GIS obyekti holati bo'yicha ziddiyat/)).toBeInTheDocument(),
+  );
+  expect(screen.queryByText(/ERR-GIS-005/)).not.toBeInTheDocument();
   expect(screen.queryByTestId('split-result')).not.toBeInTheDocument();
 });
 

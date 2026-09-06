@@ -4,6 +4,7 @@ import { Button } from '../../../components/ui/button';
 import { Alert } from '../../../components/ui/Feedback';
 import { Input } from '../../../components/ui/FormControls';
 import { ApiError } from '../../../api/errors';
+import { useApiErrorText } from '../../../i18n/useApiErrorText';
 import { useSplitContour } from '../queries';
 import { splitPolygonWithLine, type SplitFailureReason } from './splitContour';
 
@@ -54,6 +55,7 @@ export function SplitPanel({
   onCancel: () => void;
   t: (key: string) => string;
 }) {
+  const errorText = useApiErrorText();
   const splitResult = useMemo(
     () => (line ? splitPolygonWithLine(parentGeometry, line) : null),
     [parentGeometry, line],
@@ -126,7 +128,7 @@ export function SplitPanel({
           {splitMutation.isError && (
             <Alert variant="danger">
               {splitMutation.error instanceof ApiError
-                ? `${splitMutation.error.code}: ${splitMutation.error.message}`
+                ? errorText(splitMutation.error)
                 : t('gis.contours.split.failed')}
             </Alert>
           )}

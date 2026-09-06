@@ -38,8 +38,8 @@ import { Button } from '../../../components/ui/button';
 import { FormField, Input, Select, Textarea } from '../../../components/ui/FormControls';
 import { Modal } from '../../../components/ui/Overlay';
 import { Alert } from '../../../components/ui/Feedback';
-import { ApiError } from '../../../api/errors';
 import { useLanguage } from '../../../i18n/useT';
+import { useApiErrorText } from '../../../i18n/useApiErrorText';
 import { formatDate, pickName } from '../../applicant/format';
 import {
   addClassifierItem,
@@ -168,10 +168,6 @@ function parseProps(raw: string, L: ClassifiersLabels): ParsedProps {
   return { value: parsed as Record<string, unknown> };
 }
 
-function errorText(error: unknown, fallback: string): string {
-  return error instanceof ApiError ? `${error.code}: ${error.message}` : fallback;
-}
-
 // --- status pill -----------------------------------------------------------
 
 const PHASE_STYLE: Record<Phase, string> = {
@@ -201,6 +197,7 @@ function PhasePill({ phase, L }: { phase: Phase; L: ClassifiersLabels }) {
 
 export function ClassifiersPage() {
   const { lang } = useLanguage();
+  const errorText = useApiErrorText();
   const L = LABELS[lang];
   const queryClient = useQueryClient();
   const today = todayIso();

@@ -170,5 +170,5 @@ test('an ApiError renders instead of crashing when the task fails to load', asyn
       </QueryClientProvider>
     </MemoryRouter>,
   );
-  await waitFor(() => expect(screen.getByText('ERR-SYS-003: not found')).toBeInTheDocument());
+  await waitFor(() => expect(screen.getByText('Manba topilmadi.')).toBeInTheDocument());
 });

@@ -9,6 +9,7 @@ import { Modal } from '../../../components/ui/Overlay';
 import { Button } from '../../../components/ui/button';
 import { FormField, Input, Textarea } from '../../../components/ui/FormControls';
 import { ApiError } from '../../../api/errors';
+import { useApiErrorText } from '../../../i18n/useApiErrorText';
 import { useT } from '../../../i18n/useT';
 import { useCreateTicket } from './queries';
 
@@ -22,6 +23,7 @@ export interface TicketFormModalProps {
 
 export function TicketFormModal({ onClose, onCreated }: TicketFormModalProps) {
   const t = useT();
+  const toErrorText = useApiErrorText();
   const create = useCreateTicket();
 
   const [subject, setSubject] = useState('');
@@ -30,7 +32,7 @@ export function TicketFormModal({ onClose, onCreated }: TicketFormModalProps) {
 
   const failure = create.error;
   const errorText =
-    validationError ?? (failure instanceof ApiError ? `${failure.code}: ${failure.message}` : failure ? failure.message : null);
+    validationError ?? (failure instanceof ApiError ? toErrorText(failure) : failure ? failure.message : null);
 
   function submit() {
     if (!subject.trim() || !body.trim()) {

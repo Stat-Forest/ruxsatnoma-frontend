@@ -25,8 +25,8 @@ import { FormField, Select } from '../../components/ui/FormControls';
 import { Alert } from '../../components/ui/Feedback';
 import { StatusBadge, type StatusType } from '../../components/ui/StatusBadge';
 import { Button } from '../../components/ui/button';
-import { ApiError } from '../../api/errors';
 import { useAuth } from '../../auth/useAuth';
+import { useApiErrorText } from '../../i18n/useApiErrorText';
 import { useLanguage, useT } from '../../i18n/useT';
 import { satisfies } from '../../shell/navigation';
 import { pickLocalizedName, useActivityTypes } from './refs';
@@ -71,10 +71,6 @@ function statusTone(status: string): StatusType {
   }
 }
 
-function errorText(error: unknown, fallback: string): string {
-  return error instanceof ApiError ? `${error.code}: ${error.message}` : fallback;
-}
-
 const ACTION_KIND: Record<string, NormActionKind> = {
   'submit-review': 'submitReview',
   'return-to-draft': 'returnToDraft',
@@ -94,6 +90,7 @@ const EMPTY_FILTERS: FilterState = { activityTypeId: '', status: '' };
 export function NormsTab({ active }: { active: boolean }) {
   const t = useT();
   const { lang } = useLanguage();
+  const errorText = useApiErrorText();
   const { me } = useAuth();
   const activityTypes = useActivityTypes(active);
   const [filters, setFilters] = useState<FilterState>(EMPTY_FILTERS);
@@ -334,7 +331,7 @@ export function NormsTab({ active }: { active: boolean }) {
           isPending={transition.isPending}
           errorMessage={
             transition.error
-              ? normActionErrorText(transition.error, ACTION_KIND[transitionTarget.spec.action], t)
+              ? normActionErrorText(transition.error, ACTION_KIND[transitionTarget.spec.action], t, lang)
               : null
           }
           onConfirm={() => {
@@ -360,7 +357,7 @@ export function NormsTab({ active }: { active: boolean }) {
             cancel: t('norms.norms.transition.cancel'),
           }}
           isPending={approve.isPending}
-          errorMessage={approve.error ? normActionErrorText(approve.error, 'approve', t) : null}
+          errorMessage={approve.error ? normActionErrorText(approve.error, 'approve', t, lang) : null}
           onConfirm={(approvalDocId) =>
             approve.mutate({ id: approveTarget.id, approvalDocId }, { onSuccess: closeApprove })
           }

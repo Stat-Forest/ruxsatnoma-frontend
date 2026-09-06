@@ -16,6 +16,7 @@ import { useRef, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router';
 import { Loader2 } from 'lucide-react';
 import { useAuth } from '../../auth/useAuth';
+import { useApiErrorText } from '../../i18n/useApiErrorText';
 import { useLanguage, useT } from '../../i18n/useT';
 import { api } from '../../api/client';
 import { Button } from '../../components/ui/button';
@@ -61,6 +62,7 @@ export function ActFormPage() {
   const { me } = useAuth();
   const t = useT();
   const { lang } = useLanguage();
+  const errorText = useApiErrorText();
 
   const isNew = !id;
   const actQuery = useAct(id);
@@ -218,7 +220,7 @@ export function ActFormPage() {
   if (!isNew && (actQuery.error || !actQuery.data)) {
     return (
       <div className="py-16 text-center text-sm text-[#991B1B]" data-testid="act-form-page" role="alert">
-        {actQuery.error instanceof ApiError ? `${actQuery.error.code}: ${actQuery.error.message}` : t('inspector.actForm.notFound')}
+        {actQuery.error instanceof ApiError ? errorText(actQuery.error) : t('inspector.actForm.notFound')}
       </div>
     );
   }
@@ -318,8 +320,7 @@ export function ActFormPage() {
 
       {mutationError && (
         <div className="p-3 bg-[#FEF2F2] border border-[#FCA5A5] rounded-xl text-xs text-[#991B1B]" role="alert">
-          <p className="font-bold">{mutationError.code}</p>
-          <p>{mutationError.message}</p>
+          <p>{errorText(mutationError)}</p>
         </div>
       )}
 

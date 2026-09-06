@@ -5,7 +5,7 @@ import { Button } from '../../../components/ui/button';
 import { Alert } from '../../../components/ui/Feedback';
 import { Checkbox, Input } from '../../../components/ui/FormControls';
 import { Tabs } from '../../../components/ui/Navigation';
-import { ApiError } from '../../../api/errors';
+import { useApiErrorText } from '../../../i18n/useApiErrorText';
 import { pickName, formatDate } from '../format';
 import type { LayerOut } from '../api';
 import {
@@ -37,10 +37,6 @@ interface LayerFeatureGeoJSON {
   };
 }
 
-function errorText(error: unknown, fallback: string): string {
-  return error instanceof ApiError ? `${error.code}: ${error.message}` : fallback;
-}
-
 /** `layer_features.geom` is plain `GEOMETRY` for a handful of layers (a fire
  * ban's territory, a water point, a cattle corridor) — this is the one place
  * client-side that has to guess which Terra Draw mode fits, from the
@@ -65,6 +61,7 @@ function NewFeatureForm({
   t: (key: string) => string;
 }) {
   const createFeature = useCreateLayerFeature(layer.code);
+  const errorText = useApiErrorText();
   const [shapeType, setShapeType] = useState<DrawGeometryType>(geometryTypeFor(layer));
   const [geometry, setGeometry] = useState<Geometry | null>(null);
   const [name, setName] = useState('');
@@ -153,6 +150,7 @@ function FeatureRow({
 }) {
   const publish = usePublishLayerFeature(code);
   const archive = useArchiveLayerFeature(code);
+  const errorText = useApiErrorText();
   const { name, valid_from: validFrom, valid_to: validTo } = feature.properties;
 
   return (
@@ -196,6 +194,7 @@ function FeatureRow({
 
 function LayerFeatures({ layer, t }: { layer: LayerOut; t: (key: string) => string }) {
   const { me } = useAuth();
+  const errorText = useApiErrorText();
   const canManage = !!me?.permissions.includes(LAYERS_MANAGE) || !!me?.is_superuser;
   const patchLayer = usePatchLayer();
   const [status, setStatus] = useState<'draft' | 'published' | 'archived'>('published');
@@ -286,6 +285,7 @@ function LayerFeatures({ layer, t }: { layer: LayerOut; t: (key: string) => stri
  */
 export function LayersTab({ t }: { t: (key: string) => string }) {
   const layersQuery = useLayers();
+  const errorText = useApiErrorText();
   const [selectedCode, setSelectedCode] = useState<string | null>(null);
 
   const selected = (layersQuery.data ?? []).find((l) => l.code === selectedCode) ?? null;

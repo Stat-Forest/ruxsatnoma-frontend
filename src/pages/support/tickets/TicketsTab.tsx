@@ -15,6 +15,7 @@ import { Button } from '../../../components/ui/button';
 import { DataTable, type Column } from '../../../components/ui/DataTable';
 import { FormField, Select } from '../../../components/ui/FormControls';
 import { ApiError } from '../../../api/errors';
+import { useApiErrorText } from '../../../i18n/useApiErrorText';
 import { useT } from '../../../i18n/useT';
 import { formatDateTime } from '../format';
 import type { TicketOut, TicketStatus } from './api';
@@ -34,6 +35,7 @@ const STATUS_LABEL_KEY: Record<TicketStatus, string> = {
 
 export function TicketsTab() {
   const t = useT();
+  const errorText = useApiErrorText();
   const { me } = useAuth();
   const canManage = me != null && satisfies('help.tickets.manage', me);
 
@@ -104,7 +106,7 @@ export function TicketsTab() {
 
       {list.error && (
         <div role="alert" data-testid="tickets-error" className="rounded-2xl border border-[#FCA5A5] bg-[#FEF2F2] p-4 text-sm text-[#991B1B]">
-          {list.error instanceof ApiError ? `${list.error.code}: ${list.error.message}` : t('support.tickets.loadFailed')}
+          {list.error instanceof ApiError ? errorText(list.error) : t('support.tickets.loadFailed')}
         </div>
       )}
 

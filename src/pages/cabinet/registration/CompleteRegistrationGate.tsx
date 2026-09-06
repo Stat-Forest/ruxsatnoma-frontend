@@ -7,6 +7,7 @@ import { Button } from '../../../components/ui/button';
 import { Alert } from '../../../components/ui/Feedback';
 import { Checkbox, FormField, Input, Select } from '../../../components/ui/FormControls';
 import { useAuth } from '../../../auth/useAuth';
+import { useApiErrorText } from '../../../i18n/useApiErrorText';
 import { useT } from '../../../i18n/useT';
 import { requestOtp, verifyOtp } from '../../../lib/otpApi';
 import { completeRegistration, listDistricts, listRegions } from './api';
@@ -48,6 +49,7 @@ function otpErrorMessage(err: unknown, t: (key: string) => string): string {
 export function CompleteRegistrationGate() {
   const { me, applyMe, logout } = useAuth();
   const t = useT();
+  const errorText = useApiErrorText();
   const [loggingOut, setLoggingOut] = useState(false);
 
   async function handleLogout() {
@@ -371,9 +373,7 @@ export function CompleteRegistrationGate() {
 
         {submitError && (
           <div data-testid="submit-error">
-            <Alert variant="danger">
-              {submitError.code}: {submitError.message}
-            </Alert>
+            <Alert variant="danger">{errorText(submitError)}</Alert>
           </div>
         )}
 

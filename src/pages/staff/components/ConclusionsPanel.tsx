@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Compass, FileCheck2, Info, ThumbsDown, ThumbsUp } from 'lucide-react';
 import { useAuth } from '../../../auth/useAuth';
+import { useApiErrorText } from '../../../i18n/useApiErrorText';
 import { useT } from '../../../i18n/useT';
 import { Button } from '../../../components/ui/button';
 import { FormField, Select, Textarea } from '../../../components/ui/FormControls';
@@ -66,6 +67,7 @@ function ConclusionRow({ conclusion }: { conclusion: ApplicationConclusionOut })
 export function ConclusionsPanel({ card }: { card: ApplicationCardOut }) {
   const { me } = useAuth();
   const t = useT();
+  const errorText = useApiErrorText();
   const gisChecks = card.checks.filter((c) => GIS_CHECK_TYPES.has(c.check_type));
   const [text, setText] = useState('');
   const [recommendation, setRecommendation] = useState<'' | 'approve' | 'reject'>('');
@@ -155,7 +157,7 @@ export function ConclusionsPanel({ card }: { card: ApplicationCardOut }) {
           </Button>
           {apiError && (
             <p className="text-xs text-[#B91C1C]" role="alert">
-              {apiError.code}: {apiError.message}
+              {errorText(apiError)}
             </p>
           )}
         </div>

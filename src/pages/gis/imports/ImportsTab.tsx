@@ -6,7 +6,7 @@ import { Button } from '../../../components/ui/button';
 import { Alert } from '../../../components/ui/Feedback';
 import { Input, Select } from '../../../components/ui/FormControls';
 import { Pagination } from '../../../components/ui/Navigation';
-import { ApiError } from '../../../api/errors';
+import { useApiErrorText } from '../../../i18n/useApiErrorText';
 import { pickName, formatDateTime } from '../format';
 import type { ImportOut, PublishImportOut } from '../api';
 import {
@@ -38,15 +38,12 @@ const STATUS_LABEL_KEYS: Record<string, string> = {
   failed: 'gis.imports.status.failed',
 };
 
-function errorText(error: unknown, fallback: string): string {
-  return error instanceof ApiError ? `${error.code}: ${error.message}` : fallback;
-}
-
 function UploadForm({ t, onCreated }: { t: (key: string) => string; onCreated: (id: string) => void }) {
   const layersQuery = useLayers();
   const organizationsQuery = useOrganizations();
   const uploadFile = useUploadFile();
   const createImport = useCreateImport();
+  const errorText = useApiErrorText();
 
   const [layerCode, setLayerCode] = useState('contours');
   const [organizationId, setOrganizationId] = useState('');
@@ -158,6 +155,7 @@ function UploadForm({ t, onCreated }: { t: (key: string) => string; onCreated: (
 
 function ImportDetail({ importId, t }: { importId: string; t: (key: string) => string }) {
   const { me } = useAuth();
+  const errorText = useApiErrorText();
   const canManage = !!me?.permissions.includes(CONTOURS_MANAGE) || !!me?.is_superuser;
   const canApprove = !!me?.permissions.includes(CONTOURS_APPROVE) || !!me?.is_superuser;
 
@@ -214,7 +212,7 @@ function ImportDetail({ importId, t }: { importId: string; t: (key: string) => s
           <ul className="space-y-1">
             {(row.error_report as { row?: number; code?: string; message?: string }[]).map((e, i) => (
               <li key={i} className="rounded border border-[#FCA5A5] bg-[#FEF2F2] p-2 text-[#991B1B]">
-                #{e.row} {e.code}: {e.message}
+                #{e.row} {errorText(e)}
               </li>
             ))}
           </ul>
@@ -325,6 +323,7 @@ function ImportDetail({ importId, t }: { importId: string; t: (key: string) => s
  * benefits from it) but is no longer the only door.
  */
 function ImportsListPanel({ t, onOpen }: { t: (key: string) => string; onOpen: (id: string) => void }) {
+  const errorText = useApiErrorText();
   const [status, setStatus] = useState('');
   const [page, setPage] = useState(1);
   const listQuery = useImportsList({ status: status || undefined, page, page_size: IMPORTS_PAGE_SIZE });
