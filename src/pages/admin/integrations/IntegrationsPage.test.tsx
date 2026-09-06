@@ -6,6 +6,8 @@ import { http, HttpResponse } from 'msw';
 import { setupServer } from 'msw/node';
 import { IntegrationsPage } from './IntegrationsPage';
 import { I18nContext } from '../../../i18n/context';
+import { AuthContext, type AuthContextValue } from '../../../auth/AuthContext';
+import { stubAuthActions } from '../../../auth/testAuthActions';
 
 const DEAD_MESSAGE = '01930000-0000-7000-8000-000000000001';
 const PENDING_MESSAGE = '01930000-0000-7000-8000-000000000002';
@@ -77,14 +79,42 @@ function mockBackend(options: BackendOptions = {}) {
   );
 }
 
-function renderPage(lang: 'uz_latn' | 'ru' = 'uz_latn') {
+/** Defaults to holding BOTH codes — the only seed grants them together
+ *  (`IntegrationsPage.tsx`'s own comment) — so every existing test below
+ *  keeps exercising the "can do everything" caller unless it opts into a
+ *  narrower one via `permissions`. */
+function meWith(permissions: string[]): AuthContextValue {
+  return {
+    me: {
+      user: { id: 'u1', full_name: 'Test', login: 'test', phone: null, email: null, must_change_password: false, language: 'uz_latn' },
+      role: { code: 'central_admin', name: { uz_latn: 'Markaziy apparat' } },
+      permissions,
+      zone: { region_id: null, district_id: null, organization_id: null },
+      csrf_token: 'x',
+      is_superuser: false,
+      applicant: null,
+      representations: [],
+      registration_complete: true,
+    },
+    loading: false,
+    authError: null,
+    ...stubAuthActions(),
+  };
+}
+
+function renderPage(
+  lang: 'uz_latn' | 'ru' = 'uz_latn',
+  permissions: string[] = ['admin.integrations.view', 'admin.integrations.manage'],
+) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
   const i18n = { lang, backendLang: lang, t: (key: string) => key, setLanguage: async () => {} };
   return render(
     <MemoryRouter>
       <QueryClientProvider client={client}>
         <I18nContext.Provider value={i18n}>
-          <IntegrationsPage />
+          <AuthContext.Provider value={meWith(permissions)}>
+            <IntegrationsPage />
+          </AuthContext.Provider>
         </I18nContext.Provider>
       </QueryClientProvider>
     </MemoryRouter>,
@@ -297,6 +327,56 @@ test('the requeue button is offered only where the backend would accept it', asy
   await user.click(screen.getByRole('button', { name: /Kiruvchi xatolar/ }));
   const letter = await screen.findByTestId(`letter-row-${DISCARDED_LETTER}`);
   expect(within(letter).queryByRole('button', { name: 'Rad etish' })).not.toBeInTheDocument();
+});
+
+test('requeue is not offered to a view-only holder, even on a dead row', async () => {
+  mockBackend({ outbox: [outboxMessage()] });
+
+  renderPage('uz_latn', ['admin.integrations.view']);
+
+  const row = await screen.findByTestId(`outbox-row-${DEAD_MESSAGE}`);
+  expect(within(row).queryByRole('button', { name: 'Navbatga qaytarish' })).not.toBeInTheDocument();
+  expect(row).toHaveTextContent('admin.integrations.manage');
+});
+
+test('discard is not offered to a view-only holder, even on a new letter', async () => {
+  mockBackend({ letters: [deadLetter()] });
+
+  const user = userEvent.setup();
+  renderPage('uz_latn', ['admin.integrations.view']);
+  await user.click(screen.getByRole('button', { name: /Kiruvchi xatolar/ }));
+
+  const row = await screen.findByTestId(`letter-row-${NEW_LETTER}`);
+  expect(within(row).queryByRole('button', { name: 'Rad etish' })).not.toBeInTheDocument();
+  expect(row).toHaveTextContent('admin.integrations.manage');
+});
+
+test('requeue and discard are offered to a superuser holding neither code', async () => {
+  mockBackend({ outbox: [outboxMessage()], letters: [deadLetter()] });
+
+  const user = userEvent.setup();
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
+  const i18n = { lang: 'uz_latn' as const, backendLang: 'uz_latn' as const, t: (key: string) => key, setLanguage: async () => {} };
+  const superuser = meWith([]);
+  superuser.me!.is_superuser = true;
+  render(
+    <MemoryRouter>
+      <QueryClientProvider client={client}>
+        <I18nContext.Provider value={i18n}>
+          <AuthContext.Provider value={superuser}>
+            <IntegrationsPage />
+          </AuthContext.Provider>
+        </I18nContext.Provider>
+      </QueryClientProvider>
+    </MemoryRouter>,
+  );
+
+  const row = await screen.findByTestId(`outbox-row-${DEAD_MESSAGE}`);
+  expect(within(row).getByRole('button', { name: 'Navbatga qaytarish' })).toBeInTheDocument();
+
+  await user.click(screen.getByRole('button', { name: /Kiruvchi xatolar/ }));
+  const letter = await screen.findByTestId(`letter-row-${NEW_LETTER}`);
+  expect(within(letter).getByRole('button', { name: 'Rad etish' })).toBeInTheDocument();
 });
 
 test('the screen speaks Russian when the session does', async () => {
