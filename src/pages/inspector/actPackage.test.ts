@@ -68,3 +68,57 @@ test('nested keys inside answers are sorted too, not just the top level', () => 
   const answersSlice = json.slice(answersStart, json.indexOf('}', answersStart) + 1);
   expect(answersSlice).toBe('"answers": {"alpha": 2, "middle": 3, "zeta": 1}');
 });
+
+/**
+ * The stage 7.3 defect (finding F18): every act signature was refused with
+ * `ERR-SIGN-001 signature_invalid`, on dev and everywhere else, because the
+ * API publishes `occurred_at` in the `Z` form while the backend signs
+ * `datetime.isoformat()`, which renders a UTC offset as `+00:00`. The column
+ * is `DateTime(timezone=True)` (`0026_inspections.py`), so SQLAlchemy hands
+ * the service an AWARE datetime and the two renderings differ by four
+ * characters — enough to change the sha256 and nothing else.
+ *
+ * Every test above fed this function an offset string (`+05:00`), which is
+ * what Python produces and NOT what the API serves, so the mirror was pinned
+ * against the right string for an input the client never receives.
+ */
+test('a Z timestamp — what the API actually serves — is rendered the way isoformat() does', () => {
+  const json = actPackageJson({
+    id: 'a-1',
+    inspectorId: 'i-1',
+    occurredAtIso: '2026-09-06T16:34:37.126000Z',
+    checklistId: 'c-1',
+    answers: {},
+    facts: {},
+    result: 'compliant',
+  });
+  expect(json).toContain('"occurred_at": "2026-09-06T16:34:37.126000+00:00"');
+  expect(json).not.toContain('Z"');
+});
+
+test('an offset the API already renders as an offset is left exactly as it is', () => {
+  const json = actPackageJson({
+    id: 'a-1',
+    inspectorId: 'i-1',
+    occurredAtIso: '2026-09-01T10:00:00+05:00',
+    checklistId: 'c-1',
+    answers: {},
+    facts: {},
+    result: null,
+  });
+  expect(json).toContain('"occurred_at": "2026-09-01T10:00:00+05:00"');
+});
+
+test('a Z inside a VALUE is untouched — only the timestamp is rewritten', () => {
+  const json = actPackageJson({
+    id: 'a-1',
+    inspectorId: 'i-1',
+    occurredAtIso: '2026-09-06T16:34:37Z',
+    checklistId: 'c-1',
+    answers: { note: 'GAZ na uchastke' },
+    facts: {},
+    result: null,
+  });
+  expect(json).toContain('"occurred_at": "2026-09-06T16:34:37+00:00"');
+  expect(json).toContain('"note": "GAZ na uchastke"');
+});

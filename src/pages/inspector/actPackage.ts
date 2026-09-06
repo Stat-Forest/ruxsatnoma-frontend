@@ -29,6 +29,13 @@
  * built them in), so the serializer below sorts recursively, at every
  * object it encounters.
  *
+ * The one place the mirror is not a copy is `occurred_at`: the API publishes
+ * it as `...Z` and the Python above signs `isoformat()`'s `+00:00`, so
+ * `isoformatUtc` below converts it. That difference is what made every act
+ * signature fail until stage 7.3 measured it (finding F18) — and the tests
+ * here all fed an offset string, the shape Python emits, never the `Z` shape
+ * the client is actually handed.
+ *
  * **If this ever drifts from the Python source, every act signature fails
  * with `ERR-SIGN-001 signature_invalid` and nothing more specific** —
  * `actPackage.test.ts` pins the exact JSON string this function builds, not
@@ -75,6 +82,31 @@ export interface ActPackageInput {
   result: string | null;
 }
 
+/**
+ * `datetime.isoformat()`'s rendering of the timestamp the API published.
+ *
+ * The signed package is built server-side from `act.occurred_at.isoformat()`,
+ * and `occurred_at` is a `DateTime(timezone=True)` column (`0026_inspections.py`),
+ * so SQLAlchemy hands the service an AWARE datetime and `isoformat()` renders
+ * the UTC offset as `+00:00`. The SAME value leaves the API as `...Z`, because
+ * that is what pydantic serializes a UTC datetime to. Four characters, one
+ * different sha256, and `POST /inspections/acts/{id}/sign` answers
+ * `ERR-SIGN-001 signature_invalid` with nothing more specific — which is what
+ * every act signature did until the stage 7.3 walkthrough measured it
+ * (finding F18).
+ *
+ * A client can only mirror what it was given, so the conversion belongs here,
+ * on the one string whose two renderings differ. It is deliberately the whole
+ * rule: both sides drop a zero fraction and both keep six digits otherwise,
+ * because both derive from the same datetime — `Z` -> `+00:00` is the only
+ * difference there is. An offset the API already renders as an offset (a
+ * non-UTC tzinfo) is passed through untouched, and a `Z` inside a VALUE is
+ * never seen by this function at all.
+ */
+function isoformatUtc(occurredAtIso: string): string {
+  return occurredAtIso.endsWith('Z') ? `${occurredAtIso.slice(0, -1)}+00:00` : occurredAtIso;
+}
+
 /** Top-level keys are written out in this exact alphabetical order —
  *  `act_id, answers, checklist_id, facts, inspector_id, occurred_at,
  *  result` — rather than relying on object insertion order for anything,
@@ -86,7 +118,7 @@ export function actPackageJson(act: ActPackageInput): string {
     checklist_id: act.checklistId,
     facts: act.facts as JsonValue,
     inspector_id: act.inspectorId,
-    occurred_at: act.occurredAtIso,
+    occurred_at: isoformatUtc(act.occurredAtIso),
     result: act.result,
   };
   return canonicalJson(payload);
