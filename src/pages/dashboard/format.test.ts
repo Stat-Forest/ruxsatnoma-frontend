@@ -1,4 +1,4 @@
-import { formatCompactMoney, formatHectares, formatReviewDays } from './format';
+import { formatCompactMoney, formatDelta, formatHectares, formatPercent, formatReviewDays } from './format';
 
 test('a sum in the millions is shown as millions, the way the tile reads it', () => {
   expect(formatCompactMoney(3680000)).toBe('3.68 mln UZS');
@@ -24,4 +24,27 @@ test('a review that finished the same day reads as under a day, not as zero', ()
 
 test('a review measured in days is rounded to whole days', () => {
   expect(formatReviewDays(8.6)).toBe('9');
+});
+
+// --- J3: occupancy percent and period-over-period delta --------------------
+
+test('an occupancy percent renders to one decimal with a % suffix', () => {
+  expect(formatPercent('42.50')).toBe('42.5%');
+});
+
+test('zero contours in scope reads as "—", never as a measured 0%', () => {
+  expect(formatPercent(null)).toBe('—');
+});
+
+test('no comparison available renders as nothing, not a fabricated ±0', () => {
+  expect(formatDelta(12, null)).toBeNull();
+});
+
+test('an unchanged figure between periods reads as ±0, not as no comparison', () => {
+  expect(formatDelta(12, 12)).toBe('±0');
+});
+
+test('a positive delta carries a leading +, a negative one the real minus sign', () => {
+  expect(formatDelta(12, 9)).toBe('+3');
+  expect(formatDelta(9, 12)).toBe('−3');
 });

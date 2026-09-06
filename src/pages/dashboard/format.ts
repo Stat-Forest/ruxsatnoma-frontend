@@ -35,3 +35,26 @@ export function formatHectares(area: number): string {
 export function formatReviewDays(averageDays: number): string {
   return averageDays < 1 ? '<1' : String(Math.round(averageDays));
 }
+
+/** `OccupancyKpiOut.avg_occupied_pct` — a fixed-scale `NUMERIC` serialized as
+ *  a decimal string, or `null` when the slice held zero contours. `null`
+ *  renders as "—", never "0%": zero contours is an absent measurement, not a
+ *  measured occupancy of zero. */
+export function formatPercent(value: string | null): string {
+  if (value === null) return '—';
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) return '—';
+  return `${parsed.toFixed(1)}%`;
+}
+
+/** The change between the current and the previous period's same figure —
+ *  `null` when the backend did not compute one (`compare_previous` was off,
+ *  or the field has no prior-period twin). The sign uses U+2212 (real minus),
+ *  the same convention this codebase's money/number formatting already
+ *  follows, never the ASCII hyphen-minus. */
+export function formatDelta(current: number, previous: number | null): string | null {
+  if (previous === null) return null;
+  const diff = current - previous;
+  if (diff === 0) return '±0';
+  return diff > 0 ? `+${diff}` : `−${Math.abs(diff)}`;
+}

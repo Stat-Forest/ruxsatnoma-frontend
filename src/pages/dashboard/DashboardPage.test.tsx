@@ -4,11 +4,15 @@ import { DashboardPage } from './DashboardPage';
 import { AuthContext } from '../../auth/AuthContext';
 import type { AuthContextValue } from '../../auth/AuthContext';
 
-// The applicant branch mounts the real dashboard, which fetches. This suite is
-// about which branch is chosen, so the dashboard itself stands in as a marker
-// — `ApplicantDashboardPage.test.tsx` is what exercises its contents.
+// The applicant and leadership branches each mount a real dashboard, which
+// fetches. This suite is about which branch is chosen, so each dashboard
+// stands in as a marker — `ApplicantDashboardPage.test.tsx` and
+// `LeadershipDashboardPage.test.tsx` are what exercise their contents.
 vi.mock('./ApplicantDashboardPage', () => ({
   ApplicantDashboardPage: () => <div data-testid="applicant-dashboard" />,
+}));
+vi.mock('./LeadershipDashboardPage', () => ({
+  LeadershipDashboardPage: () => <div data-testid="leadership-dashboard" />,
 }));
 
 function renderAs(roleCode: string) {
@@ -41,4 +45,10 @@ test('a staff role still gets the placeholder — their dashboards are a later s
 
   expect(screen.queryByTestId('applicant-dashboard')).not.toBeInTheDocument();
   expect(screen.getByTestId('dashboard-page')).toBeInTheDocument();
+});
+
+test('a leadership user lands on the KPI dashboard', () => {
+  renderAs('leadership');
+
+  expect(screen.getByTestId('leadership-dashboard')).toBeInTheDocument();
 });
