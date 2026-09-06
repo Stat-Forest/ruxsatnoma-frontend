@@ -41,7 +41,7 @@ const server = setupServer(
   ),
   http.get('*/notifications/unread-count', () => HttpResponse.json({ count: 0 })),
 );
-beforeAll(() => server.listen());
+beforeAll(() => server.listen({ onUnhandledRequest: 'error' }));
 afterEach(() => {
   server.resetHandlers();
   setCsrfToken(null);

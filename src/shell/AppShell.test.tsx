@@ -49,7 +49,7 @@ const server = setupServer(
   http.get('*/notifications/unread-count', () => HttpResponse.json({ count: 0 })),
   http.post('*/auth/logout', () => new HttpResponse(null, { status: 204 })),
 );
-beforeAll(() => server.listen());
+beforeAll(() => server.listen({ onUnhandledRequest: 'error' }));
 afterEach(() => {
   server.resetHandlers();
   setCsrfToken(null);
