@@ -521,8 +521,6 @@ export function ContoursTab({ t }: { t: (key: string) => string }) {
               contourId={selectedContourId}
               parentGeometry={knownGeometry as Polygon | MultiPolygon}
               line={splitLine}
-              organizationOptions={orgOptions}
-              defaultOrganizationId={cardQuery.data?.organization_id ?? orgOptions[0]?.id}
               parentNumber={cardQuery.data?.number ?? ''}
               onRetryLine={() => setSplitLine(null)}
               onDone={() => {

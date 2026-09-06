@@ -21,6 +21,8 @@ export type ContourCardOut = components['schemas']['ContourCardOut'];
 export type VersionIn = components['schemas']['VersionIn'];
 export type VersionOut = components['schemas']['VersionOut'];
 export type VersionPatch = components['schemas']['VersionPatch'];
+export type SplitIn = components['schemas']['SplitIn'];
+export type SplitOut = components['schemas']['SplitOut'];
 export type CheckResultOut = components['schemas']['CheckResultOut'];
 export type ChecksOut = components['schemas']['ChecksOut'];
 export type FeatureIn = components['schemas']['FeatureIn'];
@@ -162,6 +164,22 @@ export async function createContour(body: ContourIn): Promise<ContourOut> {
 export async function patchContour(contourId: string, body: ContourPatch): Promise<ContourOut> {
   const { data, error } = await api.PATCH('/api/v1/gis/contours/{contour_id}', {
     params: { path: { contour_id: contourId } },
+    body,
+  });
+  if (error) throw apiError(error);
+  return data;
+}
+
+/** `POST /gis/contours/{parent_id}/split` (core PR #53, decision #91) — one
+ * atomic call that creates both subcontours and their first versions, or
+ * neither. Replaces the earlier client-side composition of two
+ * `createContour`/`createVersion` pairs, which left the map in an undefined
+ * state on a failure between the two calls. The parent's own row and its
+ * published version are untouched by this call — splitting produces a
+ * parent plus two children, not two contours in place of one. */
+export async function splitContour(parentId: string, body: SplitIn): Promise<SplitOut> {
+  const { data, error } = await api.POST('/api/v1/gis/contours/{parent_id}/split', {
+    params: { path: { parent_id: parentId } },
     body,
   });
   if (error) throw apiError(error);
