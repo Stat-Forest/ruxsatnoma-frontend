@@ -5,8 +5,38 @@ import { MemoryRouter } from 'react-router';
 import { http, HttpResponse } from 'msw';
 import { setupServer } from 'msw/node';
 import { LeadershipDashboardPage } from './LeadershipDashboardPage';
+import { AuthContext } from '../../auth/AuthContext';
+import type { AuthContextValue } from '../../auth/AuthContext';
+import { stubAuthActions } from '../../auth/testAuthActions';
 import { DICTIONARIES, I18nContext } from '../../i18n/context';
 import type { KpiOut, TerritorySliceOut } from './queries';
+
+function authValue(permissions: string[] = ['dashboard.view']): AuthContextValue {
+  return {
+    me: {
+      user: {
+        id: 'u0000000-0000-4000-8000-000000000001',
+        full_name: 'Rahimov Sardor',
+        login: 'rahimov',
+        phone: null,
+        email: null,
+        must_change_password: false,
+        language: 'uz_latn',
+      },
+      role: { code: 'leadership', name: {} },
+      permissions,
+      zone: { region_id: null, district_id: null, organization_id: null },
+      csrf_token: 'tok-1',
+      is_superuser: false,
+      applicant: null,
+      representations: [],
+      registration_complete: true,
+    },
+    loading: false,
+    authError: null,
+    ...stubAuthActions(),
+  };
+}
 
 function kpiFixture(overrides: Partial<KpiOut> = {}): KpiOut {
   return {
@@ -63,7 +93,7 @@ function mockBackend(options: { kpi?: Partial<KpiOut>; territory?: Partial<Terri
   );
 }
 
-function renderDashboard(lang: 'uz_latn' | 'ru' = 'uz_latn') {
+function renderDashboard(lang: 'uz_latn' | 'ru' = 'uz_latn', permissions: string[] = ['dashboard.view']) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   const i18n = {
     lang,
@@ -78,7 +108,9 @@ function renderDashboard(lang: 'uz_latn' | 'ru' = 'uz_latn') {
     <MemoryRouter>
       <QueryClientProvider client={client}>
         <I18nContext.Provider value={i18n}>
-          <LeadershipDashboardPage />
+          <AuthContext.Provider value={authValue(permissions)}>
+            <LeadershipDashboardPage />
+          </AuthContext.Provider>
         </I18nContext.Provider>
       </QueryClientProvider>
     </MemoryRouter>,
@@ -147,6 +179,22 @@ test('a suppressed territory cell hides its counts behind the threshold text, ne
   expect(cell).toHaveTextContent('yashirin');
   expect(cell).toHaveTextContent('< 5');
   expect(cell.querySelector('button')).toBeNull();
+});
+
+test('a caller with oversight.view sees the "open the full register" link on the risk indicators card', async () => {
+  mockBackend({ kpi: { risk_indicators: { by_code: { 'RI-01': 2 }, by_level: { low: 1 } } } });
+  renderDashboard('uz_latn', ['dashboard.view', 'oversight.view']);
+
+  const link = await screen.findByRole('link', { name: /Toʻliq reyestrni ochish/ });
+  expect(link).toHaveAttribute('href', '/oversight');
+});
+
+test('a caller without oversight.view never sees the register link — the backend would refuse the page', async () => {
+  mockBackend({ kpi: { risk_indicators: { by_code: { 'RI-01': 2 }, by_level: { low: 1 } } } });
+  renderDashboard('uz_latn', ['dashboard.view']);
+
+  await screen.findByTestId('tile-permits');
+  expect(screen.queryByRole('link', { name: /Toʻliq reyestrni ochish/ })).not.toBeInTheDocument();
 });
 
 test('changing the period via the UI and clicking Apply asks the backend for the new dates', async () => {

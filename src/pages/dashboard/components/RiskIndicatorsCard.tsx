@@ -1,4 +1,5 @@
 import { ShieldAlert } from 'lucide-react';
+import { Link } from 'react-router';
 import { DashboardCard, EmptyPanel } from './DashboardCard';
 
 /**
@@ -32,19 +33,25 @@ const LEVEL_LABEL_KEY: Record<string, string> = {
 
 /**
  * `KpiOut.risk_indicators`'s two breakdowns for the period — `by_code` (which
- * `RI-01`..`RI-15` fired) and `by_level` (how severe). Presentational only:
- * it takes its data as props and fetches nothing itself, so Task 2 can add a
- * "open the full register" link (once `/oversight` exists) without touching
- * this component's data layer.
+ * `RI-01`..`RI-15` fired) and `by_level` (how severe). Takes its data as
+ * props and fetches nothing itself — `canOpenRegister` (task 2) is the one
+ * exception to "presentational only": a plain boolean the page already
+ * computed from `me.permissions`, not a second permission check of this
+ * component's own.
  */
 export function RiskIndicatorsCard({
   byCode,
   byLevel,
   t,
+  canOpenRegister = false,
 }: {
   byCode: Record<string, number>;
   byLevel: Record<string, number>;
   t: (key: string) => string;
+  /** `oversight.view` (or superuser) — the same gate `/oversight` itself sits
+   *  behind (`shell/navigation.ts`). An action link is only ever offered when
+   *  the backend would actually serve the page it points at. */
+  canOpenRegister?: boolean;
 }) {
   const codeRows = Object.entries(byCode).sort(([a], [b]) => a.localeCompare(b));
   const levelRows = LEVEL_ORDER.filter((level) => level in byLevel).map((level) => [level, byLevel[level]] as const);
@@ -55,7 +62,17 @@ export function RiskIndicatorsCard({
   const isEmpty = codeRows.length === 0 && levelRows.length === 0 && extraLevelRows.length === 0;
 
   return (
-    <DashboardCard title={t('leadership.dash.risk.title')} icon={ShieldAlert}>
+    <DashboardCard
+      title={t('leadership.dash.risk.title')}
+      icon={ShieldAlert}
+      badge={
+        canOpenRegister ? (
+          <Link to="/oversight" className="text-xs font-semibold text-[#2E7D4F] hover:underline">
+            {t('leadership.oversight.openRegister')}
+          </Link>
+        ) : undefined
+      }
+    >
       {isEmpty ? (
         <EmptyPanel testId="risk-empty">{t('leadership.dash.risk.empty')}</EmptyPanel>
       ) : (

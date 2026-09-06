@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Award, Clock, CreditCard, Layers } from 'lucide-react';
 import { Alert } from '../../components/ui/Feedback';
 import { ApiError } from '../../api/errors';
+import { useAuth } from '../../auth/useAuth';
 import { useT, useLanguage } from '../../i18n/useT';
 import { pickName } from '../applicant/format';
 import { DashboardCard } from './components/DashboardCard';
@@ -48,7 +49,9 @@ function defaultFilters(): KpiParams {
 export function LeadershipDashboardPage() {
   const t = useT();
   const { lang } = useLanguage();
+  const { me } = useAuth();
   const [appliedFilters, setAppliedFilters] = useState<KpiParams>(defaultFilters);
+  const canOpenOversightRegister = !!me && (me.is_superuser || me.permissions.includes('oversight.view'));
 
   const kpi = useKpi(appliedFilters);
   // Region-level (no filter) slice — independent of whatever region/district/
@@ -163,7 +166,12 @@ export function LeadershipDashboardPage() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
         <RejectionsCard rows={rejectionRows} t={t} />
-        <RiskIndicatorsCard byCode={data.risk_indicators.by_code} byLevel={data.risk_indicators.by_level} t={t} />
+        <RiskIndicatorsCard
+          byCode={data.risk_indicators.by_code}
+          byLevel={data.risk_indicators.by_level}
+          t={t}
+          canOpenRegister={canOpenOversightRegister}
+        />
       </div>
 
       <TerritoryDrilldown periodFrom={appliedFilters.period_from} periodTo={appliedFilters.period_to} t={t} />

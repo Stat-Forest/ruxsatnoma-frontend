@@ -14,6 +14,7 @@ import { OrganizationsPage } from './pages/admin/organizations/OrganizationsPage
 import { RolesPage } from './pages/admin/roles/RolesPage';
 import { SettingsPage } from './pages/admin/settings/SettingsPage';
 import { TemplatesPage } from './pages/admin/templates/TemplatesPage';
+import { OversightPage } from './pages/oversight/OversightPage';
 import {
   ApplicationsPage,
   ApplicationWizardPage,
@@ -52,6 +53,7 @@ const CHILD_PAGES: Record<string, ReactNode> = {
   '/norms': <NormsPage />,
   '/invoices': <InvoicesPage />,
   '/permits': <PermitsPage />,
+  '/oversight': <OversightPage />,
   '/admin/users': <UsersPage />,
   '/admin/roles': <RolesPage />,
   '/admin/organizations': <OrganizationsPage />,
