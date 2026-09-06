@@ -5,12 +5,17 @@
  * shared module every track has to merge around.
  */
 
-/** The first 8 characters of a uuid — the same shortening
+/** The LAST 8 characters of a uuid — the same shortening
  *  `staff/format.ts::shortId` / `permits/format.ts::shortId` already use,
  *  duplicated here per this codebase's own convention rather than imported
- *  across page folders. */
+ *  across page folders. F15 (`docs/plans/07.3-findings.md`): the seeded ids
+ *  are uuid7, whose LEADING characters are a millisecond timestamp — two
+ *  different records logged moments apart in the same seed run once showed
+ *  as the identical "eight characters" here, which is exactly the wrong
+ *  place for that in an oversight/audit register. The trailing characters
+ *  are the random tail (RFC 9562), not derived from the clock. */
 export function shortId(id: string | null): string {
-  return id ? id.slice(0, 8) : '—';
+  return id ? id.slice(-8) : '—';
 }
 
 /** `object_type` + a shortened `object_id` — `"—"` when either is missing,

@@ -817,6 +817,8 @@ export const uz_latn = {
   'gis.contours.available': "bo'sh",
   'gis.contours.loadMore': 'Yana yuklash',
   'gis.contours.noPublishedVersion': "Bu kontur uchun hali nashr etilgan versiya yo'q",
+  'gis.contours.overAllocated':
+    "Diqqat: bu konturga umumiy maydonidan ko'proq ruxsatnoma berilgan — shuning uchun band qism umumiy maydondan katta ko'rinadi. Bo'sh qism shu sababli 0 ga sifatida ko'rsatilgan, manfiy emas.",
   'gis.contours.totalArea': 'Umumiy maydon',
   'gis.contours.occupied': 'Band qism',
   'gis.contours.noVersionYet': "Bu kontur uchun hali birorta versiya chizilmagan",

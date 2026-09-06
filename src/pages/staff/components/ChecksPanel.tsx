@@ -69,7 +69,7 @@ export function ChecksPanel({ card }: { card: ApplicationCardOut }) {
               </span>
             )}
           </div>
-          <p className="text-xs text-[#5A646D] mt-0.5">GIS va meʼyor avto-tekshiruvlari natijalari (application_checks)</p>
+          <p className="text-xs text-[#5A646D] mt-0.5">GIS va meʼyor avto-tekshiruvlari natijalari</p>
         </div>
       </div>
 

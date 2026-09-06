@@ -17,7 +17,7 @@ beforeAll(() => server.listen({ onUnhandledRequest: 'error' }));
 afterEach(() => server.resetHandlers());
 afterAll(() => server.close());
 
-function renderGate(applyMe: (me: unknown) => void = () => {}) {
+function renderGate(applyMe: (me: unknown) => void = () => {}, logout: () => Promise<void> = async () => {}) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
   const i18n = {
     lang: 'uz_latn' as const,
@@ -33,7 +33,7 @@ function renderGate(applyMe: (me: unknown) => void = () => {}) {
     verifyMfa: async () => {},
     startOneId: async () => {},
     loginViaEimzo: async () => {},
-    logout: async () => {},
+    logout,
     applyMe,
   } as unknown as AuthContextValue;
   const wrapper = ({ children }: { children: ReactNode }) => (
@@ -133,6 +133,19 @@ test('a stale consent version is corrected from the error and must be re-accepte
   // the citizen just accepted, so ticking them again is a fresh decision.
   expect(screen.getByTestId('consent-privacy')).not.toBeChecked();
   expect(screen.getByTestId('consent-offer')).not.toBeChecked();
+});
+
+// F9 (`docs/plans/07.3-findings.md`): the gate used to render with no
+// header, no logout and no link back — typing `/login` by hand was the only
+// way out. A citizen stuck here (OneID with no `applicants` row yet, and no
+// admin route creates one on their behalf) must have a visible exit.
+test('the gate offers a visible logout, not only a URL typed by hand', async () => {
+  let loggedOut = false;
+  renderGate(undefined, async () => {
+    loggedOut = true;
+  });
+  await userEvent.click(screen.getByText('shell.logout'));
+  expect(loggedOut).toBe(true);
 });
 
 test('a rate-limited OTP request gets its own message, not a generic one', async () => {

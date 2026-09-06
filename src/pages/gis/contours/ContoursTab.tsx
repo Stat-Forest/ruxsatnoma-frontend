@@ -387,6 +387,16 @@ export function ContoursTab({ t }: { t: (key: string) => string }) {
                     <dt className="text-[#5A646D]">{t('gis.contours.available')}</dt>
                     <dd className="text-right font-mono font-semibold">{formatDecimal(cardQuery.data.s_available_ha, 'ga')}</dd>
                   </dl>
+                  {/* F5 (`docs/plans/07.3-findings.md`): occupied > total is a
+                      real, demo-witnessed state (`ContourListItem`'s own
+                      docstring in `schema.d.ts`), not a display bug — the
+                      backend already carries an explicit flag for it, which
+                      this screen used to leave unrendered next to a "0 ga"
+                      free area that otherwise looks like an arithmetic
+                      error. */}
+                  {cardQuery.data.over_allocated && (
+                    <Alert variant="danger">{t('gis.contours.overAllocated')}</Alert>
+                  )}
                   {/* Only shown when this browser holds no OTHER (unpublished)
                       version for the same contour — `VersionPanel` below
                       already offers Archive once a draft/review/approved

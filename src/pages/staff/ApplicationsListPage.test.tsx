@@ -5,9 +5,15 @@
  *      the register but no "Ishga olish" action — read-only, honestly;
  *   2. "CSV eksport" fetches every matching page (not just the one on
  *      screen) and hands the browser a real file.
+ *
+ * A third (F11, `docs/plans/07.3-findings.md`, first sighting): after
+ * "Ishga olish" the row must show the new status on its own, never leave the
+ * reader waiting for a manual reload. `useStartReviewRow` (`./queries.ts`)
+ * already invalidates `['staff', 'applications']` on success; this pins that
+ * behaviour at the screen the walkthrough actually watched.
  */
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router';
 import { http, HttpResponse } from 'msw';
@@ -111,6 +117,29 @@ test('a prosecutor (applications.view_any, never .review) sees rows but no "Ishg
   renderPage(['applications.view_any']);
   expect(await screen.findByText('RX-2026-000001')).toBeInTheDocument();
   expect(screen.queryByText('Ishga olish')).not.toBeInTheDocument();
+});
+
+test('a worklist row shows the new status right after "Ishga olish", with no reload', async () => {
+  const user = userEvent.setup();
+  let status: ApplicationOut['status'] = 'SUBMITTED';
+  server.use(
+    http.get('*/api/v1/applications', () =>
+      HttpResponse.json({ items: [row({ status })], total: 1, page: 1, page_size: 20 }),
+    ),
+    http.post('*/api/v1/applications/:id/start-review', () => {
+      status = 'IN_REVIEW';
+      return HttpResponse.json(row({ status: 'IN_REVIEW' }));
+    }),
+  );
+
+  renderPage(['applications.review']);
+  const tableRow = (await screen.findByText('RX-2026-000001')).closest('tr')!;
+  expect(within(tableRow).getByText(/Yuborilgan/)).toBeInTheDocument();
+
+  await user.click(within(tableRow).getByText('Ishga olish'));
+
+  await waitFor(() => expect(within(tableRow).getByText(/Koʻrib chiqilmoqda/)).toBeInTheDocument());
+  expect(within(tableRow).queryByText('Ishga olish')).not.toBeInTheDocument();
 });
 
 test('CSV export requests the server\'s own page-size ceiling (100), not the on-screen page size (20), and downloads one file', async () => {

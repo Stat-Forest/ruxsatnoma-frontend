@@ -6,6 +6,7 @@ import { apiError, ApiError } from '../../api/errors';
 import type { components } from '../../api/schema';
 import { useAuth } from '../../auth/useAuth';
 import { Button } from '../../components/ui/button';
+import { toApiError } from './apiErrorHelpers';
 import {
   buildMockPkcs7,
   canAttemptPurpose,
@@ -76,7 +77,23 @@ function SignatureSlot({
       return data;
     },
     onSuccess: () => onSigned(),
-    onError: (err: unknown) => setFormError(signErrorMessage(apiError(err))),
+    // `err` here is ALREADY the `ApiError` `mutationFn` threw above (react
+    // query hands `onError` the exact rejection reason, not the raw response
+    // body) — running it through `apiError()` a second time treats a real,
+    // typed error as an untyped body, finds no nested `.error` on it and
+    // falls back to the generic `ERR-SYS-000` "Unexpected error", discarding
+    // whatever specific code/message the server actually sent (this is the
+    // false "Unexpected error" over a signature that had, in truth, just
+    // been correctly refused as a duplicate). `toApiError` is idempotent —
+    // it recognizes an `ApiError` instance and passes it through unchanged.
+    onError: (err: unknown) => {
+      const apiErr = toApiError(err);
+      setFormError(signErrorMessage(apiErr));
+      // `ERR-SIGN-002` (already signed) proves the permit's signatures moved
+      // since this screen last read them — refresh instead of leaving the
+      // count frozen until the next unrelated reload.
+      if (apiErr.code === 'ERR-SIGN-002') onSigned();
+    },
   });
 
   function handleSign() {

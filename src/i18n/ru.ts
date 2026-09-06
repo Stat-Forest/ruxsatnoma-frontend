@@ -810,6 +810,8 @@ export const ru = {
   'gis.contours.available': 'свободно',
   'gis.contours.loadMore': 'Загрузить ещё',
   'gis.contours.noPublishedVersion': 'Для этого контура ещё нет опубликованной версии',
+  'gis.contours.overAllocated':
+    'Внимание: на этот контур выдано больше разрешений, чем позволяет его площадь — поэтому занятая часть больше общей. Свободная часть поэтому показана как 0 га, а не отрицательным числом.',
   'gis.contours.totalArea': 'Общая площадь',
   'gis.contours.occupied': 'Занятая часть',
   'gis.contours.noVersionYet': 'Для этого контура ещё не нарисована ни одна версия',

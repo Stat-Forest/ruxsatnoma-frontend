@@ -9,26 +9,34 @@ import type { components } from '../../api/schema';
 export type ApplicationStatus = components['schemas']['ApplicationOut']['status'];
 export type CheckResult = 'pass' | 'fail' | 'warning' | 'skipped';
 
-/** `ApplicationStatus` labels, Uzbek Latin with a Russian gloss — the
- * reference's own convention (`StatusBadge`, `WorklistApplicationsTable`).
+/** `ApplicationStatus` labels, Uzbek Latin only. F16
+ * (`docs/plans/07.3-findings.md`): every one of these used to carry a
+ * Russian gloss in brackets — «Qoralama (Черновик)» — on every row of every
+ * staff list, while the applicant's own timeline has always rendered the
+ * same statuses cleanly, in one language. It read as a development aid that
+ * shipped; it was never a real bilingual UI (nothing here honours the
+ * account's own language the way `localizedName`, just below, now does; a
+ * `ru` account still reads Uzbek here — a follow-up for whoever wires
+ * `STATUS_LABELS` to `useLanguage()`, not a reason to keep printing both).
+ *
  * Every literal `ApplicationOut.status` can carry (`app/modules/applications
  * /schemas.py::ApplicationStatus`), not only the ones 3.9a-flow can itself
  * produce — a filter or a stray row must never render as an unlabeled code. */
 export const STATUS_LABELS: Record<ApplicationStatus, string> = {
-  DRAFT: "Qoralama (Черновик)",
-  SUBMITTED: "Yuborilgan (Отправлена)",
-  IN_REVIEW: "Koʻrib chiqilmoqda (На рассмотрении)",
-  PENDING_INFO: "Maʼlumot kutilmoqda (Ожидает информации)",
-  RETURNED: "Tuzatishga qaytarilgan (Возвращена)",
-  APPROVED: "Tasdiqlangan (Одобрена)",
-  INVOICED: "Hisob-faktura yuborilgan (Выставлен счёт)",
-  PAID: "Toʻlangan (Оплачена)",
-  PERMIT_ISSUED: "Ruxsatnoma berilgan (Разрешение выдано)",
-  REJECTED: "Rad etilgan (Отклонена)",
-  CANCELLED: "Bekor qilingan (Отменена)",
-  EXPIRED_UNPAID: "Toʻlanmay muddati oʻtgan (Не оплачена, срок истёк)",
-  CLOSED: "Yopilgan (Закрыта)",
-  ARCHIVED: "Arxivlangan (В архиве)",
+  DRAFT: "Qoralama",
+  SUBMITTED: "Yuborilgan",
+  IN_REVIEW: "Koʻrib chiqilmoqda",
+  PENDING_INFO: "Maʼlumot kutilmoqda",
+  RETURNED: "Tuzatishga qaytarilgan",
+  APPROVED: "Tasdiqlangan",
+  INVOICED: "Hisob-faktura yuborilgan",
+  PAID: "Toʻlangan",
+  PERMIT_ISSUED: "Ruxsatnoma berilgan",
+  REJECTED: "Rad etilgan",
+  CANCELLED: "Bekor qilingan",
+  EXPIRED_UNPAID: "Toʻlanmay muddati oʻtgan",
+  CLOSED: "Yopilgan",
+  ARCHIVED: "Arxivlangan",
 };
 
 export function statusLabel(status: ApplicationStatus): string {
@@ -60,28 +68,29 @@ export function checkTypeLabel(checkType: string): string {
 /** `application_checks.result` visual treatment. `skipped` is its own state
  * on purpose (task brief): it is the common case for `gis_within_fund` today
  * because the forest-fund boundary layer is still empty, and must never read
- * as either a pass or a failure. */
+ * as either a pass or a failure. F16: the Russian gloss is gone from `label`
+ * for the same reason `STATUS_LABELS` above lost its own. */
 export const CHECK_RESULT_STYLE: Record<
   CheckResult,
   { label: string; badgeClass: string; dotClass: string }
 > = {
   pass: {
-    label: "Oʻtdi (Пройдено)",
+    label: "Oʻtdi",
     badgeClass: 'bg-[#F0F7F1] border-[#D9EBDC] text-[#123522]',
     dotClass: 'bg-[#15803D]',
   },
   fail: {
-    label: "Oʻtmadi (Не пройдено)",
+    label: "Oʻtmadi",
     badgeClass: 'bg-[#FEF2F2] border-[#FCA5A5] text-[#991B1B]',
     dotClass: 'bg-[#B91C1C]',
   },
   warning: {
-    label: "Ogohlantirish (Предупреждение)",
+    label: "Ogohlantirish",
     badgeClass: 'bg-[#FFFBEB] border-[#FDE68A] text-[#92400E]',
     dotClass: 'bg-[#B45309]',
   },
   skipped: {
-    label: "Oʻtkazib yuborilgan (Пропущена)",
+    label: "Oʻtkazib yuborilgan",
     badgeClass: 'bg-[#F8F9FA] border-[#E4E7EA] text-[#5A646D]',
     dotClass: 'bg-[#9AA3AB]',
   },
@@ -92,14 +101,28 @@ export function checkResultStyle(result: string) {
 }
 
 /** A localized `{lang: text}` map (`ActivityTypeOut.name`,
- * `ClassifierItemOut.name`, `OrganizationOut.name`, `RoleOut.name`) as one
- * best-effort string. The seeded reference data carries `uz_cyrl`/`en` only
- * (migration 0005) — no `ru` key exists yet — so this reads whatever is
- * actually there rather than assuming a key the seed does not write. */
-export function localizedName(name: Record<string, unknown> | null | undefined): string {
+ * `ClassifierItemOut.name`, `OrganizationOut.name`, `RoleOut.name`) picked
+ * for the caller's own UI language — never a fixed key order. F14
+ * (`docs/plans/07.3-findings.md`): this used to try `en` before anything
+ * else, regardless of who was looking at the screen, which is exactly why
+ * the applications filter and the staff card once showed reference data in
+ * English on an Uzbek-Latin interface. Decision #90 made `uz_latn` the
+ * REQUIRED field of every `LocalizedName` (backfilled before the flip), so
+ * it is always there to fall back to — the seed no longer lacks it the way
+ * this function's old comment assumed. */
+export function localizedName(
+  name: Record<string, unknown> | null | undefined,
+  lang: 'uz_latn' | 'ru' = 'uz_latn',
+): string {
   if (!name) return '';
-  const candidate = name.en ?? name.uz_cyrl ?? name.ru ?? name.uz_latn ?? Object.values(name)[0];
-  return typeof candidate === 'string' ? candidate : '';
+  const direct = name[lang];
+  if (typeof direct === 'string' && direct) return direct;
+  for (const key of ['uz_latn', 'uz_cyrl', 'ru', 'en', 'kaa']) {
+    const value = name[key];
+    if (typeof value === 'string' && value) return value;
+  }
+  const first = Object.values(name).find((v) => typeof v === 'string' && v);
+  return typeof first === 'string' ? first : '';
 }
 
 export function formatDateTime(value: string | null | undefined): string {
@@ -133,8 +156,18 @@ export function formatAmount(value: string | null | undefined): string {
   return fracPart ? `${withSeparators},${fracPart}` : withSeparators;
 }
 
+/** F15 (`docs/plans/07.3-findings.md`): the seeded ids are uuid7
+ * (`ffffffff-ffff-7fff-...`), whose LEADING hex characters are a millisecond
+ * timestamp — records created moments apart in the same seed run share that
+ * prefix, so slicing from the front once showed two different actors, or an
+ * actor and an organization, as the identical "eight characters". The
+ * TRAILING characters are the random tail (`rand_a`/`rand_b`, RFC 9562), not
+ * derived from the clock, so they are what actually tells two rows apart.
+ * Still not a name — no route resolves an arbitrary user id to one for a
+ * general staff caller (`HistoryPanel.tsx`'s own comment) — only a distinct
+ * fingerprint instead of a colliding one. */
 export function shortId(id: string): string {
-  return id.slice(0, 8);
+  return id.slice(-8);
 }
 
 // --- D3 (3.9b task 4): the SLA clock, honestly ------------------------------

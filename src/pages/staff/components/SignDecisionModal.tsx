@@ -5,6 +5,7 @@ import { Button } from '../../../components/ui/button';
 import { FormField, Input, Select, Textarea } from '../../../components/ui/FormControls';
 import { ApiError } from '../../../api/errors';
 import { buildMockSignature, PINFL_PATTERN } from '../../../lib/eimzoMock';
+import { useLanguage } from '../../../i18n/useT';
 import { useApplicationPackage, useRejectionReasons } from '../queries';
 import { localizedName } from '../format';
 
@@ -39,6 +40,7 @@ export function SignDecisionModal({
   onSubmitApprove,
   onSubmitReject,
 }: SignDecisionModalProps) {
+  const { lang } = useLanguage();
   const [pinfl, setPinfl] = useState('');
   const [reasonItemId, setReasonItemId] = useState('');
   const [legalBasis, setLegalBasis] = useState('');
@@ -126,7 +128,7 @@ export function SignDecisionModal({
                 onChange={(e) => setReasonItemId(e.target.value)}
                 options={[
                   { value: '', label: 'Tanlang...' },
-                  ...(rejectionReasons.data ?? []).map((r) => ({ value: r.id, label: localizedName(r.name) || r.code })),
+                  ...(rejectionReasons.data ?? []).map((r) => ({ value: r.id, label: localizedName(r.name, lang) || r.code })),
                 ]}
               />
             </FormField>
