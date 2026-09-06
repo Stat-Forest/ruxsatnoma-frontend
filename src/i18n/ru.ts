@@ -1070,6 +1070,7 @@ export const ru = {
   'reports.forms.create.submit': 'Создать форму',
   'reports.forms.create.cancel': 'Отмена',
   'reports.forms.create.error.versionExists': 'Такая версия формы уже существует',
+  'reports.forms.create.error.columnsRequired': 'Добавьте хотя бы одну колонку',
   'reports.forms.create.error.invalidJson': 'Неверный JSON',
   'reports.forms.create.error.generic': 'Не удалось создать форму',
   'reports.forms.activate.confirmTitle': 'Активировать форму',

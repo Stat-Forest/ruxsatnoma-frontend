@@ -1078,6 +1078,7 @@ export const uz_latn = {
   'reports.forms.create.submit': 'Shakl yaratish',
   'reports.forms.create.cancel': 'Bekor qilish',
   'reports.forms.create.error.versionExists': 'Bunday versiyadagi shakl allaqachon mavjud',
+  'reports.forms.create.error.columnsRequired': 'Kamida bitta ustun qoʻshing',
   'reports.forms.create.error.invalidJson': 'JSON notoʻgʻri',
   'reports.forms.create.error.generic': 'Shakl yaratilmadi',
   'reports.forms.activate.confirmTitle': 'Shaklni faollashtirish',
