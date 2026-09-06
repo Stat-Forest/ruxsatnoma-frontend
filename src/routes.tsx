@@ -14,6 +14,12 @@ import { OrganizationsPage } from './pages/admin/organizations/OrganizationsPage
 import { RolesPage } from './pages/admin/roles/RolesPage';
 import { SettingsPage } from './pages/admin/settings/SettingsPage';
 import { TemplatesPage } from './pages/admin/templates/TemplatesPage';
+import { OversightPage } from './pages/oversight/OversightPage';
+import { SupportPage } from './pages/support/SupportPage';
+import { InspectionsPage } from './pages/inspector/InspectionsPage';
+import { TaskDetailPage } from './pages/inspector/TaskDetailPage';
+import { ActFormPage } from './pages/inspector/ActFormPage';
+import { CaseDetailPage } from './pages/inspector/CaseDetailPage';
 import {
   ApplicationsPage,
   ApplicationWizardPage,
@@ -30,6 +36,8 @@ import {
   PermitDocumentPage,
   PermitsPage,
   ProfilePage,
+  ReportDetailPage,
+  ReportsPage,
   StaffApplicationCardPage,
 } from './pages/placeholders';
 
@@ -52,6 +60,9 @@ const CHILD_PAGES: Record<string, ReactNode> = {
   '/norms': <NormsPage />,
   '/invoices': <InvoicesPage />,
   '/permits': <PermitsPage />,
+  '/oversight': <OversightPage />,
+  '/reports': <ReportsPage />,
+  '/inspections': <InspectionsPage />,
   '/admin/users': <UsersPage />,
   '/admin/roles': <RolesPage />,
   '/admin/organizations': <OrganizationsPage />,
@@ -62,6 +73,7 @@ const CHILD_PAGES: Record<string, ReactNode> = {
   '/admin/integrations': <IntegrationsPage />,
   '/notifications': <NotificationsPage />,
   '/profile': <ProfilePage />,
+  '/support': <SupportPage />,
 };
 
 /** Generated from `NAVIGATION`, not hand-written — see `CHILD_PAGES` above. */
@@ -96,6 +108,16 @@ const navigationChildren: RouteObject[] = NAVIGATION.map((item) => {
  * legitimate reader the backend would have served — `executor_head` holds
  * `applications.decide` but not `applications.review`, and still has to open
  * an application card to approve it.
+ *
+ * The four `inspections/*` entries follow the same read-only reasoning:
+ * `GET /inspections/tasks/{id}` / `/acts/{id}` / `/cases/{id}` all gate on
+ * ownership or zone inside `service.py` (own `assigned_to`/`inspector_id`,
+ * `view_any`, or — for a case — the case's own applicant), never a
+ * `require_permission` dependency, and `POST /inspections/acts` (the
+ * `acts/new` entry) is reached only from `InspectionsPage`'s own "New
+ * inspection" button, which is itself gated on `inspections.acts.write`
+ * (`ActsTab.tsx`) — a route-level permission here would just double-gate
+ * the same check with a second, drift-prone copy.
  */
 const DETAIL_ROUTES: { path: string; element: ReactNode; permission?: string }[] = [
   { path: 'my/applications/new', element: <ApplicationWizardPage />, permission: 'applications.create' },
@@ -104,6 +126,15 @@ const DETAIL_ROUTES: { path: string; element: ReactNode; permission?: string }[]
   { path: 'my/permits/:id', element: <MyPermitPage /> },
   { path: 'applications/:id', element: <StaffApplicationCardPage /> },
   { path: 'permits/:id', element: <PermitDocumentPage /> },
+  // J2 (stage 6.7) — same reasoning as `permits/:id`/`applications/:id`
+  // above: `GET /reports/{report_id}` gates on `reports.view` inside the
+  // service layer, not a `require_permission` dependency, so this route
+  // carries no `permission` here either.
+  { path: 'reports/:id', element: <ReportDetailPage /> },
+  { path: 'inspections/tasks/:id', element: <TaskDetailPage /> },
+  { path: 'inspections/acts/new', element: <ActFormPage /> },
+  { path: 'inspections/acts/:id', element: <ActFormPage /> },
+  { path: 'inspections/cases/:id', element: <CaseDetailPage /> },
   // Where `GET /auth/oneid/callback` (backend) redirects once the session
   // cookies are set — part of that cross-repo contract, not a private path.
   // Registered inside the `RequireAuth`-wrapped subtree so an unauthenticated

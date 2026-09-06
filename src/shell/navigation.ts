@@ -4,15 +4,19 @@ import {
   Bell,
   BookMarked,
   Building2,
+  ClipboardList,
+  ClipboardCheck,
   FileText,
   Home,
   Inbox,
+  LifeBuoy,
   MailPlus,
   Map,
   Megaphone,
   Radio,
   Scale,
   Settings,
+  ShieldAlert,
   ShieldCheck,
   Stamp,
   User,
@@ -107,6 +111,42 @@ export const NAVIGATION: NavItem[] = [
   // stand on at all (06.5-accountant.md ruling R4).
   { to: '/invoices', labelKey: 'nav.invoices', permission: ['payments.view', 'payments.confirm'], icon: Wallet },
   { to: '/permits', labelKey: 'nav.permits', permission: 'permits.view_any', icon: Stamp },
+  // С22's read-only register (task 2, stage 6.7 J3) — `central_admin`,
+  // `leadership`, `executor_head` (zone-scoped to their own organization) and
+  // `prosecutor` all hold `oversight.view` (migration 0028); `sys_admin`
+  // passes as superuser. No other code opens this screen — it is a single
+  // gate, unlike `/applications`'s reviewer/approver pair above.
+  { to: '/oversight', labelKey: 'nav.oversight', permission: 'oversight.view', icon: ShieldAlert },
+  // J2 (stage 6.7) — `reports.view` alone is correct and sufficient:
+  // `permissions.py`'s own docstring grants it to every role that holds ANY
+  // other `reports.*` code (central_admin, executor_staff, executor_head,
+  // accountant) plus two read-only roles (gis_specialist, prosecutor,
+  // leadership) — there is no role with `reports.manage`/`.sign`/`.accept`/
+  // `.forms.manage` that lacks `reports.view`.
+  { to: '/reports', labelKey: 'nav.reports', permission: 'reports.view', icon: ClipboardList },
+  // Five codes, any ONE of them (`NavItem.permission` semantics): the
+  // inspector's own `inspections.acts.write` (checklists, acts, ERI
+  // signing), `inspections.tasks.manage` for the executor_staff/
+  // executor_head who assign and cancel field tasks, `inspections.cases
+  // .manage` for the executor_head who decides violation cases,
+  // `inspections.checklists.manage` for the central_admin who maintains
+  // checklist versions, and `inspections.view_any` — oversight read access
+  // to the whole zone (executor_head, central_admin, leadership,
+  // prosecutor). Gating on the inspector's own code alone would hide this
+  // entire menu entry from every other role the backend already lets see
+  // or manage some part of it.
+  {
+    to: '/inspections',
+    labelKey: 'nav.inspections',
+    permission: [
+      'inspections.acts.write',
+      'inspections.tasks.manage',
+      'inspections.cases.manage',
+      'inspections.checklists.manage',
+      'inspections.view_any',
+    ],
+    icon: ClipboardCheck,
+  },
   { to: '/admin/users', labelKey: 'nav.users', permission: 'auth.users.manage', icon: Users },
   { to: '/admin/roles', labelKey: 'nav.roles', permission: 'auth.users.manage', icon: ShieldCheck },
   { to: '/admin/organizations', labelKey: 'nav.organizations', permission: 'admin.organizations.manage', icon: Building2 },
@@ -116,6 +156,7 @@ export const NAVIGATION: NavItem[] = [
   { to: '/admin/notification-templates', labelKey: 'nav.templates', permission: 'notifications.templates.manage', icon: MailPlus },
   { to: '/admin/integrations', labelKey: 'nav.integrations', permission: 'admin.integrations.view', icon: Radio },
   { to: '/notifications', labelKey: 'nav.notifications', icon: Bell },
+  { to: '/support', labelKey: 'nav.support', icon: LifeBuoy },
   { to: '/profile', labelKey: 'nav.profile', icon: User },
 ];
 

@@ -58,6 +58,8 @@ export const uz_latn = {
 
   requeueOnlyDead: 'Faqat “Yetkazilmadi” holatidagi xabarni qaytarish mumkin',
   discardOnlyNew: 'Faqat “Yangi” xat rad etiladi',
+  requeueNoPermission: 'Navbatga qaytarish uchun huquq yetarli emas (admin.integrations.manage)',
+  discardNoPermission: 'Rad etish uchun huquq yetarli emas (admin.integrations.manage)',
 
   detailsOutboxTitle: 'Chiquvchi xabar',
   detailsLetterTitle: 'Kiruvchi xato xati',
@@ -134,6 +136,8 @@ export const ru: Record<keyof typeof uz_latn, string> = {
 
   requeueOnlyDead: 'Вернуть можно только сообщение со статусом «Не доставлено»',
   discardOnlyNew: 'Отбросить можно только «новое» письмо',
+  requeueNoPermission: 'Недостаточно прав для возврата в очередь (admin.integrations.manage)',
+  discardNoPermission: 'Недостаточно прав для отбрасывания (admin.integrations.manage)',
 
   detailsOutboxTitle: 'Исходящее сообщение',
   detailsLetterTitle: 'Входящее письмо с ошибкой',

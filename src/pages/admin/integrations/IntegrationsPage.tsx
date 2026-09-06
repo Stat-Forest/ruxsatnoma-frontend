@@ -6,8 +6,10 @@ import { Pagination, Tabs } from '../../../components/ui/Navigation';
 import { Modal } from '../../../components/ui/Overlay';
 import { Alert } from '../../../components/ui/Feedback';
 import { ApiError } from '../../../api/errors';
+import { useAuth } from '../../../auth/useAuth';
 import { useLanguage } from '../../../i18n/useT';
 import type { DeadLetterOut, OutboxMessageOut } from './api';
+import { INTEGRATIONS_MANAGE } from './permissions';
 import {
   useDeadLetterList,
   useDiscardDeadLetter,
@@ -257,6 +259,14 @@ function TableShell({
 // ── the outbox tab ─────────────────────────────────────────────────────────
 
 function OutboxTab({ L }: { L: IntegrationsLabels }) {
+  const { me } = useAuth();
+  // Both list routes accept EITHER `admin.integrations.view` or
+  // `admin.integrations.manage` (`require_any_permission`), which is why the
+  // page itself opens on the weaker `.view` code — but `POST .../requeue`
+  // requires `.manage` alone, so a view-only holder must not be offered the
+  // button at all (house rule: an action the backend would refuse is not
+  // offered).
+  const canManage = !!me && (me.is_superuser || me.permissions.includes(INTEGRATIONS_MANAGE));
   const [form, setForm] = useState({ status: '', destination: '' });
   const [applied, setApplied] = useState({ status: '', destination: '' });
   const [page, setPage] = useState(1);
@@ -391,16 +401,25 @@ function OutboxTab({ L }: { L: IntegrationsLabels }) {
                 </Button>
                 {/* Only a `dead` row can be requeued — the backend refuses
                     anything else with `ERR-VAL-001 / not_dead`, so offering
-                    the button elsewhere would offer a guaranteed error. */}
+                    the button elsewhere would offer a guaranteed error. A
+                    view-only holder gets the same treatment: the backend
+                    refuses with 403 for lacking `.manage`, so the button is
+                    not offered to them either. */}
                 {message.status === 'dead' ? (
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    leftIcon={<RefreshCw className="w-3.5 h-3.5" />}
-                    onClick={() => askRequeue(message)}
-                  >
-                    {L.actionRequeue}
-                  </Button>
+                  canManage ? (
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      leftIcon={<RefreshCw className="w-3.5 h-3.5" />}
+                      onClick={() => askRequeue(message)}
+                    >
+                      {L.actionRequeue}
+                    </Button>
+                  ) : (
+                    <span className="text-[11px] text-[#9AA3AB] self-center max-w-[160px] text-right">
+                      {L.requeueNoPermission}
+                    </span>
+                  )
                 ) : (
                   <span className="text-[11px] text-[#9AA3AB] self-center max-w-[160px] text-right">
                     {L.requeueOnlyDead}
@@ -451,6 +470,10 @@ function OutboxTab({ L }: { L: IntegrationsLabels }) {
 // ── the dead-letter tab ────────────────────────────────────────────────────
 
 function DeadLettersTab({ L }: { L: IntegrationsLabels }) {
+  const { me } = useAuth();
+  // Same asymmetry as `OutboxTab.canManage` above: the list route accepts
+  // either code, `POST .../discard` requires `.manage` alone.
+  const canManage = !!me && (me.is_superuser || me.permissions.includes(INTEGRATIONS_MANAGE));
   const [form, setForm] = useState({ status: '' });
   const [applied, setApplied] = useState({ status: '' });
   const [page, setPage] = useState(1);
@@ -560,16 +583,24 @@ function DeadLettersTab({ L }: { L: IntegrationsLabels }) {
                 </Button>
                 {/* Only a `new` letter can be discarded: one already triaged
                     would have its trail overwritten, so the backend refuses
-                    (`ERR-VAL-001 / not_new`) and the button is not offered. */}
+                    (`ERR-VAL-001 / not_new`) and the button is not offered.
+                    A view-only holder gets the same treatment — the backend
+                    refuses with 403 for lacking `.manage`. */}
                 {letter.status === 'new' ? (
-                  <Button
-                    variant="danger"
-                    size="sm"
-                    leftIcon={<Trash2 className="w-3.5 h-3.5" />}
-                    onClick={() => askDiscard(letter)}
-                  >
-                    {L.actionDiscard}
-                  </Button>
+                  canManage ? (
+                    <Button
+                      variant="danger"
+                      size="sm"
+                      leftIcon={<Trash2 className="w-3.5 h-3.5" />}
+                      onClick={() => askDiscard(letter)}
+                    >
+                      {L.actionDiscard}
+                    </Button>
+                  ) : (
+                    <span className="text-[11px] text-[#9AA3AB] self-center max-w-[160px] text-right">
+                      {L.discardNoPermission}
+                    </span>
+                  )
                 ) : (
                   <span className="text-[11px] text-[#9AA3AB] self-center max-w-[160px] text-right">
                     {L.discardOnlyNew}
@@ -630,6 +661,15 @@ type TabId = 'outbox' | 'dead-letters';
  * un-discard route, and the backend refuses a second attempt precisely so the
  * triage trail cannot be rewritten. The discard dialog therefore names the
  * letter (source, id, arrival time, error) rather than asking "are you sure".
+ *
+ * The route opens on `admin.integrations.view` (`navigation.ts`) — the
+ * weaker of the two codes, correctly, since both list routes accept either.
+ * Requeue and discard require `admin.integrations.manage` alone
+ * (`integrations_router.py`), so `OutboxTab`/`DeadLettersTab` each gate their
+ * own write button on `canManage` and fall back to `requeueNoPermission` /
+ * `discardNoPermission` for a view-only holder — the same "not offered when
+ * the backend would refuse it" rule the status-based fallback already
+ * follows.
  *
  * Neither list route returns the message body: the backend strips `payload`
  * from both schemas because an outbox row may carry a one-time SMS code. The

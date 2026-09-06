@@ -23,3 +23,6 @@ yarn-error.log*
 # never commit either into this repository's history (ruling R8).
 .reference/
 .superpowers/
+
+# Per-session git worktrees (root CLAUDE.md: one worktree per parallel session)
+.claude/worktrees/

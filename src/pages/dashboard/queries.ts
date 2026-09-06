@@ -16,6 +16,13 @@ export type ApplicationOut = components['schemas']['ApplicationOut'];
 export type PermitOut = components['schemas']['PermitOut'];
 export type InvoiceOut = components['schemas']['InvoiceOut'];
 export type ActivityTypeOut = components['schemas']['ActivityTypeOut'];
+export type KpiOut = components['schemas']['KpiOut'];
+export type TerritorySliceOut = components['schemas']['TerritorySliceOut'];
+export type SliceCellOut = components['schemas']['SliceCellOut'];
+export type ClassifierItemOut = components['schemas']['ClassifierItemOut'];
+export type RegionOut = components['schemas']['RegionOut'];
+export type DistrictOut = components['schemas']['DistrictOut'];
+export type OrganizationOut = components['schemas']['OrganizationOut'];
 
 /** One page is enough for a citizen's whole history — `PageParams` caps
  *  `page_size` at 100 and nobody in this system holds that many applications.
@@ -109,5 +116,118 @@ export function useContourNumbers(contourIds: string[]) {
     })),
     combine: (results: { data?: { id: string; number: string } }[]) =>
       new Map(results.flatMap((result) => (result.data ? [[result.data.id, result.data.number] as const] : []))),
+  });
+}
+
+// --- leadership's KPI dashboard (stage 6.7, J3) ----------------------------
+
+export interface KpiParams {
+  period_from: string;
+  period_to: string;
+  region_id?: string;
+  district_id?: string;
+  organization_id?: string;
+  activity_type_id?: string;
+  compare_previous?: boolean;
+}
+
+export function useKpi(params: KpiParams) {
+  return useQuery({
+    queryKey: ['dashboard', 'kpi', params],
+    queryFn: async () => {
+      const { data, error } = await api.GET('/api/v1/dashboard/kpi', {
+        params: { query: params },
+      });
+      if (error) throw apiError(error);
+      return data;
+    },
+  });
+}
+
+export interface TerritorySliceParams {
+  period_from: string;
+  period_to: string;
+  region_id?: string;
+  district_id?: string;
+  organization_id?: string;
+}
+
+export function useTerritorySlice(params: TerritorySliceParams) {
+  return useQuery({
+    queryKey: ['dashboard', 'territory-slice', params],
+    queryFn: async () => {
+      const { data, error } = await api.GET('/api/v1/dashboard/territory-slice', {
+        params: { query: params },
+      });
+      if (error) throw apiError(error);
+      return data;
+    },
+  });
+}
+
+/** Mirrors `staff/queries.ts::useRejectionReasons` exactly — same classifier
+ *  code, same call, same `staleTime` — kept as its own copy here rather than
+ *  imported across page folders, per this folder's own convention above (a
+ *  small cross-cutting query duplicated is cheaper than a shared module
+ *  every track has to merge around). */
+export function useRejectionReasonItems() {
+  return useQuery({
+    queryKey: ['refs', 'classifiers', 'rejection_reasons'],
+    queryFn: async () => {
+      const { data, error } = await api.GET('/api/v1/refs/classifiers/{code}/items', {
+        params: { path: { code: 'rejection_reasons' } },
+      });
+      if (error) throw apiError(error);
+      return data;
+    },
+    staleTime: 10 * 60_000,
+  });
+}
+
+export function useRegions() {
+  return useQuery({
+    queryKey: ['refs', 'regions'],
+    queryFn: async () => {
+      const { data, error } = await api.GET('/api/v1/refs/regions', {});
+      if (error) throw apiError(error);
+      return data;
+    },
+    staleTime: 10 * 60_000,
+  });
+}
+
+/** Every district in the country when `regionId` is omitted — not what a
+ *  cascading picker wants, so this hook simply does not fire until a region
+ *  is chosen, same as `useOrganizationsInRegion` below. */
+export function useDistricts(regionId: string | undefined) {
+  return useQuery({
+    queryKey: ['refs', 'districts', regionId],
+    queryFn: async () => {
+      const { data, error } = await api.GET('/api/v1/refs/districts', {
+        params: { query: { region_id: regionId } },
+      });
+      if (error) throw apiError(error);
+      return data;
+    },
+    enabled: !!regionId,
+  });
+}
+
+/** `GET /refs/organizations` has no `district_id` filter — `OrganizationOut`
+ *  carries its own `district_id` on each row, so a caller narrowing by both
+ *  region AND district filters this hook's result client-side (in
+ *  `KpiFilters.tsx`) rather than asking the route for something it cannot
+ *  do. */
+export function useOrganizationsInRegion(regionId: string | undefined) {
+  return useQuery({
+    queryKey: ['refs', 'organizations', regionId],
+    queryFn: async () => {
+      const { data, error } = await api.GET('/api/v1/refs/organizations', {
+        params: { query: { region_id: regionId, page_size: 100 } },
+      });
+      if (error) throw apiError(error);
+      return data.items;
+    },
+    enabled: !!regionId,
   });
 }
