@@ -52,6 +52,7 @@ function kpiFixture(overrides: Partial<KpiOut> = {}): KpiOut {
       recipient_share_amount: '1000000.00',
     },
     sla: { active_count: 8, overdue_count: 2 },
+    inspections: { inspections_count: 0, violations_count: 0 },
     rejections: [],
     risk_indicators: { by_code: {}, by_level: {} },
     omitted: [],
