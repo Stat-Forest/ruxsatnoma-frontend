@@ -6,17 +6,21 @@
  */
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
+  createExport,
   createProfile,
   deleteProfile,
+  listExports,
   listProfiles,
   search,
   updateProfile,
+  type ExportCreate,
   type SavedFilterIn,
   type SavedFilterPatch,
   type SearchParams,
 } from './api';
 
 const PROFILES_KEY = ['search', 'profiles'] as const;
+const EXPORTS_KEY = ['search', 'exports'] as const;
 
 export function useSearchResults(params: SearchParams) {
   return useQuery({
@@ -62,6 +66,25 @@ export function useDeleteSavedFilter() {
     mutationFn: (profileId: string) => deleteProfile(profileId),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: PROFILES_KEY });
+    },
+  });
+}
+
+// --- exports (С22, decision #98) ------------------------------------------
+
+export function useExports() {
+  return useQuery({
+    queryKey: EXPORTS_KEY,
+    queryFn: () => listExports(),
+  });
+}
+
+export function useCreateExport() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (body: ExportCreate) => createExport(body),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: EXPORTS_KEY });
     },
   });
 }

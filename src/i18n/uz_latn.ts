@@ -1613,6 +1613,11 @@ export const uz_latn = {
   'search.profiles.saveConfirm': "Saqlash",
   'search.profiles.saveCancel': "Bekor qilish",
   'search.profiles.delete': "Filtrni oʻchirish",
+  'search.export.title': "Eksport (С22)",
+  'search.export.xlsxButton': "XLSX ga eksport",
+  'search.export.pdfButton': "PDF ga eksport",
+  'search.export.download': "Yuklab olish",
+  'search.export.error': "Eksportni bajarib boʻlmadi",
 
   // Archive register (stage 6.9, track T69) — GET /archive + item card + archive/verify.
   'archive.title': "Arxiv reyestri",

@@ -24,6 +24,7 @@ import { DataTable, type Column } from '../../components/ui/DataTable';
 import { FormField, Input, Select } from '../../components/ui/FormControls';
 import { useLanguage, useT } from '../../i18n/useT';
 import { pickLocalizedName, useActivityTypes, useLeshozOrganizations } from './refs';
+import { SearchExportPanel } from './SearchExportPanel';
 import { useCreateSavedFilter, useDeleteSavedFilter, useSavedFilters, useSearchResults } from './queries';
 import type { SavedFilterOut, SearchKind, SearchResultOut } from './api';
 
@@ -300,6 +301,17 @@ export function SearchPage() {
           pagination={{ currentPage: page, totalPages, onPageChange: setPage, totalRecords: total }}
         />
       </div>
+
+      <SearchExportPanel
+        kind={kind}
+        filters={{
+          q: applied.q || undefined,
+          status: applied.status || undefined,
+          organization_id: applied.organization_id || undefined,
+          activity_type_id: kind === 'applications' ? applied.activity_type_id || undefined : undefined,
+          series: kind === 'permits' ? applied.series || undefined : undefined,
+        }}
+      />
     </div>
   );
 }

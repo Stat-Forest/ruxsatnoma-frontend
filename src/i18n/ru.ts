@@ -1606,6 +1606,11 @@ export const ru = {
   'search.profiles.saveConfirm': 'Сохранить',
   'search.profiles.saveCancel': 'Отмена',
   'search.profiles.delete': 'Удалить фильтр',
+  'search.export.title': 'Экспорт (С22)',
+  'search.export.xlsxButton': 'Экспорт в XLSX',
+  'search.export.pdfButton': 'Экспорт в PDF',
+  'search.export.download': 'Скачать',
+  'search.export.error': 'Не удалось выполнить экспорт',
 
   // Archive register (stage 6.9, track T69) — GET /archive + item card + archive/verify.
   'archive.title': 'Архивный реестр',
