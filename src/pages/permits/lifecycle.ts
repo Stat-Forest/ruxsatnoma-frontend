@@ -54,7 +54,7 @@ export function reasonAppliesTo(item: ClassifierItemOut, act: LifecycleAct): boo
  *  the same fact and could drift from it). */
 export const EXPLANATION_REQUIRED_CODE = 'PS-07';
 
-export type DecisionInput = components['schemas']['DecisionIn'];
+export type DecisionInput = components['schemas']['app__modules__permits__schemas__DecisionIn'];
 
 /** The three routes share one request shape (`DecisionIn`) and one response
  *  shape (`PermitOut` — the permit's own columns, NOT the fuller

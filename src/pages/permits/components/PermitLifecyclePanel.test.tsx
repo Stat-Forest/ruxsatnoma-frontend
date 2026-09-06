@@ -47,6 +47,7 @@ function permit(over: Partial<PermitCardOut> = {}): PermitCardOut {
     doc_hash: 'a'.repeat(64),
     template_id: null,
     issued_at: '2026-08-01T10:00:00+05:00',
+    document_date: '2026-08-01',
     created_at: '2026-08-01T10:00:00+05:00',
     signatures: [],
     history: [],
