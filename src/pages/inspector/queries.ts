@@ -188,7 +188,10 @@ export const actKeys = {
   detail: (id: string | undefined) => ['inspector', 'acts', 'detail', id] as const,
 };
 
-export function useActsList(filters: ActListFilters) {
+/** `options.enabled` matches `useTasksList`'s own convention (task 2) — lets
+ *  `InspectionsPage`'s tab shell keep a hidden tab's own query from firing,
+ *  since every tab body mounts up front, toggled with `hidden`. */
+export function useActsList(filters: ActListFilters, options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: actKeys.list(filters),
     queryFn: async () => {
@@ -197,6 +200,7 @@ export function useActsList(filters: ActListFilters) {
       return data;
     },
     placeholderData: (previous) => previous,
+    enabled: options?.enabled ?? true,
   });
 }
 
@@ -336,7 +340,8 @@ export const caseKeys = {
   detail: (id: string | undefined) => ['inspector', 'cases', 'detail', id] as const,
 };
 
-export function useCasesList(filters: CaseListFilters) {
+/** `options.enabled` — same reason as `useActsList`'s own. */
+export function useCasesList(filters: CaseListFilters, options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: caseKeys.list(filters),
     queryFn: async () => {
@@ -345,6 +350,7 @@ export function useCasesList(filters: CaseListFilters) {
       return data;
     },
     placeholderData: (previous) => previous,
+    enabled: options?.enabled ?? true,
   });
 }
 

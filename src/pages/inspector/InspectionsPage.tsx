@@ -7,17 +7,18 @@
  * prop so a query inside a HIDDEN tab does not fire (`ParamsTab.tsx`'s own
  * documented gotcha, one track over).
  *
- * Only `scan`/`tasks` exist as of this task; `acts`/`cases` are appended by
- * a later task to the SAME tab array and `TabId` union, without this file
- * changing shape otherwise.
+ * `acts`/`cases` (task 6) join `scan`/`tasks` (task 2) in the same tab
+ * array and `TabId` union, same shape throughout.
  */
 import { useState } from 'react';
 import { Tabs } from '../../components/ui/Navigation';
 import { useT } from '../../i18n/useT';
 import { ScanTab } from './ScanTab';
 import { TasksTab } from './TasksTab';
+import { ActsTab } from './ActsTab';
+import { CasesTab } from './CasesTab';
 
-export type TabId = 'scan' | 'tasks';
+export type TabId = 'scan' | 'tasks' | 'acts' | 'cases';
 
 export function InspectionsPage() {
   const t = useT();
@@ -36,6 +37,8 @@ export function InspectionsPage() {
         tabs={[
           { id: 'scan', label: t('inspector.tabs.scan') },
           { id: 'tasks', label: t('inspector.tabs.tasks') },
+          { id: 'acts', label: t('inspector.tabs.acts') },
+          { id: 'cases', label: t('inspector.tabs.cases') },
         ]}
         activeTabId={tab}
         onChange={(id) => setTab(id as TabId)}
@@ -46,6 +49,12 @@ export function InspectionsPage() {
       </div>
       <div hidden={tab !== 'tasks'}>
         <TasksTab active={tab === 'tasks'} />
+      </div>
+      <div hidden={tab !== 'acts'}>
+        <ActsTab active={tab === 'acts'} />
+      </div>
+      <div hidden={tab !== 'cases'}>
+        <CasesTab active={tab === 'cases'} />
       </div>
     </div>
   );
