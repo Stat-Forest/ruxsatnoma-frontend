@@ -1,0 +1,47 @@
+name: Checks
+
+# The gate for every push and PR, and — via workflow_call — the gate the deploy reuses.
+# `upload-dist` hands the built bundle to the deploy job so the server never runs Node.
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+  workflow_call:
+    inputs:
+      upload-dist:
+        type: boolean
+        default: false
+      api-base:
+        type: string
+        default: ''
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run check
+      - name: Build
+        env:
+          # Baked into the bundle at build time; without it the browser calls localhost.
+          VITE_API_BASE: ${{ inputs.api-base }}
+        run: npm run build
+
+      # The build succeeding is not the same as the bundle being usable: a
+      # missing MapLibre worker breaks the map with no error anywhere. See the
+      # script's own header for why this cannot be a unit test.
+      - name: Check the bundle
+        run: ./scripts/check-bundle.sh dist
+
+      - name: Upload the bundle
+        if: ${{ inputs.upload-dist }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist
