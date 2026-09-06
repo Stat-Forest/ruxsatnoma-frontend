@@ -821,6 +821,13 @@ export const ru = {
   'gis.contours.split.confirm': 'Подтвердить разделение',
   'gis.contours.split.redrawLine': 'Перерисовать линию',
   'gis.contours.split.failed': 'Не удалось разделить',
+  'gis.contours.split.doneMessage': 'Контур разделён: родительский контур сохранён, добавлены два новых участка',
+  'gis.contours.split.resultParent': 'Родительский контур',
+  'gis.contours.split.resultPieceA': '1-й участок',
+  'gis.contours.split.resultPieceB': '2-й участок',
+  'gis.contours.split.publishHint':
+    'Оба новых участка сейчас в статусе «черновик». Пока опубликована версия родительского контура, опубликовать их нельзя — сначала архивируйте версию родителя (кнопка «В архив» в карточке контура).',
+  'gis.contours.split.done': 'Готово',
   'gis.contours.split.errors.lineTooShort': 'Линия слишком короткая',
   'gis.contours.split.errors.doesNotCross': 'Линия не пересекает контур насквозь — проведите линию так, чтобы оба конца выходили за границу',
   'gis.contours.split.errors.piecesCount': 'Линия пересекла контур несколько раз — проведите одну более прямую линию',

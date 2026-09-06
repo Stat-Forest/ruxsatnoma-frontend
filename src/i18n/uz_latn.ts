@@ -829,6 +829,13 @@ export const uz_latn = {
   'gis.contours.split.confirm': "Bo'lishni tasdiqlash",
   'gis.contours.split.redrawLine': 'Chiziqni qayta chizish',
   'gis.contours.split.failed': "Bo'lishni bajarib bo'lmadi",
+  'gis.contours.split.doneMessage': "Kontur bo'lindi: ota-kontur saqlanib qoldi, ikkita yangi uchastka qo'shildi",
+  'gis.contours.split.resultParent': 'Ota-kontur',
+  'gis.contours.split.resultPieceA': '1-uchastka',
+  'gis.contours.split.resultPieceB': '2-uchastka',
+  'gis.contours.split.publishHint':
+    "Ikkala yangi uchastka hozir \"qoralama\" holatida. Ota-konturning versiyasi nashr etilgan bo'lsa, ularni nashr qilib bo'lmaydi — avval ota-kontur versiyasini arxivlang (kontur kartochkasidagi \"Arxivga\" tugmasi).",
+  'gis.contours.split.done': 'Tayyor',
   'gis.contours.split.errors.lineTooShort': "Chiziq juda qisqa",
   'gis.contours.split.errors.doesNotCross': "Chiziq konturni to'liq kesib o'tmayapti — ikki tomondan ham chegaradan chiqadigan chiziq torting",
   'gis.contours.split.errors.piecesCount': "Chiziq konturni bir necha marta kesib o'tdi — to'g'riroq, bitta chiziq torting",
