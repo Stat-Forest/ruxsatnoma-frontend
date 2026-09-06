@@ -242,6 +242,7 @@ export const ru = {
   'accountant.common.copied': 'Скопировано',
   'accountant.common.close': 'Закрыть',
   'accountant.common.cancel': 'Отмена',
+  'accountant.common.all': 'Все',
   'accountant.zone.label': 'Ваша зона:',
   'accountant.zone.republicWarning':
     'К вашему аккаунту не привязана организация — это значит, что вы видите счета по всей республике.',
@@ -251,8 +252,9 @@ export const ru = {
   'accountant.tabs.statements': 'Банковские выписки',
   'accountant.tabs.discrepancies': 'Несоответствия',
   'accountant.tabs.refunds': 'Возвраты',
-  'accountant.invoices.noRoute':
-    'Здесь нельзя перечислить все счета — такого маршрута в системе нет. Найдите по ID заявки, либо, если известен ID счёта, откройте его напрямую.',
+  'accountant.invoices.registerTitle': 'Реестр счетов',
+  'accountant.invoices.registerHint':
+    'Все счета вашей зоны — при необходимости найдите по одной заявке или откройте по ID.',
   'accountant.invoices.searchByApplication': 'Поиск по заявке',
   'accountant.invoices.applicationIdLabel': 'ID заявки',
   'accountant.invoices.applicationIdPlaceholder': 'UUID',
@@ -264,6 +266,11 @@ export const ru = {
   'accountant.invoices.notFound': 'Такого счёта нет либо он вам недоступен.',
   'accountant.invoices.loadFailed': 'Ошибка загрузки.',
   'accountant.invoices.emptyResults': 'По этой заявке счета не найдены.',
+  'accountant.invoices.registerEmpty': 'По этому фильтру счета не найдены.',
+  'accountant.invoices.statusFilterLabel': 'Статус',
+  'accountant.invoices.filteredByApplication': 'Отфильтровано по заявке',
+  'accountant.invoices.clearFilter': 'Сбросить фильтр',
+  'accountant.invoices.colApplication': 'Заявка',
   'accountant.invoices.colNumber': 'Номер',
   'accountant.invoices.colStatus': 'Статус',
   'accountant.invoices.colAmount': 'Сумма',

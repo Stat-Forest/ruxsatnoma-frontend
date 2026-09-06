@@ -25,6 +25,7 @@ import { apiError } from '../../api/errors';
 import type { components } from '../../api/schema';
 
 export type InvoiceOut = components['schemas']['InvoiceOut'];
+export type InvoiceStatus = InvoiceOut['status'];
 export type AllocationOut = components['schemas']['AllocationOut'];
 export type StatementAccepted = components['schemas']['StatementAccepted'];
 export type StatementOut = components['schemas']['StatementOut'];
@@ -48,15 +49,27 @@ export async function getInvoice(invoiceId: string): Promise<InvoiceOut> {
   return data;
 }
 
-/** `GET /invoices` has no route that lists without a filter — `application_id`
- *  is REQUIRED (`06.5-accountant.md` ruling R1). There is no "browse every
- *  invoice" screen behind this function because no such route exists. */
-export async function listInvoicesByApplication(applicationId: string): Promise<InvoiceOut[]> {
-  const { data, error } = await api.GET('/api/v1/invoices', {
-    params: { query: { application_id: applicationId, limit: 200, offset: 0 } },
-  });
+export interface ListInvoicesParams {
+  application_id?: string;
+  status?: InvoiceStatus;
+  limit?: number;
+  offset?: number;
+}
+
+/**
+ * `GET /invoices` — F12a. `06.5-accountant.md` ruling R1 read the route as
+ * "no list without a filter" because `application_id` was required at the
+ * time; the live route now takes it as an optional narrowing on top of the
+ * caller's own zone (`core#49`'s zone-scoping fix, plus an added `status`
+ * filter) — verified against a regenerated `schema.d.ts`, not against that
+ * stale ruling. Returns the whole `Page<InvoiceOut>`, not just `.items`: the
+ * register needs `.total` for pagination, which the old application-only
+ * helper this replaces never had to carry.
+ */
+export async function listInvoices(params: ListInvoicesParams) {
+  const { data, error } = await api.GET('/api/v1/invoices', { params: { query: params } });
   if (error) throw apiError(error);
-  return data.items;
+  return data;
 }
 
 // ── G2 — the 50/50 allocation ledger ────────────────────────────────────
