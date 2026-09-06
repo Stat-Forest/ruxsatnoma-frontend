@@ -3,6 +3,8 @@ import { useAuth } from '../../auth/useAuth';
 import { satisfies } from '../../shell/navigation';
 import { Tabs } from '../../components/ui/Navigation';
 import { useT } from '../../i18n/useT';
+import { FaqAdminTab } from './faq/FaqAdminTab';
+import { FaqReaderTab } from './faq/FaqReaderTab';
 
 export type TabId = 'faq' | 'faq-admin' | 'tickets' | 'appeals';
 
@@ -50,8 +52,8 @@ export function SupportPage() {
       />
 
       <div>
-        {tab === 'faq' && <ComingSoon />}
-        {tab === 'faq-admin' && <ComingSoon />}
+        {tab === 'faq' && <FaqReaderTab />}
+        {tab === 'faq-admin' && <FaqAdminTab />}
         {tab === 'tickets' && <ComingSoon />}
         {tab === 'appeals' && <ComingSoon />}
       </div>
