@@ -4,6 +4,7 @@ import { useT } from '../../i18n/useT';
 import { Button } from '../../components/ui/button';
 import { FormField, Input } from '../../components/ui/FormControls';
 import { ApiError } from '../../api/errors';
+import { useApiErrorText } from '../../i18n/useApiErrorText';
 import { formatDate } from './format';
 import { parseQrInput } from './qr';
 import { usePublicPermitCheck, type PublicPermitCheckInput } from './queries';
@@ -36,6 +37,7 @@ function ResultRow({ label, value }: { label: string; value: string }) {
  */
 export function ScanTab() {
   const t = useT();
+  const errorText = useApiErrorText();
   const [tokenInput, setTokenInput] = useState('');
   const [seriesOpen, setSeriesOpen] = useState(false);
   const [series, setSeries] = useState('');
@@ -114,7 +116,7 @@ export function ScanTab() {
 
       {check.error && (
         <div className="p-3 bg-[#FEF2F2] border border-[#FCA5A5] rounded-xl text-xs text-[#991B1B]" role="alert">
-          {check.error instanceof ApiError ? `${check.error.code}: ${check.error.message}` : t('inspector.scan.error')}
+          {check.error instanceof ApiError ? errorText(check.error) : t('inspector.scan.error')}
         </div>
       )}
 

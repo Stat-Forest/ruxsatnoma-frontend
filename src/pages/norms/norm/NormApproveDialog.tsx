@@ -11,12 +11,8 @@ import { useState } from 'react';
 import { Alert } from '../../../components/ui/Feedback';
 import { Button } from '../../../components/ui/button';
 import { Modal } from '../../../components/ui/Overlay';
-import { ApiError } from '../../../api/errors';
+import { useApiErrorText } from '../../../i18n/useApiErrorText';
 import { uploadDocument } from './api';
-
-function errorText(error: unknown, fallback: string): string {
-  return error instanceof ApiError ? `${error.code}: ${error.message}` : fallback;
-}
 
 export interface NormApproveDialogLabels {
   title: string;
@@ -39,6 +35,7 @@ export interface NormApproveDialogProps {
 }
 
 export function NormApproveDialog({ itemLabel, labels, isPending, errorMessage, onConfirm, onClose }: NormApproveDialogProps) {
+  const errorText = useApiErrorText();
   const [docId, setDocId] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);

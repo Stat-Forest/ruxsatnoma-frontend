@@ -7,6 +7,8 @@ import { setupServer } from 'msw/node';
 import { vi } from 'vitest';
 import { AuthContext } from '../../../auth/AuthContext';
 import type { AuthContextValue } from '../../../auth/AuthContext';
+import { I18nContext } from '../../../i18n/context';
+import type { UiLanguage } from '../../../i18n/context';
 import { buildMockSignature } from '../../../lib/eimzoMock';
 import { ApplicationWizardPage } from './ApplicationWizardPage';
 
@@ -36,7 +38,8 @@ const ACTIVITY_ID = 'a0000000-0000-4000-8000-000000000001';
 const APPLICATION_ID = 'ap000000-0000-4000-8000-000000000001';
 const APPLICANT_NAME = 'Aliyev Vali Applicant';
 
-const AUTH_VALUE: AuthContextValue = {
+function authValue(language: string): AuthContextValue {
+  return {
   me: {
     user: {
       id: 'u0000000-0000-4000-8000-000000000001',
@@ -45,7 +48,7 @@ const AUTH_VALUE: AuthContextValue = {
       phone: null,
       email: null,
       must_change_password: false,
-      language: 'uz',
+      language,
     },
     role: { code: 'applicant', name: {} },
     permissions: [],
@@ -77,7 +80,10 @@ const AUTH_VALUE: AuthContextValue = {
   logout: vi.fn(),
   applyMe: vi.fn(),
   refreshMe: vi.fn(),
-};
+  };
+}
+
+const AUTH_VALUE = authValue('uz');
 
 const server = setupServer(
   http.get('*/api/v1/refs/activity-types', () =>
@@ -99,18 +105,69 @@ beforeAll(() => server.listen({ onUnhandledRequest: 'error' }));
 afterEach(() => server.resetHandlers());
 afterAll(() => server.close());
 
-function renderWizard() {
+function renderWizard(auth: AuthContextValue = AUTH_VALUE, lang: UiLanguage = 'uz_latn') {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
+  const i18n = { lang, backendLang: lang, t: (key: string) => key, setLanguage: async () => {} };
   return render(
     <QueryClientProvider client={client}>
-      <AuthContext.Provider value={AUTH_VALUE}>
-        <MemoryRouter initialEntries={['/my/applications/new']}>
-          <ApplicationWizardPage />
-        </MemoryRouter>
-      </AuthContext.Provider>
+      <I18nContext.Provider value={i18n}>
+        <AuthContext.Provider value={auth}>
+          <MemoryRouter initialEntries={['/my/applications/new']}>
+            <ApplicationWizardPage />
+          </MemoryRouter>
+        </AuthContext.Provider>
+      </I18nContext.Provider>
     </QueryClientProvider>,
   );
 }
+
+// Drives the wizard to step 5 and triggers a submit that the server refuses
+// with a real domain error — the exact call site F4 named
+// (`docs/plans/07.3-findings.md`): `ApplicationWizardPage.tsx`'s
+// `handleSignAndSubmit` used to render the server's own Russian string
+// verbatim as `${code}: ${message}`, regardless of the applicant's own
+// interface language.
+async function driveToSubmitFailure() {
+  await userEvent.click(await screen.findByText('Pichanchilik'));
+  await userEvent.click(screen.getByRole('button', { name: /Keyingisi/ }));
+
+  await userEvent.click(await screen.findByText('pick-contour'));
+  fireEvent.change(screen.getByLabelText(/Boshlanish sanasi/), { target: { value: '2026-01-01' } });
+  fireEvent.change(screen.getByLabelText(/Tugash sanasi/), { target: { value: '2026-06-01' } });
+  await userEvent.click(screen.getByRole('button', { name: /Keyingisi/ }));
+
+  await userEvent.type(await screen.findByLabelText(/Miqdor/), '5');
+  await userEvent.click(screen.getByRole('button', { name: /Keyingisi/ }));
+
+  await userEvent.click(await screen.findByRole('button', { name: /Keyingisi/ }));
+
+  const signButton = await screen.findByRole('button', { name: /ERI bilan imzolash va yuborish/ });
+  await waitFor(() => expect(signButton).toBeEnabled());
+  await userEvent.click(signButton);
+}
+
+test.each([
+  ['uz_latn', 'Kesishuvchi davr uchun faol ariza allaqachon mavjud.'],
+  ['ru', 'Активная заявка на пересекающийся период уже существует.'],
+])(
+  'a duplicate-application refusal (ERR-APP-002) renders localized copy, not the raw code, in %s',
+  async (language, expectedText) => {
+    server.use(
+      http.post('*/api/v1/applications/:id/submit', () =>
+        HttpResponse.json(
+          { error: { code: 'ERR-APP-002', message: 'Активная заявка на пересекающийся период уже существует' } },
+          { status: 409 },
+        ),
+      ),
+    );
+    renderWizard(AUTH_VALUE, language as UiLanguage);
+
+    await driveToSubmitFailure();
+
+    expect(await screen.findByText(expectedText)).toBeInTheDocument();
+    expect(screen.queryByText(/ERR-APP-002:/)).not.toBeInTheDocument();
+  },
+);
 
 // Regression pin for the wiring that was already lost once: merging two
 // copies of the mock ERI codec dropped `fullName` at this exact call site,

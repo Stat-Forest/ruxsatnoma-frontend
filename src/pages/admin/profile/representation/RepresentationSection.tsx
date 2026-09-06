@@ -1,10 +1,10 @@
 import { useState } from 'react';
 import type { FormEvent } from 'react';
-import { ApiError } from '../../../../api/errors';
 import { Alert } from '../../../../components/ui/Feedback';
 import { Button } from '../../../../components/ui/button';
 import { FormField, Input, RadioGroup, Select } from '../../../../components/ui/FormControls';
 import { useAuth } from '../../../../auth/useAuth';
+import { useApiErrorText } from '../../../../i18n/useApiErrorText';
 import { useT } from '../../../../i18n/useT';
 import { PINFL_PATTERN, buildMockSignedChallenge } from '../../../../lib/eimzoMock';
 import { addRepresentation, attachLegal, issueEimzoChallenge, uploadPoaFile } from './api';
@@ -13,11 +13,6 @@ import { formatDate } from './format';
 
 type Basis = 'org_eri' | 'director_registry' | 'poa';
 const STIR_PATTERN = /^\d{9}$/;
-
-function apiErrorText(err: unknown, t: (key: string) => string): string {
-  if (err instanceof ApiError) return `${err.code}: ${err.message}`;
-  return t('cabinet.registration.genericError');
-}
 
 /** The three-basis picker shared by "attach a legal entity" (B4's own
  * `AttachLegalIn.basis`) and "add a colleague" (`AddRepresentationIn.basis`)
@@ -80,6 +75,7 @@ function RepresentationsList() {
 function AttachLegalForm() {
   const { me, refreshMe } = useAuth();
   const t = useT();
+  const errorText = useApiErrorText();
 
   const [stir, setStir] = useState('');
   const [basis, setBasis] = useState<Basis>('org_eri');
@@ -109,7 +105,7 @@ function AttachLegalForm() {
       setPoaFileId(uploaded.id);
       setPoaFileName(uploaded.filename);
     } catch (err) {
-      setError(apiErrorText(err, t));
+      setError(errorText(err, t('cabinet.registration.genericError')));
     } finally {
       setUploading(false);
     }
@@ -146,7 +142,7 @@ function AttachLegalForm() {
       setValidUntil('');
       setTouched(false);
     } catch (err) {
-      setError(apiErrorText(err, t));
+      setError(errorText(err, t('cabinet.registration.genericError')));
     } finally {
       setSubmitting(false);
     }
@@ -245,6 +241,7 @@ function AttachLegalForm() {
 function AddColleagueForm() {
   const { me, refreshMe } = useAuth();
   const t = useT();
+  const errorText = useApiErrorText();
 
   // Mirrors the backend's own rule (`auth.service.add_representation`): only
   // an `org_eri`/`director_registry` representation may add a second
@@ -293,7 +290,7 @@ function AddColleagueForm() {
       setPoaFileId(uploaded.id);
       setPoaFileName(uploaded.filename);
     } catch (err) {
-      setError(apiErrorText(err, t));
+      setError(errorText(err, t('cabinet.registration.genericError')));
     } finally {
       setUploading(false);
     }
@@ -328,7 +325,7 @@ function AddColleagueForm() {
       setValidUntil('');
       setTouched(false);
     } catch (err) {
-      setError(apiErrorText(err, t));
+      setError(errorText(err, t('cabinet.registration.genericError')));
     } finally {
       setSubmitting(false);
     }

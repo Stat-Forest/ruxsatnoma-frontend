@@ -5,6 +5,7 @@ import { ApiError, apiError } from '../../api/errors';
 import { Button } from '../../components/ui/button';
 import { FormField, Input, Select } from '../../components/ui/FormControls';
 import { Pagination, Tabs } from '../../components/ui/Navigation';
+import { useApiErrorText } from '../../i18n/useApiErrorText';
 import { useT } from '../../i18n/useT';
 import { downloadCsv, fetchAllPages, toCsv } from '../../lib/csvExport';
 import {
@@ -143,6 +144,7 @@ export function OversightPage() {
 }
 
 function RiskIndicatorsTab({ t }: { t: (key: string) => string }) {
+  const errorText = useApiErrorText();
   const [draft, setDraft] = useState<RiskDraft>(EMPTY_RISK_DRAFT);
   const [applied, setApplied] = useState<RiskDraft>(EMPTY_RISK_DRAFT);
   const [page, setPage] = useState(1);
@@ -274,7 +276,7 @@ function RiskIndicatorsTab({ t }: { t: (key: string) => string }) {
 
       {list.error && (
         <div className="p-4 bg-[#FEF2F2] border border-[#FCA5A5] rounded-2xl text-sm text-[#991B1B]" role="alert">
-          {list.error instanceof ApiError ? `${list.error.code}: ${list.error.message}` : t('leadership.dash.error')}
+          {list.error instanceof ApiError ? errorText(list.error) : t('leadership.dash.error')}
         </div>
       )}
 
@@ -345,6 +347,7 @@ function RiskIndicatorsTab({ t }: { t: (key: string) => string }) {
 }
 
 function EventsTab({ t }: { t: (key: string) => string }) {
+  const errorText = useApiErrorText();
   const [draft, setDraft] = useState<EventDraft>(EMPTY_EVENT_DRAFT);
   const [applied, setApplied] = useState<EventDraft>(EMPTY_EVENT_DRAFT);
   const [page, setPage] = useState(1);
@@ -451,7 +454,7 @@ function EventsTab({ t }: { t: (key: string) => string }) {
 
       {list.error && (
         <div className="p-4 bg-[#FEF2F2] border border-[#FCA5A5] rounded-2xl text-sm text-[#991B1B]" role="alert">
-          {list.error instanceof ApiError ? `${list.error.code}: ${list.error.message}` : t('leadership.dash.error')}
+          {list.error instanceof ApiError ? errorText(list.error) : t('leadership.dash.error')}
         </div>
       )}
 

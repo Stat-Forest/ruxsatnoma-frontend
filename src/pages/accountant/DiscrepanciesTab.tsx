@@ -6,6 +6,7 @@ import { Modal } from '../../components/ui/Overlay';
 import { Alert } from '../../components/ui/Feedback';
 import { useAuth } from '../../auth/useAuth';
 import { ApiError } from '../../api/errors';
+import { useApiErrorText } from '../../i18n/useApiErrorText';
 import { useT } from '../../i18n/useT';
 import { formatDateTime, formatMoney } from '../permits/format';
 import { RECONCILIATION_RESULT_LABEL, RECONCILIATION_STATUS_LABEL, RECONCILIATION_STATUS_STYLE } from './statusMeta';
@@ -142,6 +143,7 @@ function ReconciliationRegister({ canResolve }: { canResolve: boolean }) {
 
 function ResolveModal({ row, onClose }: { row: ReconciliationOut; onClose: () => void }) {
   const t = useT();
+  const errorText = useApiErrorText();
   const [comment, setComment] = useState('');
   const [file, setFile] = useState<File | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
@@ -163,7 +165,7 @@ function ResolveModal({ row, onClose }: { row: ReconciliationOut; onClose: () =>
 
   const error =
     mutation.error instanceof ApiError
-      ? `${mutation.error.code}: ${mutation.error.message}`
+      ? errorText(mutation.error)
       : mutation.isError
         ? t('accountant.discrepancies.resolveFailed')
         : null;
@@ -205,6 +207,7 @@ function ResolveModal({ row, onClose }: { row: ReconciliationOut; onClose: () =>
 
 function ManualConfirmationCheckPanel() {
   const t = useT();
+  const errorText = useApiErrorText();
   const [confirmationId, setConfirmationId] = useState('');
   const [rejectReason, setRejectReason] = useState('');
   const [showReject, setShowReject] = useState(false);
@@ -251,7 +254,7 @@ function ManualConfirmationCheckPanel() {
       {error && (
         <div className="mt-3">
           <Alert variant="danger">
-            {error.code === 'ERR-ACL-001' ? t('accountant.discrepancies.manualCheckMakerIsChecker') : `${error.code}: ${error.message}`}
+            {error.code === 'ERR-ACL-001' ? t('accountant.discrepancies.manualCheckMakerIsChecker') : errorText(error)}
           </Alert>
         </div>
       )}

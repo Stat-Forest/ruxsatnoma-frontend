@@ -24,7 +24,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { Camera, FileText, Loader2, Video } from 'lucide-react';
 import { api } from '../../../api/client';
-import { apiError, ApiError } from '../../../api/errors';
+import { apiError } from '../../../api/errors';
+import { useApiErrorText } from '../../../i18n/useApiErrorText';
 import { useT } from '../../../i18n/useT';
 import { Button } from '../../../components/ui/button';
 import { formatDateTime } from '../format';
@@ -103,6 +104,7 @@ export interface ActPhotosCardProps {
 
 export function ActPhotosCard({ actId, files, currentFix, readOnly = false }: ActPhotosCardProps) {
   const t = useT();
+  const errorText = useApiErrorText();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
@@ -122,7 +124,7 @@ export function ActPhotosCard({ actId, files, currentFix, readOnly = false }: Ac
         });
       }
     } catch (err) {
-      setUploadError(err instanceof ApiError ? `${err.code}: ${err.message}` : t('inspector.actForm.photos.uploadError'));
+      setUploadError(errorText(err, t('inspector.actForm.photos.uploadError')));
     } finally {
       setUploading(false);
     }

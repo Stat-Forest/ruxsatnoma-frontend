@@ -28,6 +28,7 @@ import { Button } from '../../../components/ui/button';
 import { Checkbox, Input, Textarea } from '../../../components/ui/FormControls';
 import { Alert } from '../../../components/ui/Feedback';
 import { ApiError } from '../../../api/errors';
+import { useApiErrorText } from '../../../i18n/useApiErrorText';
 import { useLanguage } from '../../../i18n/useT';
 import { LABELS, type uz_latn } from './labels';
 import type { SettingOut } from './api';
@@ -101,6 +102,7 @@ function sameValue(a: unknown, b: unknown): boolean {
 }
 
 function SettingRow({ setting, copy }: { setting: SettingOut; copy: Copy }) {
+  const errorText = useApiErrorText();
   const kind = editorKind(setting.value, setting.default);
   // Both pieces of draft state are created once, from the value the row
   // arrived with; exactly one of them is read, because `kind` is fixed for
@@ -136,7 +138,7 @@ function SettingRow({ setting, copy }: { setting: SettingOut; copy: Copy }) {
 
   const requestError = mutation.error
     ? mutation.error instanceof ApiError
-      ? `${mutation.error.code}: ${mutation.error.message}`
+      ? errorText(mutation.error)
       : copy.saveFailed
     : null;
   const error = parseError ?? requestError;
@@ -273,6 +275,7 @@ function SettingRow({ setting, copy }: { setting: SettingOut; copy: Copy }) {
 
 export function SettingsPage() {
   const { lang } = useLanguage();
+  const errorText = useApiErrorText();
   const copy: Copy = LABELS[lang];
   const settings = useSettings();
 
@@ -294,9 +297,7 @@ export function SettingsPage() {
           data-testid="settings-error"
           className="rounded-2xl border border-[#FCA5A5] bg-[#FEF2F2] p-4 text-sm text-[#991B1B]"
         >
-          {settings.error instanceof ApiError
-            ? `${settings.error.code}: ${settings.error.message}`
-            : copy.loadFailed}
+          {settings.error instanceof ApiError ? errorText(settings.error) : copy.loadFailed}
         </div>
       )}
 

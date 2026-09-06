@@ -17,6 +17,7 @@ import { useLanguage, useT } from '../../../i18n/useT';
 import { Button } from '../../../components/ui/button';
 import { FormField, Input, Select } from '../../../components/ui/FormControls';
 import { ApiError } from '../../../api/errors';
+import { useApiErrorText } from '../../../i18n/useApiErrorText';
 import { buildMockSignature, PINFL_PATTERN } from '../../../lib/eimzoMock';
 import { pickLocalizedName } from '../format';
 import { actPackageBytes } from '../actPackage';
@@ -34,6 +35,7 @@ export interface ActSignCardProps {
 export function ActSignCard({ act, onSigned }: ActSignCardProps) {
   const t = useT();
   const { lang } = useLanguage();
+  const errorText = useApiErrorText();
   const { me } = useAuth();
   const [violationTypeId, setViolationTypeId] = useState('');
   const [pinfl, setPinfl] = useState('');
@@ -113,8 +115,7 @@ export function ActSignCard({ act, onSigned }: ActSignCardProps) {
 
       {apiError && (
         <div className="p-3 bg-[#FEF2F2] border border-[#FCA5A5] rounded-xl text-xs text-[#991B1B]" role="alert">
-          <p className="font-bold">{apiError.code}</p>
-          <p>{apiError.message}</p>
+          <p>{errorText(apiError)}</p>
         </div>
       )}
 

@@ -6,6 +6,7 @@ import { http, HttpResponse } from 'msw';
 import { setupServer } from 'msw/node';
 import { AuthContext } from '../../../auth/AuthContext';
 import type { AuthContextValue } from '../../../auth/AuthContext';
+import { I18nContext } from '../../../i18n/context';
 import { ImportsTab } from './ImportsTab';
 
 const t = (key: string) => key;
@@ -46,9 +47,12 @@ function renderTab(permissions: string[], isSuperuser = false) {
     registration_complete: true,
   };
   const authValue = { me, loading: false, authError: null } as unknown as AuthContextValue;
+  const i18n = { lang: 'uz_latn' as const, backendLang: 'uz_latn' as const, t, setLanguage: async () => {} };
   const wrapper = ({ children }: { children: ReactNode }) => (
     <QueryClientProvider client={client}>
-      <AuthContext.Provider value={authValue}>{children}</AuthContext.Provider>
+      <I18nContext.Provider value={i18n}>
+        <AuthContext.Provider value={authValue}>{children}</AuthContext.Provider>
+      </I18nContext.Provider>
     </QueryClientProvider>
   );
   return render(<ImportsTab t={t} />, { wrapper });
@@ -135,8 +139,12 @@ test('a failed batch shows its error report', async () => {
 
   const detail = await screen.findByTestId('import-detail');
   expect(detail).toHaveTextContent('gis.imports.status.failed');
-  expect(detail).toHaveTextContent('ERR-GIS-004');
-  expect(detail).toHaveTextContent('bad geometry');
+  // Localized copy for the row's code, not the server's raw `code: message`
+  // (F4, `docs/plans/07.3-findings.md`) — the row number is still shown.
+  expect(detail).toHaveTextContent('#3');
+  expect(detail).toHaveTextContent("Fayl formati qo'llab-quvvatlanmaydi.");
+  expect(detail).not.toHaveTextContent('ERR-GIS-004');
+  expect(detail).not.toHaveTextContent('bad geometry');
 });
 
 test('a superuser can drive a review batch through submit-review, approve and publish', async () => {

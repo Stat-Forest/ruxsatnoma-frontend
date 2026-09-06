@@ -19,6 +19,7 @@ import { Select } from '../../components/ui/FormControls';
 import { Pagination } from '../../components/ui/Navigation';
 import { StatusBadge, type StatusType } from '../../components/ui/StatusBadge';
 import { ApiError } from '../../api/errors';
+import { useApiErrorText } from '../../i18n/useApiErrorText';
 import { formatDateTime } from './format';
 import { INSPECTIONS_ACTS_WRITE } from './permissions';
 import { useActsList, type ActOut } from './queries';
@@ -86,6 +87,7 @@ function ActRow({ act }: { act: ActOut }) {
 
 export function ActsTab({ active }: { active: boolean }) {
   const t = useT();
+  const errorText = useApiErrorText();
   const { me } = useAuth();
   const navigate = useNavigate();
   const [result, setResult] = useState<ResultFilter>('');
@@ -131,7 +133,7 @@ export function ActsTab({ active }: { active: boolean }) {
 
       {list.error && (
         <div className="p-4 bg-[#FEF2F2] border border-[#FCA5A5] rounded-2xl text-sm text-[#991B1B]" role="alert">
-          {list.error instanceof ApiError ? `${list.error.code}: ${list.error.message}` : t('inspector.acts.loadError')}
+          {list.error instanceof ApiError ? errorText(list.error) : t('inspector.acts.loadError')}
         </div>
       )}
 

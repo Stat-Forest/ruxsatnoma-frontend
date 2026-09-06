@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { setupServer } from 'msw/node';
 import type { LineString, Polygon } from 'geojson';
+import { I18nContext } from '../../../i18n/context';
 import { SplitPanel } from './SplitPanel';
 
 const t = (key: string) => key;
@@ -34,21 +35,24 @@ const ORG_OPTIONS = [{ id: 'org-1', label: 'Burchmulla' }];
 
 function renderPanel(line: LineString | null, overrides: Partial<Parameters<typeof SplitPanel>[0]> = {}) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
+  const i18n = { lang: 'uz_latn' as const, backendLang: 'uz_latn' as const, t, setLanguage: async () => {} };
   return render(
     <QueryClientProvider client={client}>
-      <SplitPanel
-        contourId="parent-1"
-        parentGeometry={SQUARE}
-        line={line}
-        parentNumber="K-042"
-        organizationOptions={ORG_OPTIONS}
-        defaultOrganizationId="org-1"
-        onRetryLine={vi.fn()}
-        onDone={vi.fn()}
-        onCancel={vi.fn()}
-        t={t}
-        {...overrides}
-      />
+      <I18nContext.Provider value={i18n}>
+        <SplitPanel
+          contourId="parent-1"
+          parentGeometry={SQUARE}
+          line={line}
+          parentNumber="K-042"
+          organizationOptions={ORG_OPTIONS}
+          defaultOrganizationId="org-1"
+          onRetryLine={vi.fn()}
+          onDone={vi.fn()}
+          onCancel={vi.fn()}
+          t={t}
+          {...overrides}
+        />
+      </I18nContext.Provider>
     </QueryClientProvider>,
   );
 }

@@ -6,6 +6,7 @@ import { Button } from '../../components/ui/button';
 import { FormField, Input, Select } from '../../components/ui/FormControls';
 import { Pagination } from '../../components/ui/Navigation';
 import { ApiError } from '../../api/errors';
+import { useApiErrorText } from '../../i18n/useApiErrorText';
 import { api } from '../../api/client';
 import { apiError } from '../../api/errors';
 import { downloadCsv, fetchAllPages, toCsv } from '../../lib/csvExport';
@@ -55,6 +56,7 @@ const EMPTY_FILTERS: FilterFormState = {
 export function ApplicationsListPage() {
   const { me } = useAuth();
   const t = useT();
+  const errorText = useApiErrorText();
   const [filters, setFilters] = useState(EMPTY_FILTERS);
   const [appliedFilters, setAppliedFilters] = useState(EMPTY_FILTERS);
   const [page, setPage] = useState(1);
@@ -205,7 +207,7 @@ export function ApplicationsListPage() {
 
       {list.error && (
         <div className="p-4 bg-[#FEF2F2] border border-[#FCA5A5] rounded-2xl text-sm text-[#991B1B]" role="alert">
-          {list.error instanceof ApiError ? `${list.error.code}: ${list.error.message}` : 'Arizalar yuklanmadi.'}
+          {list.error instanceof ApiError ? errorText(list.error) : 'Arizalar yuklanmadi.'}
         </div>
       )}
 
