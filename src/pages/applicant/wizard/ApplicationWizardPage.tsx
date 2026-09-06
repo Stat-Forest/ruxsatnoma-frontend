@@ -8,6 +8,7 @@ import { Alert } from '../../../components/ui/Feedback';
 import { Stepper } from '../../../components/ui/Navigation';
 import { ApiError } from '../../../api/errors';
 import { useAuth } from '../../../auth/useAuth';
+import { useApiErrorText } from '../../../i18n/useApiErrorText';
 import {
   addApplicationDocument,
   createApplicationDraft,
@@ -59,6 +60,7 @@ interface LivestockRow {
  */
 export function ApplicationWizardPage() {
   const { me } = useAuth();
+  const errorText = useApiErrorText();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const resumeId = searchParams.get('draft');
@@ -248,7 +250,7 @@ export function ApplicationWizardPage() {
       await submitApplication(applicationId, pkcs7);
       navigate(`/my/applications/${applicationId}`);
     } catch (err) {
-      setSubmitError(err instanceof ApiError ? `${err.code}: ${err.message}` : 'Kutilmagan xatolik yuz berdi.');
+      setSubmitError(errorText(err, 'Kutilmagan xatolik yuz berdi.'));
     } finally {
       setSigning(false);
     }
@@ -450,9 +452,7 @@ export function ApplicationWizardPage() {
             )}
             {precheckMutation.isError && (
               <Alert variant="danger">
-                {precheckMutation.error instanceof ApiError
-                  ? `${precheckMutation.error.code}: ${precheckMutation.error.message}`
-                  : 'Tekshiruvda xatolik yuz berdi.'}
+                {errorText(precheckMutation.error, 'Tekshiruvda xatolik yuz berdi.')}
               </Alert>
             )}
             {precheckResult && (

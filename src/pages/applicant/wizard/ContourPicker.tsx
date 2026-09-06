@@ -118,10 +118,15 @@ export function ContourPicker({ value, onChange }: { value: PickedContour | null
               <dt className="text-[#5A646D]">Boʻsh qism</dt>
               <dd className="text-right font-mono font-semibold text-[#123522]">{previewQuery.data.s_available_ha ?? '—'} ga</dd>
             </dl>
+            {previewQuery.data.over_allocated && (
+              <p className="text-[11px] text-[#B91C1C] bg-[#FEF2F2] border border-[#FCA5A5] rounded p-2 font-semibold">
+                Diqqat: bu konturga umumiy maydonidan koʻproq ruxsatnoma berilgan — shuning uchun band qism umumiy
+                maydondan katta koʻrinadi. Boʻsh qism shu sababli 0 ga sifatida koʻrsatilgan, manfiy emas.
+              </p>
+            )}
             {previewQuery.data.occupancy_source !== 'measured' && (
               <p className="text-[11px] text-[#B45309] bg-[#FFFBEB] border border-[#FDE68A] rounded p-2">
-                Bandlik hozircha oʻlchanmagan (occupancy_source: {previewQuery.data.occupancy_source}) — boʻsh maydon
-                taxminiy koʻrsatilgan.
+                Bandlik hozircha real oʻlchanmagan — mavjud ruxsatnomalar asosida taxminiy hisoblangan.
               </p>
             )}
             <Button

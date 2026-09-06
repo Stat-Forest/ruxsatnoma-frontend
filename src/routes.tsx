@@ -15,6 +15,8 @@ import { RolesPage } from './pages/admin/roles/RolesPage';
 import { SettingsPage } from './pages/admin/settings/SettingsPage';
 import { TemplatesPage } from './pages/admin/templates/TemplatesPage';
 import { OversightPage } from './pages/oversight/OversightPage';
+import { SearchPage } from './pages/search/SearchPage';
+import { ArchivePage } from './pages/archive/ArchivePage';
 import { SupportPage } from './pages/support/SupportPage';
 import { InspectionsPage } from './pages/inspector/InspectionsPage';
 import { TaskDetailPage } from './pages/inspector/TaskDetailPage';
@@ -61,6 +63,8 @@ const CHILD_PAGES: Record<string, ReactNode> = {
   '/invoices': <InvoicesPage />,
   '/permits': <PermitsPage />,
   '/oversight': <OversightPage />,
+  '/search': <SearchPage />,
+  '/archive': <ArchivePage />,
   '/reports': <ReportsPage />,
   '/inspections': <InspectionsPage />,
   '/admin/users': <UsersPage />,

@@ -12,6 +12,7 @@ import type {
   FeatureIn,
   FeaturePatch,
   LayerPatch,
+  SplitIn,
   VersionIn,
   VersionPatch,
 } from './api';
@@ -147,6 +148,23 @@ export function usePatchContour() {
   });
 }
 
+/** One request, not the two this used to be (`createContour` + `createVersion`,
+ * twice) — see `gisApi.splitContour`. Both new versions come back with no
+ * `geom` field (`VersionOut` never carries one), so each is remembered
+ * against the SAME piece geometry this browser sent, the same way
+ * `useCreateVersion` remembers its own. */
+export function useSplitContour(parentId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (body: SplitIn) => gisApi.splitContour(parentId, body),
+    onSuccess: (result, body) => {
+      rememberNewVersion(result.piece_a.contour.id, result.piece_a.version, body.piece_a.geom as unknown as Geometry);
+      rememberNewVersion(result.piece_b.contour.id, result.piece_b.version, body.piece_b.geom as unknown as Geometry);
+      queryClient.invalidateQueries({ queryKey: ['gis', 'contours'] });
+    },
+  });
+}
+
 // --- contour versions ---------------------------------------------------
 //
 // Every mutation below records its result in `./localVersions.ts` (the
@@ -243,6 +261,18 @@ export function useCreateImport() {
   return useMutation({
     mutationFn: (input: gisApi.CreateImportInput) => gisApi.createImport(input),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['gis', 'imports'] }),
+  });
+}
+
+/** F12c — the register `useCreateImport`'s own `['gis', 'imports']`
+ *  invalidation above already anticipated (that key's prefix matches this
+ *  query's own `['gis', 'imports', 'list', ...]`, so a freshly created batch
+ *  refreshes this list too, without a second invalidation to keep in sync). */
+export function useImportsList(params: gisApi.ListImportsParams) {
+  return useQuery({
+    queryKey: ['gis', 'imports', 'list', params],
+    queryFn: () => gisApi.listImports(params),
+    placeholderData: (previous) => previous,
   });
 }
 

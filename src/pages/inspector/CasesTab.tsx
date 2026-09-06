@@ -16,6 +16,7 @@ import { Button } from '../../components/ui/button';
 import { Pagination } from '../../components/ui/Navigation';
 import { StatusBadge, type StatusType } from '../../components/ui/StatusBadge';
 import { ApiError } from '../../api/errors';
+import { useApiErrorText } from '../../i18n/useApiErrorText';
 import { formatDate } from './format';
 import { useCasesList, type CaseOut } from './queries';
 
@@ -94,6 +95,7 @@ function CaseRow({ caseItem }: { caseItem: CaseOut }) {
 
 export function CasesTab({ active }: { active: boolean }) {
   const t = useT();
+  const errorText = useApiErrorText();
   const [status, setStatus] = useState<CaseStatusFilter>('');
   const [page, setPage] = useState(1);
 
@@ -125,7 +127,7 @@ export function CasesTab({ active }: { active: boolean }) {
 
       {list.error && (
         <div className="p-4 bg-[#FEF2F2] border border-[#FCA5A5] rounded-2xl text-sm text-[#991B1B]" role="alert">
-          {list.error instanceof ApiError ? `${list.error.code}: ${list.error.message}` : t('inspector.cases.loadError')}
+          {list.error instanceof ApiError ? errorText(list.error) : t('inspector.cases.loadError')}
         </div>
       )}
 

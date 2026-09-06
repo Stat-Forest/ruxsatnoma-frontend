@@ -205,7 +205,10 @@ test('a refused save surfaces the error and leaves the previous value on screen'
   await user.click(within(numberRow).getByTestId(`setting-save-${NUMBER_KEY}`));
 
   const error = await within(numberRow).findByTestId(`setting-error-${NUMBER_KEY}`);
-  expect(error).toHaveTextContent('ERR-ADM-011');
+  // A code this map does not know yet falls back to the server's own message
+  // (F4, `docs/plans/07.3-findings.md`) rather than the raw code.
+  expect(error).toHaveTextContent('Setting is read-only');
+  expect(error).not.toHaveTextContent('ERR-ADM-011');
   expect(screen.getByTestId(`setting-current-${NUMBER_KEY}`)).toHaveTextContent('10');
   expect(within(numberRow).getByRole('spinbutton')).toHaveValue(99);
   // The neighbours are untouched — one failed row does not blank the screen.

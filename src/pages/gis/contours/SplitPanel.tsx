@@ -1,12 +1,11 @@
 import { useMemo, useState } from 'react';
-import { useMutation } from '@tanstack/react-query';
 import type { LineString, MultiPolygon, Polygon } from 'geojson';
 import { Button } from '../../../components/ui/button';
 import { Alert } from '../../../components/ui/Feedback';
-import { Input, Select } from '../../../components/ui/FormControls';
+import { Input } from '../../../components/ui/FormControls';
 import { ApiError } from '../../../api/errors';
-import { createContour, createVersion, getContoursLayerId } from '../api';
-import { rememberNewVersion } from '../localVersions';
+import { useApiErrorText } from '../../../i18n/useApiErrorText';
+import { useSplitContour } from '../queries';
 import { splitPolygonWithLine, type SplitFailureReason } from './splitContour';
 
 const REASON_KEYS: Record<SplitFailureReason, string> = {
@@ -16,47 +15,32 @@ const REASON_KEYS: Record<SplitFailureReason, string> = {
   geometry_error: 'gis.contours.split.errors.geometryError',
 };
 
-interface SplitPieceResult {
-  contourId: string;
-  number: string;
-}
-
-async function createChild(input: {
-  organizationId: string;
-  parentId: string;
-  number: string;
-  geometry: Polygon;
-}): Promise<SplitPieceResult> {
-  const layerId = await getContoursLayerId();
-  if (!layerId) throw new ApiError('ERR-SYS-000', 'contours layer not found');
-  const contour = await createContour({
-    layer_id: layerId,
-    organization_id: input.organizationId,
-    number: input.number,
-    kind: 'subcontour',
-    parent_id: input.parentId,
-  });
-  const version = await createVersion(contour.id, {
-    geom: input.geometry as unknown as Record<string, unknown>,
-    source: 'survey',
-  });
-  rememberNewVersion(contour.id, version, input.geometry);
-  return { contourId: contour.id, number: contour.number };
-}
-
 /**
- * "Split" has no backend endpoint (plan ruling 3) — it is composed here from
- * `createContour`/`createVersion`, called twice. The parent contour and its
- * own version are left untouched; an operator archives the parent's
- * published version separately once the two children clear the lifecycle.
+ * "Split" (F1) is `POST /gis/contours/{parent_id}/split` (core PR #53,
+ * decision #91) — ONE atomic call. Before this, the screen composed the
+ * operation client-side out of `createContour` + `createVersion`, called
+ * twice; a failure between those two calls left one new contour and no
+ * second, with nothing telling the operator which half actually happened.
+ * The cut itself still runs client-side (`splitPolygonWithLine`, `@turf/
+ * difference` — PostGIS ships no "split polygon by line" primitive, and the
+ * backend validates the submitted pieces rather than re-deriving them); only
+ * the two-call composition around it is gone.
+ *
+ * The parent contour and its own published version are left untouched by the
+ * split — a permit issued before the split keeps pointing at something that
+ * still exists (decision #91). That has one consequence the operator must
+ * know about: the two new drafts sit entirely inside the parent's own
+ * still-published geometry, so neither can be PUBLISHED until that parent
+ * version is archived (`checks.overlap` refuses it with `ERR-GIS-003`
+ * otherwise). This screen says so once the split succeeds, rather than
+ * leaving the operator to discover it as an opaque check failure later on
+ * `VersionPanel`.
  */
 export function SplitPanel({
   contourId,
   parentGeometry,
   line,
   parentNumber,
-  organizationOptions,
-  defaultOrganizationId,
   onRetryLine,
   onDone,
   onCancel,
@@ -66,32 +50,53 @@ export function SplitPanel({
   parentGeometry: Polygon | MultiPolygon;
   line: LineString | null;
   parentNumber: string;
-  organizationOptions: { id: string; label: string }[];
-  defaultOrganizationId?: string;
   onRetryLine: () => void;
   onDone: () => void;
   onCancel: () => void;
   t: (key: string) => string;
 }) {
+  const errorText = useApiErrorText();
   const splitResult = useMemo(
     () => (line ? splitPolygonWithLine(parentGeometry, line) : null),
     [parentGeometry, line],
   );
 
-  const [organizationId, setOrganizationId] = useState(defaultOrganizationId ?? organizationOptions[0]?.id ?? '');
   const [numberA, setNumberA] = useState(`${parentNumber || 'K'}/1`);
   const [numberB, setNumberB] = useState(`${parentNumber || 'K'}/2`);
 
-  const confirmMutation = useMutation({
-    mutationFn: async () => {
-      if (!splitResult?.ok) throw new Error('no split to confirm');
-      const [pieceA, pieceB] = splitResult.pieces;
-      const a = await createChild({ organizationId, parentId: contourId, number: numberA, geometry: pieceA });
-      const b = await createChild({ organizationId, parentId: contourId, number: numberB, geometry: pieceB });
-      return [a, b];
-    },
-    onSuccess: onDone,
-  });
+  const splitMutation = useSplitContour(contourId);
+
+  function handleConfirm() {
+    if (!splitResult?.ok) return;
+    const [pieceA, pieceB] = splitResult.pieces;
+    splitMutation.mutate({
+      piece_a: { number: numberA, geom: pieceA as unknown as Record<string, unknown> },
+      piece_b: { number: numberB, geom: pieceB as unknown as Record<string, unknown> },
+      source: 'survey',
+    });
+  }
+
+  if (splitMutation.isSuccess && splitMutation.data) {
+    const { piece_a, piece_b } = splitMutation.data;
+    return (
+      <div className="bg-white border border-[#E4E7EA] rounded-2xl p-4 shadow-xs space-y-3" data-testid="split-panel">
+        <h3 className="text-xs font-bold uppercase tracking-wider text-[#5A646D]">{t('gis.contours.split.title')}</h3>
+        <Alert variant="success">{t('gis.contours.split.doneMessage')}</Alert>
+        <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-xs" data-testid="split-result">
+          <dt className="text-[#5A646D]">{t('gis.contours.split.resultParent')}</dt>
+          <dd className="font-mono font-semibold">{parentNumber}</dd>
+          <dt className="text-[#5A646D]">{t('gis.contours.split.resultPieceA')}</dt>
+          <dd className="font-mono font-semibold">{piece_a.contour.number}</dd>
+          <dt className="text-[#5A646D]">{t('gis.contours.split.resultPieceB')}</dt>
+          <dd className="font-mono font-semibold">{piece_b.contour.number}</dd>
+        </dl>
+        <Alert variant="info">{t('gis.contours.split.publishHint')}</Alert>
+        <Button variant="primary" size="sm" className="cursor-pointer" onClick={onDone}>
+          {t('gis.contours.split.done')}
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-white border border-[#E4E7EA] rounded-2xl p-4 shadow-xs space-y-3" data-testid="split-panel">
@@ -110,14 +115,6 @@ export function SplitPanel({
 
       {line && splitResult?.ok && (
         <div className="space-y-3">
-          <label className="block space-y-1 text-xs">
-            <span className="text-[#5A646D]">{t('gis.contours.form.organization')}</span>
-            <Select
-              value={organizationId}
-              onChange={(e) => setOrganizationId(e.target.value)}
-              options={organizationOptions.map((o) => ({ value: o.id, label: o.label }))}
-            />
-          </label>
           <div className="grid grid-cols-2 gap-3">
             <label className="block space-y-1 text-xs">
               <span className="text-[#5A646D]">{t('gis.contours.split.pieceA')}</span>
@@ -128,10 +125,10 @@ export function SplitPanel({
               <Input value={numberB} onChange={(e) => setNumberB(e.target.value)} />
             </label>
           </div>
-          {confirmMutation.isError && (
+          {splitMutation.isError && (
             <Alert variant="danger">
-              {confirmMutation.error instanceof ApiError
-                ? `${confirmMutation.error.code}: ${confirmMutation.error.message}`
+              {splitMutation.error instanceof ApiError
+                ? errorText(splitMutation.error)
                 : t('gis.contours.split.failed')}
             </Alert>
           )}
@@ -140,9 +137,9 @@ export function SplitPanel({
               variant="primary"
               size="sm"
               className="cursor-pointer"
-              disabled={!organizationId || !numberA.trim() || !numberB.trim()}
-              isLoading={confirmMutation.isPending}
-              onClick={() => confirmMutation.mutate()}
+              disabled={!numberA.trim() || !numberB.trim()}
+              isLoading={splitMutation.isPending}
+              onClick={handleConfirm}
             >
               {t('gis.contours.split.confirm')}
             </Button>

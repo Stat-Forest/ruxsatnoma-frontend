@@ -9,6 +9,8 @@
  * a bare "action failed."
  */
 import { ApiError } from '../../../api/errors';
+import { apiErrorMessage } from '../../../i18n/errorMessages';
+import type { UiLanguage } from '../../../i18n/context';
 
 export type NormActionKind = 'submitReview' | 'returnToDraft' | 'approve' | 'returnToReview' | 'publish' | 'archive';
 
@@ -16,7 +18,12 @@ function reasonOf(error: ApiError): string | undefined {
   return (error.details as { reason?: string } | undefined)?.reason;
 }
 
-export function normActionErrorText(error: unknown, action: NormActionKind, t: (key: string) => string): string {
+export function normActionErrorText(
+  error: unknown,
+  action: NormActionKind,
+  t: (key: string) => string,
+  lang: UiLanguage,
+): string {
   if (!(error instanceof ApiError)) return t(`norms.norms.action.error.${action}.generic`);
 
   // `_assert_norm_zone` — a bare ERR-ACL-002 with no `reason` means the
@@ -53,5 +60,5 @@ export function normActionErrorText(error: unknown, action: NormActionKind, t: (
         break;
     }
   }
-  return `${error.code}: ${error.message}`;
+  return apiErrorMessage(error, lang);
 }

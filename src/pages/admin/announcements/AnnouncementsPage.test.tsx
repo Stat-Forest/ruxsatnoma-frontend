@@ -280,8 +280,11 @@ test('a refused publish says so instead of closing as if it had worked', async (
   await user.click(await screen.findByRole('button', { name: 'Ha, chop etish' }));
 
   const error = await screen.findByTestId('publish-error');
-  expect(error).toHaveTextContent('ERR-ANN-002');
+  // Localized copy for a code this map does not know yet falls back to the
+  // server's own message (F4, `docs/plans/07.3-findings.md`) — never the raw
+  // code, and never a blank.
   expect(error).toHaveTextContent('Announcement already published');
+  expect(error).not.toHaveTextContent('ERR-ANN-002');
   // Still open — an operator has to see what happened and decide.
   expect(screen.getByTestId('publish-confirm')).toBeInTheDocument();
 });
@@ -367,7 +370,9 @@ test('a list that fails to load says so rather than showing an empty register', 
 
   renderPage();
 
-  expect(await screen.findByTestId('announcements-error')).toHaveTextContent('ERR-SYS-000');
+  expect(await screen.findByTestId('announcements-error')).toHaveTextContent(
+    'Kutilmagan xatolik yuz berdi. Qaytadan urining.',
+  );
 });
 
 test('the screen speaks Russian when the shell does', async () => {

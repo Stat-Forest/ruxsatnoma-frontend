@@ -1,5 +1,6 @@
 import type { ComponentType } from 'react';
 import {
+  Archive,
   Award,
   Bell,
   BookMarked,
@@ -15,6 +16,7 @@ import {
   Megaphone,
   Radio,
   Scale,
+  Search,
   Settings,
   ShieldAlert,
   ShieldCheck,
@@ -117,6 +119,22 @@ export const NAVIGATION: NavItem[] = [
   // passes as superuser. No other code opens this screen — it is a single
   // gate, unlike `/applications`'s reviewer/approver pair above.
   { to: '/oversight', labelKey: 'nav.oversight', permission: 'oversight.view', icon: ShieldAlert },
+  // Stage 6.9 (T69, `docs/plans/04.5-4.7-search-archive.md`) — cross-entity
+  // search over applications/permits, one `kind` per call. `search.use` is
+  // the module's one permission code (plan ruling 3), granted to
+  // `central_admin`, `leadership`, `executor_head`, `executor_staff` and
+  // `prosecutor` (migration 0029) — no narrower per-kind code exists.
+  { to: '/search', labelKey: 'nav.search', permission: 'search.use', icon: Search },
+  // F23 (`docs/plans/07.3-findings.md`, stage 6.9): `archive.manage` used to
+  // gate BOTH the read (the register, one item) and the write (archiving,
+  // verifying) — split so a read-only role (the prosecutor, decision #95)
+  // can hold the read alone. This menu entry (and the route in
+  // `routes.tsx`) gate on the new `archive.view`; `ArchivePage.tsx` itself
+  // additionally checks `archive.manage` before offering the archive/verify
+  // actions. `archive.view` is granted to `central_admin`, `executor_head`
+  // (the roles `archive.manage` already reached) and `prosecutor`
+  // (migration 0034).
+  { to: '/archive', labelKey: 'nav.archive', permission: 'archive.view', icon: Archive },
   // J2 (stage 6.7) — `reports.view` alone is correct and sufficient:
   // `permissions.py`'s own docstring grants it to every role that holds ANY
   // other `reports.*` code (central_admin, executor_staff, executor_head,

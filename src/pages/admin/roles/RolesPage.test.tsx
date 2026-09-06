@@ -263,7 +263,7 @@ test('a refused save says so and keeps the edit on screen instead of silently re
   await userEvent.click(screen.getByTestId('save-permissions'));
 
   const error = await screen.findByTestId('save-error');
-  expect(error).toHaveTextContent('ERR-VAL-001');
+  expect(error).toHaveTextContent("Kiritilgan ma'lumotlarni tekshirishda xatolik.");
   expect(screen.queryByTestId('save-success')).not.toBeInTheDocument();
   // The operator's own edit survives the refusal — reverting it would hide
   // what was rejected.
@@ -279,7 +279,9 @@ test('a failed load says so rather than showing an empty register as fact', asyn
   );
   renderPage();
 
-  expect(await screen.findByTestId('roles-error')).toHaveTextContent('ERR-AUTH-003');
+  expect(await screen.findByTestId('roles-error')).toHaveTextContent(
+    'Kirish urinishlari soni oshib ketdi. Hisob vaqtincha bloklandi.',
+  );
   expect(screen.queryByTestId('role-row-executor')).not.toBeInTheDocument();
 });
 

@@ -43,7 +43,16 @@ function invoice(overrides: Partial<Record<string, unknown>> = {}) {
   };
 }
 
-const server = setupServer();
+/** An empty page for `GET /invoices` — the component fires this unfiltered
+ *  register query on mount (F12a: it is a real always-on register now, not
+ *  a search gated behind a first submit), so every test that only cares
+ *  about a LATER, more specific call needs a harmless default in place
+ *  before that later call replaces it via `server.use`. */
+function emptyInvoicesPage() {
+  return HttpResponse.json({ items: [], total: 0, page: 1, page_size: 20 });
+}
+
+const server = setupServer(http.get('*/api/v1/invoices', emptyInvoicesPage));
 beforeAll(() => server.listen({ onUnhandledRequest: 'error' }));
 afterEach(() => server.resetHandlers());
 afterAll(() => server.close());
@@ -78,16 +87,79 @@ function renderTab(permissions: string[] = ['payments.view', 'payments.manage'])
   return render(<InvoicesTab />, { wrapper });
 }
 
-test('searching by application id lists its invoices', async () => {
+test('F12a — the zone register renders on its own, with no search needed and no "route does not exist" message', async () => {
+  server.use(
+    http.get('*/api/v1/invoices', () =>
+      HttpResponse.json({ items: [invoice(), invoice({ id: INVOICE_PAID, number: 'INV-2026-000124', status: 'paid' })], total: 2, page: 1, page_size: 20 }),
+    ),
+  );
+  renderTab();
+
+  expect(await screen.findByText('INV-2026-000123')).toBeInTheDocument();
+  expect(screen.getByText('INV-2026-000124')).toBeInTheDocument();
+  expect(screen.queryByText(/tizimda bunday marshrut mavjud emas/)).not.toBeInTheDocument();
+});
+
+test('F12a — an empty zone register says so, distinctly from the per-application empty message', async () => {
+  renderTab(); // default handler answers an empty page
+
+  expect(await screen.findByText('Bu filtr boʻyicha hisob-fakturalar topilmadi.')).toBeInTheDocument();
+  expect(screen.queryByText('Bu ariza boʻyicha hisob-fakturalar topilmadi.')).not.toBeInTheDocument();
+});
+
+test('F12a — the status filter re-queries with the chosen status', async () => {
+  let capturedStatus: string | null = null;
   server.use(
     http.get('*/api/v1/invoices', ({ request }) => {
-      const url = new URL(request.url);
-      expect(url.searchParams.get('application_id')).toBe(APPLICATION_ID);
-      return HttpResponse.json({ items: [invoice()], total: 1, page: 1, page_size: 200 });
+      capturedStatus = new URL(request.url).searchParams.get('status');
+      return emptyInvoicesPage();
     }),
   );
   const user = userEvent.setup();
   renderTab();
+  await screen.findByText('Bu filtr boʻyicha hisob-fakturalar topilmadi.');
+
+  await user.selectOptions(screen.getByLabelText('Holati'), 'paid');
+
+  await vi.waitFor(() => expect(capturedStatus).toBe('paid'));
+});
+
+test('F12a — pagination turns the page as offset, not as a second page param the route does not take', async () => {
+  let capturedOffset: string | null = null;
+  server.use(
+    http.get('*/api/v1/invoices', ({ request }) => {
+      const url = new URL(request.url);
+      capturedOffset = url.searchParams.get('offset');
+      const page = Number(url.searchParams.get('offset')) === 0 ? 1 : 2;
+      return HttpResponse.json({
+        items: [invoice({ number: `INV-page-${page}` })],
+        total: 25,
+        page,
+        page_size: 20,
+      });
+    }),
+  );
+  const user = userEvent.setup();
+  renderTab();
+  await screen.findByText('INV-page-1');
+
+  await user.click(screen.getByRole('button', { name: '2' }));
+
+  await vi.waitFor(() => expect(capturedOffset).toBe('20'));
+  expect(await screen.findByText('INV-page-2')).toBeInTheDocument();
+});
+
+test('searching by application id filters the register to that application', async () => {
+  server.use(
+    http.get('*/api/v1/invoices', ({ request }) => {
+      const url = new URL(request.url);
+      if (url.searchParams.get('application_id') !== APPLICATION_ID) return emptyInvoicesPage();
+      return HttpResponse.json({ items: [invoice()], total: 1, page: 1, page_size: 20 });
+    }),
+  );
+  const user = userEvent.setup();
+  renderTab();
+  await screen.findByText('Bu filtr boʻyicha hisob-fakturalar topilmadi.');
 
   await user.type(screen.getByLabelText('Ariza ID'), APPLICATION_ID);
   await user.click(screen.getByRole('button', { name: 'Qidirish' }));
@@ -97,11 +169,9 @@ test('searching by application id lists its invoices', async () => {
 });
 
 test('an application with no invoices says so instead of showing an empty table', async () => {
-  server.use(
-    http.get('*/api/v1/invoices', () => HttpResponse.json({ items: [], total: 0, page: 1, page_size: 200 })),
-  );
   const user = userEvent.setup();
   renderTab();
+  await screen.findByText('Bu filtr boʻyicha hisob-fakturalar topilmadi.');
 
   await user.type(screen.getByLabelText('Ariza ID'), APPLICATION_ID);
   await user.click(screen.getByRole('button', { name: 'Qidirish' }));
@@ -109,9 +179,32 @@ test('an application with no invoices says so instead of showing an empty table'
   expect(await screen.findByText('Bu ariza boʻyicha hisob-fakturalar topilmadi.')).toBeInTheDocument();
 });
 
-test('opening an invoice from the results shows its detail and ledger, with a null account read as settled outside the system', async () => {
+test('clearing the application filter returns to the unfiltered register', async () => {
   server.use(
-    http.get('*/api/v1/invoices', () => HttpResponse.json({ items: [invoice()], total: 1, page: 1, page_size: 200 })),
+    http.get('*/api/v1/invoices', ({ request }) => {
+      const url = new URL(request.url);
+      if (url.searchParams.get('application_id') === APPLICATION_ID) {
+        return HttpResponse.json({ items: [invoice()], total: 1, page: 1, page_size: 20 });
+      }
+      return emptyInvoicesPage();
+    }),
+  );
+  const user = userEvent.setup();
+  renderTab();
+  await screen.findByText('Bu filtr boʻyicha hisob-fakturalar topilmadi.');
+
+  await user.type(screen.getByLabelText('Ariza ID'), APPLICATION_ID);
+  await user.click(screen.getByRole('button', { name: 'Qidirish' }));
+  expect(await screen.findByText('INV-2026-000123')).toBeInTheDocument();
+
+  await user.click(screen.getByRole('button', { name: 'Filtrni tozalash' }));
+
+  expect(await screen.findByText('Bu filtr boʻyicha hisob-fakturalar topilmadi.')).toBeInTheDocument();
+});
+
+test('opening an invoice from the register shows its detail and ledger, with a null account read as settled outside the system', async () => {
+  server.use(
+    http.get('*/api/v1/invoices', () => HttpResponse.json({ items: [invoice()], total: 1, page: 1, page_size: 20 })),
     http.get('*/api/v1/invoices/:id', ({ params }) => HttpResponse.json(invoice({ id: params.id }))),
     http.get('*/api/v1/payments/allocations', () =>
       HttpResponse.json({
@@ -138,8 +231,6 @@ test('opening an invoice from the results shows its detail and ledger, with a nu
   const user = userEvent.setup();
   renderTab();
 
-  await user.type(screen.getByLabelText('Ariza ID'), APPLICATION_ID);
-  await user.click(screen.getByRole('button', { name: 'Qidirish' }));
   await user.click(await screen.findByTestId(`invoice-row-${INVOICE_PENDING}`));
 
   expect(await screen.findByText('1 030 000')).toBeInTheDocument();
@@ -157,8 +248,10 @@ test('opening an invoice directly by id works without a prior search', async () 
   await user.type(screen.getByLabelText('Hisob-faktura ID'), INVOICE_PAID);
   await user.click(screen.getByRole('button', { name: 'Ochish' }));
 
-  expect(await screen.findByText('INV-2026-000123')).toBeInTheDocument();
-  expect(screen.getByText('Toʻlangan')).toBeInTheDocument();
+  const detail = (await screen.findByText('INV-2026-000123')).closest('dl')!;
+  // The status filter's own `<option>Toʻlangan</option>` renders the same
+  // text — scope to the drawer's requisites list, not the whole document.
+  expect(within(detail).getByText('Toʻlangan')).toBeInTheDocument();
 });
 
 test('a 404 on direct open reads as "not found or not yours", never as a raw error code', async () => {

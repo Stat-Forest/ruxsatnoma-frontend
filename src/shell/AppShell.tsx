@@ -11,14 +11,18 @@ import { LanguageMenu } from './LanguageMenu';
 import { Nav } from './Nav';
 
 /**
- * `role.name` (`LocalizedName`) is a validated `{backend_lang_code: text}` map —
- * keyed by `uz_cyrl`/`ru`, not by the two UI languages this stage resolves to.
- * There is no stored `uz_latn` translation yet, so the `uz_latn` UI reads the
- * `uz_cyrl` (Cyrillic) source text; ruling R14 accepts this for the two-map stage.
+ * `role.name` (`LocalizedName`) is a validated `{backend_lang_code: text}`
+ * map. Ruling R14 once accepted a `uz_latn` UI reading the `uz_cyrl` source
+ * text here, because `uz_latn` was optional and often unpopulated — decision
+ * #90 superseded that: `uz_latn` is now REQUIRED (backfilled first), so it
+ * is always there for its own UI to read. F14
+ * (`docs/plans/07.3-findings.md`): this stale preference is why the role
+ * name in this very header rendered in Cyrillic on an otherwise Uzbek-Latin
+ * page.
  */
 function pickLocalizedName(name: Record<string, unknown>, uiLang: UiLanguage): string {
-  const preferred = uiLang === 'ru' ? name.ru : name.uz_cyrl;
-  const candidate = preferred ?? name.ru ?? name.uz_cyrl ?? Object.values(name)[0];
+  const preferred = uiLang === 'ru' ? name.ru : name.uz_latn;
+  const candidate = preferred ?? name.uz_latn ?? name.uz_cyrl ?? name.ru ?? Object.values(name)[0];
   return typeof candidate === 'string' ? candidate : '';
 }
 

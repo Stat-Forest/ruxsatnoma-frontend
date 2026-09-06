@@ -19,6 +19,7 @@ import { Button } from '../../../components/ui/button';
 import { Textarea } from '../../../components/ui/FormControls';
 import { Drawer } from '../../../components/ui/Overlay';
 import { ApiError } from '../../../api/errors';
+import { useApiErrorText } from '../../../i18n/useApiErrorText';
 import { useT } from '../../../i18n/useT';
 import { formatDateTime } from '../format';
 import { readContact, type AppealAdminOut, type AppealStatus } from './api';
@@ -38,6 +39,7 @@ export interface AppealDetailPanelProps {
 
 export function AppealDetailPanel({ appealId, onClose }: AppealDetailPanelProps) {
   const t = useT();
+  const errorText = useApiErrorText();
   const detail = useAppeal(appealId);
 
   return (
@@ -46,7 +48,7 @@ export function AppealDetailPanel({ appealId, onClose }: AppealDetailPanelProps)
         <p className="py-8 text-center text-sm text-[#5A646D]">{t('support.common.loading')}</p>
       ) : detail.error ? (
         <p className="py-8 text-center text-sm text-[#991B1B]" role="alert">
-          {detail.error instanceof ApiError ? `${detail.error.code}: ${detail.error.message}` : t('support.appeals.loadFailed')}
+          {detail.error instanceof ApiError ? errorText(detail.error) : t('support.appeals.loadFailed')}
         </p>
       ) : detail.data ? (
         <AppealDetail appeal={detail.data} />
@@ -57,6 +59,7 @@ export function AppealDetailPanel({ appealId, onClose }: AppealDetailPanelProps)
 
 function AppealDetail({ appeal }: { appeal: AppealAdminOut }) {
   const t = useT();
+  const errorText = useApiErrorText();
   const [answering, setAnswering] = useState(false);
   const [answerText, setAnswerText] = useState('');
 
@@ -126,7 +129,7 @@ function AppealDetail({ appeal }: { appeal: AppealAdminOut }) {
 
       {actionFailure && (
         <Alert variant="danger">
-          {actionFailure instanceof ApiError ? `${actionFailure.code}: ${actionFailure.message}` : t('support.appeals.actionFailed')}
+          {actionFailure instanceof ApiError ? errorText(actionFailure) : t('support.appeals.actionFailed')}
         </Alert>
       )}
 

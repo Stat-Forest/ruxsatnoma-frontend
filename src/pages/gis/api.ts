@@ -21,6 +21,8 @@ export type ContourCardOut = components['schemas']['ContourCardOut'];
 export type VersionIn = components['schemas']['VersionIn'];
 export type VersionOut = components['schemas']['VersionOut'];
 export type VersionPatch = components['schemas']['VersionPatch'];
+export type SplitIn = components['schemas']['SplitIn'];
+export type SplitOut = components['schemas']['SplitOut'];
 export type CheckResultOut = components['schemas']['CheckResultOut'];
 export type ChecksOut = components['schemas']['ChecksOut'];
 export type FeatureIn = components['schemas']['FeatureIn'];
@@ -168,6 +170,22 @@ export async function patchContour(contourId: string, body: ContourPatch): Promi
   return data;
 }
 
+/** `POST /gis/contours/{parent_id}/split` (core PR #53, decision #91) — one
+ * atomic call that creates both subcontours and their first versions, or
+ * neither. Replaces the earlier client-side composition of two
+ * `createContour`/`createVersion` pairs, which left the map in an undefined
+ * state on a failure between the two calls. The parent's own row and its
+ * published version are untouched by this call — splitting produces a
+ * parent plus two children, not two contours in place of one. */
+export async function splitContour(parentId: string, body: SplitIn): Promise<SplitOut> {
+  const { data, error } = await api.POST('/api/v1/gis/contours/{parent_id}/split', {
+    params: { path: { parent_id: parentId } },
+    body,
+  });
+  if (error) throw apiError(error);
+  return data;
+}
+
 // --- contour versions -------------------------------------------------------
 
 export async function createVersion(contourId: string, body: VersionIn): Promise<VersionOut> {
@@ -297,6 +315,25 @@ export async function createImport(input: CreateImportInput): Promise<{ import_i
     body: form as unknown as { file: string; layer_code: string; organization_id: string; approval_doc_id: string; format: string; attributes: string },
     headers: { 'Idempotency-Key': crypto.randomUUID() },
   });
+  if (error) throw apiError(error);
+  return data;
+}
+
+export interface ListImportsParams {
+  status?: string;
+  page: number;
+  page_size: number;
+}
+
+/**
+ * F12c — `GET /gis/imports`, verified against a regenerated `schema.d.ts`
+ * (the version this file was written against had no `get` on this path at
+ * all, per `./imports/localImports.ts`'s own comment — that gap has closed).
+ * Zone-scoping and the permission gate are the service layer's concern, the
+ * same as every other list route here.
+ */
+export async function listImports(params: ListImportsParams): Promise<Paged<ImportOut>> {
+  const { data, error } = await api.GET('/api/v1/gis/imports', { params: { query: params } });
   if (error) throw apiError(error);
   return data;
 }

@@ -6,6 +6,7 @@ import { Modal } from '../../components/ui/Overlay';
 import { Alert } from '../../components/ui/Feedback';
 import { useAuth } from '../../auth/useAuth';
 import { ApiError } from '../../api/errors';
+import { useApiErrorText } from '../../i18n/useApiErrorText';
 import { useT } from '../../i18n/useT';
 import { formatDate, formatDateTime, formatMoney } from '../permits/format';
 import { REFUND_STATUS_LABEL, REFUND_STATUS_STYLE } from './statusMeta';
@@ -188,12 +189,13 @@ function RefundsRegister({ canFile, canApprove }: { canFile: boolean; canApprove
  */
 function ApproveByIdPanel() {
   const t = useT();
+  const errorText = useApiErrorText();
   const [refundId, setRefundId] = useState('');
   const [comment, setComment] = useState('');
   const mutation = useApproveRefund();
 
   const error =
-    mutation.error instanceof ApiError ? `${mutation.error.code}: ${mutation.error.message}` : mutation.isError ? t('accountant.refunds.approveFailed') : null;
+    mutation.error instanceof ApiError ? errorText(mutation.error) : mutation.isError ? t('accountant.refunds.approveFailed') : null;
   const result = mutation.data;
 
   return (
@@ -258,6 +260,7 @@ function ApproveByIdPanel() {
 
 function NewRequestModal({ onClose }: { onClose: () => void }) {
   const t = useT();
+  const errorText = useApiErrorText();
   const [applicationId, setApplicationId] = useState('');
   const [basisItemId, setBasisItemId] = useState<string>(REFUND_BASIS_OPTIONS[0].value);
   const [comment, setComment] = useState('');
@@ -267,7 +270,7 @@ function NewRequestModal({ onClose }: { onClose: () => void }) {
     mutation.error instanceof ApiError
       ? mutation.error.code === 'ERR-SYS-003'
         ? t('accountant.refunds.requestNotFound')
-        : `${mutation.error.code}: ${mutation.error.message}`
+        : errorText(mutation.error)
       : mutation.isError
         ? t('accountant.refunds.requestFailed')
         : null;
@@ -321,6 +324,7 @@ function NewRequestModal({ onClose }: { onClose: () => void }) {
 
 function DecisionModal({ refund, onClose }: { refund: RefundOut; onClose: () => void }) {
   const t = useT();
+  const errorText = useApiErrorText();
   const [finalAmount, setFinalAmount] = useState(refund.suggested_amount ?? '');
   const [budgetAmount, setBudgetAmount] = useState('0.00');
   const [recipientAmount, setRecipientAmount] = useState('0.00');
@@ -329,7 +333,7 @@ function DecisionModal({ refund, onClose }: { refund: RefundOut; onClose: () => 
   const mutation = useSubmitRefundDecision();
 
   const error =
-    mutation.error instanceof ApiError ? `${mutation.error.code}: ${mutation.error.message}` : mutation.isError ? t('accountant.refunds.decisionFailed') : null;
+    mutation.error instanceof ApiError ? errorText(mutation.error) : mutation.isError ? t('accountant.refunds.decisionFailed') : null;
 
   return (
     <Modal
@@ -395,11 +399,12 @@ function DecisionModal({ refund, onClose }: { refund: RefundOut; onClose: () => 
 
 function ApproveModal({ refund, onClose }: { refund: RefundOut; onClose: () => void }) {
   const t = useT();
+  const errorText = useApiErrorText();
   const [comment, setComment] = useState('');
   const mutation = useApproveRefund();
 
   const error =
-    mutation.error instanceof ApiError ? `${mutation.error.code}: ${mutation.error.message}` : mutation.isError ? t('accountant.refunds.approveFailed') : null;
+    mutation.error instanceof ApiError ? errorText(mutation.error) : mutation.isError ? t('accountant.refunds.approveFailed') : null;
   const result = mutation.data;
 
   return (

@@ -19,7 +19,7 @@ import { FormField, Input, Checkbox, Textarea } from '../../../components/ui/For
 import { Alert } from '../../../components/ui/Feedback';
 import { Button } from '../../../components/ui/button';
 import { Modal } from '../../../components/ui/Overlay';
-import { ApiError } from '../../../api/errors';
+import { useApiErrorText } from '../../../i18n/useApiErrorText';
 import { useT } from '../../../i18n/useT';
 import {
   RULE_PARAMETER_BASIS_MAX_LENGTH,
@@ -29,10 +29,6 @@ import {
 import { parseValueDraft, valueEditorKind, valueToEditorText } from './valueEditor';
 import { useCreateRuleParameter, useUpdateRuleParameter } from './queries';
 import type { RuleParameterOut } from './api';
-
-function errorText(error: unknown, fallback: string): string {
-  return error instanceof ApiError ? `${error.code}: ${error.message}` : fallback;
-}
 
 export type RuleParameterFormMode = 'create' | 'edit';
 
@@ -53,6 +49,7 @@ export interface RuleParameterFormModalProps {
 
 export function RuleParameterFormModal({ mode, row, onClose, onSaved }: RuleParameterFormModalProps) {
   const t = useT();
+  const errorText = useApiErrorText();
   const create = useCreateRuleParameter();
   const update = useUpdateRuleParameter();
   const mutation = mode === 'create' ? create : update;

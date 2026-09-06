@@ -2,6 +2,7 @@ import { useParams, Link } from 'react-router';
 import { ArrowLeft, Loader2, PauseCircle } from 'lucide-react';
 import { useT } from '../../i18n/useT';
 import { ApiError } from '../../api/errors';
+import { useApiErrorText } from '../../i18n/useApiErrorText';
 import { useApplicationCard, useApplicationTimeline } from './queries';
 import { formatDateTime, slaStatus, statusLabel } from './format';
 import { GeneralInfoPanel } from './components/GeneralInfoPanel';
@@ -23,6 +24,7 @@ import { ReviewActionsPanel } from './components/ReviewActionsPanel';
 export function StaffApplicationCard() {
   const { id } = useParams<{ id: string }>();
   const t = useT();
+  const errorText = useApiErrorText();
   const cardQuery = useApplicationCard(id ?? '');
   const timelineQuery = useApplicationTimeline(id ?? '');
 
@@ -40,7 +42,7 @@ export function StaffApplicationCard() {
     const err = cardQuery.error;
     return (
       <div className="p-6 bg-[#FEF2F2] border border-[#FCA5A5] rounded-2xl text-sm text-[#991B1B]" role="alert">
-        {err instanceof ApiError ? `${err.code}: ${err.message}` : "Ariza yuklanmadi."}
+        {err instanceof ApiError ? errorText(err) : "Ariza yuklanmadi."}
       </div>
     );
   }

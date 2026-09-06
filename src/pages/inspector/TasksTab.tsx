@@ -8,6 +8,7 @@ import { Select } from '../../components/ui/FormControls';
 import { Pagination } from '../../components/ui/Navigation';
 import { StatusBadge, type StatusType } from '../../components/ui/StatusBadge';
 import { ApiError } from '../../api/errors';
+import { useApiErrorText } from '../../i18n/useApiErrorText';
 import { formatDate } from './format';
 import { useStartTask, useTasksList, type TaskOut } from './queries';
 
@@ -57,6 +58,7 @@ function referenceLine(task: TaskOut, t: (key: string) => string): string | null
 function TaskCard({ task }: { task: TaskOut }) {
   const { me } = useAuth();
   const t = useT();
+  const errorText = useApiErrorText();
   const navigate = useNavigate();
   const startTask = useStartTask();
 
@@ -101,7 +103,7 @@ function TaskCard({ task }: { task: TaskOut }) {
       </div>
       {startTask.isError && startTask.variables === task.id && (
         <p className="text-xs text-[#B91C1C]" role="alert">
-          {startTask.error instanceof ApiError ? `${startTask.error.code}: ${startTask.error.message}` : ''}
+          {startTask.error instanceof ApiError ? errorText(startTask.error) : ''}
         </p>
       )}
     </div>
@@ -117,6 +119,7 @@ function TaskCard({ task }: { task: TaskOut }) {
  */
 export function TasksTab({ active }: { active: boolean }) {
   const t = useT();
+  const errorText = useApiErrorText();
   const [status, setStatus] = useState<TaskStatusFilter>('');
   const [page, setPage] = useState(1);
 
@@ -145,7 +148,7 @@ export function TasksTab({ active }: { active: boolean }) {
 
       {list.error && (
         <div className="p-4 bg-[#FEF2F2] border border-[#FCA5A5] rounded-2xl text-sm text-[#991B1B]" role="alert">
-          {list.error instanceof ApiError ? `${list.error.code}: ${list.error.message}` : t('inspector.tasks.loadError')}
+          {list.error instanceof ApiError ? errorText(list.error) : t('inspector.tasks.loadError')}
         </div>
       )}
 

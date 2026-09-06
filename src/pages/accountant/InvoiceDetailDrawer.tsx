@@ -6,6 +6,7 @@ import { FormField, Input } from '../../components/ui/FormControls';
 import { Alert } from '../../components/ui/Feedback';
 import { useAuth } from '../../auth/useAuth';
 import { ApiError } from '../../api/errors';
+import { useApiErrorText } from '../../i18n/useApiErrorText';
 import { useT } from '../../i18n/useT';
 import { formatDateTime, formatMoney } from '../permits/format';
 import { INVOICE_STATUS_LABEL, INVOICE_STATUS_STYLE, ALLOCATION_TARGET_LABEL, ENTRY_TYPE_LABEL } from './statusMeta';
@@ -151,6 +152,7 @@ function LedgerSection({
 
 function ManualPaidFilingForm({ invoiceId }: { invoiceId: string }) {
   const t = useT();
+  const errorText = useApiErrorText();
   const [amount, setAmount] = useState('');
   const [paidAt, setPaidAt] = useState('');
   const [file, setFile] = useState<File | null>(null);
@@ -181,7 +183,7 @@ function ManualPaidFilingForm({ invoiceId }: { invoiceId: string }) {
   const filed = mutation.data;
   const error =
     mutation.error instanceof ApiError
-      ? `${mutation.error.code}: ${mutation.error.message}`
+      ? errorText(mutation.error)
       : mutation.isError
         ? t('accountant.invoices.manualPaidFailed')
         : null;

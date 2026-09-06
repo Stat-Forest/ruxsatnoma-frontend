@@ -20,6 +20,7 @@ import { Alert } from '../../../components/ui/Feedback';
 import { Button } from '../../../components/ui/button';
 import { Modal } from '../../../components/ui/Overlay';
 import { ApiError } from '../../../api/errors';
+import { useApiErrorText } from '../../../i18n/useApiErrorText';
 import { useLanguage, useT } from '../../../i18n/useT';
 import { useActivityTypes, pickLocalizedName } from '../refs';
 import {
@@ -40,10 +41,6 @@ import {
 } from './labels';
 import { useBenefitCategories, useCreateTariff, useUpdateTariff } from './queries';
 import type { TariffOut } from './api';
-
-function errorText(error: unknown, fallback: string): string {
-  return error instanceof ApiError ? `${error.code}: ${error.message}` : fallback;
-}
 
 /** `service._assert_benefit_codes` refuses an unknown `benefit_modifiers`
  *  key with `ERR-VAL-001` and `details.reason === 'unknown_benefit_category'`
@@ -81,6 +78,7 @@ export interface TariffFormModalProps {
 export function TariffFormModal({ mode, row, onClose, onSaved }: TariffFormModalProps) {
   const t = useT();
   const { lang } = useLanguage();
+  const errorText = useApiErrorText();
   const activityTypes = useActivityTypes();
   const benefitCategories = useBenefitCategories();
   const create = useCreateTariff();

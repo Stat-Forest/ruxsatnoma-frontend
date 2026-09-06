@@ -4,7 +4,7 @@ import { useAuth } from '../../../auth/useAuth';
 import { Button } from '../../../components/ui/button';
 import { Alert } from '../../../components/ui/Feedback';
 import { Input, Select } from '../../../components/ui/FormControls';
-import { ApiError } from '../../../api/errors';
+import { useApiErrorText } from '../../../i18n/useApiErrorText';
 import { pickName, formatDecimal } from '../format';
 import { getContoursLayerId, type VersionIn } from '../api';
 import {
@@ -26,10 +26,6 @@ const CONTOURS_MANAGE = 'gis.contours.manage';
 const CONTOURS_APPROVE = 'gis.contours.approve';
 
 type WorkMode = 'browse' | 'draw-new' | 'edit-draft' | 'split';
-
-function errorText(error: unknown, fallback: string): string {
-  return error instanceof ApiError ? `${error.code}: ${error.message}` : fallback;
-}
 
 /** The small form for the fields `VersionIn` needs beyond geometry itself —
  * shown once a shape has been drawn (a new contour's first version, or a
@@ -137,6 +133,7 @@ function NewContourForm({
 }) {
   const [organizationId, setOrganizationId] = useState(organizations[0]?.id ?? '');
   const [number, setNumber] = useState('');
+  const errorText = useApiErrorText();
 
   return (
     <div className="bg-white border border-[#E4E7EA] rounded-2xl p-4 shadow-xs space-y-3" data-testid="new-contour-form">
@@ -185,6 +182,7 @@ function NewContourForm({
  */
 export function ContoursTab({ t }: { t: (key: string) => string }) {
   const { me } = useAuth();
+  const errorText = useApiErrorText();
   const canManage = !!me?.permissions.includes(CONTOURS_MANAGE) || !!me?.is_superuser;
   const canApprove = !!me?.permissions.includes(CONTOURS_APPROVE) || !!me?.is_superuser;
 
@@ -387,6 +385,16 @@ export function ContoursTab({ t }: { t: (key: string) => string }) {
                     <dt className="text-[#5A646D]">{t('gis.contours.available')}</dt>
                     <dd className="text-right font-mono font-semibold">{formatDecimal(cardQuery.data.s_available_ha, 'ga')}</dd>
                   </dl>
+                  {/* F5 (`docs/plans/07.3-findings.md`): occupied > total is a
+                      real, demo-witnessed state (`ContourListItem`'s own
+                      docstring in `schema.d.ts`), not a display bug — the
+                      backend already carries an explicit flag for it, which
+                      this screen used to leave unrendered next to a "0 ga"
+                      free area that otherwise looks like an arithmetic
+                      error. */}
+                  {cardQuery.data.over_allocated && (
+                    <Alert variant="danger">{t('gis.contours.overAllocated')}</Alert>
+                  )}
                   {/* Only shown when this browser holds no OTHER (unpublished)
                       version for the same contour — `VersionPanel` below
                       already offers Archive once a draft/review/approved
@@ -521,8 +529,6 @@ export function ContoursTab({ t }: { t: (key: string) => string }) {
               contourId={selectedContourId}
               parentGeometry={knownGeometry as Polygon | MultiPolygon}
               line={splitLine}
-              organizationOptions={orgOptions}
-              defaultOrganizationId={cardQuery.data?.organization_id ?? orgOptions[0]?.id}
               parentNumber={cardQuery.data?.number ?? ''}
               onRetryLine={() => setSplitLine(null)}
               onDone={() => {

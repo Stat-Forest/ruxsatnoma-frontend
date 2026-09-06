@@ -16,6 +16,7 @@ import { Modal } from '../../../components/ui/Overlay';
 import { Button } from '../../../components/ui/button';
 import { FormField, Input, Select, Textarea } from '../../../components/ui/FormControls';
 import { ApiError } from '../../../api/errors';
+import { useApiErrorText } from '../../../i18n/useApiErrorText';
 import { useT } from '../../../i18n/useT';
 import type { FaqOut, FaqStatus } from './api';
 import { useCreateFaq, usePatchFaq } from './queries';
@@ -104,6 +105,7 @@ export interface FaqFormModalProps {
 
 export function FaqFormModal({ faq, onClose }: FaqFormModalProps) {
   const t = useT();
+  const toErrorText = useApiErrorText();
   const isEdit = faq !== null;
   const create = useCreateFaq();
   const patch = usePatchFaq();
@@ -116,7 +118,7 @@ export function FaqFormModal({ faq, onClose }: FaqFormModalProps) {
   const errorText =
     validationError ??
     (failure instanceof ApiError
-      ? `${failure.code}: ${failure.message}`
+      ? toErrorText(failure)
       : failure
         ? (failure as Error).message
         : null);

@@ -101,5 +101,7 @@ test('a failed fetch surfaces the load-failure copy', async () => {
   );
   renderTab();
 
-  expect(await screen.findByTestId('faq-reader-error')).toHaveTextContent('ERR-SYS-000');
+  expect(await screen.findByTestId('faq-reader-error')).toHaveTextContent(
+    'Произошла непредвиденная ошибка. Повторите попытку.',
+  );
 });

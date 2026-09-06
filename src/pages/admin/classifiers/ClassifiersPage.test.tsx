@@ -313,7 +313,7 @@ test('a failed load says so instead of showing an empty classifier', async () =>
   );
   renderPage();
 
-  expect(await screen.findByTestId('classifiers-error')).toHaveTextContent('ERR-SYS-003');
+  expect(await screen.findByTestId('classifiers-error')).toHaveTextContent('Manba topilmadi.');
 });
 
 test.each(['uz_latn', 'ru'] as const)('no untranslated key reaches the screen in %s', async (lang) => {

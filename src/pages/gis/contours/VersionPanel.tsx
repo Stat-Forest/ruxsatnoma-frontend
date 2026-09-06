@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useAuth } from '../../../auth/useAuth';
 import { Button } from '../../../components/ui/button';
 import { Alert } from '../../../components/ui/Feedback';
-import { ApiError } from '../../../api/errors';
+import { useApiErrorText } from '../../../i18n/useApiErrorText';
 import { formatDate, formatDateTime, formatDecimal } from '../format';
 import type { VersionOut } from '../api';
 import {
@@ -37,10 +37,6 @@ const STATUS_BADGE_CLASS: Record<string, string> = {
   archived: 'bg-[#F8F9FA] border-[#E4E7EA] text-[#9AA3AB]',
 };
 
-function errorText(error: unknown, fallback: string): string {
-  return error instanceof ApiError ? `${error.code}: ${error.message}` : fallback;
-}
-
 /**
  * F2 — the lifecycle panel for whichever version the operator currently
  * holds. See plan `06.5-gis-screens.md` ruling 2 for why "currently holds"
@@ -65,6 +61,7 @@ export function VersionPanel({
   t: (key: string) => string;
 }) {
   const { me } = useAuth();
+  const errorText = useApiErrorText();
   const canManage = !!me?.permissions.includes(CONTOURS_MANAGE) || !!me?.is_superuser;
   const canApprove = !!me?.permissions.includes(CONTOURS_APPROVE) || !!me?.is_superuser;
 

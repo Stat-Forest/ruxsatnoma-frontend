@@ -18,7 +18,7 @@ export function CalculationPanel({ card }: { card: ApplicationCardOut }) {
         <Calculator className="w-5 h-5 text-[#2E7D4F]" />
         <div>
           <h2 className="text-lg font-bold text-[#1A1F24]">Hisob-kitob</h2>
-          <p className="text-xs text-[#5A646D] mt-0.5">Ariza uchun saqlangan joriy narx (calculations)</p>
+          <p className="text-xs text-[#5A646D] mt-0.5">Ariza uchun saqlangan joriy narx</p>
         </div>
       </div>
 

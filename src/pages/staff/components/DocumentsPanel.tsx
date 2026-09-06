@@ -1,4 +1,5 @@
 import { Download, FileText } from 'lucide-react';
+import { useLanguage } from '../../../i18n/useT';
 import { fileUrl, useDocTypes, type ApplicationCardOut } from '../queries';
 import { formatDateTime, localizedName } from '../format';
 
@@ -9,6 +10,7 @@ import { formatDateTime, localizedName } from '../format';
  * adding or removing a document is the applicant's own action
  * (`POST/DELETE /applications/{id}/documents`), not staff's. */
 export function DocumentsPanel({ card }: { card: ApplicationCardOut }) {
+  const { lang } = useLanguage();
   const docTypes = useDocTypes();
 
   return (
@@ -35,7 +37,7 @@ export function DocumentsPanel({ card }: { card: ApplicationCardOut }) {
               <FileText className="w-8 h-8 text-[#5A646D] shrink-0" />
               <div className="min-w-0">
                 <span className="text-sm font-bold text-[#1A1F24] block">
-                  {localizedName(docTypes.data?.find((d) => d.id === doc.doc_type_item_id)?.name) || 'Hujjat'}
+                  {localizedName(docTypes.data?.find((d) => d.id === doc.doc_type_item_id)?.name, lang) || 'Hujjat'}
                 </span>
                 {doc.note && <span className="text-xs text-[#5A646D] block">{doc.note}</span>}
                 <span className="text-[11px] text-[#767F87] font-mono">

@@ -6,6 +6,7 @@ import { Pagination } from '../../../components/ui/Navigation';
 import { Modal } from '../../../components/ui/Overlay';
 import { StatusBadge, type StatusType } from '../../../components/ui/StatusBadge';
 import { ApiError } from '../../../api/errors';
+import { useApiErrorText } from '../../../i18n/useApiErrorText';
 import { useLanguage } from '../../../i18n/useT';
 import { formatDate, formatDateTime, pickName } from '../../applicant/format';
 import type { AnnouncementAdminOut, AnnouncementStatus } from './api';
@@ -48,6 +49,7 @@ function isKnownStatus(status: string): status is AnnouncementStatus {
  */
 export function AnnouncementsPage() {
   const { lang } = useLanguage();
+  const errorText = useApiErrorText();
   const L = LABELS[lang];
 
   const [status, setStatus] = useState<AnnouncementStatus | ''>('');
@@ -129,7 +131,7 @@ export function AnnouncementsPage() {
           role="alert"
           className="p-4 bg-[#FEF2F2] border border-[#FCA5A5] rounded-2xl text-sm text-[#991B1B]"
         >
-          {list.error instanceof ApiError ? `${list.error.code}: ${list.error.message}` : L.loadFailed}
+          {list.error instanceof ApiError ? errorText(list.error) : L.loadFailed}
         </div>
       )}
 
@@ -258,9 +260,7 @@ export function AnnouncementsPage() {
                 role="alert"
                 className="p-3 rounded-xl bg-[#FEF2F2] border border-[#FCA5A5] text-xs text-[#991B1B]"
               >
-                {confirmFailure instanceof ApiError
-                  ? `${confirmFailure.code}: ${confirmFailure.message}`
-                  : confirmFailure.message}
+                {confirmFailure instanceof ApiError ? errorText(confirmFailure) : confirmFailure.message}
               </div>
             )}
           </div>

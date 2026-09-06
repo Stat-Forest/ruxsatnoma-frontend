@@ -12,6 +12,7 @@ import { Loader2, Plus } from 'lucide-react';
 import { Button } from '../../../components/ui/button';
 import { FormField, Select } from '../../../components/ui/FormControls';
 import { ApiError } from '../../../api/errors';
+import { useApiErrorText } from '../../../i18n/useApiErrorText';
 import { useLanguage, useT } from '../../../i18n/useT';
 import { pickName } from '../format';
 import type { FaqOut, FaqStatus } from './api';
@@ -42,6 +43,7 @@ function StatusPill({ status, label }: { status: string; label: string }) {
 export function FaqAdminTab() {
   const t = useT();
   const { lang } = useLanguage();
+  const errorText = useApiErrorText();
   const [status, setStatus] = useState<FaqStatus | ''>('');
   const [editing, setEditing] = useState<{ faq: FaqOut | null } | null>(null);
 
@@ -78,7 +80,7 @@ export function FaqAdminTab() {
 
       {list.error && (
         <div role="alert" data-testid="faq-admin-error" className="rounded-2xl border border-[#FCA5A5] bg-[#FEF2F2] p-4 text-sm text-[#991B1B]">
-          {list.error instanceof ApiError ? `${list.error.code}: ${list.error.message}` : t('support.faq.admin.loadFailed')}
+          {list.error instanceof ApiError ? errorText(list.error) : t('support.faq.admin.loadFailed')}
         </div>
       )}
 

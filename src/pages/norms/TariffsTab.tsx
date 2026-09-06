@@ -43,8 +43,10 @@ import { FormField, Input, Select } from '../../components/ui/FormControls';
 import { Alert } from '../../components/ui/Feedback';
 import { StatusBadge, type StatusType } from '../../components/ui/StatusBadge';
 import { Button } from '../../components/ui/button';
-import { ApiError } from '../../api/errors';
 import { useAuth } from '../../auth/useAuth';
+import { apiErrorMessage } from '../../i18n/errorMessages';
+import type { UiLanguage } from '../../i18n/context';
+import { useApiErrorText } from '../../i18n/useApiErrorText';
 import { useLanguage, useT } from '../../i18n/useT';
 import { satisfies } from '../../shell/navigation';
 import { ArchiveConfirmDialog } from './components/ArchiveConfirmDialog';
@@ -80,10 +82,6 @@ function statusTone(status: string): StatusType {
   }
 }
 
-function errorText(error: unknown, fallback: string): string {
-  return error instanceof ApiError ? `${error.code}: ${error.message}` : fallback;
-}
-
 /** Read through `Date.now()`, never a bare `new Date()` — see
  *  `ParamsTab.tsx`'s identical `todayIso()` for why (a test pins "today"
  *  without faking timers). */
@@ -103,7 +101,7 @@ function canArchiveRow(row: TariffOut, me: { permissions: string[]; is_superuser
   return false;
 }
 
-function publishErrorText(error: unknown, t: (key: string) => string): string {
+function publishErrorText(error: unknown, t: (key: string) => string, lang: UiLanguage): string {
   switch (publishRefusalReason(error)) {
     case 'not_draft':
       return t('norms.tariffs.publish.error.notDraft');
@@ -114,7 +112,7 @@ function publishErrorText(error: unknown, t: (key: string) => string): string {
     case 'period_overlap':
       return t('norms.tariffs.publish.error.periodOverlap');
     default:
-      return errorText(error, t('norms.tariffs.publish.error.generic'));
+      return apiErrorMessage(error, lang);
   }
 }
 
@@ -136,6 +134,7 @@ const EMPTY_FILTERS: FilterState = { activityTypeId: '', status: '', onDate: '' 
 export function TariffsTab({ active }: { active: boolean }) {
   const t = useT();
   const { lang } = useLanguage();
+  const errorText = useApiErrorText();
   const { me } = useAuth();
   const activityTypes = useActivityTypes(active);
   const [filters, setFilters] = useState<FilterState>(EMPTY_FILTERS);
@@ -435,7 +434,7 @@ export function TariffsTab({ active }: { active: boolean }) {
             close: t('norms.tariffs.publish.close'),
           }}
           isPending={publish.isPending}
-          errorMessage={publish.error ? publishErrorText(publish.error, t) : null}
+          errorMessage={publish.error ? publishErrorText(publish.error, t, lang) : null}
           result={publish.data ?? null}
           onConfirm={() => publish.mutate(publishTarget.id)}
           onClose={closePublish}
