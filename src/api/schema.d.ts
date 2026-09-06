@@ -1335,7 +1335,8 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        /** List Imports */
+        get: operations["list_imports_api_v1_gis_imports_get"];
         put?: never;
         /**
          * Create Import
@@ -1512,6 +1513,29 @@ export interface paths {
         head?: never;
         /** Patch Contour */
         patch: operations["patch_contour_api_v1_gis_contours__contour_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/gis/contours/{parent_id}/split": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Split Contour
+         * @description Decision #91: one parent, two subcontours, atomically — replaces the
+         *     adminka's own client-composed `createContour` + `createVersion`, twice.
+         *     See `service.split_contour`'s own docstring for the full refusal list and
+         *     why the geometry itself stays client-computed.
+         */
+        post: operations["split_contour_api_v1_gis_contours__parent_id__split_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/api/v1/gis/contours/{contour_id}/versions": {
@@ -2890,7 +2914,15 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        /**
+         * List Bank Statements
+         * @description The register itself (backend-gaps finding 3): every import, newest
+         *     first, `?status=` narrowing to one. Headers only, no lines — `GET
+         *     /bank-statements/{id}` below is where those live. No zone scoping, same
+         *     reasoning as that route: a bank statement belongs to the accounting
+         *     department, not to a leshoz.
+         */
+        get: operations["list_bank_statements_api_v1_payments_bank_statements_get"];
         put?: never;
         /**
          * Create Bank Statement
@@ -7308,6 +7340,13 @@ export interface components {
             /** Finished At */
             finished_at: string | null;
         };
+        /** InspectionsKpiOut */
+        InspectionsKpiOut: {
+            /** Inspections Count */
+            inspections_count: number;
+            /** Violations Count */
+            violations_count: number;
+        };
         /** InvoiceOut */
         InvoiceOut: {
             /**
@@ -7354,6 +7393,7 @@ export interface components {
             /** Rejections */
             rejections: components["schemas"]["RejectionRowOut"][];
             risk_indicators: components["schemas"]["RiskIndicatorsKpiOut"];
+            inspections: components["schemas"]["InspectionsKpiOut"];
             /** Omitted */
             omitted: string[];
         };
@@ -7434,7 +7474,18 @@ export interface components {
         };
         /**
          * LocalizedName
-         * @description `{"uz_cyrl": "Номи", "ru": "Название"}` — validated, not free-form jsonb.
+         * @description `{"uz_latn": "Nomi", "ru": "Название"}` — validated, not free-form jsonb.
+         *
+         *     Decision #90: this used to require `uz_cyrl` and not `uz_latn` at all, which
+         *     directly contradicted the already-merged announcements form (it required
+         *     `uz_latn`) and, as data, left `gis_layers` with no Latin name for any of its
+         *     fifteen rows. The flip could not land alone — every row written under the old
+         *     rule has `uz_cyrl` and had no guarantee of `uz_latn` — so migration `0032`
+         *     backfills `uz_latn` from `uz_cyrl` everywhere first (deterministic: Uzbek
+         *     Cyrillic -> Latin is a well-defined mapping) and this validator changes in
+         *     its wake, in the same commit. A database migrated before `0032` will start
+         *     rejecting writes to any row it did not cover — that migration's own docstring
+         *     lists every column it backfills.
          */
         LocalizedName: {
             [key: string]: string;
@@ -8158,6 +8209,17 @@ export interface components {
             /** Page Size */
             page_size: number;
         };
+        /** Page[ImportOut] */
+        Page_ImportOut_: {
+            /** Items */
+            items: components["schemas"]["ImportOut"][];
+            /** Total */
+            total: number;
+            /** Page */
+            page: number;
+            /** Page Size */
+            page_size: number;
+        };
         /** Page[InvoiceOut] */
         Page_InvoiceOut_: {
             /** Items */
@@ -8327,6 +8389,17 @@ export interface components {
         Page_SignatureOut_: {
             /** Items */
             items: components["schemas"]["SignatureOut"][];
+            /** Total */
+            total: number;
+            /** Page */
+            page: number;
+            /** Page Size */
+            page_size: number;
+        };
+        /** Page[StatementListItem] */
+        Page_StatementListItem_: {
+            /** Items */
+            items: components["schemas"]["StatementListItem"][];
             /** Total */
             total: number;
             /** Page */
@@ -8850,8 +8923,9 @@ export interface components {
          *     to render herd inputs) and `name`. Never `quantity_unit`/`status`, which
          *     the general, authenticated `/refs/*` router already answers and this
          *     anonymous surface has no reason to repeat. `name` carries whatever
-         *     languages the row has — `en`/`uz_cyrl` today (`tz/12` #31: no Latin-script
-         *     Uzbek yet) — returned as-is, never invented.
+         *     languages the row has — `uz_latn` since migration `0032`'s backfill
+         *     (decision #90, closing `tz/12` #31's backend half) — returned as-is,
+         *     never invented.
          */
         PublicActivityTypeOut: {
             /**
@@ -8889,6 +8963,7 @@ export interface components {
              * @enum {string}
              */
             status: "амалда" | "тўхтатилган" | "муддати тугаган" | "бекор қилинган";
+            status_label: components["schemas"]["LocalizedName"];
             /**
              * Valid From
              * Format: date
@@ -9436,9 +9511,7 @@ export interface components {
             /** Period Type */
             period_type: string;
             /** Columns */
-            columns: {
-                [key: string]: unknown;
-            }[];
+            columns: components["schemas"]["ReportFormColumn"][];
             /** Rules */
             rules: {
                 [key: string]: unknown;
@@ -10001,6 +10074,69 @@ export interface components {
             suppressed: boolean;
         };
         /**
+         * SplitIn
+         * @description `POST /gis/contours/{parent_id}/split`. `source`/`accuracy_m`/
+         *     `survey_date`/`effective_from` describe how the split itself was carried
+         *     out — one drawing act, producing both pieces at once — so they are
+         *     supplied ONCE, unlike `declared_area_ha` (each piece's own source-file or
+         *     on-screen figure), which genuinely differs per piece.
+         */
+        SplitIn: {
+            piece_a: components["schemas"]["SplitPieceIn"];
+            piece_b: components["schemas"]["SplitPieceIn"];
+            /** Source */
+            source: string;
+            /** Accuracy M */
+            accuracy_m?: number | string | null;
+            /** Survey Date */
+            survey_date?: string | null;
+            /** Effective From */
+            effective_from?: string | null;
+        };
+        /**
+         * SplitOut
+         * @description `POST /gis/contours/{parent_id}/split` response. `parent_id` is echoed
+         *     back for convenience only — the parent's own row is untouched by this call
+         *     (decision #91: it stays exactly as it was, published version included;
+         *     see `gis.service.split_contour`'s own docstring for what that does and
+         *     does not mean for the parent's occupancy and its own topology checks).
+         */
+        SplitOut: {
+            /**
+             * Parent Id
+             * Format: uuid
+             */
+            parent_id: string;
+            piece_a: components["schemas"]["SplitPieceOut"];
+            piece_b: components["schemas"]["SplitPieceOut"];
+        };
+        /**
+         * SplitPieceIn
+         * @description One of the two subcontours `POST /gis/contours/{parent_id}/split`
+         *     produces. Narrowed to what the caller actually decides: the adminka's
+         *     `splitContour.ts` already computed `geom` client-side (decision #91,
+         *     `gis.service.split_contour`'s own docstring on why the cut itself stays
+         *     client-side); everything else about the new contour — `layer_id`,
+         *     `organization_id`, `kind`, `parent_id` — is derived from the parent and is
+         *     never re-typed by the caller the way a plain `POST /gis/contours` would
+         *     require.
+         */
+        SplitPieceIn: {
+            /** Number */
+            number: string;
+            /** Geom */
+            geom: {
+                [key: string]: unknown;
+            };
+            /** Declared Area Ha */
+            declared_area_ha?: number | string | null;
+        };
+        /** SplitPieceOut */
+        SplitPieceOut: {
+            contour: components["schemas"]["ContourOut"];
+            version: components["schemas"]["VersionOut"];
+        };
+        /**
          * StatementAccepted
          * @description `POST /payments/bank-statements` answers 202 with the id and the status
          *     it was queued in: the file is stored and QUEUED, and the parse happens in
@@ -10048,6 +10184,52 @@ export interface components {
             match_status: string;
             /** Matched Invoice Id */
             matched_invoice_id: string | null;
+        };
+        /**
+         * StatementListItem
+         * @description One row of `GET /payments/bank-statements` (backend-gaps finding 3) —
+         *     the header only, no lines: a list of statements has no use for one
+         *     statement's per-line page, which is what `GET /payments/bank-statements/
+         *     {id}` (`StatementOut` below) still carries. Same fields as `StatementOut`
+         *     minus `column_map` (upload-time plumbing, not something a register reads)
+         *     and `lines`/`lines_total`.
+         */
+        StatementListItem: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Source */
+            source: string;
+            /** Format */
+            format: string;
+            /** File Id */
+            file_id: string | null;
+            /**
+             * Statement Date
+             * Format: date
+             */
+            statement_date: string;
+            /** Period From */
+            period_from: string | null;
+            /** Period To */
+            period_to: string | null;
+            /** Status */
+            status: string;
+            /** Stats */
+            stats: {
+                [key: string]: unknown;
+            };
+            /** Error Report */
+            error_report: {
+                [key: string]: unknown;
+            } | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
         };
         /**
          * StatementOut
@@ -13615,6 +13797,39 @@ export interface operations {
             };
         };
     };
+    list_imports_api_v1_gis_imports_get: {
+        parameters: {
+            query?: {
+                status?: string | null;
+                page?: number;
+                page_size?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Page_ImportOut_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     create_import_api_v1_gis_imports_post: {
         parameters: {
             query?: never;
@@ -13924,6 +14139,41 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ContourOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    split_contour_api_v1_gis_contours__parent_id__split_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                parent_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SplitIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SplitOut"];
                 };
             };
             /** @description Validation Error */
@@ -16123,8 +16373,9 @@ export interface operations {
     };
     list_invoices_api_v1_invoices_get: {
         parameters: {
-            query: {
-                application_id: string;
+            query?: {
+                application_id?: string | null;
+                status?: string | null;
                 limit?: number;
                 offset?: number;
             };
@@ -16176,6 +16427,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PayIntentOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_bank_statements_api_v1_payments_bank_statements_get: {
+        parameters: {
+            query?: {
+                status?: string | null;
+                limit?: number;
+                offset?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Page_StatementListItem_"];
                 };
             };
             /** @description Validation Error */

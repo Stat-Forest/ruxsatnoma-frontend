@@ -54,6 +54,7 @@ function kpiFixture(overrides: Partial<KpiOut> = {}): KpiOut {
     sla: { active_count: 8, overdue_count: 2 },
     rejections: [],
     risk_indicators: { by_code: {}, by_level: {} },
+    inspections: { inspections_count: 0, violations_count: 0 },
     omitted: [],
     ...overrides,
   };
