@@ -32,6 +32,8 @@ import {
   PermitDocumentPage,
   PermitsPage,
   ProfilePage,
+  ReportDetailPage,
+  ReportsPage,
   StaffApplicationCardPage,
 } from './pages/placeholders';
 
@@ -55,6 +57,7 @@ const CHILD_PAGES: Record<string, ReactNode> = {
   '/invoices': <InvoicesPage />,
   '/permits': <PermitsPage />,
   '/oversight': <OversightPage />,
+  '/reports': <ReportsPage />,
   '/admin/users': <UsersPage />,
   '/admin/roles': <RolesPage />,
   '/admin/organizations': <OrganizationsPage />,
@@ -108,6 +111,11 @@ const DETAIL_ROUTES: { path: string; element: ReactNode; permission?: string }[]
   { path: 'my/permits/:id', element: <MyPermitPage /> },
   { path: 'applications/:id', element: <StaffApplicationCardPage /> },
   { path: 'permits/:id', element: <PermitDocumentPage /> },
+  // J2 (stage 6.7) — same reasoning as `permits/:id`/`applications/:id`
+  // above: `GET /reports/{report_id}` gates on `reports.view` inside the
+  // service layer, not a `require_permission` dependency, so this route
+  // carries no `permission` here either.
+  { path: 'reports/:id', element: <ReportDetailPage /> },
   // Where `GET /auth/oneid/callback` (backend) redirects once the session
   // cookies are set — part of that cross-repo contract, not a private path.
   // Registered inside the `RequireAuth`-wrapped subtree so an unauthenticated
