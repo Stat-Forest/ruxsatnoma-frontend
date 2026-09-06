@@ -11,7 +11,7 @@ import { http, HttpResponse } from 'msw';
 import { setupServer } from 'msw/node';
 import { I18nContext } from '../../i18n/context';
 import { SearchPage } from './SearchPage';
-import type { SavedFilterOut, SearchResultOut } from './api';
+import type { ExportJobOut, SavedFilterOut, SearchResultOut } from './api';
 
 function page<T>(items: T[]) {
   return { items, total: items.length, page: 1, page_size: 20 };
@@ -57,6 +57,25 @@ function savedFilter(overrides: Partial<SavedFilterOut> = {}): SavedFilterOut {
   };
 }
 
+function exportJob(overrides: Partial<ExportJobOut> = {}): ExportJobOut {
+  return {
+    id: 'e1000000-0000-4000-8000-000000000001',
+    user_id: 'u1000000-0000-4000-8000-000000000001',
+    kind: 'applications',
+    format: 'xlsx',
+    params: {},
+    status: 'done',
+    file_id: 'm1000000-0000-4000-8000-000000000001',
+    row_count: 3,
+    total_matched: 3,
+    watermarked: true,
+    error: null,
+    created_at: '2026-09-01T10:00:00+05:00',
+    finished_at: '2026-09-01T10:00:00+05:00',
+    ...overrides,
+  };
+}
+
 const server = setupServer();
 beforeAll(() => server.listen({ onUnhandledRequest: 'error' }));
 afterEach(() => server.resetHandlers());
@@ -85,6 +104,7 @@ test('renders application results with a link to the application card', async ()
     http.get('*/api/v1/search/profiles', () => HttpResponse.json([])),
     http.get('*/api/v1/refs/organizations', () => HttpResponse.json(page([]))),
     http.get('*/api/v1/refs/activity-types', () => HttpResponse.json([])),
+    http.get('*/api/v1/search/exports', () => HttpResponse.json([])),
   );
 
   renderSearchPage();
@@ -99,6 +119,7 @@ test('a permit result shows the printed number exactly as the backend sends it, 
     http.get('*/api/v1/search/profiles', () => HttpResponse.json([])),
     http.get('*/api/v1/refs/organizations', () => HttpResponse.json(page([]))),
     http.get('*/api/v1/refs/activity-types', () => HttpResponse.json([])),
+    http.get('*/api/v1/search/exports', () => HttpResponse.json([])),
   );
 
   const user = userEvent.setup();
@@ -119,6 +140,7 @@ test('applying a saved profile switches kind and re-issues the search with its p
     http.get('*/api/v1/search/profiles', () => HttpResponse.json([savedFilter()])),
     http.get('*/api/v1/refs/organizations', () => HttpResponse.json(page([]))),
     http.get('*/api/v1/refs/activity-types', () => HttpResponse.json([])),
+    http.get('*/api/v1/search/exports', () => HttpResponse.json([])),
   );
 
   const user = userEvent.setup();
@@ -144,6 +166,7 @@ test('saving the current filters posts a new profile and the list refetches', as
     }),
     http.get('*/api/v1/refs/organizations', () => HttpResponse.json(page([]))),
     http.get('*/api/v1/refs/activity-types', () => HttpResponse.json([])),
+    http.get('*/api/v1/search/exports', () => HttpResponse.json([])),
   );
 
   const user = userEvent.setup();
@@ -169,6 +192,7 @@ test('deleting a saved profile calls DELETE and it disappears from the list', as
     }),
     http.get('*/api/v1/refs/organizations', () => HttpResponse.json(page([]))),
     http.get('*/api/v1/refs/activity-types', () => HttpResponse.json([])),
+    http.get('*/api/v1/search/exports', () => HttpResponse.json([])),
   );
 
   const user = userEvent.setup();
@@ -187,8 +211,106 @@ test('the empty state renders when there are no results', async () => {
     http.get('*/api/v1/search/profiles', () => HttpResponse.json([])),
     http.get('*/api/v1/refs/organizations', () => HttpResponse.json(page([]))),
     http.get('*/api/v1/refs/activity-types', () => HttpResponse.json([])),
+    http.get('*/api/v1/search/exports', () => HttpResponse.json([])),
   );
 
   renderSearchPage();
   expect(await screen.findByText('search.empty')).toBeInTheDocument();
+});
+
+// --- С22 export panel (decision #98) --------------------------------------
+
+test('exporting XLSX posts the current kind and filters, then downloads the file', async () => {
+  let posted: unknown = null;
+  server.use(
+    http.get('*/api/v1/search', () => HttpResponse.json(page([applicationResult()]))),
+    http.get('*/api/v1/search/profiles', () => HttpResponse.json([])),
+    http.get('*/api/v1/refs/organizations', () => HttpResponse.json(page([]))),
+    http.get('*/api/v1/refs/activity-types', () => HttpResponse.json([])),
+    http.get('*/api/v1/search/exports', () => HttpResponse.json([])),
+    http.post('*/api/v1/search/exports', async ({ request }) => {
+      posted = await request.json();
+      return HttpResponse.json(exportJob(), { status: 201 });
+    }),
+    http.get('*/api/v1/search/exports/:id/file', () => new HttpResponse(new Blob(['x']))),
+  );
+
+  const createObjectURL = vi.fn().mockReturnValue('blob:mock');
+  URL.createObjectURL = createObjectURL;
+  URL.revokeObjectURL = vi.fn();
+  const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+
+  const user = userEvent.setup();
+  renderSearchPage();
+  await screen.findByText('APP-00000001');
+
+  await user.click(screen.getByTestId('search-export-xlsx'));
+
+  await waitFor(() => expect(posted).toMatchObject({ kind: 'applications', format: 'xlsx' }));
+  await waitFor(() => expect(createObjectURL).toHaveBeenCalled());
+  expect(clickSpy).toHaveBeenCalled();
+});
+
+test('a failed export shows the API error rather than downloading nothing silently', async () => {
+  server.use(
+    http.get('*/api/v1/search', () => HttpResponse.json(page([]))),
+    http.get('*/api/v1/search/profiles', () => HttpResponse.json([])),
+    http.get('*/api/v1/refs/organizations', () => HttpResponse.json(page([]))),
+    http.get('*/api/v1/refs/activity-types', () => HttpResponse.json([])),
+    http.get('*/api/v1/search/exports', () => HttpResponse.json([])),
+    http.post('*/api/v1/search/exports', () =>
+      HttpResponse.json({ error: { code: 'ERR-ACL-001', message: 'Нет прав' } }, { status: 403 }),
+    ),
+  );
+
+  const user = userEvent.setup();
+  renderSearchPage();
+
+  await user.click(screen.getByTestId('search-export-pdf'));
+
+  const error = await screen.findByTestId('search-export-error');
+  expect(within(error).getByText(/ERR-ACL-001/)).toBeInTheDocument();
+});
+
+test('a truncated export shows both the row count and how much it matched', async () => {
+  server.use(
+    http.get('*/api/v1/search', () => HttpResponse.json(page([]))),
+    http.get('*/api/v1/search/profiles', () => HttpResponse.json([])),
+    http.get('*/api/v1/refs/organizations', () => HttpResponse.json(page([]))),
+    http.get('*/api/v1/refs/activity-types', () => HttpResponse.json([])),
+    http.get('*/api/v1/search/exports', () =>
+      HttpResponse.json([exportJob({ row_count: 2, total_matched: 5 })]),
+    ),
+  );
+
+  renderSearchPage();
+  const history = await screen.findByTestId('search-export-history');
+  expect(within(history).getByText(/2.*\/ 5/)).toBeInTheDocument();
+});
+
+test('re-downloading a past export fetches the stored file again, not a fresh render', async () => {
+  let fetchedFileFor: string | null = null;
+  server.use(
+    http.get('*/api/v1/search', () => HttpResponse.json(page([]))),
+    http.get('*/api/v1/search/profiles', () => HttpResponse.json([])),
+    http.get('*/api/v1/refs/organizations', () => HttpResponse.json(page([]))),
+    http.get('*/api/v1/refs/activity-types', () => HttpResponse.json([])),
+    http.get('*/api/v1/search/exports', () => HttpResponse.json([exportJob()])),
+    http.get('*/api/v1/search/exports/:id/file', ({ params }) => {
+      fetchedFileFor = params.id as string;
+      return new HttpResponse(new Blob(['x']));
+    }),
+  );
+
+  URL.createObjectURL = vi.fn().mockReturnValue('blob:mock');
+  URL.revokeObjectURL = vi.fn();
+  vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+
+  const user = userEvent.setup();
+  renderSearchPage();
+
+  const downloadButton = await screen.findByTestId(`search-export-download-${exportJob().id}`);
+  await user.click(downloadButton);
+
+  await waitFor(() => expect(fetchedFileFor).toBe(exportJob().id));
 });
