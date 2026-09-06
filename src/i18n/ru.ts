@@ -1086,6 +1086,7 @@ export const ru = {
   'reports.forms.archive.error.alreadyArchived': 'Форма уже в архиве',
   'reports.forms.archive.error.generic': 'Не удалось архивировать форму',
   'reports.detail.backToList': 'К списку отчётов',
+  'reports.detail.loading': 'Загрузка отчёта…',
   'reports.detail.periodLabel': 'Период',
   'reports.detail.organizationLabel': 'Лесхоз',
   'reports.detail.versionLabel': 'Версия',

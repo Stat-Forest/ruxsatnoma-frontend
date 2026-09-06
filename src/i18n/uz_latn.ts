@@ -1094,6 +1094,7 @@ export const uz_latn = {
   'reports.forms.archive.error.alreadyArchived': 'Shakl allaqachon arxivda',
   'reports.forms.archive.error.generic': 'Shakl arxivlanmadi',
   'reports.detail.backToList': 'Hisobotlar roʻyxatiga',
+  'reports.detail.loading': 'Hisobot yuklanmoqda…',
   'reports.detail.periodLabel': 'Davr',
   'reports.detail.organizationLabel': 'Oʻrmon xoʻjaligi',
   'reports.detail.versionLabel': 'Versiya',
