@@ -32,7 +32,36 @@ function reconciliation(overrides: Partial<Record<string, unknown>> = {}) {
   };
 }
 
-const server = setupServer();
+/** F12b: `ManualConfirmationCheckPanel` now fires `GET
+ *  /payments/manual-confirmations` unconditionally (it is the checker's own
+ *  worklist, not a search) whenever a `payments.confirm` holder reaches
+ *  this tab — every test that is not specifically about that list needs
+ *  this harmless default in place, the same way `InvoicesTab.test.tsx`
+ *  covers its own always-on register. */
+function emptyManualConfirmationsPage() {
+  return HttpResponse.json({ items: [], total: 0, page: 1, page_size: 50 });
+}
+
+function manualConfirmation(overrides: Partial<Record<string, unknown>> = {}) {
+  return {
+    id: CONFIRMATION_ID,
+    invoice_id: INVOICE_ID,
+    amount: '2060000.00',
+    paid_at: '2026-08-05T10:00:00Z',
+    bank_doc_file_id: 'file-1',
+    maker_id: 'u-2',
+    checker_id: null,
+    status: 'pending_check',
+    reason: null,
+    checked_at: null,
+    created_at: '2026-08-05T10:05:00Z',
+    ...overrides,
+  };
+}
+
+const server = setupServer(
+  http.get('*/api/v1/payments/manual-confirmations', emptyManualConfirmationsPage),
+);
 beforeAll(() => server.listen({ onUnhandledRequest: 'error' }));
 afterEach(() => server.resetHandlers());
 afterAll(() => server.close());
@@ -248,4 +277,98 @@ test('a caller with only payments.confirm (the checker, no payments.view) never 
   expect(await screen.findByTestId('manual-check-panel')).toBeInTheDocument();
   expect(screen.queryByText('Nomuvofiqliklar reestri')).not.toBeInTheDocument();
   expect(listCalled).toBe(false);
+});
+
+test('F12b — the checker sees their own pending worklist, with no id typed in and no "ask the accountant" message', async () => {
+  server.use(
+    http.get('*/api/v1/payments/manual-confirmations', ({ request }) => {
+      expect(new URL(request.url).searchParams.get('status')).toBe('pending_check');
+      return HttpResponse.json({ items: [manualConfirmation()], total: 1, page: 1, page_size: 50 });
+    }),
+  );
+  renderTab(['payments.confirm']);
+
+  const row = await screen.findByTestId(`manual-confirmation-row-${CONFIRMATION_ID}`);
+  expect(within(row).getByText('2 060 000')).toBeInTheDocument();
+  expect(within(row).getByRole('link', { name: 'Hujjatni koʻrish' })).toHaveAttribute(
+    'href',
+    expect.stringContaining('/api/v1/files/file-1'),
+  );
+  expect(screen.queryByText(/ID buxgalterdan olinadi/)).not.toBeInTheDocument();
+});
+
+test('F12b — a row\'s own confirm button acts on that row directly, no id entry needed', async () => {
+  let confirmedId: string | null = null;
+  server.use(
+    http.get('*/api/v1/payments/manual-confirmations', () =>
+      HttpResponse.json({ items: [manualConfirmation()], total: 1, page: 1, page_size: 50 }),
+    ),
+    http.post('*/api/v1/payments/manual-confirmations/:id/confirm', ({ params }) => {
+      confirmedId = params.id as string;
+      return HttpResponse.json(manualConfirmation({ status: 'confirmed', checker_id: 'u-1', checked_at: '2026-08-05T11:00:00Z' }));
+    }),
+  );
+  const user = userEvent.setup();
+  renderTab(['payments.confirm']);
+
+  const row = await screen.findByTestId(`manual-confirmation-row-${CONFIRMATION_ID}`);
+  await user.click(within(row).getByRole('button', { name: 'Tasdiqlash' }));
+
+  expect(await screen.findByText('Tasdiqlandi. Hisob-faktura toʻlangan deb belgilandi.')).toBeInTheDocument();
+  expect(confirmedId).toBe(CONFIRMATION_ID);
+});
+
+test("F12b — a row's own reject button selects it into the id field and opens the reason box, never submitting blind", async () => {
+  let rejectBody: unknown;
+  server.use(
+    http.get('*/api/v1/payments/manual-confirmations', () =>
+      HttpResponse.json({ items: [manualConfirmation()], total: 1, page: 1, page_size: 50 }),
+    ),
+    http.post('*/api/v1/payments/manual-confirmations/:id/reject', async ({ request, params }) => {
+      rejectBody = { id: params.id, ...(await request.json() as object) };
+      return HttpResponse.json(manualConfirmation({ status: 'rejected', reason: 'Summasi mos emas' }));
+    }),
+  );
+  const user = userEvent.setup();
+  renderTab(['payments.confirm']);
+
+  const row = await screen.findByTestId(`manual-confirmation-row-${CONFIRMATION_ID}`);
+  await user.click(within(row).getByRole('button', { name: 'Rad etish' }));
+
+  const panel = screen.getByTestId('manual-check-panel');
+  expect(within(panel).getByLabelText('Qayd ID')).toHaveValue(CONFIRMATION_ID);
+  const submitReject = within(panel).getByRole('button', { name: 'Rad etishni tasdiqlash' });
+  expect(submitReject).toBeDisabled();
+
+  await user.type(within(panel).getByLabelText('Rad etish sababi'), 'Summasi mos emas');
+  await user.click(submitReject);
+
+  expect(rejectBody).toMatchObject({ id: CONFIRMATION_ID, reason: 'Summasi mos emas' });
+  expect(await screen.findByText('Rad etildi. Hisob-faktura toʻlanmagan holicha qoladi.')).toBeInTheDocument();
+});
+
+test('F12b — a confirmed row leaves the pending worklist', async () => {
+  let status: 'pending_check' | 'confirmed' = 'pending_check';
+  server.use(
+    http.get('*/api/v1/payments/manual-confirmations', () =>
+      HttpResponse.json({
+        items: status === 'pending_check' ? [manualConfirmation()] : [],
+        total: status === 'pending_check' ? 1 : 0,
+        page: 1,
+        page_size: 50,
+      }),
+    ),
+    http.post('*/api/v1/payments/manual-confirmations/:id/confirm', () => {
+      status = 'confirmed';
+      return HttpResponse.json(manualConfirmation({ status: 'confirmed', checker_id: 'u-1' }));
+    }),
+  );
+  const user = userEvent.setup();
+  renderTab(['payments.confirm']);
+
+  const row = await screen.findByTestId(`manual-confirmation-row-${CONFIRMATION_ID}`);
+  await user.click(within(row).getByRole('button', { name: 'Tasdiqlash' }));
+
+  await screen.findByText('Tasdiqlandi. Hisob-faktura toʻlangan deb belgilandi.');
+  expect(await screen.findByText('Hozircha tasdiqlashingizni kutayotgan qaydlar yoʻq.')).toBeInTheDocument();
 });

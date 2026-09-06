@@ -16,6 +16,7 @@ import {
   listAllocationsForInvoice,
   listDistricts,
   listInvoices,
+  listManualConfirmations,
   listReconciliations,
   listRefunds,
   listRegions,
@@ -26,6 +27,7 @@ import {
   type CreateBankStatementParams,
   type FileManualConfirmationInput,
   type ListInvoicesParams,
+  type ListManualConfirmationsParams,
   type ListRefundsParams,
   type ListReconciliationsParams,
 } from './api';
@@ -33,6 +35,7 @@ import {
 const INVOICE_KEY = ['accountant', 'invoice'] as const;
 const INVOICES_LIST_KEY = ['accountant', 'invoices-list'] as const;
 const ALLOCATIONS_KEY = ['accountant', 'allocations'] as const;
+const MANUAL_CONFIRMATIONS_KEY = ['accountant', 'manual-confirmations'] as const;
 const STATEMENT_KEY = ['accountant', 'statement'] as const;
 const RECONCILIATIONS_KEY = ['accountant', 'reconciliations'] as const;
 const REFUNDS_KEY = ['accountant', 'refunds'] as const;
@@ -131,15 +134,35 @@ export function useResolveReconciliation() {
   });
 }
 
+/** F12b — the checker's own worklist, rendered instead of demanding an id
+ *  handed over out of band. `placeholderData` matches every other paged list
+ *  in this file. */
+export function useManualConfirmations(params: ListManualConfirmationsParams) {
+  return useQuery({
+    queryKey: [...MANUAL_CONFIRMATIONS_KEY, params],
+    queryFn: () => listManualConfirmations(params),
+    placeholderData: (previous) => previous,
+  });
+}
+
 export function useConfirmManualConfirmation() {
+  const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (confirmationId: string) => confirmManualConfirmation(confirmationId),
+    // F12b: a confirmed row leaves the default `pending_check` worklist.
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: MANUAL_CONFIRMATIONS_KEY });
+    },
   });
 }
 
 export function useRejectManualConfirmation() {
+  const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({ id, reason }: { id: string; reason: string }) => rejectManualConfirmation(id, reason),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: MANUAL_CONFIRMATIONS_KEY });
+    },
   });
 }
 

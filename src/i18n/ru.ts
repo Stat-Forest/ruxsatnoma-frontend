@@ -364,7 +364,15 @@ export const ru = {
   'accountant.discrepancies.resolveUploadFailed': 'Ошибка загрузки документа.',
   'accountant.discrepancies.manualCheckTitle': 'Подтверждение ручной оплаты (проверяющий)',
   'accountant.discrepancies.manualCheckHint':
-    'Введите ID записи, зафиксированной бухгалтером. Списка ожидающих записей в системе нет — ID берётся у бухгалтера.',
+    'Ниже — список записей, ожидающих вашего подтверждения: подтвердите или отклоните прямо здесь.',
+  'accountant.discrepancies.manualByIdHint': 'Либо введите ID записи напрямую:',
+  'accountant.discrepancies.manualPendingEmpty': 'Пока нет записей, ожидающих вашего подтверждения.',
+  'accountant.discrepancies.manualPendingLoadFailed': 'Не удалось загрузить список ожидающих записей.',
+  'accountant.discrepancies.manualPendingColAmount': 'Сумма',
+  'accountant.discrepancies.manualPendingColPaidAt': 'Дата оплаты',
+  'accountant.discrepancies.manualPendingColDoc': 'Документ',
+  'accountant.discrepancies.manualPendingColActions': 'Действие',
+  'accountant.discrepancies.manualPendingViewDoc': 'Открыть документ',
   'accountant.discrepancies.manualConfirmationIdLabel': 'ID записи',
   'accountant.discrepancies.manualRejectReasonLabel': 'Причина отказа',
   'accountant.discrepancies.manualCheckMakerIsChecker':

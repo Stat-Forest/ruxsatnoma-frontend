@@ -9,9 +9,10 @@ import { ApiError } from '../../api/errors';
 import { useT } from '../../i18n/useT';
 import { formatDateTime, formatMoney } from '../permits/format';
 import { RECONCILIATION_RESULT_LABEL, RECONCILIATION_STATUS_LABEL, RECONCILIATION_STATUS_STYLE } from './statusMeta';
-import { uploadFile, type ReconciliationOut } from './api';
+import { fileUrl, uploadFile, type ManualConfirmationOut, type ReconciliationOut } from './api';
 import {
   useConfirmManualConfirmation,
+  useManualConfirmations,
   useReconciliations,
   useRejectManualConfirmation,
   useResolveReconciliation,
@@ -209,6 +210,7 @@ function ManualConfirmationCheckPanel() {
   const [rejectReason, setRejectReason] = useState('');
   const [showReject, setShowReject] = useState(false);
 
+  const pendingQuery = useManualConfirmations({ status: 'pending_check', limit: 50, offset: 0 });
   const confirmMutation = useConfirmManualConfirmation();
   const rejectMutation = useRejectManualConfirmation();
 
@@ -225,10 +227,38 @@ function ManualConfirmationCheckPanel() {
     rejectMutation.reset();
   }
 
+  /** F12b — a row's own "Tasdiqlash" acts directly on that row's id, the
+   *  same route the manual-id form below submits to. */
+  function confirmRow(id: string) {
+    reset();
+    setShowReject(false);
+    confirmMutation.mutate(id);
+  }
+
+  /** A rejection always needs a reason, so a row's own "Rad etish" cannot be
+   *  one click — it selects that row into the id field below (the checker
+   *  sees which one they are about to reject) and opens the reason box,
+   *  reusing the exact same submit path a typed-in id already uses. */
+  function startRejectRow(id: string) {
+    reset();
+    setConfirmationId(id);
+    setRejectReason('');
+    setShowReject(true);
+  }
+
   return (
     <section className="rounded-2xl border border-[#E4E7EA] bg-white p-4 shadow-xs" data-testid="manual-check-panel">
       <h2 className="mb-1 text-sm font-bold text-[#1A1F24]">{t('accountant.discrepancies.manualCheckTitle')}</h2>
       <p className="mb-3 text-xs text-[#5A646D]">{t('accountant.discrepancies.manualCheckHint')}</p>
+
+      <ManualConfirmationsPendingList
+        query={pendingQuery}
+        onConfirm={confirmRow}
+        onReject={startRejectRow}
+        confirmingId={confirmMutation.isPending ? confirmMutation.variables ?? null : null}
+      />
+
+      <p className="mb-2 text-xs font-semibold text-[#5A646D]">{t('accountant.discrepancies.manualByIdHint')}</p>
 
       <FormField label={t('accountant.discrepancies.manualConfirmationIdLabel')} htmlFor="manual-check-id">
         <Input
@@ -292,5 +322,89 @@ function ManualConfirmationCheckPanel() {
         )}
       </div>
     </section>
+  );
+}
+
+/**
+ * F12b — the checker's own worklist (`GET /payments/manual-confirmations`,
+ * defaults to `pending_check`), replacing the id the checker used to have
+ * to be handed out of band. `bank_doc_file_id` is the whole legal basis of
+ * a manual PAID (`ManualConfirmationOut`'s own docstring) — linked here via
+ * `fileUrl`, not just named, now that F13 made the read reachable to a
+ * `payments.confirm` holder.
+ */
+function ManualConfirmationsPendingList({
+  query,
+  onConfirm,
+  onReject,
+  confirmingId,
+}: {
+  query: ReturnType<typeof useManualConfirmations>;
+  onConfirm: (id: string) => void;
+  onReject: (id: string) => void;
+  confirmingId: string | null;
+}) {
+  const t = useT();
+
+  if (query.isLoading) {
+    return <p className="mb-4 text-xs text-[#5A646D]">{t('accountant.common.loading')}</p>;
+  }
+  if (query.isError) {
+    return (
+      <div className="mb-4">
+        <Alert variant="danger">{t('accountant.discrepancies.manualPendingLoadFailed')}</Alert>
+      </div>
+    );
+  }
+  if (query.data!.items.length === 0) {
+    return <p className="mb-4 text-xs text-[#5A646D]">{t('accountant.discrepancies.manualPendingEmpty')}</p>;
+  }
+
+  return (
+    <div className="mb-4 overflow-x-auto rounded-xl border border-[#E4E7EA]">
+      <table className="w-full text-xs">
+        <thead className="bg-[#F8F9FA] text-left font-bold uppercase tracking-wide text-[#5A646D]">
+          <tr>
+            <th className="px-3 py-2 text-right">{t('accountant.discrepancies.manualPendingColAmount')}</th>
+            <th className="px-3 py-2">{t('accountant.discrepancies.manualPendingColPaidAt')}</th>
+            <th className="px-3 py-2">{t('accountant.discrepancies.manualPendingColDoc')}</th>
+            <th className="px-3 py-2 text-right">{t('accountant.discrepancies.manualPendingColActions')}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {query.data!.items.map((row: ManualConfirmationOut) => (
+            <tr key={row.id} className="border-t border-[#E4E7EA]" data-testid={`manual-confirmation-row-${row.id}`}>
+              <td className="px-3 py-2 text-right font-mono">{formatMoney(row.amount)}</td>
+              <td className="px-3 py-2 font-mono">{formatDateTime(row.paid_at)}</td>
+              <td className="px-3 py-2">
+                <a
+                  href={fileUrl(row.bank_doc_file_id)}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="font-semibold text-[#2E7D4F] hover:underline"
+                >
+                  {t('accountant.discrepancies.manualPendingViewDoc')}
+                </a>
+              </td>
+              <td className="px-3 py-2 text-right">
+                <div className="flex justify-end gap-1.5">
+                  <Button
+                    size="sm"
+                    variant="success"
+                    isLoading={confirmingId === row.id}
+                    onClick={() => onConfirm(row.id)}
+                  >
+                    {t('accountant.discrepancies.manualConfirmButton')}
+                  </Button>
+                  <Button size="sm" variant="danger" onClick={() => onReject(row.id)}>
+                    {t('accountant.discrepancies.manualRejectButton')}
+                  </Button>
+                </div>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   );
 }

@@ -179,6 +179,40 @@ export async function fileManualConfirmation(
   return data;
 }
 
+export interface ListManualConfirmationsParams {
+  status?: 'pending_check' | 'confirmed' | 'rejected';
+  limit?: number;
+  offset?: number;
+}
+
+/**
+ * F12b — `GET /payments/manual-confirmations`, the checker's own worklist
+ * (defaults to `pending_check` server-side, same open-by-default shape
+ * `listReconciliations` already has). Built for the same reason that route
+ * exists at all, per its own router docstring: "a manual-PAID confirmation
+ * awaiting its checker can be listed instead of having its id handed over
+ * out of band" — which is exactly what this screen used to require.
+ */
+export async function listManualConfirmations(params: ListManualConfirmationsParams = {}) {
+  const { data, error } = await api.GET('/api/v1/payments/manual-confirmations', { params: { query: params } });
+  if (error) throw apiError(error);
+  return data;
+}
+
+/** `GET /files/{id}` streams the bytes directly (no metadata-only route) —
+ *  a plain link opened in a new tab is the whole download affordance a
+ *  signed-in session needs, the browser sending the session cookie on this
+ *  top-level navigation like any other same-site link (same idiom as
+ *  `staff/queries.ts::fileUrl`, duplicated here per this module's own
+ *  header). `ManualConfirmationOut.bank_doc_file_id`'s own docstring: "the
+ *  document is the whole legal basis of a manual PAID, so a checker asked
+ *  to approve one must be able to reach it from this response alone" — F13
+ *  made the read permission-reachable; this is what makes it clickable. */
+export function fileUrl(fileId: string): string {
+  const base = import.meta.env.VITE_API_BASE ?? 'http://localhost:8000';
+  return `${base}/api/v1/files/${fileId}`;
+}
+
 export async function confirmManualConfirmation(confirmationId: string): Promise<ManualConfirmationOut> {
   const { data, error } = await api.POST('/api/v1/payments/manual-confirmations/{confirmation_id}/confirm', {
     params: { path: { confirmation_id: confirmationId } },
