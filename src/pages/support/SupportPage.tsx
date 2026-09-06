@@ -5,6 +5,7 @@ import { Tabs } from '../../components/ui/Navigation';
 import { useT } from '../../i18n/useT';
 import { FaqAdminTab } from './faq/FaqAdminTab';
 import { FaqReaderTab } from './faq/FaqReaderTab';
+import { TicketsTab } from './tickets/TicketsTab';
 
 export type TabId = 'faq' | 'faq-admin' | 'tickets' | 'appeals';
 
@@ -54,7 +55,7 @@ export function SupportPage() {
       <div>
         {tab === 'faq' && <FaqReaderTab />}
         {tab === 'faq-admin' && <FaqAdminTab />}
-        {tab === 'tickets' && <ComingSoon />}
+        {tab === 'tickets' && <TicketsTab />}
         {tab === 'appeals' && <ComingSoon />}
       </div>
     </div>
