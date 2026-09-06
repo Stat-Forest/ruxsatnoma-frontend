@@ -232,7 +232,7 @@ test('exporting XLSX posts the current kind and filters, then downloads the file
       posted = await request.json();
       return HttpResponse.json(exportJob(), { status: 201 });
     }),
-    http.get('*/api/v1/search/exports/:id/file', () => new HttpResponse(new Blob(['x']))),
+    http.get('*/api/v1/search/exports/:id/file', () => new HttpResponse('x')),
   );
 
   const createObjectURL = vi.fn().mockReturnValue('blob:mock');
@@ -298,7 +298,7 @@ test('re-downloading a past export fetches the stored file again, not a fresh re
     http.get('*/api/v1/search/exports', () => HttpResponse.json([exportJob()])),
     http.get('*/api/v1/search/exports/:id/file', ({ params }) => {
       fetchedFileFor = params.id as string;
-      return new HttpResponse(new Blob(['x']));
+      return new HttpResponse('x');
     }),
   );
 
