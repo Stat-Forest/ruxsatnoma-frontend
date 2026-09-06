@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import type { FormEvent } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { CheckCircle2 } from 'lucide-react';
+import { CheckCircle2, LogOut } from 'lucide-react';
 import { ApiError } from '../../../api/errors';
 import { Button } from '../../../components/ui/button';
 import { Alert } from '../../../components/ui/Feedback';
@@ -46,8 +46,18 @@ function otpErrorMessage(err: unknown, t: (key: string) => string): string {
  * than fail a second time with no way forward.
  */
 export function CompleteRegistrationGate() {
-  const { applyMe } = useAuth();
+  const { me, applyMe, logout } = useAuth();
   const t = useT();
+  const [loggingOut, setLoggingOut] = useState(false);
+
+  async function handleLogout() {
+    setLoggingOut(true);
+    try {
+      await logout();
+    } finally {
+      setLoggingOut(false);
+    }
+  }
 
   const [privacyChecked, setPrivacyChecked] = useState(false);
   const [offerChecked, setOfferChecked] = useState(false);
@@ -160,10 +170,30 @@ export function CompleteRegistrationGate() {
   }
 
   return (
-    <div
-      data-testid="registration-incomplete"
-      className="min-h-screen flex items-center justify-center px-4 py-10 bg-[#F8F9FA]"
-    >
+    <div data-testid="registration-incomplete" className="min-h-screen bg-[#F8F9FA]">
+      {/* F9 (`docs/plans/07.3-findings.md`): the gate used to render over
+       * every URL with no header, no logout and no link back — the ONLY
+       * exit was typing `/login` by hand. `RequireAuth` still holds every
+       * other route shut until registration is complete, so this bar is not
+       * a bypass of the gate, only a visible, honest way to abandon it. */}
+      <header className="flex items-center justify-between gap-3 px-4 py-3 bg-white border-b border-[#E4E7EA]">
+        <span className="text-sm font-bold text-[#1A1F24] truncate">{t('cabinet.registration.title')}</span>
+        <div className="flex items-center gap-3 shrink-0">
+          {me && <span className="hidden sm:inline text-xs text-[#5A646D] truncate max-w-[14rem]">{me.user.full_name}</span>}
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            leftIcon={<LogOut className="w-3.5 h-3.5" />}
+            isLoading={loggingOut}
+            onClick={() => void handleLogout()}
+          >
+            {t('shell.logout')}
+          </Button>
+        </div>
+      </header>
+
+      <div className="flex items-center justify-center px-4 py-10">
       <form
         onSubmit={(e) => void handleSubmit(e)}
         noValidate
@@ -351,6 +381,7 @@ export function CompleteRegistrationGate() {
           {submitting ? t('cabinet.registration.submitting') : t('cabinet.registration.submit')}
         </Button>
       </form>
+      </div>
     </div>
   );
 }
