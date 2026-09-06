@@ -3,15 +3,12 @@ import { useAuth } from '../../auth/useAuth';
 import { satisfies } from '../../shell/navigation';
 import { Tabs } from '../../components/ui/Navigation';
 import { useT } from '../../i18n/useT';
+import { AppealsTab } from './appeals/AppealsTab';
 import { FaqAdminTab } from './faq/FaqAdminTab';
 import { FaqReaderTab } from './faq/FaqReaderTab';
 import { TicketsTab } from './tickets/TicketsTab';
 
 export type TabId = 'faq' | 'faq-admin' | 'tickets' | 'appeals';
-
-function ComingSoon() {
-  return <div className="py-12 text-center text-sm text-[#5A646D]">…</div>;
-}
 
 /**
  * The support area's whole workplace (FAQ, support tickets, citizens'
@@ -22,10 +19,6 @@ function ComingSoon() {
  * `help.faq.manage` and `appeals` needs `public.appeals.manage` — each
  * checked with `satisfies()`, the same any-of-these-codes helper
  * `visibleNav` itself uses.
- *
- * Every tab body here is a placeholder — Tasks 2-4 replace each
- * `ComingSoon` branch below with their own real component, a two-line diff
- * to this file (one import, one JSX line) each time.
  */
 export function SupportPage() {
   const t = useT();
@@ -56,7 +49,7 @@ export function SupportPage() {
         {tab === 'faq' && <FaqReaderTab />}
         {tab === 'faq-admin' && <FaqAdminTab />}
         {tab === 'tickets' && <TicketsTab />}
-        {tab === 'appeals' && <ComingSoon />}
+        {tab === 'appeals' && <AppealsTab />}
       </div>
     </div>
   );
