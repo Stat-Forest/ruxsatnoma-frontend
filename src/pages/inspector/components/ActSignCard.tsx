@@ -1,0 +1,135 @@
+/**
+ * The ERI sign action for an inspection act (task 5) — an inline card, not
+ * a full-screen dialog: `PermitSignaturesPanel.tsx`'s `SignatureSlot` inline
+ * layout fits a long phone-scroll form better than
+ * `SignDecisionModal.tsx`'s modal. Only ever mounted by `ActFormPage` while
+ * `act.status === 'draft' && act.inspector_id === me.user.id` (`POST
+ * .../sign` hard-refuses anyone else, `ERR-ACL-001`) — nothing here repeats
+ * that check, and there is no read-only variant to render: once signed, the
+ * act carries no signature detail of its own to show (`ActOut`/`ActCardOut`
+ * have no `signatures` field, only `status`), so `ActFormPage`'s own
+ * `readOnlyNotice` already says everything there is to say.
+ */
+import { useState } from 'react';
+import { PenTool } from 'lucide-react';
+import { useAuth } from '../../../auth/useAuth';
+import { useLanguage, useT } from '../../../i18n/useT';
+import { Button } from '../../../components/ui/button';
+import { FormField, Input, Select } from '../../../components/ui/FormControls';
+import { ApiError } from '../../../api/errors';
+import { buildMockSignature, PINFL_PATTERN } from '../../../lib/eimzoMock';
+import { pickLocalizedName } from '../format';
+import { actPackageBytes } from '../actPackage';
+import { useSignAct, useViolationTypes, type ActCardOut, type ActOut } from '../queries';
+
+export interface ActSignCardProps {
+  act: ActCardOut;
+  /** Fired with the freshly-signed `ActOut` — `ActFormPage` owns what
+   *  happens next (finding and routing to the violation case a
+   *  `result: 'violation'` sign just opened is page-level orchestration,
+   *  not this card's job). */
+  onSigned: (signed: ActOut) => void;
+}
+
+export function ActSignCard({ act, onSigned }: ActSignCardProps) {
+  const t = useT();
+  const { lang } = useLanguage();
+  const { me } = useAuth();
+  const [violationTypeId, setViolationTypeId] = useState('');
+  const [pinfl, setPinfl] = useState('');
+  const [pinflTouched, setPinflTouched] = useState(false);
+
+  const violationTypesQuery = useViolationTypes();
+  const signAct = useSignAct(act.id);
+
+  // `service.py::sign_act` — mandatory exactly when the act's own `result`
+  // is `'violation'`, never otherwise (`ERR-VAL-001 violation_type_required`).
+  const requiresViolationType = act.result === 'violation';
+  const pinflValid = PINFL_PATTERN.test(pinfl);
+  // `pinflValid` is deliberately NOT part of `canSubmit` — the same choice
+  // `SignDecisionModal.tsx`/`PermitLifecyclePanel.tsx` make: with it here, a
+  // blank PINFL would simply disable the button with no explanation. It
+  // stays clickable so `handleSign` runs its own check and says why.
+  const canSubmit = (!requiresViolationType || violationTypeId !== '') && !signAct.isPending;
+
+  async function handleSign() {
+    if (!pinflValid) {
+      setPinflTouched(true);
+      return;
+    }
+    const documentBytes = actPackageBytes({
+      id: act.id,
+      inspectorId: act.inspector_id,
+      occurredAtIso: act.occurred_at,
+      checklistId: act.checklist_id,
+      answers: act.answers,
+      facts: act.facts,
+      result: act.result,
+    });
+    const pkcs7 = await buildMockSignature({ pinfl, documentBytes, fullName: me?.user.full_name });
+    signAct.mutate(
+      { pkcs7, violation_type_item_id: requiresViolationType ? violationTypeId : undefined },
+      { onSuccess: onSigned },
+    );
+  }
+
+  const apiError = signAct.error instanceof ApiError ? signAct.error : null;
+
+  return (
+    <div className="bg-white border border-[#E4E7EA] rounded-2xl p-4 space-y-3 shadow-xs">
+      <p className="text-xs font-semibold uppercase tracking-wider text-[#5A646D]">{t('inspector.actForm.sign.title')}</p>
+
+      {requiresViolationType && (
+        <FormField label={t('inspector.actForm.sign.violationTypeLabel')} required>
+          <Select
+            touchSize
+            value={violationTypeId}
+            onChange={(e) => setViolationTypeId(e.target.value)}
+            options={[
+              { value: '', label: t('inspector.actForm.sign.violationTypePlaceholder') },
+              ...(violationTypesQuery.data ?? []).map((item) => ({
+                value: item.id,
+                label: pickLocalizedName(item.name, lang) || item.code,
+              })),
+            ]}
+          />
+        </FormField>
+      )}
+
+      <FormField
+        label={t('inspector.actForm.sign.pinflLabel')}
+        required
+        error={pinflTouched && !pinflValid ? t('inspector.actForm.sign.pinflError') : undefined}
+      >
+        <Input
+          touchSize
+          inputMode="numeric"
+          value={pinfl}
+          onChange={(e) => setPinfl(e.target.value.replace(/\D/g, '').slice(0, 14))}
+          onBlur={() => setPinflTouched(true)}
+          placeholder="31708860250017"
+        />
+      </FormField>
+
+      {apiError && (
+        <div className="p-3 bg-[#FEF2F2] border border-[#FCA5A5] rounded-xl text-xs text-[#991B1B]" role="alert">
+          <p className="font-bold">{apiError.code}</p>
+          <p>{apiError.message}</p>
+        </div>
+      )}
+
+      <Button
+        type="button"
+        size="touch"
+        variant="primary"
+        fullWidth
+        disabled={!canSubmit}
+        isLoading={signAct.isPending}
+        leftIcon={<PenTool className="w-4 h-4" />}
+        onClick={() => void handleSign()}
+      >
+        {t('inspector.actForm.sign.signButton')}
+      </Button>
+    </div>
+  );
+}

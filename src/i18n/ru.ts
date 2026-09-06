@@ -1064,4 +1064,20 @@ export const ru = {
   'inspector.actForm.gps.errorUnavailable': 'Геолокация недоступна на этом устройстве.',
   'inspector.actForm.gps.errorTimeout': 'Не удалось определить местоположение — истекло время ожидания.',
   'inspector.actForm.gps.distanceLabel': 'Расстояние до контура:',
+
+  // --- J1 (stage 6.7): act form — photos and ERI signing (task 5) --------
+  'inspector.actForm.photos.title': 'Фото-фиксация',
+  'inspector.actForm.photos.empty': 'Фотографии ещё не добавлены.',
+  'inspector.actForm.photos.addButton': 'Добавить фото',
+  'inspector.actForm.photos.fileLabel': 'Файл',
+  'inspector.actForm.photos.uploadError': 'Не удалось загрузить фото.',
+  'inspector.actForm.sign.title': 'Подписание акта',
+  'inspector.actForm.sign.violationTypeLabel': 'Тип нарушения',
+  'inspector.actForm.sign.violationTypePlaceholder': 'Выберите тип нарушения...',
+  'inspector.actForm.sign.pinflLabel': 'ПИНФЛ (ЭРИ)',
+  'inspector.actForm.sign.pinflError': 'ПИНФЛ должен состоять из 14 цифр.',
+  'inspector.actForm.sign.signButton': 'Подписать актом ЭРИ',
+  'inspector.actForm.sign.violationCaseOpenedFallback':
+    'Акт подписан, дело о нарушении открыто. Найдите его во вкладке «Дела».',
+  'inspector.actForm.sign.goToCasesTab': 'Перейти к делам',
 };

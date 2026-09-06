@@ -8,17 +8,19 @@
  * present (`routes.tsx` gives `new` its own literal path, so `useParams`
  * never confuses the two).
  *
- * Task 5 extends this same file with the photo gallery and the ERI sign
- * card, and with routing to the violation case a sign opens.
+ * Task 5's photo gallery (`ActPhotosCard`) and ERI sign card (`ActSignCard`)
+ * mount here too, plus the post-sign routing to the violation case a
+ * `result: 'violation'` sign opens.
  */
 import { useRef, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router';
 import { Loader2 } from 'lucide-react';
 import { useAuth } from '../../auth/useAuth';
 import { useLanguage, useT } from '../../i18n/useT';
+import { api } from '../../api/client';
 import { Button } from '../../components/ui/button';
 import { FormField, Select, Textarea } from '../../components/ui/FormControls';
-import { ApiError } from '../../api/errors';
+import { apiError, ApiError } from '../../api/errors';
 import { pickLocalizedName } from './format';
 import {
   useAct,
@@ -26,11 +28,14 @@ import {
   useCreateAct,
   useUpdateAct,
   type ActCreateIn,
+  type ActOut,
   type ActUpdateIn,
 } from './queries';
 import { ChecklistFields } from './components/ChecklistFields';
 import { FactsEditor } from './components/FactsEditor';
 import { ActGpsCard } from './components/ActGpsCard';
+import { ActPhotosCard } from './components/ActPhotosCard';
+import { ActSignCard } from './components/ActSignCard';
 import type { GeoFix } from './geo';
 
 type ResultValue = 'compliant' | 'warning' | 'violation' | '';
@@ -71,6 +76,11 @@ export function ActFormPage() {
   const [occurredAt, setOccurredAt] = useState(() => new Date().toISOString());
   const [fix, setFix] = useState<GeoFix | null>(null);
   const [missing, setMissing] = useState<string[]>([]);
+  // Set once a signed `result: 'violation'` act's own case could not be
+  // found on the first, generously-sized page of `GET /inspections/cases`
+  // (the documented backend gap — no `act_id` filter on that route, see the
+  // task report) — the fallback banner below, never a silent dead end.
+  const [caseLookupFallback, setCaseLookupFallback] = useState(false);
 
   // Copies the loaded act into local editable state exactly ONCE per act
   // identity — set during RENDER, guarded by a ref keyed on the act's own
@@ -166,6 +176,35 @@ export function ActFormPage() {
     } catch (err) {
       setMissing(missingChecklistCodes(err));
     }
+  }
+
+  /** `ActSignCard`'s `onSigned` — a `result: 'violation'` sign opens a
+   *  violation case server-side (`service.py::sign_act`) with no id link
+   *  surfaced anywhere this API exposes: `CaseOut.act_id` exists but `GET
+   *  /inspections/cases` has no `act_id` filter (the plan's own documented
+   *  gap). Fetches one generously-sized page and matches client-side;
+   *  not found there (or the lookup itself fails) falls back to a banner
+   *  pointing at the Cases tab rather than a silent dead end — this lookup
+   *  is a courtesy, never a blocker, the act is already signed regardless
+   *  of whether it succeeds. `result !== 'violation'` needs none of this:
+   *  the page just re-renders read-only once the sign invalidates the act
+   *  query. */
+  async function handleSigned(signed: ActOut) {
+    if (signed.result !== 'violation') return;
+    try {
+      const { data, error } = await api.GET('/api/v1/inspections/cases', {
+        params: { query: { page: 1, page_size: 100 } },
+      });
+      if (error) throw apiError(error);
+      const found = data.items.find((c) => c.act_id === signed.id);
+      if (found) {
+        navigate(`/inspections/cases/${found.id}`);
+        return;
+      }
+    } catch {
+      // fall through to the fallback banner below
+    }
+    setCaseLookupFallback(true);
   }
 
   if (!isNew && actQuery.isLoading) {
@@ -301,6 +340,23 @@ export function ActFormPage() {
             {t('inspector.actForm.saveChangesButton')}
           </Button>
         ))}
+
+      {actQuery.data && (
+        <ActPhotosCard actId={actQuery.data.id} files={actQuery.data.files} currentFix={fix} readOnly={readOnly} />
+      )}
+
+      {actQuery.data && !readOnly && (
+        <ActSignCard act={actQuery.data} onSigned={(signed) => void handleSigned(signed)} />
+      )}
+
+      {caseLookupFallback && (
+        <div className="p-3 bg-[#FFFBEB] border border-[#FDE68A] rounded-xl text-xs text-[#92400E] space-y-2" role="status">
+          <p>{t('inspector.actForm.sign.violationCaseOpenedFallback')}</p>
+          <Button size="sm" variant="outline" onClick={() => navigate('/inspections')}>
+            {t('inspector.actForm.sign.goToCasesTab')}
+          </Button>
+        </div>
+      )}
     </div>
   );
 }

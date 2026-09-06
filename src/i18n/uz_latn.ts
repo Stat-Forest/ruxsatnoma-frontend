@@ -1072,4 +1072,20 @@ export const uz_latn = {
   'inspector.actForm.gps.errorUnavailable': "Bu qurilmada geolokatsiya mavjud emas.",
   'inspector.actForm.gps.errorTimeout': "Joylashuvni aniqlab boʻlmadi — kutish vaqti tugadi.",
   'inspector.actForm.gps.distanceLabel': "Konturgacha masofa:",
+
+  // --- J1 (stage 6.7): act form — photos and ERI signing (task 5) --------
+  'inspector.actForm.photos.title': "Foto qayd",
+  'inspector.actForm.photos.empty': "Fotosuratlar hali qoʻshilmagan.",
+  'inspector.actForm.photos.addButton': "Foto qoʻshish",
+  'inspector.actForm.photos.fileLabel': "Fayl",
+  'inspector.actForm.photos.uploadError': "Fotoni yuklab boʻlmadi.",
+  'inspector.actForm.sign.title': "Aktni imzolash",
+  'inspector.actForm.sign.violationTypeLabel': "Buzilish turi",
+  'inspector.actForm.sign.violationTypePlaceholder': "Buzilish turini tanlang...",
+  'inspector.actForm.sign.pinflLabel': "PINFL (ERI)",
+  'inspector.actForm.sign.pinflError': "PINFL 14 ta raqamdan iborat boʻlishi kerak.",
+  'inspector.actForm.sign.signButton': "ERI bilan imzolash",
+  'inspector.actForm.sign.violationCaseOpenedFallback':
+    "Akt imzolandi, buzilish ishi ochildi. Uni «Ishlar» boʻlimidan toping.",
+  'inspector.actForm.sign.goToCasesTab': "Ishlarga oʻtish",
 };
