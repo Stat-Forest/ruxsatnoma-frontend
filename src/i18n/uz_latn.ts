@@ -1690,4 +1690,30 @@ export const uz_latn = {
   'activityTypes.archiveConfirm': 'Tasdiqlash',
   'activityTypes.archiveCancel': 'Bekor qilish',
   'activityTypes.archiveError': "Xizmatni oʻchirib boʻlmadi.",
+
+  // Permit rating panel (B10 cabinet, task 8 of 07.7-services-catalog-and-ratings).
+  // Option copy for 5-2 is the old landing form's own wording, carried over
+  // unchanged (`ruxsatnoma-landing` history, commit before 04ff511 removed
+  // the dead form); "1" never existed there and is written fresh here.
+  'permitRating.title': 'Xizmat sifatini baholang',
+  'permitRating.subtitle':
+    'Sizning bahoingiz davlat elektron xizmatlarini yanada takomillashtirishga xizmat qiladi.',
+  'permitRating.option5Title': '5 - Aʼlo',
+  'permitRating.option5Desc': 'Juda qulay, tez va tushunarli',
+  'permitRating.option4Title': '4 - Yaxshi',
+  'permitRating.option4Desc': 'Yaxshi, lekin ayrim takliflarim bor',
+  'permitRating.option3Title': '3 - Qoniqarli',
+  'permitRating.option3Desc': "Oʻrtacha, tushunish qiyinroq",
+  'permitRating.option2Title': '2 - Qoniqarsiz',
+  'permitRating.option2Desc': 'Kamchiliklar mavjud',
+  'permitRating.option1Title': '1 - Yomon',
+  'permitRating.option1Desc': 'Juda noqulay, jiddiy muammolar boʻldi',
+  'permitRating.commentLabel': 'Izoh (ixtiyoriy)',
+  'permitRating.submitButton': 'Baho yuborish',
+  'permitRating.submitError': "Bahoni yuborib boʻlmadi.",
+  'permitRating.ratedTitle': 'Bahoingiz muvaffaqiyatli qabul qilindi!',
+  'permitRating.thankYou':
+    'Portal xizmati sifatini baholaganingiz va fikr-mulohazangiz uchun tashakkur bildiramiz.',
+  'permitRating.resultLabel': 'Berilgan baho:',
+  'permitRating.resultUnit': 'ball',
 };

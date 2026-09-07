@@ -3521,6 +3521,31 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/permits/{permit_id}/rating": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Rate Permit
+         * @description The citizen's verdict on their own issued permit, 1-5, once (ruling #140).
+         *
+         *     404 `ERR-SYS-003` for a stranger — the card's own answer, so this route is
+         *     not a permit-existence oracle. 403 `ERR-ACL-001` for a caller who can READ
+         *     the permit (a required signer, a `permits.view_any` holder) but is not its
+         *     holder. 409 `ERR-PERM-001` for a permit not yet issued, or already rated.
+         */
+        post: operations["rate_permit_api_v1_permits__permit_id__rating_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/permits/{permit_id}/suspend": {
         parameters: {
             query?: never;
@@ -8985,6 +9010,7 @@ export interface components {
              * Format: date
              */
             document_date: string;
+            rating?: components["schemas"]["PermitRatingOut"] | null;
         };
         /**
          * PermitHistoryRow
@@ -9097,6 +9123,35 @@ export interface components {
             template_id: string | null;
             /** Issued At */
             issued_at: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+        };
+        /**
+         * PermitRatingIn
+         * @description `POST /permits/{id}/rating` — the citizen's verdict on a permit they
+         *     actually received (ruling #140). One per permit, checked by the service,
+         *     never left to `permit_ratings`'s own UNIQUE index.
+         */
+        PermitRatingIn: {
+            /** Score */
+            score: number;
+            /** Comment */
+            comment?: string | null;
+        };
+        /**
+         * PermitRatingOut
+         * @description One rating, exactly as `permit_ratings` stores it. No `permit_id`, no
+         *     applicant: ruling #141 keeps the author off every response built from this
+         *     table, and this is the shape every such response embeds.
+         */
+        PermitRatingOut: {
+            /** Score */
+            score: number;
+            /** Comment */
+            comment: string | null;
             /**
              * Created At
              * Format: date-time
@@ -17587,6 +17642,41 @@ export interface operations {
                 };
                 content: {
                     "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    rate_permit_api_v1_permits__permit_id__rating_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                permit_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PermitRatingIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PermitRatingOut"];
                 };
             };
             /** @description Validation Error */

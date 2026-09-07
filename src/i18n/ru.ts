@@ -1680,4 +1680,30 @@ export const ru = {
   'activityTypes.archiveConfirm': 'Подтвердить',
   'activityTypes.archiveCancel': 'Отмена',
   'activityTypes.archiveError': 'Не удалось отключить услугу.',
+
+  // Permit rating panel (B10 cabinet, task 8 of 07.7-services-catalog-and-ratings).
+  // Option copy for 5-2 is the old landing form's own wording, carried over
+  // unchanged (`ruxsatnoma-landing` history, commit before 04ff511 removed
+  // the dead form); "1" never existed there and is written fresh here.
+  'permitRating.title': 'Оцените качество услуги',
+  'permitRating.subtitle':
+    'Ваша оценка поможет в дальнейшем совершенствовании государственных электронных услуг.',
+  'permitRating.option5Title': '5 - Отлично',
+  'permitRating.option5Desc': 'Очень удобно, быстро и понятно',
+  'permitRating.option4Title': '4 - Хорошо',
+  'permitRating.option4Desc': 'Хорошо, но есть некоторые предложения',
+  'permitRating.option3Title': '3 - Удовлетворительно',
+  'permitRating.option3Desc': 'Средне, немного сложнее для понимания',
+  'permitRating.option2Title': '2 - Неудовлетворительно',
+  'permitRating.option2Desc': 'Есть недостатки',
+  'permitRating.option1Title': '1 - Плохо',
+  'permitRating.option1Desc': 'Очень неудобно, были серьёзные проблемы',
+  'permitRating.commentLabel': 'Комментарий (необязательно)',
+  'permitRating.submitButton': 'Отправить оценку',
+  'permitRating.submitError': 'Не удалось отправить оценку.',
+  'permitRating.ratedTitle': 'Ваша оценка успешно принята!',
+  'permitRating.thankYou':
+    'Благодарим вас за оценку качества услуг портала и оставленный отзыв.',
+  'permitRating.resultLabel': 'Выставленная оценка:',
+  'permitRating.resultUnit': 'балл',
 };
