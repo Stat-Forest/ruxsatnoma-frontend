@@ -47,6 +47,16 @@ export function formatPercent(value: string | null): string {
   return `${parsed.toFixed(1)}%`;
 }
 
+/** `SatisfactionKpiOut.avg_score` — a serialized decimal string, or `null`
+ *  when the period held zero ratings (ruling #143, stage 7.7: a portal may
+ *  not state a number it cannot produce). Rendered exactly as the backend
+ *  sent it — never re-parsed through `Number`, which is what
+ *  `formatPercent` above does for a different field and this one must not:
+ *  a caller renders this value, never rounds it. */
+export function formatAvgScore(value: string | null): string {
+  return value ?? '—';
+}
+
 /** The change between the current and the previous period's same figure —
  *  `null` when the backend did not compute one (`compare_previous` was off,
  *  or the field has no prior-period twin). The sign uses U+2212 (real minus),

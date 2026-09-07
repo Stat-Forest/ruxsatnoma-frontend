@@ -21,6 +21,7 @@ import {
   ShieldAlert,
   ShieldCheck,
   Stamp,
+  Star,
   Trees,
   User,
   Users,
@@ -143,6 +144,14 @@ export const NAVIGATION: NavItem[] = [
   // leadership) — there is no role with `reports.manage`/`.sign`/`.accept`/
   // `.forms.manage` that lacks `reports.view`.
   { to: '/reports', labelKey: 'nav.reports', permission: 'reports.view', icon: ClipboardList },
+  // Stage 7.7, task 9 (rulings #140-#143) — the aggregate read over what
+  // citizens leave on their own issued permits (`PermitRatingPanel.tsx`,
+  // task 8). `ratings.view` is zone-scoped exactly like `dashboard.view`
+  // (ruling #142) and held by `central_admin`, `leadership`, `executor_head`
+  // and `prosecutor` — the same four roles `nav.oversight` above reaches,
+  // for the same reason: a leshoz sees its own ratings, the Agency sees
+  // all, the backend does the narrowing.
+  { to: '/ratings', labelKey: 'nav.ratings', permission: 'ratings.view', icon: Star },
   // Five codes, any ONE of them (`NavItem.permission` semantics): the
   // inspector's own `inspections.acts.write` (checklists, acts, ERI
   // signing), `inspections.tasks.manage` for the executor_staff/

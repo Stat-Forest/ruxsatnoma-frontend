@@ -13,6 +13,7 @@ export const ru = {
   'nav.search': 'Поиск',
   'nav.archive': 'Архивный реестр',
   'nav.reports': 'Отчёты',
+  'nav.ratings': 'Оценки',
   'nav.inspections': 'Проверки',
   'nav.users': 'Пользователи',
   'nav.roles': 'Роли и права',
@@ -1048,6 +1049,10 @@ export const ru = {
   'leadership.dash.tile.payments.paidOfInvoiced': 'оплачено от выставленного',
   'leadership.dash.tile.sla.label': 'Заявки в работе (SLA)',
   'leadership.dash.tile.sla.hint': 'Просрочено',
+  // Stage 7.7, task 9 (ruling #143): `KpiOut.satisfaction`, obeying the same
+  // period/zone filters every other tile on this row already does.
+  'leadership.dash.tile.satisfaction.label': 'Удовлетворённость услугой',
+  'leadership.dash.tile.satisfaction.hint': 'Количество оценок',
   'leadership.dash.occupancy.title': 'Средняя занятость контуров',
   'leadership.dash.occupancy.subtitle': 'По контурам:',
   'leadership.dash.sbLoad.title': 'Нагрузка (условные головы)',
@@ -1706,4 +1711,33 @@ export const ru = {
     'Благодарим вас за оценку качества услуг портала и оставленный отзыв.',
   'permitRating.resultLabel': 'Выставленная оценка:',
   'permitRating.resultUnit': 'балл',
+
+  // The Agency's ratings screen (rulings #140-#143, stage 7.7, task 9).
+  // `GET /admin/ratings/summary` + `GET /admin/ratings`, both zone-scoped
+  // server-side — this screen filters nothing beyond the period itself.
+  'ratings.title': 'Оценки качества услуг',
+  'ratings.subtitle':
+    'Граждане оценивают качество услуги после получения разрешения. Здесь показаны средний балл, количество оценок за выбранный период и разбивка по организациям и видам услуг.',
+  'ratings.loading': 'Загрузка…',
+  'ratings.loadError': 'Не удалось загрузить данные.',
+  'ratings.filters.periodFrom': 'Период — с',
+  'ratings.filters.periodTo': 'Период — по',
+  'ratings.filters.apply': 'Применить',
+  'ratings.filters.reset': 'Сбросить',
+  'ratings.tile.avgScoreLabel': 'Средний балл',
+  'ratings.tile.countLabel': 'Количество оценок',
+  'ratings.byOrganization.title': 'По организациям',
+  'ratings.byOrganization.empty': 'Нет данных за этот период.',
+  'ratings.byActivityType.title': 'По видам услуг',
+  'ratings.byActivityType.empty': 'Нет данных за этот период.',
+  // Ruling #141: the feed below is the anonymous comment stream — date,
+  // service, leshoz, score, text, and NOTHING that identifies who left it.
+  // No column here may ever name an applicant or a permit.
+  'ratings.feed.title': 'Комментарии',
+  'ratings.feed.empty': 'За этот период комментариев нет.',
+  'ratings.feed.colDate': 'Дата',
+  'ratings.feed.colOrganization': 'Организация',
+  'ratings.feed.colActivityType': 'Вид услуги',
+  'ratings.feed.colScore': 'Оценка',
+  'ratings.feed.colComment': 'Комментарий',
 };

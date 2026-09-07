@@ -3726,6 +3726,52 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/ratings/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Ratings Summary
+         * @description The overall average and count over the caller's own zone
+         *     (`app.core.abac.zone_filter`, all three axes: region, district AND
+         *     organization — never `organization_id` alone, the finding
+         *     `dashboard.repo.permits_kpi` already closed), plus the same pair broken
+         *     down by organization and by activity type. `organization_id`/
+         *     `activity_type_id` narrow the zone further; neither widens it.
+         */
+        get: operations["get_ratings_summary_api_v1_admin_ratings_summary_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/ratings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Ratings
+         * @description The anonymous comment feed: date, service, leshoz, score, text — never
+         *     who left it. Zone-scoped the same way the summary above is.
+         */
+        get: operations["list_ratings_api_v1_admin_ratings_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/public/permits/check": {
         parameters: {
             query?: never;
@@ -7732,6 +7778,7 @@ export interface components {
             rejections: components["schemas"]["RejectionRowOut"][];
             risk_indicators: components["schemas"]["RiskIndicatorsKpiOut"];
             inspections: components["schemas"]["InspectionsKpiOut"];
+            satisfaction: components["schemas"]["SatisfactionKpiOut"];
             /** Omitted */
             omitted: string[];
         };
@@ -8657,6 +8704,17 @@ export interface components {
             /** Page Size */
             page_size: number;
         };
+        /** Page[RatingCommentRow] */
+        Page_RatingCommentRow_: {
+            /** Items */
+            items: components["schemas"]["RatingCommentRow"][];
+            /** Total */
+            total: number;
+            /** Page */
+            page: number;
+            /** Page Size */
+            page_size: number;
+        };
         /** Page[ReconciliationOut] */
         Page_ReconciliationOut_: {
             /** Items */
@@ -9539,6 +9597,73 @@ export interface components {
             message: string;
         };
         /**
+         * RatingCommentRow
+         * @description `GET /admin/ratings` — one row of the anonymous comment feed.
+         *
+         *     Ruling #141: date, service, leshoz, score, text. No applicant, no permit
+         *     number — anything that identifies WHO rated is absent by construction, not
+         *     filtered out at render time. `test_comments_never_name_the_author` asserts
+         *     this on the SERIALIZED body rather than on this class, on purpose: a field
+         *     added here later would pass a field-name check and still leak.
+         */
+        RatingCommentRow: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Score */
+            score: number;
+            /** Comment */
+            comment: string | null;
+            /** Organization Name */
+            organization_name: {
+                [key: string]: unknown;
+            };
+            /** Activity Type Name */
+            activity_type_name: {
+                [key: string]: unknown;
+            };
+        };
+        /**
+         * RatingsBreakdownRow
+         * @description One group of `GET /admin/ratings/summary`'s two breakdowns — exactly
+         *     one of `organization_id`/`activity_type_id` is set, depending on which
+         *     list this row sits in.
+         */
+        RatingsBreakdownRow: {
+            /** Organization Id */
+            organization_id?: string | null;
+            /** Activity Type Id */
+            activity_type_id?: string | null;
+            /** Name */
+            name: {
+                [key: string]: unknown;
+            };
+            /** Avg Score */
+            avg_score: string;
+            /** Count */
+            count: number;
+        };
+        /**
+         * RatingsSummaryOut
+         * @description `GET /admin/ratings/summary` — the overall average and count over the
+         *     caller's zone and the given period, plus the same pair broken down by
+         *     organization and by activity type. `avg_score`/`count` are both null-safe:
+         *     zero ratings in scope reads as `avg_score: null, count: 0`, never a 404 or
+         *     a division-by-zero — a summary has no row to refuse.
+         */
+        RatingsSummaryOut: {
+            /** Avg Score */
+            avg_score: string | null;
+            /** Count */
+            count: number;
+            /** By Organization */
+            by_organization: components["schemas"]["RatingsBreakdownRow"][];
+            /** By Activity Type */
+            by_activity_type: components["schemas"]["RatingsBreakdownRow"][];
+        };
+        /**
          * ReconciliationOut
          * @description One row of the discrepancy register (`GET /payments/reconciliations`) —
          *     either a per-line comparison (`statement_line_id` set) or a whole
@@ -10215,6 +10340,17 @@ export interface components {
             effective_to?: string | null;
             /** Basis */
             basis?: string | null;
+        };
+        /**
+         * SatisfactionKpiOut
+         * @description Ruling #143. `avg_score` is `None`, never `0`, for a period with no
+         *     ratings — a portal may not state a number it cannot produce.
+         */
+        SatisfactionKpiOut: {
+            /** Avg Score */
+            avg_score: string | null;
+            /** Count */
+            count: number;
         };
         /** SavedFilterIn */
         SavedFilterIn: {
@@ -17945,6 +18081,74 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ApplicationOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_ratings_summary_api_v1_admin_ratings_summary_get: {
+        parameters: {
+            query: {
+                period_from: string;
+                period_to: string;
+                organization_id?: string | null;
+                activity_type_id?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RatingsSummaryOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_ratings_api_v1_admin_ratings_get: {
+        parameters: {
+            query: {
+                period_from: string;
+                period_to: string;
+                page?: number;
+                page_size?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Page_RatingCommentRow_"];
                 };
             };
             /** @description Validation Error */

@@ -17,6 +17,7 @@ export const uz_latn = {
   'nav.search': 'Qidiruv',
   'nav.archive': 'Arxiv reyestri',
   'nav.reports': 'Hisobotlar',
+  'nav.ratings': 'Baholashlar',
   'nav.inspections': 'Tekshiruvlar',
   'nav.users': 'Foydalanuvchilar',
   'nav.roles': 'Rollar va huquqlar',
@@ -1055,6 +1056,10 @@ export const uz_latn = {
   'leadership.dash.tile.payments.paidOfInvoiced': "hisob-fakturadan toʻlangan",
   'leadership.dash.tile.sla.label': "Ishdagi arizalar (SLA)",
   'leadership.dash.tile.sla.hint': "Muddati oʻtgan",
+  // Stage 7.7, task 9 (ruling #143): `KpiOut.satisfaction`, obeying the same
+  // period/zone filters every other tile on this row already does.
+  'leadership.dash.tile.satisfaction.label': "Xizmatdan mamnunlik",
+  'leadership.dash.tile.satisfaction.hint': "Baholar soni",
   'leadership.dash.occupancy.title': "Konturlarning oʻrtacha bandligi",
   'leadership.dash.occupancy.subtitle': "Konturlar boʻyicha:",
   'leadership.dash.sbLoad.title': "Yuklama (shartli boshlar)",
@@ -1716,4 +1721,33 @@ export const uz_latn = {
     'Portal xizmati sifatini baholaganingiz va fikr-mulohazangiz uchun tashakkur bildiramiz.',
   'permitRating.resultLabel': 'Berilgan baho:',
   'permitRating.resultUnit': 'ball',
+
+  // The Agency's ratings screen (rulings #140-#143, stage 7.7, task 9).
+  // `GET /admin/ratings/summary` + `GET /admin/ratings`, both zone-scoped
+  // server-side — this screen filters nothing beyond the period itself.
+  'ratings.title': 'Xizmatlarni baholash',
+  'ratings.subtitle':
+    "Fuqarolar ruxsatnoma olingandan keyin xizmat sifatini shu yerda baholaydi — oʻrtacha baho, baholar soni va tashkilot/xizmat turi boʻyicha taqsimot tanlangan davr uchun koʻrsatiladi.",
+  'ratings.loading': 'Yuklanmoqda…',
+  'ratings.loadError': "Maʼlumotlarni yuklab boʻlmadi.",
+  'ratings.filters.periodFrom': 'Davr — dan',
+  'ratings.filters.periodTo': 'Davr — gacha',
+  'ratings.filters.apply': 'Qoʻllash',
+  'ratings.filters.reset': 'Tiklash',
+  'ratings.tile.avgScoreLabel': "Oʻrtacha baho",
+  'ratings.tile.countLabel': 'Baholar soni',
+  'ratings.byOrganization.title': 'Tashkilotlar boʻyicha',
+  'ratings.byOrganization.empty': 'Bu davr uchun maʼlumot yoʻq.',
+  'ratings.byActivityType.title': 'Xizmat turlari boʻyicha',
+  'ratings.byActivityType.empty': 'Bu davr uchun maʼlumot yoʻq.',
+  // Ruling #141: the feed below is the anonymous comment stream — date,
+  // service, leshoz, score, text, and NOTHING that identifies who left it.
+  // No column here may ever name an applicant or a permit.
+  'ratings.feed.title': 'Fikr-mulohazalar',
+  'ratings.feed.empty': 'Bu davr uchun fikr-mulohaza yoʻq.',
+  'ratings.feed.colDate': 'Sana',
+  'ratings.feed.colOrganization': 'Tashkilot',
+  'ratings.feed.colActivityType': 'Xizmat turi',
+  'ratings.feed.colScore': 'Baho',
+  'ratings.feed.colComment': 'Izoh',
 };

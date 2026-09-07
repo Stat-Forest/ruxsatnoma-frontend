@@ -16,6 +16,7 @@ import { RolesPage } from './pages/admin/roles/RolesPage';
 import { SettingsPage } from './pages/admin/settings/SettingsPage';
 import { TemplatesPage } from './pages/admin/templates/TemplatesPage';
 import { OversightPage } from './pages/oversight/OversightPage';
+import { RatingsPage } from './pages/ratings/RatingsPage';
 import { SearchPage } from './pages/search/SearchPage';
 import { ArchivePage } from './pages/archive/ArchivePage';
 import { SupportPage } from './pages/support/SupportPage';
@@ -67,6 +68,7 @@ const CHILD_PAGES: Record<string, ReactNode> = {
   '/search': <SearchPage />,
   '/archive': <ArchivePage />,
   '/reports': <ReportsPage />,
+  '/ratings': <RatingsPage />,
   '/inspections': <InspectionsPage />,
   '/admin/users': <UsersPage />,
   '/admin/roles': <RolesPage />,
