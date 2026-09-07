@@ -77,20 +77,48 @@ afterAll(() => server.close());
 
 function LandedProbe() {
   const location = useLocation();
-  return <div data-testid="landed">{location.pathname}</div>;
+  return <div data-testid="landed">{location.pathname + location.search}</div>;
 }
 
-function renderCasesTab(cases: CaseOut[]) {
+/** Rendered ALONGSIDE `CasesTab` (not as a separate `Route`) so a
+ *  same-path navigation (`/inspections` -> `/inspections?tab=cases`, the
+ *  "clear filter" button's own target) is still observable — a separate
+ *  `Route` for that path would just re-match the same element and tell the
+ *  test nothing about which search string won. */
+function LocationProbe() {
+  const location = useLocation();
+  return <div data-testid="current-location">{location.pathname + location.search}</div>;
+}
+
+/** Returns the last request's own query params alongside the RTL render
+ *  result — `seenParams` lets a test assert what was actually SENT
+ *  (`applicant_id` included), not merely that the screen rendered
+ *  something plausible. */
+function renderCasesTab(cases: CaseOut[], applicantId?: string) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
   const i18n = { lang: 'uz_latn' as const, backendLang: 'uz_latn' as const, t: (key: string) => key, setLanguage: async () => {} };
-  server.use(http.get('*/api/v1/inspections/cases', () => HttpResponse.json({ items: cases, total: cases.length, page: 1, page_size: 20 })));
-  return render(
+  const seenParams: URLSearchParams[] = [];
+  server.use(
+    http.get('*/api/v1/inspections/cases', ({ request }) => {
+      seenParams.push(new URL(request.url).searchParams);
+      return HttpResponse.json({ items: cases, total: cases.length, page: 1, page_size: 20 });
+    }),
+  );
+  const utils = render(
     <MemoryRouter initialEntries={['/inspections']}>
       <QueryClientProvider client={client}>
         <I18nContext.Provider value={i18n}>
           <AuthContext.Provider value={authValue()}>
             <Routes>
-              <Route path="/inspections" element={<CasesTab active />} />
+              <Route
+                path="/inspections"
+                element={
+                  <>
+                    <LocationProbe />
+                    <CasesTab active applicantId={applicantId} />
+                  </>
+                }
+              />
               <Route path="/inspections/cases/:id" element={<LandedProbe />} />
             </Routes>
           </AuthContext.Provider>
@@ -98,6 +126,7 @@ function renderCasesTab(cases: CaseOut[]) {
       </QueryClientProvider>
     </MemoryRouter>,
   );
+  return { ...utils, seenParams };
 }
 
 test('the empty state renders when there are no cases', async () => {
@@ -154,4 +183,40 @@ test('opening a case navigates to /inspections/cases/{id}', async () => {
 
   const landed = await screen.findByTestId('landed');
   expect(landed.textContent).toBe(`/inspections/cases/${CASE_ID}`);
+});
+
+// --- Stage 7.6 (ruling R8/#138, finding F3): applicant_id filtering --------
+
+const APPLICANT_ID = 'ap000000-0000-4000-8000-000000000001';
+
+test('an applicantId prop sends applicant_id as a real query param and renders that applicant\'s own case', async () => {
+  const { seenParams } = renderCasesTab(
+    [caseOut({ applicant_id: APPLICANT_ID, number: 'CASE-2026-0099' })],
+    APPLICANT_ID,
+  );
+
+  expect(await screen.findByText('CASE-2026-0099')).toBeInTheDocument();
+  expect(seenParams.at(-1)?.get('applicant_id')).toBe(APPLICANT_ID);
+});
+
+test('the filtered-by-applicant banner appears only when applicantId is set', async () => {
+  renderCasesTab([caseOut()], APPLICANT_ID);
+  expect(await screen.findByTestId('cases-applicant-filter-banner')).toBeInTheDocument();
+});
+
+test('no applicantId means no banner and no applicant_id query param', async () => {
+  const { seenParams } = renderCasesTab([caseOut()]);
+
+  await screen.findByText('CASE-2026-0001');
+  expect(screen.queryByTestId('cases-applicant-filter-banner')).not.toBeInTheDocument();
+  expect(seenParams.at(-1)?.get('applicant_id')).toBeNull();
+});
+
+test('clearing the applicant filter navigates back to the unfiltered cases tab', async () => {
+  const user = userEvent.setup();
+  renderCasesTab([caseOut()], APPLICANT_ID);
+
+  await user.click(await screen.findByText('inspector.cases.clearApplicantFilter'));
+
+  expect(await screen.findByTestId('current-location')).toHaveTextContent('/inspections?tab=cases');
 });

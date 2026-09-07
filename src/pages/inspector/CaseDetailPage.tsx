@@ -17,9 +17,16 @@
  * - File appeal — the case's own applicant only, `status === 'decided'`,
  *   and only while there is no OTHER open appeal already
  *   (`ERR-INSP-001 appeal_already_open`).
+ *
+ * Stage 7.6 (ruling R8/#138, finding F3) adds `prior_cases_count`: how many
+ * of this SAME applicant's other cases already reached a decision, shown as
+ * a plain fact linking into `CasesTab`'s own `applicant_id` filter — never a
+ * suggested penalty. `tz/04` promises "shows the history"; the "suggests
+ * stricter" half is deliberately not built (no rule in the spec says how
+ * much stricter, and an invented ladder is worse than the facts alone).
  */
 import { useRef, useState } from 'react';
-import { useParams } from 'react-router';
+import { Link, useParams } from 'react-router';
 import { Loader2 } from 'lucide-react';
 import { useAuth } from '../../auth/useAuth';
 import { useApiErrorText } from '../../i18n/useApiErrorText';
@@ -366,6 +373,22 @@ export function CaseDetailPage() {
         <dl>
           <InfoRow label={t('inspector.caseDetail.numberLabel')} value={item.number} />
           <InfoRow label={t('inspector.caseDetail.violationTypeLabel')} value={violationTypeLabel} />
+          <div className="flex justify-between gap-3 py-2 border-b border-[#F0F2F4] last:border-0 text-sm">
+            <dt className="text-[#5A646D]">{t('inspector.caseDetail.priorCasesLabel')}</dt>
+            <dd className="font-semibold text-[#1A1F24] text-right">
+              {item.applicant_id && item.prior_cases_count > 0 ? (
+                <Link
+                  to={`/inspections?tab=cases&applicant_id=${item.applicant_id}`}
+                  className="text-[#2E7D4F] hover:underline"
+                  data-testid="prior-cases-link"
+                >
+                  {item.prior_cases_count}
+                </Link>
+              ) : (
+                item.prior_cases_count
+              )}
+            </dd>
+          </div>
           {item.explanation_due_at && (
             <InfoRow label={t('inspector.cases.explanationDueLabel')} value={formatDate(item.explanation_due_at)} />
           )}

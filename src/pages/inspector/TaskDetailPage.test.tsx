@@ -149,6 +149,120 @@ test('a permit link is rendered with the right href when permit_id is set', asyn
   expect(link.closest('a')).toHaveAttribute('href', '/permits/p1000000-0000-4000-8000-000000000001');
 });
 
+// --- Stage 7.6 (ruling R6/#138): the handover dialog -----------------------
+
+const CANDIDATE_ID = 'u3000000-0000-4000-8000-000000000003';
+const TASK_ORG_ID = 'org00000-0000-4000-8000-000000000001';
+
+function candidate(over: Partial<{ id: string; full_name: string }> = {}) {
+  return {
+    id: CANDIDATE_ID,
+    login: 'karimov',
+    full_name: 'Inspektor Karimov',
+    pinfl: null,
+    position: null,
+    role_id: 'r1000000-0000-4000-8000-000000000001',
+    role_code: 'inspector',
+    organization_id: TASK_ORG_ID,
+    region_id: null,
+    district_id: null,
+    phone: null,
+    email: null,
+    status: 'active',
+    must_change_password: false,
+    valid_until: null,
+    last_login_at: null,
+    created_at: '2026-01-01T00:00:00+05:00',
+    ...over,
+  };
+}
+
+test('the handover dialog only offers same-organization inspectors', async () => {
+  server.use(
+    http.get('*/api/v1/admin/users', ({ request }) => {
+      const url = new URL(request.url);
+      expect(url.searchParams.get('organization_id')).toBe(TASK_ORG_ID);
+      expect(url.searchParams.get('role_code')).toBe('inspector');
+      return HttpResponse.json({ items: [candidate()], total: 1 });
+    }),
+  );
+  renderPage({ assigned_to: OTHER_ID, status: 'assigned', organization_id: TASK_ORG_ID }, ['inspections.tasks.manage']);
+
+  expect(await screen.findByText('Inspektor Karimov')).toBeInTheDocument();
+});
+
+test('a task in a terminal status offers no handover at all', async () => {
+  renderPage({ assigned_to: OTHER_ID, status: 'done', organization_id: TASK_ORG_ID }, ['inspections.tasks.manage']);
+  await screen.findByText('inspector.taskDetail.title');
+  expect(screen.queryByText('inspector.taskDetail.handoverTitle')).not.toBeInTheDocument();
+});
+
+test('confirming the handover reassigns the task and the card shows the new assignee', async () => {
+  const user = userEvent.setup();
+  let assignedTo = OTHER_ID;
+  server.use(
+    http.get('*/api/v1/inspections/tasks/:task_id', () =>
+      HttpResponse.json(task({ assigned_to: assignedTo, status: 'assigned', organization_id: TASK_ORG_ID })),
+    ),
+    http.get('*/api/v1/admin/users', () => HttpResponse.json({ items: [candidate()], total: 1 })),
+    http.post('*/api/v1/inspections/tasks/:task_id/reassign', async ({ request }) => {
+      const body = (await request.json()) as { new_assignee_id: string };
+      expect(body.new_assignee_id).toBe(CANDIDATE_ID);
+      assignedTo = CANDIDATE_ID;
+      return HttpResponse.json(task({ assigned_to: CANDIDATE_ID, status: 'assigned', organization_id: TASK_ORG_ID }));
+    }),
+  );
+
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
+  const i18n = { lang: 'uz_latn' as const, backendLang: 'uz_latn' as const, t: (key: string) => key, setLanguage: async () => {} };
+  render(
+    <MemoryRouter initialEntries={[`/inspections/tasks/${TASK_ID}`]}>
+      <QueryClientProvider client={client}>
+        <I18nContext.Provider value={i18n}>
+          <AuthContext.Provider value={authValue(['inspections.tasks.manage'])}>
+            <Routes>
+              <Route path="/inspections/tasks/:id" element={<TaskDetailPage />} />
+            </Routes>
+          </AuthContext.Provider>
+        </I18nContext.Provider>
+      </QueryClientProvider>
+    </MemoryRouter>,
+  );
+
+  // Before the handover: the OLD assignee's short id is on the card.
+  expect(await screen.findByText(OTHER_ID.slice(0, 8))).toBeInTheDocument();
+  // Wait for the candidate list itself to load — the select stays disabled
+  // (and offers only the placeholder) until it does.
+  await screen.findByText('Inspektor Karimov');
+
+  await user.selectOptions(screen.getByDisplayValue('inspector.taskDetail.handoverPlaceholder'), CANDIDATE_ID);
+  await user.click(screen.getByText('inspector.taskDetail.handoverButton'));
+
+  // After: the card shows the REAL new assignee, not merely "no error" —
+  // the whole point of this project's own recurring finding about screens
+  // that succeed on the server and claim otherwise.
+  await waitFor(() => expect(screen.getByText(CANDIDATE_ID.slice(0, 8))).toBeInTheDocument());
+  expect(screen.queryByText(OTHER_ID.slice(0, 8))).not.toBeInTheDocument();
+});
+
+test('the currently assigned inspector is excluded from their own handover options', async () => {
+  server.use(
+    http.get('*/api/v1/admin/users', () =>
+      HttpResponse.json({
+        items: [candidate({ id: OTHER_ID, full_name: 'Inspektor Aliyev (joriy)' }), candidate()],
+        total: 2,
+      }),
+    ),
+  );
+  renderPage({ assigned_to: OTHER_ID, status: 'assigned', organization_id: TASK_ORG_ID }, ['inspections.tasks.manage']);
+
+  // The other candidate loads fine...
+  await screen.findByText('Inspektor Karimov');
+  // ...but the task's OWN current assignee never appears as an option —
+  // reassigning to the same person is not a handover.
+  expect(screen.queryByText('Inspektor Aliyev (joriy)')).not.toBeInTheDocument();
+});
+
 test('an ApiError renders instead of crashing when the task fails to load', async () => {
   server.use(
     http.get('*/api/v1/inspections/tasks/:task_id', () =>

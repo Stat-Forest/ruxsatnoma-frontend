@@ -1,6 +1,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { MemoryRouter } from 'react-router';
 import { http, HttpResponse } from 'msw';
 import { setupServer } from 'msw/node';
 import { I18nContext } from '../../../i18n/context';
@@ -25,11 +26,16 @@ function renderUsers(lang: 'uz_latn' | 'ru' = 'uz_latn') {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   const i18n = { lang, backendLang: lang, t: (key: string) => key, setLanguage: async () => {} };
   return render(
-    <QueryClientProvider client={client}>
-      <I18nContext.Provider value={i18n}>
-        <UsersPage />
-      </I18nContext.Provider>
-    </QueryClientProvider>,
+    // Stage 7.6 (ruling R3/#138): the open-work refusal links to the held
+    // application/task, so `UsersPage` now renders `<Link>` — it needs a
+    // router context even when nothing here navigates.
+    <MemoryRouter>
+      <QueryClientProvider client={client}>
+        <I18nContext.Provider value={i18n}>
+          <UsersPage />
+        </I18nContext.Provider>
+      </QueryClientProvider>
+    </MemoryRouter>,
   );
 }
 
@@ -242,6 +248,79 @@ test('editing sends only the fields that actually changed', async () => {
   await waitFor(() => expect(body).not.toBeNull());
   expect(patchedId).toBe(USER_KARIMOV);
   expect(body).toEqual({ position: 'Yetakchi mutaxassis' });
+});
+
+// --- Stage 7.6 (ruling R3/#138, finding F4): the open-work refusal --------
+
+test('deleting a user who still holds open work is refused, naming what is held with working links', async () => {
+  server.use(
+    ...referenceHandlers(),
+    http.post('*/api/v1/admin/users/:userId/delete', () =>
+      HttpResponse.json(
+        {
+          error: {
+            code: 'ERR-VAL-001',
+            message: 'validation failed',
+            details: {
+              open_work: [
+                { kind: 'applications', count: 1, ids: ['app0000-0000-4000-8000-000000000001'] },
+                {
+                  kind: 'inspection_tasks',
+                  count: 2,
+                  ids: ['tsk00000-0000-4000-8000-000000000001', 'tsk00000-0000-4000-8000-000000000002'],
+                },
+              ],
+            },
+          },
+        },
+        { status: 422 },
+      ),
+    ),
+  );
+  const ui = userEvent.setup();
+  renderUsers();
+
+  const card = await openCard(ui);
+  await ui.click(card.getByRole('button', { name: L.actionDelete }));
+
+  const refusal = within(await screen.findByTestId('open-work-refusal'));
+  expect(refusal.getByText(L.openWorkTitle)).toBeInTheDocument();
+  expect(refusal.getByText(`${L.openWorkKindApplications} (1):`)).toBeInTheDocument();
+  expect(refusal.getByText(`${L.openWorkKindInspectionTasks} (2):`)).toBeInTheDocument();
+
+  // Each held id is a REAL link to the thing itself, not just named text —
+  // an admin can actually act on the refusal, not merely read it.
+  const links = refusal.getAllByRole('link');
+  expect(links.map((a) => a.getAttribute('href'))).toEqual([
+    '/applications/app0000-0000-4000-8000-000000000001',
+    '/inspections/tasks/tsk00000-0000-4000-8000-000000000001',
+    '/inspections/tasks/tsk00000-0000-4000-8000-000000000002',
+  ]);
+
+  // Nothing was actually deleted — the card still shows the user active.
+  expect(card.getByText('active')).toBeInTheDocument();
+});
+
+test('a user holding nothing deletes without any refusal rendered', async () => {
+  let deleted = false;
+  server.use(
+    // Before `referenceHandlers()`, not after: MSW takes the FIRST matching
+    // handler in one `server.use()` call, so this override must lead.
+    http.get('*/api/v1/admin/users/:userId', () => HttpResponse.json(makeUser({ status: deleted ? 'deleted' : 'active' }))),
+    ...referenceHandlers(),
+    http.post('*/api/v1/admin/users/:userId/delete', () => {
+      deleted = true;
+      return HttpResponse.json(makeUser({ status: 'deleted' }));
+    }),
+  );
+  const ui = userEvent.setup();
+  renderUsers();
+
+  const card = await openCard(ui);
+  await ui.click(card.getByRole('button', { name: L.actionDelete }));
+
+  await waitFor(() => expect(card.getByText('deleted')).toBeInTheDocument());
+  expect(screen.queryByTestId('open-work-refusal')).toBeNull();
 });
 
 test('an empty zone field is cleared explicitly, not silently kept', async () => {
