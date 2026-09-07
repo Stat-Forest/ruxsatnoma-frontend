@@ -13,6 +13,24 @@
  *      (decision 4 — the comment is optional) and, on success, invalidates
  *      the `['permit', id]` query so the card picks up its own `rating`
  *      (decision 6).
+ *
+ * Plus the three error paths `service.rate_permit` (backend
+ * `app/modules/permits/service.py`) can actually answer, so a regression
+ * that turns any of them into a silent failure gets caught rather than
+ * passing every test in this file:
+ *   5. 409 `ERR-PERM-001`/`already_rated` — the double-click, or a second
+ *      tab that already rated;
+ *   6. 404 `ERR-SYS-003` — the id `_readable_permit` admits nobody by, the
+ *      same answer a stranger or a nonexistent permit both get (never a
+ *      403, precisely so a stranger cannot use the status code as a
+ *      permit-existence oracle);
+ *   7. 403 `ERR-ACL-001`/`not_the_holder` — someone `_readable_permit` DOES
+ *      let read the card (a required signer, a `permits.view_any` holder)
+ *      but who is not the permit's own holder.
+ * Each asserts the rendered `role="alert"` carries the real localized
+ * string for that code (`src/i18n/errorMessages.ts`), not merely that some
+ * alert exists — a wrong or missing mapping for a real backend code must
+ * fail these tests.
  */
 import type { ReactElement } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -114,4 +132,70 @@ test('a written comment rides along with the score', async () => {
 test('the submit button stays disabled until a score is chosen', async () => {
   renderWithProviders(<PermitRatingPanel permitId={ID} rating={null} status="active" />);
   expect(await screen.findByRole('button', { name: /yuborish/i })).toBeDisabled();
+});
+
+test('a 409 already-rated conflict (double submit, or rated from another tab) shows the refresh alert', async () => {
+  const user = userEvent.setup();
+  server.use(
+    http.post('*/api/v1/permits/:id/rating', () =>
+      HttpResponse.json(
+        {
+          error: {
+            code: 'ERR-PERM-001',
+            message: 'Недопустимый переход статуса разрешения',
+            details: { reason: 'already_rated' },
+          },
+        },
+        { status: 409 },
+      ),
+    ),
+  );
+  renderWithProviders(<PermitRatingPanel permitId={ID} rating={null} status="active" />);
+
+  await user.click(await screen.findByRole('radio', { name: /^5/ }));
+  await user.click(screen.getByRole('button', { name: /yuborish/i }));
+
+  const alert = await screen.findByRole('alert');
+  expect(alert).toHaveTextContent("Ruxsatnoma holatini bunday o'zgartirib bo'lmaydi. Sahifani yangilang.");
+});
+
+test('a 404 (the id nobody is admitted to read) shows the alert rather than failing silently', async () => {
+  const user = userEvent.setup();
+  server.use(
+    http.post('*/api/v1/permits/:id/rating', () =>
+      HttpResponse.json({ error: { code: 'ERR-SYS-003', message: 'Ресурс не найден' } }, { status: 404 }),
+    ),
+  );
+  renderWithProviders(<PermitRatingPanel permitId={ID} rating={null} status="active" />);
+
+  await user.click(await screen.findByRole('radio', { name: /^3/ }));
+  await user.click(screen.getByRole('button', { name: /yuborish/i }));
+
+  const alert = await screen.findByRole('alert');
+  expect(alert).toHaveTextContent('Manba topilmadi.');
+});
+
+test('a 403 (readable but not the holder) shows the alert rather than failing silently', async () => {
+  const user = userEvent.setup();
+  server.use(
+    http.post('*/api/v1/permits/:id/rating', () =>
+      HttpResponse.json(
+        {
+          error: {
+            code: 'ERR-ACL-001',
+            message: 'Нет прав на ресурс',
+            details: { reason: 'not_the_holder' },
+          },
+        },
+        { status: 403 },
+      ),
+    ),
+  );
+  renderWithProviders(<PermitRatingPanel permitId={ID} rating={null} status="active" />);
+
+  await user.click(await screen.findByRole('radio', { name: /^2/ }));
+  await user.click(screen.getByRole('button', { name: /yuborish/i }));
+
+  const alert = await screen.findByRole('alert');
+  expect(alert).toHaveTextContent("Bu amal uchun sizda huquq yo'q.");
 });
