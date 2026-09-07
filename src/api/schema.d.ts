@@ -1002,6 +1002,62 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/public/announcements": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Landing Announcements */
+        get: operations["list_landing_announcements_api_v1_public_announcements_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/public/announcements/{announcement_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Landing Announcement */
+        get: operations["get_landing_announcement_api_v1_public_announcements__announcement_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/public/announcements/{announcement_id}/files/{file_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Download Landing File
+         * @description The attachment is addressed THROUGH its announcement — `GET /files/{id}`
+         *     needs a session, so without this route a public announcement's own PDF would
+         *     be a link the visitor cannot open.
+         */
+        get: operations["download_landing_file_api_v1_public_announcements__announcement_id__files__file_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/integrations/outbox": {
         parameters: {
             query?: never;
@@ -5158,6 +5214,8 @@ export interface components {
             audience: {
                 [key: string]: unknown;
             } | null;
+            /** Public On Landing */
+            public_on_landing: boolean;
             /** Status */
             status: string;
             /** Publish From */
@@ -5182,12 +5240,44 @@ export interface components {
             title: components["schemas"]["LocalizedName"];
             body: components["schemas"]["LocalizedName"];
             audience?: components["schemas"]["AudienceIn"] | null;
+            /**
+             * Public On Landing
+             * @default false
+             */
+            public_on_landing: boolean;
             /** Publish From */
             publish_from?: string | null;
             /** Publish To */
             publish_to?: string | null;
             /** File Ids */
             file_ids?: string[] | null;
+        };
+        /**
+         * AnnouncementLandingOut
+         * @description What the anonymous public site gets (`0037`). Narrower than
+         *     `AnnouncementOut`, which is already visibility-filtered but still an
+         *     authenticated shape: no `publish_to` (an internal scheduling detail — the
+         *     window is enforced by the query, not read by the reader) and files carry no
+         *     `content_type`-driven behaviour beyond what the download route decides.
+         */
+        AnnouncementLandingOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Title */
+            title: {
+                [key: string]: unknown;
+            };
+            /** Body */
+            body: {
+                [key: string]: unknown;
+            };
+            /** Publish From */
+            publish_from: string | null;
+            /** Files */
+            files: components["schemas"]["FileRef"][];
         };
         /**
          * AnnouncementOut
@@ -5226,6 +5316,8 @@ export interface components {
             title?: components["schemas"]["LocalizedName"] | null;
             body?: components["schemas"]["LocalizedName"] | null;
             audience?: components["schemas"]["AudienceIn"] | null;
+            /** Public On Landing */
+            public_on_landing?: boolean | null;
             /** Publish From */
             publish_from?: string | null;
             /** Publish To */
@@ -8280,6 +8372,17 @@ export interface components {
         Page_AnnouncementAdminOut_: {
             /** Items */
             items: components["schemas"]["AnnouncementAdminOut"][];
+            /** Total */
+            total: number;
+            /** Page */
+            page: number;
+            /** Page Size */
+            page_size: number;
+        };
+        /** Page[AnnouncementLandingOut] */
+        Page_AnnouncementLandingOut_: {
+            /** Items */
+            items: components["schemas"]["AnnouncementLandingOut"][];
             /** Total */
             total: number;
             /** Page */
@@ -13275,6 +13378,101 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AnnouncementAdminOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_landing_announcements_api_v1_public_announcements_get: {
+        parameters: {
+            query?: {
+                page?: number;
+                page_size?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Page_AnnouncementLandingOut_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_landing_announcement_api_v1_public_announcements__announcement_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                announcement_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AnnouncementLandingOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    download_landing_file_api_v1_public_announcements__announcement_id__files__file_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                announcement_id: string;
+                file_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
                 };
             };
             /** @description Validation Error */
