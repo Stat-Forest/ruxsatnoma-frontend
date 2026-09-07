@@ -3904,6 +3904,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/inspections/tasks/{task_id}/reassign": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reassign Task */
+        post: operations["reassign_task_api_v1_inspections_tasks__task_id__reassign_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/inspections/acts": {
         parameters: {
             query?: never;
@@ -3981,7 +3998,13 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** List Cases */
+        /**
+         * List Cases
+         * @description `applicant_id` (ruling R8, finding F3): every case against ONE
+         *     violator, for anyone who may already see those cases — the filter runs
+         *     INSIDE `_case_scope`, so a leshoz head still sees only their own zone's
+         *     cases against that applicant, never another oblast's.
+         */
         get: operations["list_cases_api_v1_inspections_cases_get"];
         put?: never;
         post?: never;
@@ -6601,7 +6624,10 @@ export interface components {
         /**
          * CaseCardOut
          * @description `GET /inspections/cases/{id}`: the case's own columns, FLAT, plus its
-         *     append-only timeline and any appeals filed against its decision.
+         *     append-only timeline, any appeals filed against its decision, and how
+         *     many of the SAME applicant's other cases already reached a decision
+         *     (ruling R8, `tz/04`'s "shows the history" half of the repeat-violation
+         *     line — the "suggests stricter" half is deliberately NOT built).
          */
         CaseCardOut: {
             /**
@@ -6654,6 +6680,8 @@ export interface components {
             history: components["schemas"]["CaseHistoryEntry"][];
             /** Appeals */
             appeals: components["schemas"]["AppealOut"][];
+            /** Prior Cases Count */
+            prior_cases_count: number;
         };
         /** CaseHistoryEntry */
         CaseHistoryEntry: {
@@ -9662,6 +9690,19 @@ export interface components {
             by_organization: components["schemas"]["RatingsBreakdownRow"][];
             /** By Activity Type */
             by_activity_type: components["schemas"]["RatingsBreakdownRow"][];
+        };
+        /**
+         * ReassignIn
+         * @description `POST /inspections/tasks/{id}/reassign` (ruling R6): the handover — the
+         *     task keeps its id, its due date and its history, only `assigned_to`
+         *     changes.
+         */
+        ReassignIn: {
+            /**
+             * New Assignee Id
+             * Format: uuid
+             */
+            new_assignee_id: string;
         };
         /**
          * ReconciliationOut
@@ -18408,6 +18449,41 @@ export interface operations {
             };
         };
     };
+    reassign_task_api_v1_inspections_tasks__task_id__reassign_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                task_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReassignIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TaskOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_acts_api_v1_inspections_acts_get: {
         parameters: {
             query?: {
@@ -18614,6 +18690,7 @@ export interface operations {
         parameters: {
             query?: {
                 status?: string | null;
+                applicant_id?: string | null;
                 page?: number;
                 page_size?: number;
             };
