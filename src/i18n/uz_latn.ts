@@ -145,7 +145,7 @@ export const uz_latn = {
   'cabinet.registration.phoneLabel': 'Telefon raqami',
   'cabinet.registration.phonePlaceholder': '+998901234567',
   'cabinet.registration.invalidPhone': "Telefon raqami +998XXXXXXXXX ko'rinishida bo'lishi kerak",
-  'cabinet.registration.detailsTitle': "Qo'shimcha ma'lumotlar (ixtiyoriy)",
+  'cabinet.registration.detailsTitle': "Qo'shimcha ma'lumotlar",
   'cabinet.registration.emailLabel': 'Elektron pochta',
   'cabinet.registration.emailHint': "Elektron pochta keyinroq profilda alohida tasdiqlanadi.",
   'cabinet.registration.regionLabel': 'Viloyat',
@@ -157,6 +157,7 @@ export const uz_latn = {
   'cabinet.registration.needConsents': "Davom etish uchun ikkala rozilikni ham belgilang.",
   'cabinet.registration.needPhoneVerified':
     'Davom etish uchun telefon raqamini tasdiqlang.',
+  'cabinet.registration.needAddress': 'Manzilni kiriting.',
   'cabinet.registration.genericError': "Xatolik yuz berdi. Qayta urinib ko'ring.",
 
   'cabinet.profile.tabProfile': 'Profil',

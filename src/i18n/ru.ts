@@ -138,7 +138,7 @@ export const ru = {
   'cabinet.registration.phoneLabel': 'Номер телефона',
   'cabinet.registration.phonePlaceholder': '+998901234567',
   'cabinet.registration.invalidPhone': 'Номер должен быть в формате +998XXXXXXXXX',
-  'cabinet.registration.detailsTitle': 'Дополнительные данные (необязательно)',
+  'cabinet.registration.detailsTitle': 'Дополнительные данные',
   'cabinet.registration.emailLabel': 'Электронная почта',
   'cabinet.registration.emailHint': 'Электронная почта подтверждается отдельно, позже в профиле.',
   'cabinet.registration.regionLabel': 'Область',
@@ -149,6 +149,7 @@ export const ru = {
   'cabinet.registration.submitting': 'Отправка…',
   'cabinet.registration.needConsents': 'Чтобы продолжить, отметьте оба согласия.',
   'cabinet.registration.needPhoneVerified': 'Чтобы продолжить, подтвердите номер телефона.',
+  'cabinet.registration.needAddress': 'Укажите адрес.',
   'cabinet.registration.genericError': 'Произошла ошибка. Попробуйте ещё раз.',
 
   'cabinet.profile.tabProfile': 'Профиль',

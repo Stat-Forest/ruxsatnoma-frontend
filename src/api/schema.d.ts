@@ -284,6 +284,33 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/auth/applicants/{applicant_id}/address": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Update Applicant Address
+         * @description Ruling #113's dequeuing route: an account that reached registration
+         *     before the field existed, or whose OneID profile carried none, fills it
+         *     in here — at any time, not only right before a submission that would
+         *     otherwise refuse it.
+         *
+         *     404 `ERR-SYS-003` for an `applicant_id` this caller has no claim on
+         *     (`service.update_applicant_address`'s own docstring), the same answer an
+         *     id that never existed gets.
+         */
+        patch: operations["update_applicant_address_api_v1_auth_applicants__applicant_id__address_patch"];
+        trace?: never;
+    };
     "/api/v1/auth/me/language": {
         parameters: {
             query?: never;
@@ -5318,6 +5345,22 @@ export interface components {
         AppealSubmitOut: {
             /** Number */
             number: string;
+        };
+        /**
+         * ApplicantAddressIn
+         * @description `PATCH /auth/applicants/{applicant_id}/address` (ruling #113): the one
+         *     field the route exists for. `StringConstraints(strip_whitespace=True,
+         *     ...)`, not a plain `Field(min_length=1)` — a whitespace-only address has a
+         *     nonzero length and would otherwise pass as if it named a real place
+         *     (`permits/schemas.py::DuplicateIn.reason` is the same idiom for the same
+         *     reason). `max_length` is this codebase's own free-text convention
+         *     (`permits/schemas.py::DuplicateIn.reason`,
+         *     `norms/schemas.py::TariffIn.basis`), not a limit named anywhere in
+         *     `tz/13`'s form 1-ilova.
+         */
+        ApplicantAddressIn: {
+            /** Address */
+            address: string;
         };
         /** ApplicantOut */
         ApplicantOut: {
@@ -11745,6 +11788,41 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["RepresentationOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_applicant_address_api_v1_auth_applicants__applicant_id__address_patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                applicant_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ApplicantAddressIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApplicantOut"];
                 };
             };
             /** @description Validation Error */
