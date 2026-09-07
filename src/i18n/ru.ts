@@ -1467,6 +1467,13 @@ export const ru = {
   'inspector.taskDetail.startButton': 'Начать задание',
   'inspector.taskDetail.cancelButton': 'Отменить задание',
   'inspector.taskDetail.startActButton': 'Начать акт проверки',
+  'inspector.taskDetail.assignedToLabel': 'Исполнитель:',
+
+  // --- Stage 7.6 (ruling R6/#138): the handover dialog --------------------
+  'inspector.taskDetail.handoverTitle': 'Передать задание другому инспектору',
+  'inspector.taskDetail.handoverPlaceholder': 'Выберите инспектора...',
+  'inspector.taskDetail.handoverButton': 'Передать',
+  'inspector.taskDetail.handoverCandidatesError': 'Не удалось загрузить список инспекторов.',
 
   // --- J1 (stage 6.7): act form (draft creation/editing) ------------------
   'inspector.actForm.newTitle': 'Новый акт проверки',
@@ -1543,6 +1550,8 @@ export const ru = {
   'inspector.cases.loadError': 'Не удалось загрузить список дел.',
   'inspector.cases.loading': 'Загрузка...',
   'inspector.cases.empty': 'Дел пока нет.',
+  'inspector.cases.filteredByApplicant': 'Показаны дела только этого нарушителя.',
+  'inspector.cases.clearApplicantFilter': 'Показать все дела',
 
   // --- J1 (stage 6.7): Case detail page (task 7) --------------------------
   'inspector.caseDetail.title': 'Дело о нарушении',
@@ -1550,6 +1559,7 @@ export const ru = {
   'inspector.caseDetail.notFound': 'Дело не найдено.',
   'inspector.caseDetail.numberLabel': 'Номер дела',
   'inspector.caseDetail.violationTypeLabel': 'Тип нарушения',
+  'inspector.caseDetail.priorCasesLabel': 'Предыдущие дела этого нарушителя',
   'inspector.caseDetail.decisionLabel': 'Решение',
   'inspector.caseDetail.decision.warning': 'Предупреждение',
   'inspector.caseDetail.decision.suspend': 'Приостановка разрешения',

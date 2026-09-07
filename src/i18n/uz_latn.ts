@@ -1474,6 +1474,13 @@ export const uz_latn = {
   'inspector.taskDetail.startButton': "Topshiriqni boshlash",
   'inspector.taskDetail.cancelButton': "Topshiriqni bekor qilish",
   'inspector.taskDetail.startActButton': "Tekshiruv aktini boshlash",
+  'inspector.taskDetail.assignedToLabel': 'Ijrochi:',
+
+  // --- Stage 7.6 (ruling R6/#138): the handover dialog --------------------
+  'inspector.taskDetail.handoverTitle': "Topshiriqni boshqa inspektorga topshirish",
+  'inspector.taskDetail.handoverPlaceholder': "Inspektorni tanlang...",
+  'inspector.taskDetail.handoverButton': 'Topshirish',
+  'inspector.taskDetail.handoverCandidatesError': "Inspektorlar roʻyxati yuklanmadi.",
 
   // --- J1 (stage 6.7): act form (draft creation/editing) ------------------
   'inspector.actForm.newTitle': "Yangi tekshiruv akti",
@@ -1550,6 +1557,8 @@ export const uz_latn = {
   'inspector.cases.loadError': "Ishlar roʻyxati yuklanmadi.",
   'inspector.cases.loading': "Yuklanmoqda...",
   'inspector.cases.empty': "Hozircha ishlar yoʻq.",
+  'inspector.cases.filteredByApplicant': "Faqat shu buzuvchining ishlari koʻrsatilmoqda.",
+  'inspector.cases.clearApplicantFilter': "Barcha ishlarni koʻrsatish",
 
   // --- J1 (stage 6.7): Case detail page (task 7) --------------------------
   'inspector.caseDetail.title': "Buzilish ishi",
@@ -1557,6 +1566,7 @@ export const uz_latn = {
   'inspector.caseDetail.notFound': "Ish topilmadi.",
   'inspector.caseDetail.numberLabel': "Ish raqami",
   'inspector.caseDetail.violationTypeLabel': "Buzilish turi",
+  'inspector.caseDetail.priorCasesLabel': "Ushbu buzuvchining oldingi ishlari",
   'inspector.caseDetail.decisionLabel': "Qaror",
   'inspector.caseDetail.decision.warning': "Ogohlantirish",
   'inspector.caseDetail.decision.suspend': "Ruxsatnomani toʻxtatish",

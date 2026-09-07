@@ -85,6 +85,11 @@ export const uz_latn = {
   actionResetMfa: 'MFA ni tiklash',
   actionsTitle: 'Amallar',
 
+  // — stage 7.6 (ruling R3/#138, finding F4): the refusal names what is held
+  openWorkTitle: 'Foydalanuvchida tugallanmagan ish bor — avval uni boshqasiga topshiring:',
+  openWorkKindApplications: 'Arizalar',
+  openWorkKindInspectionTasks: 'Tekshiruv topshiriqlari',
+
   // — create / edit form
   createTitle: 'Yangi foydalanuvchi',
   createSubtitle: 'Xodim hisobi. Fuqarolar bu yerda yaratilmaydi.',
@@ -251,6 +256,10 @@ export const ru: Record<keyof typeof uz_latn, string> = {
   actionResetPassword: 'Сбросить пароль',
   actionResetMfa: 'Сбросить MFA',
   actionsTitle: 'Действия',
+
+  openWorkTitle: 'У пользователя есть незавершённая работа — сначала передайте её другому исполнителю:',
+  openWorkKindApplications: 'Заявки',
+  openWorkKindInspectionTasks: 'Задания по проверке',
 
   createTitle: 'Новый пользователь',
   createSubtitle: 'Учётная запись сотрудника. Граждане здесь не создаются.',
