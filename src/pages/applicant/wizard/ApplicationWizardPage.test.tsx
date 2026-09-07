@@ -230,17 +230,31 @@ test('an account with no address is asked for it in step 5, and can submit once 
 
   await driveToStep5();
 
-  const signButton = await screen.findByRole('button', { name: /ERI bilan imzolash va yuborish/ });
+  // The button says what the first press DOES: an address-less account has no
+  // price yet (`missing_for_pricing` counts the blank address), so pressing it
+  // saves the address and re-runs the pre-check rather than signing blind.
+  const saveButton = await screen.findByRole('button', {
+    name: /Manzilni saqlash va narxni hisoblash/,
+  });
   const addressInput = await screen.findByLabelText(/Manzil/);
   // Disabled before the address is filled in — the precheck alone is not
   // enough to unblock submission for an address-less account.
-  await waitFor(() => expect(signButton).toBeDisabled());
+  await waitFor(() => expect(saveButton).toBeDisabled());
 
   await userEvent.type(addressInput, "Farg'ona sh., Mustaqillik ko'chasi 5");
-  await waitFor(() => expect(signButton).toBeEnabled());
-  await userEvent.click(signButton);
+  await waitFor(() => expect(saveButton).toBeEnabled());
+  await userEvent.click(saveButton);
 
   await waitFor(() => expect(seenAddressBody).toEqual({ address: "Farg'ona sh., Mustaqillik ko'chasi 5" }));
+  // Nothing is signed by that first press. Counted rather than asserted
+  // absent: the mock is module-level and carries calls from earlier tests in
+  // this file.
+  const signaturesBefore = vi.mocked(buildMockSignature).mock.calls.length;
+
+  // Now it signs.
+  const signButton = await screen.findByRole('button', { name: /ERI bilan imzolash va yuborish/ });
+  expect(vi.mocked(buildMockSignature).mock.calls.length).toBe(signaturesBefore);
+  await userEvent.click(signButton);
   // `saveApplicantAddress` hands back an `ApplicantOut`, not a whole
   // `MeOut` — the wizard adopts it through `refreshMe()`, not `applyMe()`.
   await waitFor(() => expect(auth.refreshMe).toHaveBeenCalled());
@@ -299,10 +313,12 @@ test('a representative filing for an address-less legal entity is asked for the 
   await userEvent.selectOptions(screen.getByRole('combobox'), entity.id);
   await driveToStep5();
 
-  const signButton = await screen.findByRole('button', { name: /ERI bilan imzolash va yuborish/ });
+  const saveButton = await screen.findByRole('button', {
+    name: /Manzilni saqlash va narxni hisoblash/,
+  });
   await userEvent.type(await screen.findByLabelText(/Manzil/), 'Namangan sh., Navoiy 1');
-  await waitFor(() => expect(signButton).toBeEnabled());
-  await userEvent.click(signButton);
+  await waitFor(() => expect(saveButton).toBeEnabled());
+  await userEvent.click(saveButton);
 
   // The entity's id, not the signed-in citizen's.
   await waitFor(() => expect(seenPath).toBe(entity.id));

@@ -93,6 +93,14 @@ export function ApplicationWizardPage() {
   // An applicant that already has one is never asked again.
   const [address, setAddress] = useState('');
   const [addressTouched, setAddressTouched] = useState(false);
+  // Saving the address is its OWN step, not a silent prelude to signing:
+  // `checks.missing_for_pricing` counts a blank address as missing, so the
+  // pre-check that runs on entering step 5 reports every norm check as
+  // `skipped` and computes NO price at all. Signing straight through would
+  // have the citizen put an ERI signature on a package whose cost they were
+  // never shown. So the first press saves the address and re-runs the
+  // pre-check, the price appears, and the second press signs.
+  const [addressSaved, setAddressSaved] = useState(false);
   const filingApplicant =
     onBehalf === 'legal'
       ? (me?.representations.find((r) => r.applicant.id === representationApplicantId)?.applicant ??
@@ -264,7 +272,7 @@ export function ApplicationWizardPage() {
         setSubmitError("ERI bilan imzolash uchun shaxsingizni tasdiqlovchi PINFL topilmadi. Profilni tekshiring.");
         return;
       }
-      if (filingApplicant && !filingApplicant.address) {
+      if (filingApplicant && !filingApplicant.address && !addressSaved) {
         if (!address.trim()) {
           setAddressTouched(true);
           return;
@@ -278,7 +286,14 @@ export function ApplicationWizardPage() {
         // `ApplicantOut`, not a whole `MeOut`
         // (`AuthContextValue.refreshMe`'s own docstring).
         await saveApplicantAddress(filingApplicant.id, address.trim());
+        setAddressSaved(true);
         await refreshMe();
+        // The pre-check ran without an address and therefore without a price.
+        // Re-run it now that the application is complete, and stop here — the
+        // citizen sees the amount before the next press signs for it.
+        setPrecheckResult(null);
+        await precheckMutation.mutateAsync();
+        return;
       }
       const packageBytes = await getApplicationPackage(applicationId);
       const pkcs7 = await buildMockSignature({ documentBytes: packageBytes, pinfl: applicant.pinfl, fullName: applicant.name });
@@ -547,11 +562,17 @@ export function ApplicationWizardPage() {
               size="lg"
               leftIcon={<ShieldCheck className="w-5 h-5" />}
               isLoading={signing}
-              disabled={hasBlockingCheck || !precheckResult || (needsAddress && !address.trim())}
+              disabled={
+                hasBlockingCheck ||
+                !precheckResult ||
+                (needsAddress && !addressSaved && !address.trim())
+              }
               onClick={handleSignAndSubmit}
               className="cursor-pointer font-bold"
             >
-              ERI bilan imzolash va yuborish
+              {needsAddress && !addressSaved
+                ? 'Manzilni saqlash va narxni hisoblash'
+                : 'ERI bilan imzolash va yuborish'}
             </Button>
           </div>
         </section>
