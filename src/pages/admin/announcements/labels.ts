@@ -33,6 +33,14 @@ export const uz_latn = {
   audienceRegions: 'Hududlar',
   audienceHint: 'Hech narsa tanlanmasa — eʼlon barcha foydalanuvchilarga koʻrinadi.',
 
+  publicSection: 'Ommaviy saytda chop etish',
+  publicToggle: 'Eʼlonni ruxsatnoma-urmon.uz saytida koʻrsatish',
+  publicHint:
+    'Sayt tashrifchilari tizimga kirmasdan oʻqiydi. Faqat auditoriyasi tanlanmagan eʼlon uchun.',
+  publicBlockedByAudience: 'Auditoriya tanlangan eʼlon saytda chop etilmaydi — avval rol va hududlarni olib tashlang.',
+  audienceBlockedByPublic: 'Eʼlon saytda chop etilmoqda, shuning uchun auditoriya tanlab boʻlmaydi.',
+  publicBadge: 'Saytda',
+
   loading: 'Yuklanmoqda...',
   empty: 'Eʼlon topilmadi.',
   loadFailed: 'Eʼlonlar roʻyxati yuklanmadi.',
@@ -96,6 +104,14 @@ export const ru: AnnouncementLabels = {
   audienceRoles: 'Роли',
   audienceRegions: 'Регионы',
   audienceHint: 'Если ничего не выбрано — объявление увидят все пользователи.',
+
+  publicSection: 'Публикация на сайте',
+  publicToggle: 'Показывать объявление на сайте ruxsatnoma-urmon.uz',
+  publicHint:
+    'Посетители сайта читают его без входа в систему. Только для объявления без выбранной аудитории.',
+  publicBlockedByAudience: 'Объявление с выбранной аудиторией нельзя показать на сайте — сначала снимите роли и регионы.',
+  audienceBlockedByPublic: 'Объявление публикуется на сайте, поэтому аудиторию выбрать нельзя.',
+  publicBadge: 'На сайте',
 
   loading: 'Загрузка...',
   empty: 'Объявления не найдены.',

@@ -22,6 +22,7 @@ function announcement(
     title: { uz_latn: 'Sarlavha' },
     body: { uz_latn: 'Matn' },
     audience: null,
+    public_on_landing: false,
     status: 'draft',
     publish_from: null,
     publish_to: null,
@@ -180,9 +181,65 @@ test('creating an announcement sends every language that was filled, and no empt
     title: { uz_latn: 'Qishki tartib', ru: 'Зимний порядок' },
     body: { uz_latn: 'Qish davrida yem-xashak tayyorlash tartibi', ru: 'Порядок заготовки кормов зимой' },
     audience: { role_codes: ['executor'], region_ids: [TASHKENT] },
+    public_on_landing: false,
     publish_from: null,
     publish_to: null,
   });
+});
+
+test('an announcement bound for the public site is marked as such in the list', async () => {
+  mockBackend([
+    announcement({ id: PUBLISHED, status: 'published', public_on_landing: true, audience: null }),
+    announcement({ id: DRAFT, status: 'draft' }),
+  ]);
+  renderPage();
+
+  const publicRow = await screen.findByTestId(`announcement-row-${PUBLISHED}`);
+  const internalRow = screen.getByTestId(`announcement-row-${DRAFT}`);
+
+  // "Every user" and "on the public site" are different statements: the first
+  // still means everybody who has logged in.
+  expect(within(publicRow).getByTestId('announcement-public-badge')).toHaveTextContent('Saytda');
+  expect(within(internalRow).queryByTestId('announcement-public-badge')).not.toBeInTheDocument();
+});
+
+test('the public-site flag and an audience cannot be set at the same time', async () => {
+  mockBackend([]);
+  let body: Record<string, unknown> | null = null;
+  server.use(
+    http.post('*/api/v1/admin/announcements', async ({ request }) => {
+      body = (await request.json()) as Record<string, unknown>;
+      return HttpResponse.json(announcement({ id: DRAFT }), { status: 201 });
+    }),
+  );
+
+  const user = userEvent.setup();
+  renderPage();
+
+  await user.click(await screen.findByRole('button', { name: 'Yangi eʼlon' }));
+  await user.type(screen.getByTestId('field-title-uz_latn'), 'Qishki tartib');
+  await user.type(screen.getByTestId('field-body-uz_latn'), 'Matn');
+
+  const publicToggle = screen.getByLabelText('Eʼlonni ruxsatnoma-urmon.uz saytida koʻrsatish');
+  await user.click(publicToggle);
+
+  // With the site flag on, the audience pickers are closed — the backend
+  // refuses the combination, and an operator should meet that here, not as a
+  // 422 after writing the whole announcement.
+  expect(screen.getByLabelText('Ijrochi')).toBeDisabled();
+  expect(screen.getByLabelText('Toshkent viloyati')).toBeDisabled();
+
+  // …and the block works the other way round too.
+  await user.click(publicToggle);
+  await user.click(screen.getByLabelText('Ijrochi'));
+  expect(publicToggle).toBeDisabled();
+
+  await user.click(screen.getByLabelText('Ijrochi'));  // audience cleared again
+  await user.click(publicToggle);
+  await user.click(screen.getByRole('button', { name: 'Saqlash' }));
+
+  await waitFor(() => expect(body).not.toBeNull());
+  expect(body).toMatchObject({ audience: null, public_on_landing: true });
 });
 
 test('a form with no Latin-script Uzbek title is refused before it reaches the backend', async () => {
@@ -352,6 +409,7 @@ test('editing loads the announcement itself and patches only what the form holds
     title: { uz_latn: 'Qishki yem-xashak tartibi', ru: 'Порядок зимнего выпаса' },
     body: { uz_latn: 'Yangilangan matn' },
     audience: { role_codes: ['executor'], region_ids: [TASHKENT] },
+    public_on_landing: false,
     publish_from: null,
     publish_to: null,
   });
