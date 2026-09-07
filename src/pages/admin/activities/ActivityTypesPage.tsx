@@ -83,8 +83,31 @@ function formFromRow(row: ActivityTypeOut): EditForm {
  * `uz_latn` (decision #90) or the term is not a positive integer.
  * `sort_order` is never touched: `ActivityTypeOut` does not even expose it to
  * read back, so this dialog has no correct value to resend.
+ *
+ * **`name`/`description` are MERGED over the row's existing object, never
+ * rebuilt from the dialog's two fields.** The backend replaces the JSONB
+ * column whole (`activity_type.name = patch.name.root`) — it does not merge —
+ * and the seeded rows carry `uz_cyrl`/`en` alongside `uz_latn`, with no `ru`
+ * at all. Rebuilding `{uz_latn, ru}` from scratch, as this used to do, sent
+ * that `uz_cyrl`/`en` to oblivion on the very first save of any field, even
+ * just the term. That is severe rather than cosmetic: the permit DOCUMENT
+ * prints in `uz_cyrl` (`permits/service.py`'s `DOCUMENT_LANGUAGE`) with no
+ * fallback, so the next citizen issued a permit for that activity gets a
+ * bare `ERR-VAL-001 missing_requisite` pointing nowhere near the catalog
+ * edit that caused it. `ru` is only written when the dialog's `ru` field is
+ * non-blank — a blank `ru` left untouched (or never set) must not overwrite
+ * a real one, and since the merge spreads the row's existing object first,
+ * an untouched blank field simply leaves whatever was already there alone.
+ *
+ * `description` is genuinely nullable and the one field this dialog can
+ * explicitly clear: both description fields left blank sends `null` when
+ * the row had a description, so a clear actually reaches the backend rather
+ * than silently doing nothing while the toast still says success. A row that
+ * already had no description (deadwood, science) and stays untouched omits
+ * the key rather than patching to `null` for no reason.
  */
 function buildPatch(
+  row: ActivityTypeOut,
   form: EditForm,
   t: (key: string) => string,
 ): { patch: ActivityTypePatch } | { error: string } {
@@ -99,14 +122,25 @@ function buildPatch(
   const days = Number(form.processingDays);
   if (!Number.isInteger(days) || days <= 0) return { error: t('activityTypes.errProcessingDays') };
 
+  const existingName = row.name as Record<string, string>;
+  const name: Record<string, string> = { ...existingName, uz_latn: nameUz };
+  if (nameRu) name.ru = nameRu;
+
   const patch: ActivityTypePatch = {
-    name: nameRu ? { uz_latn: nameUz, ru: nameRu } : { uz_latn: nameUz },
+    name,
     processing_days: days,
   };
-  // Only sent when there is something to say — an activity that never had a
-  // description (deadwood, science) with both fields left blank stays `null`
-  // rather than being patched to `{}`.
-  if (descUz) patch.description = descRu ? { uz_latn: descUz, ru: descRu } : { uz_latn: descUz };
+
+  const existingDescription = (row.description ?? {}) as Record<string, string>;
+  if (descUz) {
+    const description: Record<string, string> = { ...existingDescription, uz_latn: descUz };
+    if (descRu) description.ru = descRu;
+    patch.description = description;
+  } else if (row.description) {
+    // Both fields were cleared and the row did have a description before —
+    // send an explicit `null` so the clear actually takes effect.
+    patch.description = null;
+  }
   return { patch };
 }
 
@@ -154,7 +188,7 @@ export function ActivityTypesPage() {
 
   function submitEdit() {
     if (!editing || !form) return;
-    const result = buildPatch(form, t);
+    const result = buildPatch(editing, form, t);
     if ('error' in result) {
       setValidationError(result.error);
       return;

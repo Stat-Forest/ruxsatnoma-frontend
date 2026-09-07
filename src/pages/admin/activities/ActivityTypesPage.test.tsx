@@ -13,11 +13,16 @@
  *      complaint has to come from the screen itself;
  *   3. a valid edit sends a `PATCH` carrying only what the dialog actually
  *      edits (`name`, `description`, `processing_days` — never `sort_order`,
- *      which `ActivityTypeOut` does not even expose to read back);
+ *      which `ActivityTypeOut` does not even expose to read back) — AND
+ *      still carries the `uz_cyrl`/`en` keys the dialog never showed, because
+ *      the backend replaces `name`/`description` whole rather than merging;
  *   4. a `null` description (deadwood, science — the landing never had copy
  *      for them) renders as a "not filled in" placeholder, never a crash and
  *      never an invented sentence;
- *   5. no "add" button anywhere — the catalog is fixed by law (#139).
+ *   5. no "add" button anywhere — the catalog is fixed by law (#139);
+ *   6. clearing both description fields on a row that had one sends an
+ *      explicit `description: null`, so the clear actually reaches the
+ *      backend instead of the save silently doing nothing.
  *
  * `getAllByRole('button', {name: /tahrirlash/i})[0]` stands in for the
  * brief's singular `getByRole` where it targets the edit action: six rows
@@ -177,7 +182,7 @@ test('refuses to save a description with no uz_latn, and sends no request', asyn
   expect(await screen.findByRole('alert')).toHaveTextContent(/uz_latn/i);
 });
 
-test('saves a valid edit as a PATCH carrying only name, description and the term', async () => {
+test('saves a valid edit as a PATCH carrying only name, description and the term — and still carries uz_cyrl/en, which the dialog never showed', async () => {
   mockList();
   const patched: unknown[] = [];
   server.use(
@@ -196,15 +201,93 @@ test('saves a valid edit as a PATCH carrying only name, description and the term
   await user.type(days, '20');
   await user.click(screen.getByRole('button', { name: /saqlash/i }));
 
+  // Row 0's `name` carries `uz_cyrl` and `en` and no `ru` at all — the dialog
+  // only ever showed `uz_latn`/`ru`. The backend REPLACES the JSONB column
+  // whole, so a PATCH that dropped `uz_cyrl`/`en` here would silently erase
+  // them from the database on this save, breaking the permit document
+  // (`DOCUMENT_LANGUAGE = "uz_cyrl"`) for the very next citizen.
   await waitFor(() =>
     expect(patched).toEqual([
       {
-        name: { uz_latn: 'Chorva mollarini boqish' },
+        name: {
+          en: 'Livestock grazing',
+          uz_cyrl: 'Чорва молларини боқиш',
+          uz_latn: 'Chorva mollarini boqish',
+        },
         description: {
           uz_latn: 'Oʻrmon fondi yaylov hududlarida qoramol, qoʻy va echkilarni boqish uchun elektron ruxsatnoma.',
           ru: 'Электронное разрешение на выпас скота на пастбищных угодьях лесного фонда.',
         },
         processing_days: 20,
+      },
+    ]),
+  );
+});
+
+test('adding a ru name still keeps the row\'s uz_cyrl and en untouched', async () => {
+  mockList();
+  const patched: unknown[] = [];
+  server.use(
+    http.patch('*/api/v1/refs/activity-types/:id', async ({ request }) => {
+      patched.push(await request.json());
+      return HttpResponse.json(SIX_ROWS[0]);
+    }),
+  );
+  const user = userEvent.setup();
+  renderPage();
+
+  const editButtons = await screen.findAllByRole('button', { name: /tahrirlash/i });
+  await user.click(editButtons[0]);
+  await user.type(screen.getByLabelText(/nomi \(ru\)/i), 'Выпас скота');
+  await user.click(screen.getByRole('button', { name: /saqlash/i }));
+
+  await waitFor(() =>
+    expect(patched).toEqual([
+      {
+        name: {
+          en: 'Livestock grazing',
+          uz_cyrl: 'Чорва молларини боқиш',
+          uz_latn: 'Chorva mollarini boqish',
+          ru: 'Выпас скота',
+        },
+        description: {
+          uz_latn: 'Oʻrmon fondi yaylov hududlarida qoramol, qoʻy va echkilarni boqish uchun elektron ruxsatnoma.',
+          ru: 'Электронное разрешение на выпас скота на пастбищных угодьях лесного фонда.',
+        },
+        processing_days: 15,
+      },
+    ]),
+  );
+});
+
+test('clearing both description fields sends an explicit null, so the clear actually reaches the backend', async () => {
+  mockList();
+  const patched: unknown[] = [];
+  server.use(
+    http.patch('*/api/v1/refs/activity-types/:id', async ({ request }) => {
+      patched.push(await request.json());
+      return HttpResponse.json({ ...SIX_ROWS[0], description: null });
+    }),
+  );
+  const user = userEvent.setup();
+  renderPage();
+
+  const editButtons = await screen.findAllByRole('button', { name: /tahrirlash/i });
+  await user.click(editButtons[0]);
+  await user.clear(screen.getByLabelText(/tavsif \(uz\)/i));
+  await user.clear(screen.getByLabelText(/tavsif \(ru\)/i));
+  await user.click(screen.getByRole('button', { name: /saqlash/i }));
+
+  await waitFor(() =>
+    expect(patched).toEqual([
+      {
+        name: {
+          en: 'Livestock grazing',
+          uz_cyrl: 'Чорва молларини боқиш',
+          uz_latn: 'Chorva mollarini boqish',
+        },
+        description: null,
+        processing_days: 15,
       },
     ]),
   );

@@ -75,6 +75,18 @@ function formatAvgScore(value: string | null): string {
   return value ?? '—';
 }
 
+/** The tile's count, next to an average that already honestly shows an em
+ *  dash while loading or on error. Before this, the count fell back to a
+ *  bare `?? 0` regardless of query state, so "Number of ratings: 0" rendered
+ *  during the fetch and after a failed one too — a number the screen does
+ *  not actually have, right beside an average that correctly refuses to
+ *  guess. Loading and error both render the same em dash; only a real
+ *  successful response with zero ratings renders `0`. */
+function formatCount(isLoading: boolean, isError: boolean, count: number | undefined): string | number {
+  if (isLoading || isError) return '—';
+  return count ?? 0;
+}
+
 export function RatingsPage() {
   const t = useT();
   const { lang } = useLanguage();
@@ -171,8 +183,8 @@ export function RatingsPage() {
         >
           {summary.isLoading ? t('ratings.loading') : formatAvgScore(summary.data?.avg_score ?? null)}
         </p>
-        <p className="text-xs text-[#5A646D] mt-1.5">
-          {t('ratings.tile.countLabel')}: {summary.data?.count ?? 0}
+        <p className="text-xs text-[#5A646D] mt-1.5" data-testid="ratings-count">
+          {t('ratings.tile.countLabel')}: {formatCount(summary.isLoading, summary.isError, summary.data?.count)}
         </p>
       </div>
 

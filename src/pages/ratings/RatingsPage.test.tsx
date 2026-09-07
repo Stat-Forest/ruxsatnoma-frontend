@@ -9,7 +9,10 @@
  *      nothing a leshoz could use to work out who complained (ruling #141);
  *   3. a period with zero ratings renders an em dash, never "0.00" — the
  *      same posture the statistics tiles took after F7 (decision behind
- *      ruling #143: a portal may not state a number it cannot produce).
+ *      ruling #143: a portal may not state a number it cannot produce);
+ *   4. the count beside that average renders the same em dash while loading
+ *      and on error, never a bare "0" — a number the screen does not
+ *      actually have yet (or ever, on a failed fetch).
  *
  * Plus two regression guards this codebase's own sibling screens already
  * carry: the chosen period actually reaches both routes (the KPI filter
@@ -165,6 +168,19 @@ test('a failed summary fetch shows a visible alert, never a silently blank scree
   );
   renderWithProviders(<RatingsPage />);
   expect(await screen.findByRole('alert')).toBeInTheDocument();
+  // The count sits right next to an average that already honestly shows an
+  // em dash on failure — "Baholar soni: 0" here would be a number the
+  // screen never actually received.
+  expect(screen.getByTestId('ratings-count')).toHaveTextContent('—');
+  expect(screen.getByTestId('ratings-count')).not.toHaveTextContent('0');
+});
+
+test('shows the count as unknown while the summary is still loading, not zero', () => {
+  // No `await` before the assertion — this reads the tile in its very first
+  // render, before either mocked route has had a chance to resolve.
+  renderWithProviders(<RatingsPage />);
+  expect(screen.getByTestId('ratings-count')).toHaveTextContent('—');
+  expect(screen.getByTestId('ratings-count')).not.toHaveTextContent('0');
 });
 
 // Compile-time parity (`Record<TranslationKey, string>` in `i18n/context.ts`)
