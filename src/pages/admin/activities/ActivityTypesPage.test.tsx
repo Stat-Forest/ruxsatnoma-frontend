@@ -22,7 +22,18 @@
  *   5. no "add" button anywhere — the catalog is fixed by law (#139);
  *   6. clearing both description fields on a row that had one sends an
  *      explicit `description: null`, so the clear actually reaches the
- *      backend instead of the save silently doing nothing.
+ *      backend instead of the save silently doing nothing;
+ *   7. the optional `ru` key on `name`/`description` pins all three states a
+ *      truthiness guard alone cannot tell apart: blanking a PRE-FILLED `ru`
+ *      drops the key (haymaking's `name.ru`, grazing's `description.ru`);
+ *      leaving an ABSENT `ru` blank keeps it absent (apiary carries neither);
+ *      and a NEW value is written (apiary's `description.ru`, and the
+ *      existing "adding a ru name" test below for `name.ru`).
+ *
+ * `SIX_ROWS[1]` (haymaking) is the only fixture with a pre-existing
+ * `name.ru`; `SIX_ROWS[2]` (apiary) is the only one whose `description` has
+ * no `ru` at all — both added so the "cleared" and "stays absent" states
+ * above have a row to exercise.
  *
  * `getAllByRole('button', {name: /tahrirlash/i})[0]` stands in for the
  * brief's singular `getByRole` where it targets the edit action: six rows
@@ -56,7 +67,10 @@ const SIX_ROWS: ActivityTypeOut[] = [
   {
     id: '0198f100-0001-7000-8000-000000000002',
     code: 'haymaking',
-    name: { en: 'Haymaking', uz_cyrl: 'Пичан тайёрлаш', uz_latn: 'Pichan tayyorlash' },
+    // The only row with a pre-existing `name.ru` — everything else in this
+    // fixture set has none, which is exactly why "the admin clears an
+    // already-present `ru`" was never exercised before this file's own fix.
+    name: { en: 'Haymaking', uz_cyrl: 'Пичан тайёрлаш', uz_latn: 'Pichan tayyorlash', ru: 'Сенокошение' },
     quantity_unit: 'ton',
     status: 'active',
     description: {
@@ -71,8 +85,10 @@ const SIX_ROWS: ActivityTypeOut[] = [
     name: { en: 'Apiary', uz_cyrl: 'Асаларичилик', uz_latn: 'Asalarichilik' },
     quantity_unit: 'hive',
     status: 'active',
+    // No `ru` in the description — the fixture for "the field was empty and
+    // stays empty", as opposed to grazing's description above, which
+    // already carries one.
     description: {
-      ru: 'Временное размещение пчелиных семей на землях лесного фонда.',
       uz_latn: 'Asalari oilalarini oʻrmon yerlariga vaqtinchalik joylashtirish.',
     },
     processing_days: 15,
@@ -253,6 +269,150 @@ test('adding a ru name still keeps the row\'s uz_cyrl and en untouched', async (
         description: {
           uz_latn: 'Oʻrmon fondi yaylov hududlarida qoramol, qoʻy va echkilarni boqish uchun elektron ruxsatnoma.',
           ru: 'Электронное разрешение на выпас скота на пастбищных угодьях лесного фонда.',
+        },
+        processing_days: 15,
+      },
+    ]),
+  );
+});
+
+test('clearing a pre-filled name ru drops the key, rather than resending the old value', async () => {
+  mockList();
+  const patched: unknown[] = [];
+  server.use(
+    http.patch('*/api/v1/refs/activity-types/:id', async ({ request }) => {
+      patched.push(await request.json());
+      return HttpResponse.json(SIX_ROWS[1]);
+    }),
+  );
+  const user = userEvent.setup();
+  renderPage();
+
+  const editButtons = await screen.findAllByRole('button', { name: /tahrirlash/i });
+  await user.click(editButtons[1]); // haymaking — the one row with a pre-existing name.ru
+  await user.clear(screen.getByLabelText(/nomi \(ru\)/i));
+  await user.click(screen.getByRole('button', { name: /saqlash/i }));
+
+  // The dialog pre-filled `ru: 'Сенокошение'` from the row; blanking it must
+  // remove the key rather than resend the stale value the spread put back —
+  // the truthiness-guard defect this test pins down. `description` (which
+  // does carry a `ru`) is untouched and must stay exactly as it was.
+  await waitFor(() =>
+    expect(patched).toEqual([
+      {
+        name: {
+          en: 'Haymaking',
+          uz_cyrl: 'Пичан тайёрлаш',
+          uz_latn: 'Pichan tayyorlash',
+        },
+        description: {
+          uz_latn: 'Mavsumiy pichan oʻrish maydonlaridan foydalanish.',
+          ru: 'Пользование сенокосными угодьями в сезонный период.',
+        },
+        processing_days: 15,
+      },
+    ]),
+  );
+});
+
+test('clearing a pre-filled description ru drops the key while uz stays', async () => {
+  mockList();
+  const patched: unknown[] = [];
+  server.use(
+    http.patch('*/api/v1/refs/activity-types/:id', async ({ request }) => {
+      patched.push(await request.json());
+      return HttpResponse.json(SIX_ROWS[0]);
+    }),
+  );
+  const user = userEvent.setup();
+  renderPage();
+
+  const editButtons = await screen.findAllByRole('button', { name: /tahrirlash/i });
+  await user.click(editButtons[0]); // grazing — description already carries a ru
+  await user.clear(screen.getByLabelText(/tavsif \(ru\)/i));
+  await user.click(screen.getByRole('button', { name: /saqlash/i }));
+
+  await waitFor(() =>
+    expect(patched).toEqual([
+      {
+        name: {
+          en: 'Livestock grazing',
+          uz_cyrl: 'Чорва молларини боқиш',
+          uz_latn: 'Chorva mollarini boqish',
+        },
+        description: {
+          uz_latn: 'Oʻrmon fondi yaylov hududlarida qoramol, qoʻy va echkilarni boqish uchun elektron ruxsatnoma.',
+        },
+        processing_days: 15,
+      },
+    ]),
+  );
+});
+
+test('a row with neither name ru nor description ru sends neither key while both stay blank', async () => {
+  mockList();
+  const patched: unknown[] = [];
+  server.use(
+    http.patch('*/api/v1/refs/activity-types/:id', async ({ request }) => {
+      patched.push(await request.json());
+      return HttpResponse.json({ ...SIX_ROWS[2], processing_days: 20 });
+    }),
+  );
+  const user = userEvent.setup();
+  renderPage();
+
+  const editButtons = await screen.findAllByRole('button', { name: /tahrirlash/i });
+  await user.click(editButtons[2]); // apiary — no name.ru, no description.ru
+  const days = screen.getByLabelText(/muddat \(kun\)/i);
+  await user.clear(days);
+  await user.type(days, '20');
+  await user.click(screen.getByRole('button', { name: /saqlash/i }));
+
+  await waitFor(() =>
+    expect(patched).toEqual([
+      {
+        name: {
+          en: 'Apiary',
+          uz_cyrl: 'Асаларичилик',
+          uz_latn: 'Asalarichilik',
+        },
+        description: {
+          uz_latn: 'Asalari oilalarini oʻrmon yerlariga vaqtinchalik joylashtirish.',
+        },
+        processing_days: 20,
+      },
+    ]),
+  );
+});
+
+test('adding a description ru where none existed writes it', async () => {
+  mockList();
+  const patched: unknown[] = [];
+  server.use(
+    http.patch('*/api/v1/refs/activity-types/:id', async ({ request }) => {
+      patched.push(await request.json());
+      return HttpResponse.json(SIX_ROWS[2]);
+    }),
+  );
+  const user = userEvent.setup();
+  renderPage();
+
+  const editButtons = await screen.findAllByRole('button', { name: /tahrirlash/i });
+  await user.click(editButtons[2]); // apiary — no description.ru yet
+  await user.type(screen.getByLabelText(/tavsif \(ru\)/i), 'Пасека на землях лесного фонда.');
+  await user.click(screen.getByRole('button', { name: /saqlash/i }));
+
+  await waitFor(() =>
+    expect(patched).toEqual([
+      {
+        name: {
+          en: 'Apiary',
+          uz_cyrl: 'Асаларичилик',
+          uz_latn: 'Asalarichilik',
+        },
+        description: {
+          uz_latn: 'Asalari oilalarini oʻrmon yerlariga vaqtinchalik joylashtirish.',
+          ru: 'Пасека на землях лесного фонда.',
         },
         processing_days: 15,
       },

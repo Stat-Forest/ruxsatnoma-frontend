@@ -94,10 +94,14 @@ function formFromRow(row: ActivityTypeOut): EditForm {
  * prints in `uz_cyrl` (`permits/service.py`'s `DOCUMENT_LANGUAGE`) with no
  * fallback, so the next citizen issued a permit for that activity gets a
  * bare `ERR-VAL-001 missing_requisite` pointing nowhere near the catalog
- * edit that caused it. `ru` is only written when the dialog's `ru` field is
- * non-blank — a blank `ru` left untouched (or never set) must not overwrite
- * a real one, and since the merge spreads the row's existing object first,
- * an untouched blank field simply leaves whatever was already there alone.
+ * edit that caused it. `ru` distinguishes three states rather than a bare
+ * truthiness check on the dialog's field: non-blank writes it; blank AND the
+ * row never had one leaves the spread-in absence alone (no key, same as
+ * before); but blank where the row DID have a `ru` value means the
+ * administrator just cleared it, and the key is deleted from the merged
+ * object rather than left at the old value the spread put there — a
+ * truthiness guard alone cannot tell "cleared" from "was never set", and
+ * silently kept the stale value in the former case.
  *
  * `description` is genuinely nullable and the one field this dialog can
  * explicitly clear: both description fields left blank sends `null` when
@@ -124,7 +128,15 @@ function buildPatch(
 
   const existingName = row.name as Record<string, string>;
   const name: Record<string, string> = { ...existingName, uz_latn: nameUz };
-  if (nameRu) name.ru = nameRu;
+  if (nameRu) {
+    name.ru = nameRu;
+  } else if (existingName.ru) {
+    // The field was pre-filled and the administrator blanked it — remove
+    // the key rather than leave the spread-in old value standing (never
+    // write `ru: ''`, which would satisfy a "key present" check while
+    // being blank).
+    delete name.ru;
+  }
 
   const patch: ActivityTypePatch = {
     name,
@@ -134,7 +146,12 @@ function buildPatch(
   const existingDescription = (row.description ?? {}) as Record<string, string>;
   if (descUz) {
     const description: Record<string, string> = { ...existingDescription, uz_latn: descUz };
-    if (descRu) description.ru = descRu;
+    if (descRu) {
+      description.ru = descRu;
+    } else if (existingDescription.ru) {
+      // Same "cleared vs. never set" distinction as `name.ru` above.
+      delete description.ru;
+    }
     patch.description = description;
   } else if (row.description) {
     // Both fields were cleared and the row did have a description before —
