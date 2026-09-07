@@ -83,13 +83,22 @@ export function ApplicationWizardPage() {
   const [signing, setSigning] = useState(false);
 
   // Ruling #113: the address requisite is gated at SUBMIT, not at
-  // registration, and the only account this wizard can see it on is the
-  // signed-in citizen's own (`MeOut.applicant`, not the on-behalf-of entity
-  // in `representationApplicantId` — see `docs/plans/07.4-rulings-backlog.md`
-  // §5). An account that already has one is never asked again.
+  // registration. It belongs to the applicant the filing is FOR — the
+  // signed-in citizen when filing for themselves, the represented legal
+  // entity when filing on its behalf — because requisite 11 of form
+  // 1-ilova prints the holder's address, and the holder is whoever the
+  // permit will name. Asking about `MeOut.applicant` in both cases would
+  // leave a representative unable to file for an entity that has no
+  // address: the backend refuses the submission and the wizard never asks.
+  // An applicant that already has one is never asked again.
   const [address, setAddress] = useState('');
   const [addressTouched, setAddressTouched] = useState(false);
-  const needsAddress = !me?.applicant?.address;
+  const filingApplicant =
+    onBehalf === 'legal'
+      ? (me?.representations.find((r) => r.applicant.id === representationApplicantId)?.applicant ??
+        null)
+      : (me?.applicant ?? null);
+  const needsAddress = filingApplicant !== null && !filingApplicant.address;
 
   const activityTypesQuery = useQuery({ queryKey: ['activity-types'], queryFn: listActivityTypes });
   const livestockTypesQuery = useQuery({ queryKey: ['livestock-types'], queryFn: listLivestockTypes });
@@ -255,17 +264,20 @@ export function ApplicationWizardPage() {
         setSubmitError("ERI bilan imzolash uchun shaxsingizni tasdiqlovchi PINFL topilmadi. Profilni tekshiring.");
         return;
       }
-      if (!applicant.address) {
+      if (filingApplicant && !filingApplicant.address) {
         if (!address.trim()) {
           setAddressTouched(true);
           return;
         }
         // Save before signing: requisite 11 of form 1-ilova is printed from
-        // `applicants.address`, so the account must carry it before the
-        // package is fetched and signed. `refreshMe` adopts the result —
-        // this route hands back an `ApplicantOut`, not a whole `MeOut`
+        // `applicants.address`, so the applicant the permit will name must
+        // carry it before the package is fetched and signed. The signature
+        // itself stays the citizen's own (`applicant.pinfl` above) — a legal
+        // entity has a STIR, not a PINFL, and never signs for itself.
+        // `refreshMe` adopts the result — this route hands back an
+        // `ApplicantOut`, not a whole `MeOut`
         // (`AuthContextValue.refreshMe`'s own docstring).
-        await saveApplicantAddress(applicant.id, address.trim());
+        await saveApplicantAddress(filingApplicant.id, address.trim());
         await refreshMe();
       }
       const packageBytes = await getApplicationPackage(applicationId);

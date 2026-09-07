@@ -247,6 +247,68 @@ test('an account with no address is asked for it in step 5, and can submit once 
   await waitFor(() => expect(buildMockSignature).toHaveBeenCalled());
 });
 
+// Ruling #113, the representative's case: the address that gets printed is
+// the HOLDER's, and when a representative files on behalf of a legal entity
+// the holder is that entity. A citizen whose own record carries an address
+// can still be filing for an entity that has none — checking `me.applicant`
+// alone would leave the backend refusing a submission the wizard never asked
+// about.
+test('a representative filing for an address-less legal entity is asked for the ENTITY address', async () => {
+  let seenPath: string | null = null;
+  let seenAddressBody: unknown = null;
+  const base = authValue('uz');
+  const entity = {
+    ...base.me!.applicant!,
+    id: 'ap100000-0000-4000-8000-0000000000ff',
+    kind: 'legal',
+    pinfl: null,
+    stir: '302345678',
+    name: '"Chorvador" MChJ',
+    address: null,
+  };
+  const auth: AuthContextValue = {
+    ...base,
+    me: {
+      ...base.me!,
+      representations: [
+        {
+          id: 'rep00000-0000-4000-8000-000000000001',
+          applicant: entity,
+          basis: 'poa',
+          valid_from: '2026-01-01',
+          valid_until: null,
+          status: 'active',
+        },
+      ],
+    },
+  };
+  server.use(
+    http.patch('*/api/v1/auth/applicants/:applicantId/address', async ({ request, params }) => {
+      seenPath = String(params.applicantId);
+      seenAddressBody = await request.json();
+      return HttpResponse.json({ ...entity, address: 'Namangan sh., Navoiy 1' });
+    }),
+  );
+  renderWizard(auth);
+
+  // Step 1 offers the on-behalf-of picker only when representations exist,
+  // and it is the only select on that step. `FormField` renders its label as
+  // plain text, not an `htmlFor` binding, so the role is the handle here —
+  // the same reason `ActFormPage.test.tsx` reaches its selects by value.
+  await screen.findByText('Pichanchilik');
+  await userEvent.selectOptions(screen.getByRole('combobox'), entity.id);
+  await driveToStep5();
+
+  const signButton = await screen.findByRole('button', { name: /ERI bilan imzolash va yuborish/ });
+  await userEvent.type(await screen.findByLabelText(/Manzil/), 'Namangan sh., Navoiy 1');
+  await waitFor(() => expect(signButton).toBeEnabled());
+  await userEvent.click(signButton);
+
+  // The entity's id, not the signed-in citizen's.
+  await waitFor(() => expect(seenPath).toBe(entity.id));
+  expect(seenAddressBody).toEqual({ address: 'Namangan sh., Navoiy 1' });
+});
+
 test('an account that already has an address is never asked for one', async () => {
   const auth = authValueWithAddress('Toshkent sh., Chilonzor tumani, 12-uy');
   renderWizard(auth);
