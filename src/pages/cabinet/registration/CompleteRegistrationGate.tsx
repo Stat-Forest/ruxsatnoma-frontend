@@ -127,7 +127,14 @@ export function CompleteRegistrationGate() {
     setOtpError(null);
   }
 
-  const canSubmit = privacyChecked && offerChecked && otpStage === 'verified' && otpToken !== null;
+  // Ruling #113 (`docs/decisions.md`): the address requisite is gated at
+  // SUBMIT, not at registration — a citizen may sign in and look around with
+  // no address at all. Requiring it here anyway is a separate, forward-looking
+  // choice: it is the right place for a NEW account, so a fresh registration
+  // never lands in the state this ruling exists to unblock (`ApplicationWizardPage`
+  // asks address-less EXISTING accounts for it at submission instead).
+  const canSubmit =
+    privacyChecked && offerChecked && otpStage === 'verified' && otpToken !== null && address.trim() !== '';
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
@@ -144,7 +151,11 @@ export function CompleteRegistrationGate() {
         email: email.trim() ? email.trim() : null,
         region_id: regionId || null,
         district_id: districtId || null,
-        address: address.trim() ? address.trim() : null,
+        // `canSubmit` already requires a non-empty address (ruling #113's
+        // forward-looking choice for new accounts, see `canSubmit`'s own
+        // comment above) — unlike `email`/`region_id`/`district_id`, this one
+        // never has a `null` branch to fall into.
+        address: address.trim(),
       });
       applyMe(me);
     } catch (err) {
@@ -366,9 +377,14 @@ export function CompleteRegistrationGate() {
               />
             </FormField>
           </div>
-          <FormField label={t('cabinet.registration.addressLabel')}>
+          <FormField label={t('cabinet.registration.addressLabel')} required>
             <Input data-testid="address-input" value={address} onChange={(e) => setAddress(e.target.value)} />
           </FormField>
+          {touched && address.trim() === '' && (
+            <p className="text-xs text-[#B91C1C]" role="alert">
+              {t('cabinet.registration.needAddress')}
+            </p>
+          )}
         </section>
 
         {submitError && (

@@ -7,6 +7,7 @@ import { FormField, Input, Select } from '../../../components/ui/FormControls';
 import { Alert } from '../../../components/ui/Feedback';
 import { Stepper } from '../../../components/ui/Navigation';
 import { ApiError } from '../../../api/errors';
+import { saveApplicantAddress } from '../../../api/address';
 import { useAuth } from '../../../auth/useAuth';
 import { useApiErrorText } from '../../../i18n/useApiErrorText';
 import {
@@ -59,7 +60,7 @@ interface LivestockRow {
  * `MyApplicationCardPage` links back here with `?draft=<id>` to resume.
  */
 export function ApplicationWizardPage() {
-  const { me } = useAuth();
+  const { me, refreshMe } = useAuth();
   const errorText = useApiErrorText();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -80,6 +81,15 @@ export function ApplicationWizardPage() {
   const [precheckResult, setPrecheckResult] = useState<PrecheckOut | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [signing, setSigning] = useState(false);
+
+  // Ruling #113: the address requisite is gated at SUBMIT, not at
+  // registration, and the only account this wizard can see it on is the
+  // signed-in citizen's own (`MeOut.applicant`, not the on-behalf-of entity
+  // in `representationApplicantId` — see `docs/plans/07.4-rulings-backlog.md`
+  // §5). An account that already has one is never asked again.
+  const [address, setAddress] = useState('');
+  const [addressTouched, setAddressTouched] = useState(false);
+  const needsAddress = !me?.applicant?.address;
 
   const activityTypesQuery = useQuery({ queryKey: ['activity-types'], queryFn: listActivityTypes });
   const livestockTypesQuery = useQuery({ queryKey: ['livestock-types'], queryFn: listLivestockTypes });
@@ -240,13 +250,26 @@ export function ApplicationWizardPage() {
     setSubmitError(null);
     setSigning(true);
     try {
-      const pinfl = me?.applicant?.pinfl;
-      if (!pinfl) {
+      const applicant = me?.applicant;
+      if (!applicant?.pinfl) {
         setSubmitError("ERI bilan imzolash uchun shaxsingizni tasdiqlovchi PINFL topilmadi. Profilni tekshiring.");
         return;
       }
+      if (!applicant.address) {
+        if (!address.trim()) {
+          setAddressTouched(true);
+          return;
+        }
+        // Save before signing: requisite 11 of form 1-ilova is printed from
+        // `applicants.address`, so the account must carry it before the
+        // package is fetched and signed. `refreshMe` adopts the result —
+        // this route hands back an `ApplicantOut`, not a whole `MeOut`
+        // (`AuthContextValue.refreshMe`'s own docstring).
+        await saveApplicantAddress(applicant.id, address.trim());
+        await refreshMe();
+      }
       const packageBytes = await getApplicationPackage(applicationId);
-      const pkcs7 = await buildMockSignature({ documentBytes: packageBytes, pinfl, fullName: me?.applicant?.name });
+      const pkcs7 = await buildMockSignature({ documentBytes: packageBytes, pinfl: applicant.pinfl, fullName: applicant.name });
       await submitApplication(applicationId, pkcs7);
       navigate(`/my/applications/${applicationId}`);
     } catch (err) {
@@ -474,6 +497,28 @@ export function ApplicationWizardPage() {
             )}
           </div>
 
+          {needsAddress && (
+            <div className="bg-white border border-[#E4E7EA] rounded-2xl p-6 shadow-xs space-y-3">
+              <h2 className="text-sm font-bold text-[#1A1F24] uppercase tracking-wider">Manzil</h2>
+              <p className="text-xs text-[#5A646D]">
+                Ruxsatnomada koʻrsatiladigan manzilingiz profilingizda topilmadi — yuborishdan oldin kiriting.
+              </p>
+              <FormField
+                label="Manzil"
+                required
+                htmlFor="applicant-address"
+                error={addressTouched && !address.trim() ? 'Manzil kiritilishi shart.' : undefined}
+              >
+                <Input
+                  id="applicant-address"
+                  value={address}
+                  onChange={(e) => setAddress(e.target.value)}
+                  onBlur={() => setAddressTouched(true)}
+                />
+              </FormField>
+            </div>
+          )}
+
           <div className="bg-white border border-[#E4E7EA] rounded-2xl p-6 shadow-xs space-y-3">
             <h2 className="text-sm font-bold text-[#1A1F24] uppercase tracking-wider">ERI bilan imzolash va yuborish</h2>
             <p className="text-xs text-[#5A646D]">
@@ -490,7 +535,7 @@ export function ApplicationWizardPage() {
               size="lg"
               leftIcon={<ShieldCheck className="w-5 h-5" />}
               isLoading={signing}
-              disabled={hasBlockingCheck || !precheckResult}
+              disabled={hasBlockingCheck || !precheckResult || (needsAddress && !address.trim())}
               onClick={handleSignAndSubmit}
               className="cursor-pointer font-bold"
             >

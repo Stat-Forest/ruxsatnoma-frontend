@@ -61,6 +61,30 @@ test('submitting with nothing done shows both the consents and the phone warning
   expect(screen.getByText('cabinet.registration.needPhoneVerified')).toBeInTheDocument();
 });
 
+// Ruling #113 (`docs/decisions.md`): making the address field mandatory at
+// registration is the forward-looking half of the fix — it is the right
+// place for a NEW account, so registration itself never again produces an
+// account the wizard has to catch later.
+test('registration with an empty address is not sent — the field is required', async () => {
+  let called = false;
+  server.use(
+    http.post('*/auth/otp/request', () => new HttpResponse(null, { status: 204 })),
+    http.post('*/auth/otp/verify', () => HttpResponse.json({ otp_token: 'tok-otp-3' })),
+    http.post('*/auth/complete-registration', () => {
+      called = true;
+      return HttpResponse.json({});
+    }),
+  );
+  renderGate();
+  await userEvent.click(screen.getByTestId('consent-privacy'));
+  await userEvent.click(screen.getByTestId('consent-offer'));
+  await completePhoneOtp();
+  await userEvent.click(screen.getByTestId('submit'));
+
+  expect(called).toBe(false);
+  expect(screen.getByText('cabinet.registration.needAddress')).toBeInTheDocument();
+});
+
 test('an unverified phone cannot be submitted even with both consents checked', async () => {
   let called = false;
   server.use(
@@ -95,6 +119,7 @@ test('the full happy path sends the otp_token and consent versions, and adopts t
   await userEvent.click(screen.getByTestId('consent-privacy'));
   await userEvent.click(screen.getByTestId('consent-offer'));
   await completePhoneOtp();
+  await userEvent.type(screen.getByTestId('address-input'), 'Toshkent sh., Chilonzor tumani, 12-uy');
   await userEvent.click(screen.getByTestId('submit'));
 
   await waitFor(() => expect(adopted).toEqual(freshMe));
@@ -102,6 +127,7 @@ test('the full happy path sends the otp_token and consent versions, and adopts t
     otp_token: 'tok-otp-1',
     phone: '+998901234567',
     consents: { privacy_policy: '1.0', offer: '1.0' },
+    address: 'Toshkent sh., Chilonzor tumani, 12-uy',
   });
 });
 
@@ -126,6 +152,7 @@ test('a stale consent version is corrected from the error and must be re-accepte
   await userEvent.click(screen.getByTestId('consent-privacy'));
   await userEvent.click(screen.getByTestId('consent-offer'));
   await completePhoneOtp();
+  await userEvent.type(screen.getByTestId('address-input'), 'Toshkent sh., Chilonzor tumani, 12-uy');
   await userEvent.click(screen.getByTestId('submit'));
 
   expect(await screen.findByText('cabinet.registration.consentsStale')).toBeInTheDocument();
