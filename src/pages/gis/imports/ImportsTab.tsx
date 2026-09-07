@@ -5,13 +5,15 @@ import { useAuth } from '../../../auth/useAuth';
 import { Button } from '../../../components/ui/button';
 import { Alert } from '../../../components/ui/Feedback';
 import { Input, Select } from '../../../components/ui/FormControls';
-import { ApiError } from '../../../api/errors';
-import { pickName } from '../format';
+import { Pagination } from '../../../components/ui/Navigation';
+import { useApiErrorText } from '../../../i18n/useApiErrorText';
+import { pickName, formatDateTime } from '../format';
 import type { ImportOut, PublishImportOut } from '../api';
 import {
   useApproveImport,
   useCreateImport,
   useImport,
+  useImportsList,
   useLayers,
   useOrganizations,
   usePublishImport,
@@ -25,6 +27,7 @@ const CONTOURS_MANAGE = 'gis.contours.manage';
 const CONTOURS_APPROVE = 'gis.contours.approve';
 
 const FORMATS = ['shp', 'geojson', 'kml', 'kmz', 'gpkg', 'csv', 'zip'];
+const IMPORTS_PAGE_SIZE = 20;
 
 const STATUS_LABEL_KEYS: Record<string, string> = {
   pending: 'gis.imports.status.pending',
@@ -35,15 +38,12 @@ const STATUS_LABEL_KEYS: Record<string, string> = {
   failed: 'gis.imports.status.failed',
 };
 
-function errorText(error: unknown, fallback: string): string {
-  return error instanceof ApiError ? `${error.code}: ${error.message}` : fallback;
-}
-
 function UploadForm({ t, onCreated }: { t: (key: string) => string; onCreated: (id: string) => void }) {
   const layersQuery = useLayers();
   const organizationsQuery = useOrganizations();
   const uploadFile = useUploadFile();
   const createImport = useCreateImport();
+  const errorText = useApiErrorText();
 
   const [layerCode, setLayerCode] = useState('contours');
   const [organizationId, setOrganizationId] = useState('');
@@ -155,6 +155,7 @@ function UploadForm({ t, onCreated }: { t: (key: string) => string; onCreated: (
 
 function ImportDetail({ importId, t }: { importId: string; t: (key: string) => string }) {
   const { me } = useAuth();
+  const errorText = useApiErrorText();
   const canManage = !!me?.permissions.includes(CONTOURS_MANAGE) || !!me?.is_superuser;
   const canApprove = !!me?.permissions.includes(CONTOURS_APPROVE) || !!me?.is_superuser;
 
@@ -211,7 +212,7 @@ function ImportDetail({ importId, t }: { importId: string; t: (key: string) => s
           <ul className="space-y-1">
             {(row.error_report as { row?: number; code?: string; message?: string }[]).map((e, i) => (
               <li key={i} className="rounded border border-[#FCA5A5] bg-[#FEF2F2] p-2 text-[#991B1B]">
-                #{e.row} {e.code}: {e.message}
+                #{e.row} {errorText(e)}
               </li>
             ))}
           </ul>
@@ -314,10 +315,113 @@ function ImportDetail({ importId, t }: { importId: string; t: (key: string) => s
 }
 
 /**
- * F3 — geodata import. `gis/imports_router.py` has no LIST route either
- * (`./localImports.ts` mitigates the same way `../localVersions.ts` does for
- * contour versions) — an operator either just created a batch (its id is
- * handed straight to the detail panel) or pastes an id they were given.
+ * F12c — the register `gis/imports_router.py` now has (`GET /gis/imports`,
+ * verified against a regenerated `schema.d.ts`): every batch this caller's
+ * zone can see, newest first, status-filterable and paged. Replaces the
+ * "open by id" box as the primary way in — that box stays below (an
+ * operator handed an id out of band, e.g. from a notification, still
+ * benefits from it) but is no longer the only door.
+ */
+function ImportsListPanel({ t, onOpen }: { t: (key: string) => string; onOpen: (id: string) => void }) {
+  const errorText = useApiErrorText();
+  const [status, setStatus] = useState('');
+  const [page, setPage] = useState(1);
+  const listQuery = useImportsList({ status: status || undefined, page, page_size: IMPORTS_PAGE_SIZE });
+  const layersQuery = useLayers();
+  const organizationsQuery = useOrganizations();
+
+  const layerLabel = (layerId: string) => {
+    const layer = layersQuery.data?.find((l) => l.id === layerId);
+    return layer ? pickName(layer.name) || layer.code : layerId.slice(0, 8);
+  };
+  const organizationLabel = (organizationId: string) => {
+    const org = organizationsQuery.data?.find((o) => o.id === organizationId);
+    return org ? pickName(org.name) || org.code : organizationId.slice(0, 8);
+  };
+
+  const totalPages = listQuery.data ? Math.max(1, Math.ceil(listQuery.data.total / IMPORTS_PAGE_SIZE)) : 1;
+
+  return (
+    <div className="bg-white border border-[#E4E7EA] rounded-2xl shadow-xs" data-testid="imports-list-panel">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#E4E7EA] p-4">
+        <h3 className="text-xs font-bold uppercase tracking-wider text-[#5A646D]">{t('gis.imports.list.title')}</h3>
+        <label className="flex items-center gap-2 text-xs">
+          <span className="text-[#5A646D]">{t('gis.imports.list.colStatus')}</span>
+          <Select
+            value={status}
+            onChange={(e) => {
+              setStatus(e.target.value);
+              setPage(1);
+            }}
+            options={[
+              { value: '', label: t('gis.imports.list.statusFilterAll') },
+              ...Object.entries(STATUS_LABEL_KEYS).map(([value, key]) => ({ value, label: t(key) })),
+            ]}
+          />
+        </label>
+      </div>
+
+      {listQuery.isLoading ? (
+        <p className="p-4 text-xs text-[#5A646D]">
+          <Loader2 className="w-4 h-4 inline animate-spin mr-1" /> {t('gis.imports.loading')}
+        </p>
+      ) : listQuery.isError ? (
+        <div className="p-4">
+          <Alert variant="danger">{errorText(listQuery.error, t('gis.imports.list.loadFailed'))}</Alert>
+        </div>
+      ) : listQuery.data!.items.length === 0 ? (
+        <p className="p-4 text-xs text-[#5A646D]">{t('gis.imports.list.empty')}</p>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="w-full text-xs">
+            <thead className="bg-[#F8F9FA] text-left font-bold uppercase tracking-wide text-[#5A646D]">
+              <tr>
+                <th className="px-4 py-2">{t('gis.imports.list.colCreatedAt')}</th>
+                <th className="px-4 py-2">{t('gis.imports.list.colStatus')}</th>
+                <th className="px-4 py-2">{t('gis.imports.list.colLayer')}</th>
+                <th className="px-4 py-2">{t('gis.imports.list.colOrganization')}</th>
+                <th className="px-4 py-2">{t('gis.imports.list.colFormat')}</th>
+                <th className="px-4 py-2 text-right">{t('gis.imports.list.colActions')}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {listQuery.data!.items.map((row) => (
+                <tr key={row.id} className="border-t border-[#E4E7EA]" data-testid={`import-row-${row.id}`}>
+                  <td className="px-4 py-2 font-mono">{formatDateTime(row.created_at)}</td>
+                  <td className="px-4 py-2">
+                    <span className="rounded-full border border-[#E4E7EA] bg-[#F8F9FA] px-2 py-0.5 font-semibold text-[#1A1F24]">
+                      {t(STATUS_LABEL_KEYS[row.status] ?? row.status)}
+                    </span>
+                  </td>
+                  <td className="px-4 py-2">{layerLabel(row.layer_id)}</td>
+                  <td className="px-4 py-2">{organizationLabel(row.organization_id)}</td>
+                  <td className="px-4 py-2 font-mono">{row.format}</td>
+                  <td className="px-4 py-2 text-right">
+                    <Button size="sm" variant="outline" className="cursor-pointer" onClick={() => onOpen(row.id)}>
+                      {t('gis.imports.open')}
+                    </Button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {listQuery.data && listQuery.data.total > 0 && (
+        <div className="px-4 border-t border-[#E4E7EA]">
+          <Pagination currentPage={page} totalPages={totalPages} onPageChange={setPage} totalRecords={listQuery.data.total} />
+        </div>
+      )}
+    </div>
+  );
+}
+
+/**
+ * F3 — geodata import. F12c added the register above (`ImportsListPanel`);
+ * the "open by id" box below it stays as a fallback for an id handed over
+ * out of band (e.g. from a notification), which is a real path and not the
+ * only one any more.
  */
 export function ImportsTab({ t }: { t: (key: string) => string }) {
   const { me } = useAuth();
@@ -325,55 +429,61 @@ export function ImportsTab({ t }: { t: (key: string) => string }) {
   const [activeId, setActiveId] = useState<string | null>(recentImports()[0] ?? null);
   const [openId, setOpenId] = useState('');
 
-  return (
-    <div className="grid grid-cols-1 lg:grid-cols-[360px_1fr] gap-4 items-start">
-      <div className="space-y-3">
-        {canManage && <UploadForm t={t} onCreated={setActiveId} />}
+  function openImport(id: string) {
+    rememberImport(id);
+    setActiveId(id);
+  }
 
-        <div className="bg-white border border-[#E4E7EA] rounded-2xl p-4 shadow-xs space-y-2">
-          <h3 className="text-xs font-bold uppercase tracking-wider text-[#5A646D]">{t('gis.imports.openById')}</h3>
-          <div className="flex gap-2">
-            <Input value={openId} onChange={(e) => setOpenId(e.target.value)} placeholder="import id" />
-            <Button
-              variant="outline"
-              size="sm"
-              className="cursor-pointer"
-              onClick={() => {
-                if (openId.trim()) {
-                  rememberImport(openId.trim());
-                  setActiveId(openId.trim());
-                }
-              }}
-            >
-              {t('gis.imports.open')}
-            </Button>
+  return (
+    <div className="space-y-4">
+      <ImportsListPanel t={t} onOpen={openImport} />
+
+      <div className="grid grid-cols-1 lg:grid-cols-[360px_1fr] gap-4 items-start">
+        <div className="space-y-3">
+          {canManage && <UploadForm t={t} onCreated={setActiveId} />}
+
+          <div className="bg-white border border-[#E4E7EA] rounded-2xl p-4 shadow-xs space-y-2">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-[#5A646D]">{t('gis.imports.openById')}</h3>
+            <div className="flex gap-2">
+              <Input value={openId} onChange={(e) => setOpenId(e.target.value)} placeholder="import id" />
+              <Button
+                variant="outline"
+                size="sm"
+                className="cursor-pointer"
+                onClick={() => {
+                  if (openId.trim()) openImport(openId.trim());
+                }}
+              >
+                {t('gis.imports.open')}
+              </Button>
+            </div>
           </div>
+
+          {recentImports().length > 0 && (
+            <div className="bg-white border border-[#E4E7EA] rounded-2xl p-4 shadow-xs space-y-1">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-[#5A646D]">{t('gis.imports.recent')}</h3>
+              {recentImports().map((id) => (
+                <button
+                  key={id}
+                  onClick={() => setActiveId(id)}
+                  className={`block w-full truncate rounded px-2 py-1 text-left font-mono text-[11px] cursor-pointer ${
+                    activeId === id ? 'bg-[#F0F7F1] text-[#123522]' : 'text-[#5A646D] hover:bg-[#F8F9FA]'
+                  }`}
+                >
+                  {id}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
-        {recentImports().length > 0 && (
-          <div className="bg-white border border-[#E4E7EA] rounded-2xl p-4 shadow-xs space-y-1">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-[#5A646D]">{t('gis.imports.recent')}</h3>
-            {recentImports().map((id) => (
-              <button
-                key={id}
-                onClick={() => setActiveId(id)}
-                className={`block w-full truncate rounded px-2 py-1 text-left font-mono text-[11px] cursor-pointer ${
-                  activeId === id ? 'bg-[#F0F7F1] text-[#123522]' : 'text-[#5A646D] hover:bg-[#F8F9FA]'
-                }`}
-              >
-                {id}
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
-
-      <div>
-        {activeId ? (
-          <ImportDetail importId={activeId} t={t} />
-        ) : (
-          <p className="text-xs text-[#5A646D]">{t('gis.imports.noneSelected')}</p>
-        )}
+        <div>
+          {activeId ? (
+            <ImportDetail importId={activeId} t={t} />
+          ) : (
+            <p className="text-xs text-[#5A646D]">{t('gis.imports.noneSelected')}</p>
+          )}
+        </div>
       </div>
     </div>
   );

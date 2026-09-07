@@ -131,7 +131,12 @@ export interface KpiParams {
   compare_previous?: boolean;
 }
 
-export function useKpi(params: KpiParams) {
+/** `options.enabled` (F19, `StaffDashboardPage.tsx`) lets a caller withhold
+ *  this query until it has confirmed `dashboard.view` itself — the same
+ *  never-fire-a-query-the-backend-would-refuse rule every gated panel in
+ *  this app follows. Defaults to `true`, so `LeadershipDashboardPage.tsx`'s
+ *  existing single-argument call is unaffected. */
+export function useKpi(params: KpiParams, options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: ['dashboard', 'kpi', params],
     queryFn: async () => {
@@ -141,6 +146,7 @@ export function useKpi(params: KpiParams) {
       if (error) throw apiError(error);
       return data;
     },
+    enabled: options?.enabled ?? true,
   });
 }
 

@@ -12,6 +12,7 @@ import { useMemo, useState } from 'react';
 import { Loader2 } from 'lucide-react';
 import { FormField, Select } from '../../../components/ui/FormControls';
 import { ApiError } from '../../../api/errors';
+import { useApiErrorText } from '../../../i18n/useApiErrorText';
 import { useLanguage, useT } from '../../../i18n/useT';
 import { pickName } from '../format';
 import type { FaqOut } from './api';
@@ -47,6 +48,7 @@ function groupByCategory(items: FaqOut[]): Group[] {
 export function FaqReaderTab() {
   const t = useT();
   const { lang } = useLanguage();
+  const errorText = useApiErrorText();
   const [category, setCategory] = useState<string>(ALL_CATEGORIES);
 
   const list = usePublicFaq();
@@ -96,7 +98,7 @@ export function FaqReaderTab() {
           data-testid="faq-reader-error"
           className="rounded-2xl border border-[#FCA5A5] bg-[#FEF2F2] p-4 text-sm text-[#991B1B]"
         >
-          {list.error instanceof ApiError ? `${list.error.code}: ${list.error.message}` : t('support.faq.reader.loadFailed')}
+          {list.error instanceof ApiError ? errorText(list.error) : t('support.faq.reader.loadFailed')}
         </div>
       )}
 

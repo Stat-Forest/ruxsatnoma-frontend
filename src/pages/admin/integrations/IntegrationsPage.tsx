@@ -5,8 +5,8 @@ import { FormField, Input, Select } from '../../../components/ui/FormControls';
 import { Pagination, Tabs } from '../../../components/ui/Navigation';
 import { Modal } from '../../../components/ui/Overlay';
 import { Alert } from '../../../components/ui/Feedback';
-import { ApiError } from '../../../api/errors';
 import { useAuth } from '../../../auth/useAuth';
+import { useApiErrorText } from '../../../i18n/useApiErrorText';
 import { useLanguage } from '../../../i18n/useT';
 import type { DeadLetterOut, OutboxMessageOut } from './api';
 import { INTEGRATIONS_MANAGE } from './permissions';
@@ -39,10 +39,6 @@ function formatDateTime(value: string | null | undefined): string {
     `${pad(date.getDate())}.${pad(date.getMonth() + 1)}.${date.getFullYear()}, ` +
     `${pad(date.getHours())}:${pad(date.getMinutes())}`
   );
-}
-
-function errorText(error: unknown, fallback: string): string {
-  return error instanceof ApiError ? `${error.code}: ${error.message}` : fallback;
 }
 
 const CARD = 'bg-white border border-[#E4E7EA] rounded-2xl p-6 shadow-xs';
@@ -260,6 +256,7 @@ function TableShell({
 
 function OutboxTab({ L }: { L: IntegrationsLabels }) {
   const { me } = useAuth();
+  const errorText = useApiErrorText();
   // Both list routes accept EITHER `admin.integrations.view` or
   // `admin.integrations.manage` (`require_any_permission`), which is why the
   // page itself opens on the weaker `.view` code — but `POST .../requeue`
@@ -471,6 +468,7 @@ function OutboxTab({ L }: { L: IntegrationsLabels }) {
 
 function DeadLettersTab({ L }: { L: IntegrationsLabels }) {
   const { me } = useAuth();
+  const errorText = useApiErrorText();
   // Same asymmetry as `OutboxTab.canManage` above: the list route accepts
   // either code, `POST .../discard` requires `.manage` alone.
   const canManage = !!me && (me.is_superuser || me.permissions.includes(INTEGRATIONS_MANAGE));

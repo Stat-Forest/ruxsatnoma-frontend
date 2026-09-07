@@ -284,6 +284,33 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/auth/applicants/{applicant_id}/address": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Update Applicant Address
+         * @description Ruling #113's dequeuing route: an account that reached registration
+         *     before the field existed, or whose OneID profile carried none, fills it
+         *     in here — at any time, not only right before a submission that would
+         *     otherwise refuse it.
+         *
+         *     404 `ERR-SYS-003` for an `applicant_id` this caller has no claim on
+         *     (`service.update_applicant_address`'s own docstring), the same answer an
+         *     id that never existed gets.
+         */
+        patch: operations["update_applicant_address_api_v1_auth_applicants__applicant_id__address_patch"];
+        trace?: never;
+    };
     "/api/v1/auth/me/language": {
         parameters: {
             query?: never;
@@ -1335,7 +1362,8 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        /** List Imports */
+        get: operations["list_imports_api_v1_gis_imports_get"];
         put?: never;
         /**
          * Create Import
@@ -1512,6 +1540,29 @@ export interface paths {
         head?: never;
         /** Patch Contour */
         patch: operations["patch_contour_api_v1_gis_contours__contour_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/gis/contours/{parent_id}/split": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Split Contour
+         * @description Decision #91: one parent, two subcontours, atomically — replaces the
+         *     adminka's own client-composed `createContour` + `createVersion`, twice.
+         *     See `service.split_contour`'s own docstring for the full refusal list and
+         *     why the geometry itself stays client-computed.
+         */
+        post: operations["split_contour_api_v1_gis_contours__parent_id__split_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/api/v1/gis/contours/{contour_id}/versions": {
@@ -2890,7 +2941,15 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        /**
+         * List Bank Statements
+         * @description The register itself (backend-gaps finding 3): every import, newest
+         *     first, `?status=` narrowing to one. Headers only, no lines — `GET
+         *     /bank-statements/{id}` below is where those live. No zone scoping, same
+         *     reasoning as that route: a bank statement belongs to the accounting
+         *     department, not to a leshoz.
+         */
+        get: operations["list_bank_statements_api_v1_payments_bank_statements_get"];
         put?: never;
         /**
          * Create Bank Statement
@@ -4172,8 +4231,10 @@ export interface paths {
          *     `code` — `code=RI-07` is the SLA-violation register, `RI-01` the manual-PAID
          *     register, `RI-10` permits activated without payment, `RI-12` cross-zone
          *     access attempts, `RI-03` overlapping active permits on one contour,
-         *     `RI-04` retroactive tariff/norm changes. Export-with-watermark is
-         *     `search`'s `export_jobs` (design/02), not built here — see the plan.
+         *     `RI-04` retroactive tariff/norm changes. The watermarked export is built
+         *     (decision #98) as `search`'s `POST /search/exports` — `applications`/
+         *     `permits` result sets, not this list; exporting a risk-indicator page
+         *     itself is not something ruling #20 asked for and is not built here.
          */
         get: operations["list_risk_indicators_api_v1_oversight_risk_indicators_get"];
         put?: never;
@@ -4614,6 +4675,58 @@ export interface paths {
         head?: never;
         /** Update Profile */
         patch: operations["update_profile_api_v1_search_profiles__profile_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/search/exports": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Exports */
+        get: operations["list_exports_api_v1_search_exports_get"];
+        put?: never;
+        /** Create Export */
+        post: operations["create_export_api_v1_search_exports_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/search/exports/{job_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Export */
+        get: operations["get_export_api_v1_search_exports__job_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/search/exports/{job_id}/file": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Download Export */
+        get: operations["download_export_api_v1_search_exports__job_id__file_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/api/v1/archive": {
@@ -5232,6 +5345,22 @@ export interface components {
         AppealSubmitOut: {
             /** Number */
             number: string;
+        };
+        /**
+         * ApplicantAddressIn
+         * @description `PATCH /auth/applicants/{applicant_id}/address` (ruling #113): the one
+         *     field the route exists for. `StringConstraints(strip_whitespace=True,
+         *     ...)`, not a plain `Field(min_length=1)` — a whitespace-only address has a
+         *     nonzero length and would otherwise pass as if it named a real place
+         *     (`permits/schemas.py::DuplicateIn.reason` is the same idiom for the same
+         *     reason). `max_length` is this codebase's own free-text convention
+         *     (`permits/schemas.py::DuplicateIn.reason`,
+         *     `norms/schemas.py::TariffIn.basis`), not a limit named anywhere in
+         *     `tz/13`'s form 1-ilova.
+         */
+        ApplicantAddressIn: {
+            /** Address */
+            address: string;
         };
         /** ApplicantOut */
         ApplicantOut: {
@@ -6899,6 +7028,86 @@ export interface components {
             /** File Id */
             file_id?: string | null;
         };
+        /**
+         * ExportCreate
+         * @description `POST /search/exports` — the same filters `GET /search` accepts for
+         *     one `kind`, plus the output `format`. No `page`/`page_size`: an export is
+         *     not paged, it is capped (`search_export_max_rows`, ruling #20).
+         */
+        ExportCreate: {
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "applications" | "permits";
+            /**
+             * Format
+             * @enum {string}
+             */
+            format: "pdf" | "xlsx";
+            /** Q */
+            q?: string | null;
+            /** Status */
+            status?: string | null;
+            /** Organization Id */
+            organization_id?: string | null;
+            /** Activity Type Id */
+            activity_type_id?: string | null;
+            /** Series */
+            series?: string | null;
+        };
+        /** ExportJobOut */
+        ExportJobOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * User Id
+             * Format: uuid
+             */
+            user_id: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "applications" | "permits";
+            /**
+             * Format
+             * @enum {string}
+             */
+            format: "pdf" | "xlsx";
+            /** Params */
+            params: {
+                [key: string]: unknown;
+            };
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "done" | "failed";
+            /** File Id */
+            file_id: string | null;
+            /** Row Count */
+            row_count: number | null;
+            /** Total Matched */
+            total_matched: number | null;
+            /** Watermarked */
+            watermarked: boolean;
+            /** Error */
+            error: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Finished At
+             * Format: date-time
+             */
+            finished_at: string;
+        };
         /** FaqIn */
         FaqIn: {
             /** Category */
@@ -7308,6 +7517,13 @@ export interface components {
             /** Finished At */
             finished_at: string | null;
         };
+        /** InspectionsKpiOut */
+        InspectionsKpiOut: {
+            /** Inspections Count */
+            inspections_count: number;
+            /** Violations Count */
+            violations_count: number;
+        };
         /** InvoiceOut */
         InvoiceOut: {
             /**
@@ -7354,6 +7570,7 @@ export interface components {
             /** Rejections */
             rejections: components["schemas"]["RejectionRowOut"][];
             risk_indicators: components["schemas"]["RiskIndicatorsKpiOut"];
+            inspections: components["schemas"]["InspectionsKpiOut"];
             /** Omitted */
             omitted: string[];
         };
@@ -7434,7 +7651,18 @@ export interface components {
         };
         /**
          * LocalizedName
-         * @description `{"uz_cyrl": "Номи", "ru": "Название"}` — validated, not free-form jsonb.
+         * @description `{"uz_latn": "Nomi", "ru": "Название"}` — validated, not free-form jsonb.
+         *
+         *     Decision #90: this used to require `uz_cyrl` and not `uz_latn` at all, which
+         *     directly contradicted the already-merged announcements form (it required
+         *     `uz_latn`) and, as data, left `gis_layers` with no Latin name for any of its
+         *     fifteen rows. The flip could not land alone — every row written under the old
+         *     rule has `uz_cyrl` and had no guarantee of `uz_latn` — so migration `0032`
+         *     backfills `uz_latn` from `uz_cyrl` everywhere first (deterministic: Uzbek
+         *     Cyrillic -> Latin is a well-defined mapping) and this validator changes in
+         *     its wake, in the same commit. A database migrated before `0032` will start
+         *     rejecting writes to any row it did not cover — that migration's own docstring
+         *     lists every column it backfills.
          */
         LocalizedName: {
             [key: string]: string;
@@ -8158,6 +8386,17 @@ export interface components {
             /** Page Size */
             page_size: number;
         };
+        /** Page[ImportOut] */
+        Page_ImportOut_: {
+            /** Items */
+            items: components["schemas"]["ImportOut"][];
+            /** Total */
+            total: number;
+            /** Page */
+            page: number;
+            /** Page Size */
+            page_size: number;
+        };
         /** Page[InvoiceOut] */
         Page_InvoiceOut_: {
             /** Items */
@@ -8327,6 +8566,17 @@ export interface components {
         Page_SignatureOut_: {
             /** Items */
             items: components["schemas"]["SignatureOut"][];
+            /** Total */
+            total: number;
+            /** Page */
+            page: number;
+            /** Page Size */
+            page_size: number;
+        };
+        /** Page[StatementListItem] */
+        Page_StatementListItem_: {
+            /** Items */
+            items: components["schemas"]["StatementListItem"][];
             /** Total */
             total: number;
             /** Page */
@@ -8850,8 +9100,9 @@ export interface components {
          *     to render herd inputs) and `name`. Never `quantity_unit`/`status`, which
          *     the general, authenticated `/refs/*` router already answers and this
          *     anonymous surface has no reason to repeat. `name` carries whatever
-         *     languages the row has — `en`/`uz_cyrl` today (`tz/12` #31: no Latin-script
-         *     Uzbek yet) — returned as-is, never invented.
+         *     languages the row has — `uz_latn` since migration `0032`'s backfill
+         *     (decision #90, closing `tz/12` #31's backend half) — returned as-is,
+         *     never invented.
          */
         PublicActivityTypeOut: {
             /**
@@ -8889,6 +9140,7 @@ export interface components {
              * @enum {string}
              */
             status: "амалда" | "тўхтатилган" | "муддати тугаган" | "бекор қилинган";
+            status_label: components["schemas"]["LocalizedName"];
             /**
              * Valid From
              * Format: date
@@ -9436,9 +9688,7 @@ export interface components {
             /** Period Type */
             period_type: string;
             /** Columns */
-            columns: {
-                [key: string]: unknown;
-            }[];
+            columns: components["schemas"]["ReportFormColumn"][];
             /** Rules */
             rules: {
                 [key: string]: unknown;
@@ -10001,6 +10251,69 @@ export interface components {
             suppressed: boolean;
         };
         /**
+         * SplitIn
+         * @description `POST /gis/contours/{parent_id}/split`. `source`/`accuracy_m`/
+         *     `survey_date`/`effective_from` describe how the split itself was carried
+         *     out — one drawing act, producing both pieces at once — so they are
+         *     supplied ONCE, unlike `declared_area_ha` (each piece's own source-file or
+         *     on-screen figure), which genuinely differs per piece.
+         */
+        SplitIn: {
+            piece_a: components["schemas"]["SplitPieceIn"];
+            piece_b: components["schemas"]["SplitPieceIn"];
+            /** Source */
+            source: string;
+            /** Accuracy M */
+            accuracy_m?: number | string | null;
+            /** Survey Date */
+            survey_date?: string | null;
+            /** Effective From */
+            effective_from?: string | null;
+        };
+        /**
+         * SplitOut
+         * @description `POST /gis/contours/{parent_id}/split` response. `parent_id` is echoed
+         *     back for convenience only — the parent's own row is untouched by this call
+         *     (decision #91: it stays exactly as it was, published version included;
+         *     see `gis.service.split_contour`'s own docstring for what that does and
+         *     does not mean for the parent's occupancy and its own topology checks).
+         */
+        SplitOut: {
+            /**
+             * Parent Id
+             * Format: uuid
+             */
+            parent_id: string;
+            piece_a: components["schemas"]["SplitPieceOut"];
+            piece_b: components["schemas"]["SplitPieceOut"];
+        };
+        /**
+         * SplitPieceIn
+         * @description One of the two subcontours `POST /gis/contours/{parent_id}/split`
+         *     produces. Narrowed to what the caller actually decides: the adminka's
+         *     `splitContour.ts` already computed `geom` client-side (decision #91,
+         *     `gis.service.split_contour`'s own docstring on why the cut itself stays
+         *     client-side); everything else about the new contour — `layer_id`,
+         *     `organization_id`, `kind`, `parent_id` — is derived from the parent and is
+         *     never re-typed by the caller the way a plain `POST /gis/contours` would
+         *     require.
+         */
+        SplitPieceIn: {
+            /** Number */
+            number: string;
+            /** Geom */
+            geom: {
+                [key: string]: unknown;
+            };
+            /** Declared Area Ha */
+            declared_area_ha?: number | string | null;
+        };
+        /** SplitPieceOut */
+        SplitPieceOut: {
+            contour: components["schemas"]["ContourOut"];
+            version: components["schemas"]["VersionOut"];
+        };
+        /**
          * StatementAccepted
          * @description `POST /payments/bank-statements` answers 202 with the id and the status
          *     it was queued in: the file is stored and QUEUED, and the parse happens in
@@ -10048,6 +10361,52 @@ export interface components {
             match_status: string;
             /** Matched Invoice Id */
             matched_invoice_id: string | null;
+        };
+        /**
+         * StatementListItem
+         * @description One row of `GET /payments/bank-statements` (backend-gaps finding 3) —
+         *     the header only, no lines: a list of statements has no use for one
+         *     statement's per-line page, which is what `GET /payments/bank-statements/
+         *     {id}` (`StatementOut` below) still carries. Same fields as `StatementOut`
+         *     minus `column_map` (upload-time plumbing, not something a register reads)
+         *     and `lines`/`lines_total`.
+         */
+        StatementListItem: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Source */
+            source: string;
+            /** Format */
+            format: string;
+            /** File Id */
+            file_id: string | null;
+            /**
+             * Statement Date
+             * Format: date
+             */
+            statement_date: string;
+            /** Period From */
+            period_from: string | null;
+            /** Period To */
+            period_to: string | null;
+            /** Status */
+            status: string;
+            /** Stats */
+            stats: {
+                [key: string]: unknown;
+            };
+            /** Error Report */
+            error_report: {
+                [key: string]: unknown;
+            } | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
         };
         /**
          * StatementOut
@@ -11429,6 +11788,41 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["RepresentationOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_applicant_address_api_v1_auth_applicants__applicant_id__address_patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                applicant_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ApplicantAddressIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApplicantOut"];
                 };
             };
             /** @description Validation Error */
@@ -13615,6 +14009,39 @@ export interface operations {
             };
         };
     };
+    list_imports_api_v1_gis_imports_get: {
+        parameters: {
+            query?: {
+                status?: string | null;
+                page?: number;
+                page_size?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Page_ImportOut_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     create_import_api_v1_gis_imports_post: {
         parameters: {
             query?: never;
@@ -13924,6 +14351,41 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ContourOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    split_contour_api_v1_gis_contours__parent_id__split_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                parent_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SplitIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SplitOut"];
                 };
             };
             /** @description Validation Error */
@@ -16123,8 +16585,9 @@ export interface operations {
     };
     list_invoices_api_v1_invoices_get: {
         parameters: {
-            query: {
-                application_id: string;
+            query?: {
+                application_id?: string | null;
+                status?: string | null;
                 limit?: number;
                 offset?: number;
             };
@@ -16176,6 +16639,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PayIntentOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_bank_statements_api_v1_payments_bank_statements_get: {
+        parameters: {
+            query?: {
+                status?: string | null;
+                limit?: number;
+                offset?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Page_StatementListItem_"];
                 };
             };
             /** @description Validation Error */
@@ -19297,6 +19793,121 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SavedFilterOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_exports_api_v1_search_exports_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExportJobOut"][];
+                };
+            };
+        };
+    };
+    create_export_api_v1_search_exports_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExportCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExportJobOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_export_api_v1_search_exports__job_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                job_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExportJobOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    download_export_api_v1_search_exports__job_id__file_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                job_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
                 };
             };
             /** @description Validation Error */

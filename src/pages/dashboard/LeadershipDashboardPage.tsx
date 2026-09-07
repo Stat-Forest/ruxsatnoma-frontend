@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Award, Clock, CreditCard, Layers } from 'lucide-react';
+import { Award, ClipboardCheck, Clock, CreditCard, Layers } from 'lucide-react';
 import { Alert } from '../../components/ui/Feedback';
 import { ApiError } from '../../api/errors';
 import { useAuth } from '../../auth/useAuth';
@@ -147,6 +147,14 @@ export function LeadershipDashboardPage() {
           hint={`${t('leadership.dash.tile.sla.hint')}: ${data.sla.overdue_count}`}
           hintIcon={Clock}
           tone={data.sla.overdue_count > 0 ? 'brand' : 'neutral'}
+        />
+        <KpiTile
+          testId="tile-inspections"
+          label={t('dashboard.inspections.tileLabel')}
+          value={String(data.inspections.inspections_count)}
+          hint={`${t('dashboard.inspections.violationsHint')}: ${data.inspections.violations_count}`}
+          hintIcon={ClipboardCheck}
+          tone={data.inspections.violations_count > 0 ? 'brand' : 'neutral'}
         />
       </div>
 

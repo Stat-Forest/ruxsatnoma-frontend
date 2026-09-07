@@ -176,3 +176,21 @@ test('the switcher offers all five backend languages, and one without a string m
   // rendering raw keys — the fallback, not a missing translation.
   expect(screen.getByRole('button', { name: 'Chiqish' })).toBeInTheDocument();
 });
+
+// F14 (`docs/plans/07.3-findings.md`): the shell used to render the role
+// name from `uz_cyrl` for a `uz_latn` account — true only before decision
+// #90 made `uz_latn` the required (backfilled) field of every
+// `LocalizedName`, so a `uz_latn` reader is now owed their own field.
+test('the role name renders in the account\'s own uz_latn field, never uz_cyrl', async () => {
+  server.use(
+    http.get('*/auth/me', () =>
+      HttpResponse.json({
+        ...ME,
+        role: { code: 'executor_head', name: { uz_cyrl: "Ijrochi boshlig'i", uz_latn: 'Executor head', ru: 'Начальник' } },
+      }),
+    ),
+  );
+  await renderShell();
+  expect(await screen.findByText('Executor head')).toBeInTheDocument();
+  expect(screen.queryByText("Ijrochi boshlig'i")).not.toBeInTheDocument();
+});

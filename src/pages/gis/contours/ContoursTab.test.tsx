@@ -6,6 +6,7 @@ import { http, HttpResponse } from 'msw';
 import { setupServer } from 'msw/node';
 import { AuthContext } from '../../../auth/AuthContext';
 import type { AuthContextValue } from '../../../auth/AuthContext';
+import { I18nContext } from '../../../i18n/context';
 import { ContoursTab } from './ContoursTab';
 
 const t = (key: string) => key;
@@ -93,9 +94,12 @@ function renderTab(permissions: string[]) {
     registration_complete: true,
   };
   const authValue = { me, loading: false, authError: null } as unknown as AuthContextValue;
+  const i18n = { lang: 'uz_latn' as const, backendLang: 'uz_latn' as const, t, setLanguage: async () => {} };
   const wrapper = ({ children }: { children: ReactNode }) => (
     <QueryClientProvider client={client}>
-      <AuthContext.Provider value={authValue}>{children}</AuthContext.Provider>
+      <I18nContext.Provider value={i18n}>
+        <AuthContext.Provider value={authValue}>{children}</AuthContext.Provider>
+      </I18nContext.Provider>
     </QueryClientProvider>
   );
   return render(<ContoursTab t={t} />, { wrapper });
@@ -196,6 +200,70 @@ test('a published contour with no held draft shows its card and, for an approver
   // "draw first version" prompt must not appear.
   expect(screen.queryByRole('button', { name: 'gis.contours.drawFirstVersion' })).not.toBeInTheDocument();
   expect(screen.getByRole('button', { name: 'gis.versions.actions.archive' })).toBeInTheDocument();
+});
+
+// F5 (`docs/plans/07.3-findings.md`): occupied > total (free area floored at
+// 0) is a real state, not an arithmetic bug — the backend's own explicit
+// `over_allocated` flag must be rendered, not silently dropped.
+test('an over-allocated contour explains why the free area cannot be negative', async () => {
+  server.use(
+    ...referenceHandlers(),
+    http.get('*/api/v1/gis/contours', () =>
+      HttpResponse.json({
+        items: [
+          {
+            id: 'c-over',
+            number: 'K-070',
+            organization_id: 'org-1',
+            area_ha: '65.0694',
+            occupied_ha: '130.1388',
+            s_available_ha: '0',
+            over_allocated: true,
+            occupancy_source: 'permits',
+          },
+        ],
+        total: 1,
+      }),
+    ),
+    http.get('*/api/v1/gis/contours/c-over', () =>
+      HttpResponse.json({
+        id: 'c-over',
+        number: 'K-070',
+        organization_id: 'org-1',
+        kind: 'contour',
+        version_id: 'v-over',
+        area_ha: '65.0694',
+        geometry: { type: 'Polygon', coordinates: [] },
+        occupied_ha: '130.1388',
+        s_available_ha: '0',
+        over_allocated: true,
+        occupancy_source: 'permits',
+      }),
+    ),
+  );
+  const ui = userEvent.setup();
+  renderTab([]);
+
+  await ui.click(await screen.findByTestId('contour-row-c-over'));
+  await screen.findByText('gis.contours.overAllocated');
+});
+
+test('a normal, not-over-allocated contour shows no over-allocation warning', async () => {
+  server.use(
+    ...referenceHandlers(),
+    http.get('*/api/v1/gis/contours', () =>
+      HttpResponse.json({ items: [{ id: 'c-pub', number: 'K-050', organization_id: 'org-1', area_ha: '5.0000', occupied_ha: '0.0000', s_available_ha: '5.0000', over_allocated: false, occupancy_source: 'none' }], total: 1 }),
+    ),
+    http.get('*/api/v1/gis/contours/c-pub', () =>
+      HttpResponse.json({ id: 'c-pub', number: 'K-050', organization_id: 'org-1', kind: 'contour', version_id: 'v-pub', area_ha: '5.0000', geometry: { type: 'Polygon', coordinates: [] }, occupied_ha: '0.0000', s_available_ha: '5.0000', over_allocated: false, occupancy_source: 'none' }),
+    ),
+  );
+  const ui = userEvent.setup();
+  renderTab([]);
+
+  await ui.click(await screen.findByTestId('contour-row-c-pub'));
+  await screen.findAllByText('K-050');
+  expect(screen.queryByText('gis.contours.overAllocated')).not.toBeInTheDocument();
 });
 
 test('selecting a published contour in browse mode hands its geometry to the map as the selection, not the edit reference — and clearing it drops both', async () => {

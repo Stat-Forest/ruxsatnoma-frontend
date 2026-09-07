@@ -5,6 +5,7 @@ import { FormField, Input } from '../../components/ui/FormControls';
 import { Alert } from '../../components/ui/Feedback';
 import { useAuth } from '../../auth/useAuth';
 import { ApiError } from '../../api/errors';
+import { useApiErrorText } from '../../i18n/useApiErrorText';
 import { useT } from '../../i18n/useT';
 import { formatDate, formatDateTime, formatMoney } from '../permits/format';
 import { MATCH_STATUS_LABEL, MATCH_STATUS_STYLE, STATEMENT_STATUS_LABEL, STATEMENT_STATUS_STYLE } from './statusMeta';
@@ -107,6 +108,7 @@ export function StatementsTab() {
 
 function UploadForm({ onAccepted }: { onAccepted: (id: string) => void }) {
   const t = useT();
+  const errorText = useApiErrorText();
   const idempotencyKeyRef = useRef<string>(crypto.randomUUID());
   const [file, setFile] = useState<File | null>(null);
   const [statementDate, setStatementDate] = useState('');
@@ -145,7 +147,7 @@ function UploadForm({ onAccepted }: { onAccepted: (id: string) => void }) {
   }
 
   const error =
-    mutation.error instanceof ApiError ? `${mutation.error.code}: ${mutation.error.message}` : mutation.isError ? t('accountant.statements.uploadFailed') : null;
+    mutation.error instanceof ApiError ? errorText(mutation.error) : mutation.isError ? t('accountant.statements.uploadFailed') : null;
 
   return (
     <section className="rounded-2xl border border-[#E4E7EA] bg-white p-4 shadow-xs">

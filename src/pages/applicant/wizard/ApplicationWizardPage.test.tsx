@@ -7,6 +7,8 @@ import { setupServer } from 'msw/node';
 import { vi } from 'vitest';
 import { AuthContext } from '../../../auth/AuthContext';
 import type { AuthContextValue } from '../../../auth/AuthContext';
+import { I18nContext } from '../../../i18n/context';
+import type { UiLanguage } from '../../../i18n/context';
 import { buildMockSignature } from '../../../lib/eimzoMock';
 import { ApplicationWizardPage } from './ApplicationWizardPage';
 
@@ -36,7 +38,8 @@ const ACTIVITY_ID = 'a0000000-0000-4000-8000-000000000001';
 const APPLICATION_ID = 'ap000000-0000-4000-8000-000000000001';
 const APPLICANT_NAME = 'Aliyev Vali Applicant';
 
-const AUTH_VALUE: AuthContextValue = {
+function authValue(language: string): AuthContextValue {
+  return {
   me: {
     user: {
       id: 'u0000000-0000-4000-8000-000000000001',
@@ -45,7 +48,7 @@ const AUTH_VALUE: AuthContextValue = {
       phone: null,
       email: null,
       must_change_password: false,
-      language: 'uz',
+      language,
     },
     role: { code: 'applicant', name: {} },
     permissions: [],
@@ -62,7 +65,11 @@ const AUTH_VALUE: AuthContextValue = {
       email: null,
       region_id: null,
       district_id: null,
-      address: null,
+      // Ruling #113: an account that already has an address is never asked
+      // for one in the wizard. The "asked, and can submit after filling it
+      // in" behaviour for an address-less account gets its own dedicated
+      // tests below, each with `address: null` on a fixture of its own.
+      address: 'Toshkent sh., Chilonzor tumani, 12-uy',
       verified_at: null,
     },
     representations: [],
@@ -77,7 +84,18 @@ const AUTH_VALUE: AuthContextValue = {
   logout: vi.fn(),
   applyMe: vi.fn(),
   refreshMe: vi.fn(),
-};
+  };
+}
+
+const AUTH_VALUE = authValue('uz');
+
+// Ruling #113: only the account's own address (`MeOut.applicant.address`)
+// gates the wizard, so a fixture that varies just that one field is enough
+// to drive both branches without duplicating the whole `authValue()` shape.
+function authValueWithAddress(address: string | null): AuthContextValue {
+  const base = authValue('uz');
+  return { ...base, me: { ...base.me!, applicant: { ...base.me!.applicant!, address } } };
+}
 
 const server = setupServer(
   http.get('*/api/v1/refs/activity-types', () =>
@@ -99,18 +117,75 @@ beforeAll(() => server.listen({ onUnhandledRequest: 'error' }));
 afterEach(() => server.resetHandlers());
 afterAll(() => server.close());
 
-function renderWizard() {
+function renderWizard(auth: AuthContextValue = AUTH_VALUE, lang: UiLanguage = 'uz_latn') {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
+  const i18n = { lang, backendLang: lang, t: (key: string) => key, setLanguage: async () => {} };
   return render(
     <QueryClientProvider client={client}>
-      <AuthContext.Provider value={AUTH_VALUE}>
-        <MemoryRouter initialEntries={['/my/applications/new']}>
-          <ApplicationWizardPage />
-        </MemoryRouter>
-      </AuthContext.Provider>
+      <I18nContext.Provider value={i18n}>
+        <AuthContext.Provider value={auth}>
+          <MemoryRouter initialEntries={['/my/applications/new']}>
+            <ApplicationWizardPage />
+          </MemoryRouter>
+        </AuthContext.Provider>
+      </I18nContext.Provider>
     </QueryClientProvider>,
   );
 }
+
+// Drives the wizard through steps 1–4 (activity, contour + period, quantity,
+// documents) to step 5, where precheck fires automatically.
+async function driveToStep5() {
+  await userEvent.click(await screen.findByText('Pichanchilik'));
+  await userEvent.click(screen.getByRole('button', { name: /Keyingisi/ }));
+
+  await userEvent.click(await screen.findByText('pick-contour'));
+  fireEvent.change(screen.getByLabelText(/Boshlanish sanasi/), { target: { value: '2026-01-01' } });
+  fireEvent.change(screen.getByLabelText(/Tugash sanasi/), { target: { value: '2026-06-01' } });
+  await userEvent.click(screen.getByRole('button', { name: /Keyingisi/ }));
+
+  await userEvent.type(await screen.findByLabelText(/Miqdor/), '5');
+  await userEvent.click(screen.getByRole('button', { name: /Keyingisi/ }));
+
+  await userEvent.click(await screen.findByRole('button', { name: /Keyingisi/ }));
+}
+
+// Drives the wizard to step 5 and triggers a submit that the server refuses
+// with a real domain error — the exact call site F4 named
+// (`docs/plans/07.3-findings.md`): `ApplicationWizardPage.tsx`'s
+// `handleSignAndSubmit` used to render the server's own Russian string
+// verbatim as `${code}: ${message}`, regardless of the applicant's own
+// interface language.
+async function driveToSubmitFailure() {
+  await driveToStep5();
+
+  const signButton = await screen.findByRole('button', { name: /ERI bilan imzolash va yuborish/ });
+  await waitFor(() => expect(signButton).toBeEnabled());
+  await userEvent.click(signButton);
+}
+
+test.each([
+  ['uz_latn', 'Kesishuvchi davr uchun faol ariza allaqachon mavjud.'],
+  ['ru', 'Активная заявка на пересекающийся период уже существует.'],
+])(
+  'a duplicate-application refusal (ERR-APP-002) renders localized copy, not the raw code, in %s',
+  async (language, expectedText) => {
+    server.use(
+      http.post('*/api/v1/applications/:id/submit', () =>
+        HttpResponse.json(
+          { error: { code: 'ERR-APP-002', message: 'Активная заявка на пересекающийся период уже существует' } },
+          { status: 409 },
+        ),
+      ),
+    );
+    renderWizard(AUTH_VALUE, language as UiLanguage);
+
+    await driveToSubmitFailure();
+
+    expect(await screen.findByText(expectedText)).toBeInTheDocument();
+    expect(screen.queryByText(/ERR-APP-002:/)).not.toBeInTheDocument();
+  },
+);
 
 // Regression pin for the wiring that was already lost once: merging two
 // copies of the mock ERI codec dropped `fullName` at this exact call site,
@@ -122,24 +197,7 @@ function renderWizard() {
 test('signing and submitting passes the signed-in applicant’s own name into the mock signature', async () => {
   renderWizard();
 
-  // Step 1 — activity type.
-  await userEvent.click(await screen.findByText('Pichanchilik'));
-  await userEvent.click(screen.getByRole('button', { name: /Keyingisi/ }));
-
-  // Step 2 — contour (stubbed) + period. `type="date"` inputs are set
-  // directly rather than through `userEvent.type`, which drives them one
-  // keystroke at a time and does not reliably land a full ISO date in jsdom.
-  await userEvent.click(await screen.findByText('pick-contour'));
-  fireEvent.change(screen.getByLabelText(/Boshlanish sanasi/), { target: { value: '2026-01-01' } });
-  fireEvent.change(screen.getByLabelText(/Tugash sanasi/), { target: { value: '2026-06-01' } });
-  await userEvent.click(screen.getByRole('button', { name: /Keyingisi/ }));
-
-  // Step 3 — quantity (this activity type is not grazing, so a bare amount).
-  await userEvent.type(await screen.findByLabelText(/Miqdor/), '5');
-  await userEvent.click(screen.getByRole('button', { name: /Keyingisi/ }));
-
-  // Step 4 — no document types configured server-side, nothing to attach.
-  await userEvent.click(await screen.findByRole('button', { name: /Keyingisi/ }));
+  await driveToStep5();
 
   // Step 5 — precheck resolves, then sign and submit.
   const signButton = await screen.findByRole('button', { name: /ERI bilan imzolash va yuborish/ });
@@ -149,4 +207,130 @@ test('signing and submitting passes the signed-in applicant’s own name into th
   await waitFor(() =>
     expect(buildMockSignature).toHaveBeenCalledWith(expect.objectContaining({ fullName: APPLICANT_NAME })),
   );
+});
+
+// Ruling #113 (`docs/decisions.md`): the address requisite is gated at
+// SUBMIT. `CompleteRegistrationGate.tsx` is the only place that ever WROTE
+// an address, and it was optional there, so an account that registered
+// before this ruling can reach the wizard with none — the wizard is where
+// that account gets asked.
+test('an account with no address is asked for it in step 5, and can submit once it is filled in', async () => {
+  let seenAddressBody: unknown = null;
+  const auth = authValueWithAddress(null);
+  server.use(
+    http.patch('*/api/v1/auth/applicants/:applicantId/address', async ({ request }) => {
+      seenAddressBody = await request.json();
+      return HttpResponse.json({
+        ...auth.me!.applicant,
+        address: "Farg'ona sh., Mustaqillik ko'chasi 5",
+      });
+    }),
+  );
+  renderWizard(auth);
+
+  await driveToStep5();
+
+  // The button says what the first press DOES: an address-less account has no
+  // price yet (`missing_for_pricing` counts the blank address), so pressing it
+  // saves the address and re-runs the pre-check rather than signing blind.
+  const saveButton = await screen.findByRole('button', {
+    name: /Manzilni saqlash va narxni hisoblash/,
+  });
+  const addressInput = await screen.findByLabelText(/Manzil/);
+  // Disabled before the address is filled in — the precheck alone is not
+  // enough to unblock submission for an address-less account.
+  await waitFor(() => expect(saveButton).toBeDisabled());
+
+  await userEvent.type(addressInput, "Farg'ona sh., Mustaqillik ko'chasi 5");
+  await waitFor(() => expect(saveButton).toBeEnabled());
+  await userEvent.click(saveButton);
+
+  await waitFor(() => expect(seenAddressBody).toEqual({ address: "Farg'ona sh., Mustaqillik ko'chasi 5" }));
+  // Nothing is signed by that first press. Counted rather than asserted
+  // absent: the mock is module-level and carries calls from earlier tests in
+  // this file.
+  const signaturesBefore = vi.mocked(buildMockSignature).mock.calls.length;
+
+  // Now it signs.
+  const signButton = await screen.findByRole('button', { name: /ERI bilan imzolash va yuborish/ });
+  expect(vi.mocked(buildMockSignature).mock.calls.length).toBe(signaturesBefore);
+  await userEvent.click(signButton);
+  // `saveApplicantAddress` hands back an `ApplicantOut`, not a whole
+  // `MeOut` — the wizard adopts it through `refreshMe()`, not `applyMe()`.
+  await waitFor(() => expect(auth.refreshMe).toHaveBeenCalled());
+  await waitFor(() => expect(buildMockSignature).toHaveBeenCalled());
+});
+
+// Ruling #113, the representative's case: the address that gets printed is
+// the HOLDER's, and when a representative files on behalf of a legal entity
+// the holder is that entity. A citizen whose own record carries an address
+// can still be filing for an entity that has none — checking `me.applicant`
+// alone would leave the backend refusing a submission the wizard never asked
+// about.
+test('a representative filing for an address-less legal entity is asked for the ENTITY address', async () => {
+  let seenPath: string | null = null;
+  let seenAddressBody: unknown = null;
+  const base = authValue('uz');
+  const entity = {
+    ...base.me!.applicant!,
+    id: 'ap100000-0000-4000-8000-0000000000ff',
+    kind: 'legal',
+    pinfl: null,
+    stir: '302345678',
+    name: '"Chorvador" MChJ',
+    address: null,
+  };
+  const auth: AuthContextValue = {
+    ...base,
+    me: {
+      ...base.me!,
+      representations: [
+        {
+          id: 'rep00000-0000-4000-8000-000000000001',
+          applicant: entity,
+          basis: 'poa',
+          valid_from: '2026-01-01',
+          valid_until: null,
+          status: 'active',
+        },
+      ],
+    },
+  };
+  server.use(
+    http.patch('*/api/v1/auth/applicants/:applicantId/address', async ({ request, params }) => {
+      seenPath = String(params.applicantId);
+      seenAddressBody = await request.json();
+      return HttpResponse.json({ ...entity, address: 'Namangan sh., Navoiy 1' });
+    }),
+  );
+  renderWizard(auth);
+
+  // Step 1 offers the on-behalf-of picker only when representations exist,
+  // and it is the only select on that step. `FormField` renders its label as
+  // plain text, not an `htmlFor` binding, so the role is the handle here —
+  // the same reason `ActFormPage.test.tsx` reaches its selects by value.
+  await screen.findByText('Pichanchilik');
+  await userEvent.selectOptions(screen.getByRole('combobox'), entity.id);
+  await driveToStep5();
+
+  const saveButton = await screen.findByRole('button', {
+    name: /Manzilni saqlash va narxni hisoblash/,
+  });
+  await userEvent.type(await screen.findByLabelText(/Manzil/), 'Namangan sh., Navoiy 1');
+  await waitFor(() => expect(saveButton).toBeEnabled());
+  await userEvent.click(saveButton);
+
+  // The entity's id, not the signed-in citizen's.
+  await waitFor(() => expect(seenPath).toBe(entity.id));
+  expect(seenAddressBody).toEqual({ address: 'Namangan sh., Navoiy 1' });
+});
+
+test('an account that already has an address is never asked for one', async () => {
+  const auth = authValueWithAddress('Toshkent sh., Chilonzor tumani, 12-uy');
+  renderWizard(auth);
+
+  await driveToStep5();
+
+  await screen.findByRole('button', { name: /ERI bilan imzolash va yuborish/ });
+  expect(screen.queryByLabelText(/Manzil/)).not.toBeInTheDocument();
 });

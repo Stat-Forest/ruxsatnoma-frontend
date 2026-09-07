@@ -15,7 +15,8 @@ import {
   getInvoice,
   listAllocationsForInvoice,
   listDistricts,
-  listInvoicesByApplication,
+  listInvoices,
+  listManualConfirmations,
   listReconciliations,
   listRefunds,
   listRegions,
@@ -25,13 +26,16 @@ import {
   submitRefundDecision,
   type CreateBankStatementParams,
   type FileManualConfirmationInput,
+  type ListInvoicesParams,
+  type ListManualConfirmationsParams,
   type ListRefundsParams,
   type ListReconciliationsParams,
 } from './api';
 
 const INVOICE_KEY = ['accountant', 'invoice'] as const;
-const INVOICES_BY_APP_KEY = ['accountant', 'invoices-by-application'] as const;
+const INVOICES_LIST_KEY = ['accountant', 'invoices-list'] as const;
 const ALLOCATIONS_KEY = ['accountant', 'allocations'] as const;
+const MANUAL_CONFIRMATIONS_KEY = ['accountant', 'manual-confirmations'] as const;
 const STATEMENT_KEY = ['accountant', 'statement'] as const;
 const RECONCILIATIONS_KEY = ['accountant', 'reconciliations'] as const;
 const REFUNDS_KEY = ['accountant', 'refunds'] as const;
@@ -50,12 +54,18 @@ export function useInvoice(invoiceId: string | null) {
   });
 }
 
-export function useInvoicesByApplication(applicationId: string | null) {
+/** F12a — the register, not a lookup: fires unconditionally (no `enabled`
+ *  gate), because an empty `ListInvoicesParams` is itself a real, valid
+ *  request — "this zone's invoices, unfiltered" — not a disabled state the
+ *  way `useInvoice`/`useInvoicesByApplication` (a single id) used to be.
+ *  `placeholderData` keeps the table from blanking between a status change
+ *  or a page turn, the same convention every other paged list in this file
+ *  already follows. */
+export function useInvoicesList(params: ListInvoicesParams) {
   return useQuery({
-    queryKey: [...INVOICES_BY_APP_KEY, applicationId],
-    queryFn: () => listInvoicesByApplication(applicationId!),
-    enabled: applicationId !== null,
-    retry: false,
+    queryKey: [...INVOICES_LIST_KEY, params],
+    queryFn: () => listInvoices(params),
+    placeholderData: (previous) => previous,
   });
 }
 
@@ -124,15 +134,35 @@ export function useResolveReconciliation() {
   });
 }
 
+/** F12b — the checker's own worklist, rendered instead of demanding an id
+ *  handed over out of band. `placeholderData` matches every other paged list
+ *  in this file. */
+export function useManualConfirmations(params: ListManualConfirmationsParams) {
+  return useQuery({
+    queryKey: [...MANUAL_CONFIRMATIONS_KEY, params],
+    queryFn: () => listManualConfirmations(params),
+    placeholderData: (previous) => previous,
+  });
+}
+
 export function useConfirmManualConfirmation() {
+  const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (confirmationId: string) => confirmManualConfirmation(confirmationId),
+    // F12b: a confirmed row leaves the default `pending_check` worklist.
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: MANUAL_CONFIRMATIONS_KEY });
+    },
   });
 }
 
 export function useRejectManualConfirmation() {
+  const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({ id, reason }: { id: string; reason: string }) => rejectManualConfirmation(id, reason),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: MANUAL_CONFIRMATIONS_KEY });
+    },
   });
 }
 

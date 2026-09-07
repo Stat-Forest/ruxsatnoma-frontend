@@ -4,7 +4,7 @@
  * a real `PermitOut`/`ApplicationOut`/`InvoiceOut` rather than a structural
  * lookalike that would keep compiling after the backend's contract moved.
  */
-import type { ApplicationOut, InvoiceOut, PermitOut } from './queries';
+import type { ApplicationOut, InvoiceOut, KpiOut, PermitOut } from './queries';
 
 let seq = 0;
 const uuid = () => `00000000-0000-4000-8000-${String(++seq).padStart(12, '0')}`;
@@ -64,6 +64,28 @@ export function application(overrides: Partial<ApplicationOut> = {}): Applicatio
     decided_at: null,
     created_at: '2026-04-01T09:00:00+05:00',
     updated_at: '2026-04-01T09:00:00+05:00',
+    ...overrides,
+  };
+}
+
+export function kpi(overrides: Partial<KpiOut> = {}): KpiOut {
+  return {
+    period: { period_from: '2026-09-01', period_to: '2026-09-05' },
+    permits: { issued_count: 0, active_count: 0, previous_issued_count: null },
+    applications: { total_count: 0, by_status: {}, previous_total_count: null },
+    occupancy: { contour_count: 0, avg_occupied_pct: null },
+    sb_load_total: '0',
+    payments: {
+      invoiced_amount: '0',
+      paid_amount: '0',
+      budget_share_amount: '0',
+      recipient_share_amount: '0',
+    },
+    sla: { active_count: 0, overdue_count: 0 },
+    rejections: [],
+    risk_indicators: { by_code: {}, by_level: {} },
+    inspections: { inspections_count: 0, violations_count: 0 },
+    omitted: [],
     ...overrides,
   };
 }

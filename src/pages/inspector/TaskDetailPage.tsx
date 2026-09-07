@@ -10,6 +10,7 @@ import { useAuth } from '../../auth/useAuth';
 import { useT } from '../../i18n/useT';
 import { Button } from '../../components/ui/button';
 import { ApiError } from '../../api/errors';
+import { useApiErrorText } from '../../i18n/useApiErrorText';
 import { INSPECTIONS_TASKS_MANAGE } from './permissions';
 import { formatDate } from './format';
 import { useCancelTask, useStartTask, useTask } from './queries';
@@ -43,6 +44,7 @@ export function TaskDetailPage() {
   const { id } = useParams<{ id: string }>();
   const { me } = useAuth();
   const t = useT();
+  const errorText = useApiErrorText();
   const navigate = useNavigate();
 
   const taskQuery = useTask(id);
@@ -60,9 +62,7 @@ export function TaskDetailPage() {
   if (taskQuery.error || !taskQuery.data) {
     return (
       <div className="py-16 text-center text-sm text-[#991B1B]" data-testid="task-detail-page" role="alert">
-        {taskQuery.error instanceof ApiError
-          ? `${taskQuery.error.code}: ${taskQuery.error.message}`
-          : t('inspector.taskDetail.notFound')}
+        {taskQuery.error instanceof ApiError ? errorText(taskQuery.error) : t('inspector.taskDetail.notFound')}
       </div>
     );
   }
@@ -157,12 +157,12 @@ export function TaskDetailPage() {
 
       {startTask.isError && (
         <p className="text-xs text-[#B91C1C]" role="alert">
-          {startTask.error instanceof ApiError ? `${startTask.error.code}: ${startTask.error.message}` : ''}
+          {startTask.error instanceof ApiError ? errorText(startTask.error) : ''}
         </p>
       )}
       {cancelTask.isError && (
         <p className="text-xs text-[#B91C1C]" role="alert">
-          {cancelTask.error instanceof ApiError ? `${cancelTask.error.code}: ${cancelTask.error.message}` : ''}
+          {cancelTask.error instanceof ApiError ? errorText(cancelTask.error) : ''}
         </p>
       )}
     </div>

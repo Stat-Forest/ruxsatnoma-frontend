@@ -7,7 +7,9 @@ import { FormField, Input, Select } from '../../../components/ui/FormControls';
 import { Alert } from '../../../components/ui/Feedback';
 import { Stepper } from '../../../components/ui/Navigation';
 import { ApiError } from '../../../api/errors';
+import { saveApplicantAddress } from '../../../api/address';
 import { useAuth } from '../../../auth/useAuth';
+import { useApiErrorText } from '../../../i18n/useApiErrorText';
 import {
   addApplicationDocument,
   createApplicationDraft,
@@ -58,7 +60,8 @@ interface LivestockRow {
  * `MyApplicationCardPage` links back here with `?draft=<id>` to resume.
  */
 export function ApplicationWizardPage() {
-  const { me } = useAuth();
+  const { me, refreshMe } = useAuth();
+  const errorText = useApiErrorText();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const resumeId = searchParams.get('draft');
@@ -78,6 +81,32 @@ export function ApplicationWizardPage() {
   const [precheckResult, setPrecheckResult] = useState<PrecheckOut | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [signing, setSigning] = useState(false);
+
+  // Ruling #113: the address requisite is gated at SUBMIT, not at
+  // registration. It belongs to the applicant the filing is FOR — the
+  // signed-in citizen when filing for themselves, the represented legal
+  // entity when filing on its behalf — because requisite 11 of form
+  // 1-ilova prints the holder's address, and the holder is whoever the
+  // permit will name. Asking about `MeOut.applicant` in both cases would
+  // leave a representative unable to file for an entity that has no
+  // address: the backend refuses the submission and the wizard never asks.
+  // An applicant that already has one is never asked again.
+  const [address, setAddress] = useState('');
+  const [addressTouched, setAddressTouched] = useState(false);
+  // Saving the address is its OWN step, not a silent prelude to signing:
+  // `checks.missing_for_pricing` counts a blank address as missing, so the
+  // pre-check that runs on entering step 5 reports every norm check as
+  // `skipped` and computes NO price at all. Signing straight through would
+  // have the citizen put an ERI signature on a package whose cost they were
+  // never shown. So the first press saves the address and re-runs the
+  // pre-check, the price appears, and the second press signs.
+  const [addressSaved, setAddressSaved] = useState(false);
+  const filingApplicant =
+    onBehalf === 'legal'
+      ? (me?.representations.find((r) => r.applicant.id === representationApplicantId)?.applicant ??
+        null)
+      : (me?.applicant ?? null);
+  const needsAddress = filingApplicant !== null && !filingApplicant.address;
 
   const activityTypesQuery = useQuery({ queryKey: ['activity-types'], queryFn: listActivityTypes });
   const livestockTypesQuery = useQuery({ queryKey: ['livestock-types'], queryFn: listLivestockTypes });
@@ -238,17 +267,40 @@ export function ApplicationWizardPage() {
     setSubmitError(null);
     setSigning(true);
     try {
-      const pinfl = me?.applicant?.pinfl;
-      if (!pinfl) {
+      const applicant = me?.applicant;
+      if (!applicant?.pinfl) {
         setSubmitError("ERI bilan imzolash uchun shaxsingizni tasdiqlovchi PINFL topilmadi. Profilni tekshiring.");
         return;
       }
+      if (filingApplicant && !filingApplicant.address && !addressSaved) {
+        if (!address.trim()) {
+          setAddressTouched(true);
+          return;
+        }
+        // Save before signing: requisite 11 of form 1-ilova is printed from
+        // `applicants.address`, so the applicant the permit will name must
+        // carry it before the package is fetched and signed. The signature
+        // itself stays the citizen's own (`applicant.pinfl` above) — a legal
+        // entity has a STIR, not a PINFL, and never signs for itself.
+        // `refreshMe` adopts the result — this route hands back an
+        // `ApplicantOut`, not a whole `MeOut`
+        // (`AuthContextValue.refreshMe`'s own docstring).
+        await saveApplicantAddress(filingApplicant.id, address.trim());
+        setAddressSaved(true);
+        await refreshMe();
+        // The pre-check ran without an address and therefore without a price.
+        // Re-run it now that the application is complete, and stop here — the
+        // citizen sees the amount before the next press signs for it.
+        setPrecheckResult(null);
+        await precheckMutation.mutateAsync();
+        return;
+      }
       const packageBytes = await getApplicationPackage(applicationId);
-      const pkcs7 = await buildMockSignature({ documentBytes: packageBytes, pinfl, fullName: me?.applicant?.name });
+      const pkcs7 = await buildMockSignature({ documentBytes: packageBytes, pinfl: applicant.pinfl, fullName: applicant.name });
       await submitApplication(applicationId, pkcs7);
       navigate(`/my/applications/${applicationId}`);
     } catch (err) {
-      setSubmitError(err instanceof ApiError ? `${err.code}: ${err.message}` : 'Kutilmagan xatolik yuz berdi.');
+      setSubmitError(errorText(err, 'Kutilmagan xatolik yuz berdi.'));
     } finally {
       setSigning(false);
     }
@@ -450,9 +502,7 @@ export function ApplicationWizardPage() {
             )}
             {precheckMutation.isError && (
               <Alert variant="danger">
-                {precheckMutation.error instanceof ApiError
-                  ? `${precheckMutation.error.code}: ${precheckMutation.error.message}`
-                  : 'Tekshiruvda xatolik yuz berdi.'}
+                {errorText(precheckMutation.error, 'Tekshiruvda xatolik yuz berdi.')}
               </Alert>
             )}
             {precheckResult && (
@@ -474,6 +524,28 @@ export function ApplicationWizardPage() {
             )}
           </div>
 
+          {needsAddress && (
+            <div className="bg-white border border-[#E4E7EA] rounded-2xl p-6 shadow-xs space-y-3">
+              <h2 className="text-sm font-bold text-[#1A1F24] uppercase tracking-wider">Manzil</h2>
+              <p className="text-xs text-[#5A646D]">
+                Ruxsatnomada koʻrsatiladigan manzilingiz profilingizda topilmadi — yuborishdan oldin kiriting.
+              </p>
+              <FormField
+                label="Manzil"
+                required
+                htmlFor="applicant-address"
+                error={addressTouched && !address.trim() ? 'Manzil kiritilishi shart.' : undefined}
+              >
+                <Input
+                  id="applicant-address"
+                  value={address}
+                  onChange={(e) => setAddress(e.target.value)}
+                  onBlur={() => setAddressTouched(true)}
+                />
+              </FormField>
+            </div>
+          )}
+
           <div className="bg-white border border-[#E4E7EA] rounded-2xl p-6 shadow-xs space-y-3">
             <h2 className="text-sm font-bold text-[#1A1F24] uppercase tracking-wider">ERI bilan imzolash va yuborish</h2>
             <p className="text-xs text-[#5A646D]">
@@ -490,11 +562,17 @@ export function ApplicationWizardPage() {
               size="lg"
               leftIcon={<ShieldCheck className="w-5 h-5" />}
               isLoading={signing}
-              disabled={hasBlockingCheck || !precheckResult}
+              disabled={
+                hasBlockingCheck ||
+                !precheckResult ||
+                (needsAddress && !addressSaved && !address.trim())
+              }
               onClick={handleSignAndSubmit}
               className="cursor-pointer font-bold"
             >
-              ERI bilan imzolash va yuborish
+              {needsAddress && !addressSaved
+                ? 'Manzilni saqlash va narxni hisoblash'
+                : 'ERI bilan imzolash va yuborish'}
             </Button>
           </div>
         </section>

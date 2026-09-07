@@ -243,5 +243,5 @@ test('a load failure renders an error, not a crash', async () => {
     </MemoryRouter>,
   );
 
-  expect(await screen.findByText('ERR-ACL-001: forbidden')).toBeInTheDocument();
+  expect(await screen.findByText("Bu amal uchun sizda huquq yo'q.")).toBeInTheDocument();
 });

@@ -24,6 +24,7 @@ import { Alert } from '../../../components/ui/Feedback';
 import { Button } from '../../../components/ui/button';
 import { FormField, Input, Select, Textarea } from '../../../components/ui/FormControls';
 import { ApiError } from '../../../api/errors';
+import { useApiErrorText } from '../../../i18n/useApiErrorText';
 import { useCreateTemplate, useSupersedeTemplate } from './queries';
 import {
   TEMPLATE_CHANNELS,
@@ -50,6 +51,7 @@ function hasSubject(channel: string): boolean {
 }
 
 export function TemplateEditor({ template, labels: L, onClose }: TemplateEditorProps) {
+  const errorText = useApiErrorText();
   // The template the NEXT save supersedes. After a successful save it becomes
   // the version that just came back, so saving twice in a row builds v2 then
   // v3 rather than forking two v2s off the same parent.
@@ -178,7 +180,7 @@ export function TemplateEditor({ template, labels: L, onClose }: TemplateEditorP
         {saveError && (
           <Alert variant="danger" title={L.saveError}>
             <span data-testid="template-save-error">
-              {saveError instanceof ApiError ? `${saveError.code}: ${saveError.message}` : String(saveError)}
+              {saveError instanceof ApiError ? errorText(saveError) : String(saveError)}
             </span>
           </Alert>
         )}

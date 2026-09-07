@@ -30,6 +30,17 @@ export default defineConfig({
     // flag defaults off) overrides it locally with `vi.stubEnv`; `unstubEnvs`
     // below is what makes that override local to that one test.
     env: { TZ: 'Asia/Tashkent', VITE_EIMZO_MOCK: 'true' },
+    // Per-session git worktrees live under `.claude/worktrees/` (the root
+    // CLAUDE.md gives each parallel session its own), and each is a FULL
+    // checkout of this repository — so vitest's default include pattern walks
+    // straight into them and runs every other branch's tests as if they were
+    // this one's. Measured on `dev` the day this was added: 794 files / 5461
+    // tests instead of 97 / 632, an eightfold suite made of code that is not
+    // on the branch under test. Nothing failed, which is the dangerous part —
+    // a green run over the wrong tests reads exactly like a green run.
+    // `.claude/` is gitignored, so CI never saw this and never will; it is
+    // purely a local trap, and only for whoever is running parallel sessions.
+    exclude: ['**/node_modules/**', '**/dist/**', '**/.claude/**'],
     // Both restore automatically after every test instead of relying on each
     // test file to remember its own `afterEach`: `restoreMocks` puts every
     // `vi.spyOn` back to its original implementation (a `navigation.assign`

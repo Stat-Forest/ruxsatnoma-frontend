@@ -20,6 +20,7 @@ import { Button } from '../../../components/ui/button';
 import { Textarea } from '../../../components/ui/FormControls';
 import { Drawer } from '../../../components/ui/Overlay';
 import { ApiError } from '../../../api/errors';
+import { useApiErrorText } from '../../../i18n/useApiErrorText';
 import { useT } from '../../../i18n/useT';
 import { formatDateTime } from '../format';
 import type { TicketMessageOut, TicketStatus, TicketWithMessagesOut } from './api';
@@ -40,6 +41,7 @@ export interface TicketDetailPanelProps {
 
 export function TicketDetailPanel({ ticketId, canManage, onClose }: TicketDetailPanelProps) {
   const t = useT();
+  const errorText = useApiErrorText();
   const detail = useTicket(ticketId);
 
   return (
@@ -48,7 +50,7 @@ export function TicketDetailPanel({ ticketId, canManage, onClose }: TicketDetail
         <p className="py-8 text-center text-sm text-[#5A646D]">{t('support.common.loading')}</p>
       ) : detail.error ? (
         <p className="py-8 text-center text-sm text-[#991B1B]" role="alert">
-          {detail.error instanceof ApiError ? `${detail.error.code}: ${detail.error.message}` : t('support.tickets.loadFailed')}
+          {detail.error instanceof ApiError ? errorText(detail.error) : t('support.tickets.loadFailed')}
         </p>
       ) : detail.data ? (
         <TicketDetail ticket={detail.data} canManage={canManage} />
@@ -59,6 +61,7 @@ export function TicketDetailPanel({ ticketId, canManage, onClose }: TicketDetail
 
 function TicketDetail({ ticket, canManage }: { ticket: TicketWithMessagesOut; canManage: boolean }) {
   const t = useT();
+  const errorText = useApiErrorText();
   const { me } = useAuth();
   const [reply, setReply] = useState('');
 
@@ -84,7 +87,7 @@ function TicketDetail({ ticket, canManage }: { ticket: TicketWithMessagesOut; ca
 
       {actionFailure && (
         <Alert variant="danger">
-          {actionFailure instanceof ApiError ? `${actionFailure.code}: ${actionFailure.message}` : t('support.tickets.actionFailed')}
+          {actionFailure instanceof ApiError ? errorText(actionFailure) : t('support.tickets.actionFailed')}
         </Alert>
       )}
 

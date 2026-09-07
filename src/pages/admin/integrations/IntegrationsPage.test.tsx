@@ -281,7 +281,7 @@ test('a refused action is reported instead of passing for success', async () => 
   await user.click(within(confirm).getByRole('button', { name: 'Ha, navbatga qaytarilsin' }));
 
   const error = await screen.findByTestId('action-error');
-  expect(error).toHaveTextContent('ERR-VAL-001');
+  expect(error).toHaveTextContent("Kiritilgan ma'lumotlarni tekshirishda xatolik.");
 });
 
 test('a failed list load says so rather than showing an empty table', async () => {
@@ -294,7 +294,9 @@ test('a failed list load says so rather than showing an empty table', async () =
 
   renderPage();
 
-  expect(await screen.findByTestId('list-error')).toHaveTextContent('ERR-AUTH-004');
+  expect(await screen.findByTestId('list-error')).toHaveTextContent(
+    'Elektron raqamli imzo sertifikatining muddati tugagan yoki bekor qilingan.',
+  );
 });
 
 test('only the routes own filters are offered, and applying one reaches the API', async () => {

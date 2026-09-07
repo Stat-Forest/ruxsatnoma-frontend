@@ -3,6 +3,7 @@ import { Modal } from '../../../components/ui/Overlay';
 import { Button } from '../../../components/ui/button';
 import { Checkbox, FormField, Input, Textarea } from '../../../components/ui/FormControls';
 import { ApiError } from '../../../api/errors';
+import { useApiErrorText } from '../../../i18n/useApiErrorText';
 import { pickName } from '../../applicant/format';
 import type { RegionOut, RoleAdminOut } from '../api';
 import {
@@ -149,6 +150,7 @@ interface AnnouncementFormProps extends AnnouncementFormModalProps {
 
 function AnnouncementForm({ announcementId, initial, roles, regions, lang, L, onClose }: AnnouncementFormProps) {
   const isEdit = announcementId !== null;
+  const toErrorText = useApiErrorText();
   const create = useCreateAnnouncement();
   const patch = usePatchAnnouncement(announcementId);
 
@@ -159,7 +161,7 @@ function AnnouncementForm({ announcementId, initial, roles, regions, lang, L, on
   const failure = create.error ?? patch.error;
   const errorText =
     validationError ??
-    (failure instanceof ApiError ? `${failure.code}: ${failure.message}` : failure ? failure.message : null);
+    (failure instanceof ApiError ? toErrorText(failure) : failure ? failure.message : null);
 
   function setTitle(code: BackendLanguage, value: string) {
     setForm((f) => ({ ...f, title: { ...f.title, [code]: value } }));

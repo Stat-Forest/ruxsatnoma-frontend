@@ -6,6 +6,7 @@ import { http, HttpResponse } from 'msw';
 import { setupServer } from 'msw/node';
 import { AuthContext } from '../../../auth/AuthContext';
 import type { AuthContextValue } from '../../../auth/AuthContext';
+import { I18nContext } from '../../../i18n/context';
 import { LayersTab } from './LayersTab';
 
 const t = (key: string) => key;
@@ -42,9 +43,12 @@ function renderTab(permissions: string[]) {
     registration_complete: true,
   };
   const authValue = { me, loading: false, authError: null } as unknown as AuthContextValue;
+  const i18n = { lang: 'uz_latn' as const, backendLang: 'uz_latn' as const, t, setLanguage: async () => {} };
   const wrapper = ({ children }: { children: ReactNode }) => (
     <QueryClientProvider client={client}>
-      <AuthContext.Provider value={authValue}>{children}</AuthContext.Provider>
+      <I18nContext.Provider value={i18n}>
+        <AuthContext.Provider value={authValue}>{children}</AuthContext.Provider>
+      </I18nContext.Provider>
     </QueryClientProvider>
   );
   return render(<LayersTab t={t} />, { wrapper });

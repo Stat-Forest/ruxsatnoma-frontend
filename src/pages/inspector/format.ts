@@ -27,20 +27,19 @@ export function formatDateTime(value: string | null | undefined): string {
   );
 }
 
-/** A `LocalizedName`-shaped map (`{uz_cyrl, ru, ...}`) picked for the UI
- *  language in use — the same fallback chain `permits/format.ts`'s own
- *  `pickLocalizedName` (in turn copied from `AppShell.tsx`) uses: the
- *  logic only ever distinguishes `'ru'` from "not ru", so widening the
- *  accepted `lang` union to the app's full five-language set costs nothing
- *  and lets a caller pass `I18nContext`'s `lang` (`'uz_latn' | 'ru'`)
- *  without a cast. */
+/** A `LocalizedName`-shaped map (`{uz_latn, uz_cyrl, ru, ...}`) picked for
+ *  the UI language in use. F14 (`docs/plans/07.3-findings.md`): this used to
+ *  return `uz_cyrl` for every `lang` other than `'ru'`, `permits/format.ts`'s
+ *  own stale preference copied verbatim — wrong since decision #90 made
+ *  `uz_latn` the REQUIRED field of every `LocalizedName` (backfilled first),
+ *  so a `uz_latn` caller is owed their own field. */
 export function pickLocalizedName(
   name: Record<string, unknown> | undefined,
   lang: 'uz_latn' | 'uz_cyrl' | 'ru' | 'en',
 ): string {
   if (!name) return '';
-  const preferred = lang === 'ru' ? name.ru : name.uz_cyrl;
-  const candidate = preferred ?? name.ru ?? name.uz_cyrl ?? Object.values(name)[0];
+  const preferred = lang === 'ru' ? name.ru : lang === 'uz_cyrl' ? name.uz_cyrl : name.uz_latn;
+  const candidate = preferred ?? name.uz_latn ?? name.uz_cyrl ?? name.ru ?? Object.values(name)[0];
   return typeof candidate === 'string' ? candidate : '';
 }
 
@@ -64,4 +63,27 @@ export function formatMoney(value: string | null | undefined): string {
     return `${withSeparators},${fraction.slice(0, 2)}`;
   }
   return withSeparators;
+}
+
+/** A decimal quantity (area, SB load) — trims trailing zeros the same way
+ *  the backend's own `_trim_decimal` does, so `"42.6000"` reads as `"42,6"`.
+ *  Copied from `permits/format.ts::formatDecimal` (F17, this file's own
+ *  header). */
+export function formatDecimal(value: string | null | undefined): string | null {
+  if (value == null) return null;
+  const trimmed = value.includes('.') ? value.replace(/0+$/, '').replace(/\.$/, '') : value;
+  return (trimmed || '0').replace('.', ',');
+}
+
+/** The permit's own display number: `"А"` + `4182` -> `"А № 004182"`. Copied
+ *  from `permits/format.ts::formatPermitNumber` (F17). */
+export function formatPermitNumber(series: string, number: number): string {
+  return `${series} № ${String(number).padStart(6, '0')}`;
+}
+
+/** A UUID, shortened for display where the full value only adds noise.
+ *  Copied from `permits/format.ts::shortId` (F17). */
+export function shortId(value: string | null | undefined): string {
+  if (!value) return '—';
+  return value.slice(0, 8);
 }

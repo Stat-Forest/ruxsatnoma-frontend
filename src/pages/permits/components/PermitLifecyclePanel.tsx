@@ -2,6 +2,9 @@ import { useRef, useState } from 'react';
 import { AlertTriangle, Ban, PauseCircle, PlayCircle, Upload } from 'lucide-react';
 import { useMutation } from '@tanstack/react-query';
 import { useAuth } from '../../../auth/useAuth';
+import { apiErrorMessage } from '../../../i18n/errorMessages';
+import type { UiLanguage } from '../../../i18n/context';
+import { useApiErrorText } from '../../../i18n/useApiErrorText';
 import { useLanguage, useT } from '../../../i18n/useT';
 import { Button } from '../../../components/ui/button';
 import { Modal } from '../../../components/ui/Overlay';
@@ -44,7 +47,7 @@ const ACT_SUBMIT_KEY: Record<LifecycleAct, string> = {
 /** Every reason `POST /permits/{id}/{suspend,resume,revoke}` documents
  *  refusing (`lifecycle_router.py`, `decisions.decide`), turned into copy
  *  an operator can act on. */
-function lifecycleErrorMessage(t: (key: string) => string, err: ApiError): string {
+function lifecycleErrorMessage(t: (key: string) => string, err: ApiError, lang: UiLanguage): string {
   const reason = (err.details as { reason?: string } | undefined)?.reason;
   if (err.code === 'ERR-VAL-001') {
     if (reason === 'doc_file_required') return t('permits.lifecycle.errDocRequired');
@@ -58,7 +61,7 @@ function lifecycleErrorMessage(t: (key: string) => string, err: ApiError): strin
   if (err.code === 'ERR-ACL-002') return t('permits.lifecycle.errWrongZone');
   if (err.code === 'ERR-ACL-001') return t('permits.lifecycle.errWrongSigner');
   if (err.code === 'ERR-SIGN-001') return t('permits.lifecycle.errSignatureInvalid');
-  return err.message;
+  return apiErrorMessage(err, lang);
 }
 
 function useLifecycleMutationFor(act: LifecycleAct, permitId: string) {
@@ -79,6 +82,7 @@ function LifecycleDecisionModal({
 }) {
   const t = useT();
   const { lang } = useLanguage();
+  const errorText = useApiErrorText();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [reasonItemId, setReasonItemId] = useState('');
   const [legalBasis, setLegalBasis] = useState('');
@@ -110,7 +114,7 @@ function LifecycleDecisionModal({
       const uploaded = await uploadMutation.mutateAsync(file);
       setDocFile({ id: uploaded.id, name: file.name });
     } catch (err) {
-      setUploadError(err instanceof ApiError ? `${err.code}: ${err.message}` : t('permits.lifecycle.errUploadFailed'));
+      setUploadError(errorText(err, t('permits.lifecycle.errUploadFailed')));
     }
   }
 
@@ -238,8 +242,7 @@ function LifecycleDecisionModal({
 
         {apiError && (
           <div className="p-3 bg-[#FEF2F2] border border-[#FCA5A5] rounded-xl text-xs text-[#991B1B] space-y-1">
-            <p className="font-bold">{apiError.code}</p>
-            <p>{lifecycleErrorMessage(t, apiError)}</p>
+            <p>{lifecycleErrorMessage(t, apiError, lang)}</p>
           </div>
         )}
       </div>

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Loader2, ShieldCheck } from 'lucide-react';
 import { Alert } from '../../../components/ui/Feedback';
 import { ApiError } from '../../../api/errors';
+import { useApiErrorText } from '../../../i18n/useApiErrorText';
 import { useLanguage } from '../../../i18n/useT';
 import { labels } from './labels';
 import { PermissionMatrix } from './PermissionMatrix';
@@ -22,6 +23,7 @@ import { usePermissions, useRoles } from './queries';
  */
 export function RolesPage() {
   const { lang } = useLanguage();
+  const errorText = useApiErrorText();
   const L = labels[lang];
   const roles = useRoles();
   const permissions = usePermissions();
@@ -41,7 +43,7 @@ export function RolesPage() {
       {loadError != null && (
         <div data-testid="roles-error">
           <Alert variant="danger" title={L.loadError}>
-            {loadError instanceof ApiError ? `${loadError.code}: ${loadError.message}` : String(loadError)}
+            {loadError instanceof ApiError ? errorText(loadError) : String(loadError)}
           </Alert>
         </div>
       )}

@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { HelpCircle, MessageCircleQuestion, Undo2 } from 'lucide-react';
 import { useAuth } from '../../../auth/useAuth';
-import { useT } from '../../../i18n/useT';
+import { useApiErrorText } from '../../../i18n/useApiErrorText';
+import { useLanguage, useT } from '../../../i18n/useT';
 import { Button } from '../../../components/ui/button';
 import { Modal } from '../../../components/ui/Overlay';
 import { Checkbox, FormField, Select, Textarea } from '../../../components/ui/FormControls';
@@ -37,6 +38,7 @@ const FIELD_OPTIONS: { key: string; labelKey: string }[] = [
 
 function RequestInfoModal({ applicationId, onClose }: { applicationId: string; onClose: () => void }) {
   const t = useT();
+  const errorText = useApiErrorText();
   const [message, setMessage] = useState('');
   const mutation = useRequestInfo(applicationId);
   const apiError = mutation.error instanceof ApiError ? mutation.error : null;
@@ -74,7 +76,7 @@ function RequestInfoModal({ applicationId, onClose }: { applicationId: string; o
         </FormField>
         {apiError && (
           <p className="text-xs text-[#B91C1C]" role="alert">
-            {apiError.code}: {apiError.message}
+            {errorText(apiError)}
           </p>
         )}
       </div>
@@ -84,6 +86,8 @@ function RequestInfoModal({ applicationId, onClose }: { applicationId: string; o
 
 function ReturnModal({ applicationId, onClose }: { applicationId: string; onClose: () => void }) {
   const t = useT();
+  const { lang } = useLanguage();
+  const errorText = useApiErrorText();
   const [reasonItemId, setReasonItemId] = useState('');
   const [legalBasis, setLegalBasis] = useState('');
   const [fields, setFields] = useState<Record<string, string>>({});
@@ -151,7 +155,7 @@ function ReturnModal({ applicationId, onClose }: { applicationId: string; onClos
             onChange={(e) => setReasonItemId(e.target.value)}
             options={[
               { value: '', label: t('staff.infoRequest.selectPlaceholder') },
-              ...returnable.map((r) => ({ value: r.id, label: localizedName(r.name) || r.code })),
+              ...returnable.map((r) => ({ value: r.id, label: localizedName(r.name, lang) || r.code })),
             ]}
           />
         </FormField>
@@ -185,7 +189,7 @@ function ReturnModal({ applicationId, onClose }: { applicationId: string; onClos
         </div>
         {apiError && (
           <p className="text-xs text-[#B91C1C]" role="alert">
-            {apiError.code}: {apiError.message}
+            {errorText(apiError)}
           </p>
         )}
       </div>

@@ -8,6 +8,7 @@ import { useState } from 'react';
 import { DataTable, type Column } from '../../../components/ui/DataTable';
 import { FormField, Select } from '../../../components/ui/FormControls';
 import { ApiError } from '../../../api/errors';
+import { useApiErrorText } from '../../../i18n/useApiErrorText';
 import { useT } from '../../../i18n/useT';
 import { formatDateTime } from '../format';
 import type { AppealAdminOut, AppealStatus } from './api';
@@ -26,6 +27,7 @@ const STATUS_LABEL_KEY: Record<AppealStatus, string> = {
 
 export function AppealsTab() {
   const t = useT();
+  const errorText = useApiErrorText();
   const [status, setStatus] = useState<AppealStatus | ''>('');
   const [page, setPage] = useState(1);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -81,7 +83,7 @@ export function AppealsTab() {
 
       {list.error && (
         <div role="alert" data-testid="appeals-error" className="rounded-2xl border border-[#FCA5A5] bg-[#FEF2F2] p-4 text-sm text-[#991B1B]">
-          {list.error instanceof ApiError ? `${list.error.code}: ${list.error.message}` : t('support.appeals.loadFailed')}
+          {list.error instanceof ApiError ? errorText(list.error) : t('support.appeals.loadFailed')}
         </div>
       )}
 
