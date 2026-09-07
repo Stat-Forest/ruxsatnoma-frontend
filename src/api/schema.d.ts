@@ -396,6 +396,28 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/refs/activity-types/{activity_type_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Update Activity Type
+         * @description Ruling #139: the only write the hard catalog offers. `admin.classifiers.manage`,
+         *     the same grant the other reference edits carry — this router's own module-level
+         *     `get_current_user` dependency is a read gate and is not enough for a write.
+         */
+        patch: operations["update_activity_type_api_v1_refs_activity_types__activity_type_id__patch"];
+        trace?: never;
+    };
     "/api/v1/refs/livestock-types": {
         parameters: {
             query?: never;
@@ -5132,6 +5154,28 @@ export interface components {
             quantity_unit: string;
             /** Status */
             status: string;
+            /** Description */
+            description: {
+                [key: string]: unknown;
+            } | null;
+            /** Processing Days */
+            processing_days: number;
+        };
+        /**
+         * ActivityTypePatch
+         * @description Ruling #139: presentation and the on/off switch. Never `code` (tariffs and
+         *     the calculator resolve by it) and never `quantity_unit` (a CHECK-constrained
+         *     enum the price arithmetic depends on).
+         */
+        ActivityTypePatch: {
+            name?: components["schemas"]["LocalizedName"] | null;
+            description?: components["schemas"]["LocalizedName"] | null;
+            /** Processing Days */
+            processing_days?: number | null;
+            /** Sort Order */
+            sort_order?: number | null;
+            /** Status */
+            status?: ("active" | "archived") | null;
         };
         /** AddRepresentationIn */
         AddRepresentationIn: {
@@ -9198,14 +9242,21 @@ export interface components {
         /**
          * PublicActivityTypeOut
          * @description A narrowed `admin.schemas.ActivityTypeOut` for `GET
-         *     /public/refs/activity-types`: only what a dropdown needs — `id`, `code`
-         *     (the front-end's own hook for "this is grazing", so it can decide whether
-         *     to render herd inputs) and `name`. Never `quantity_unit`/`status`, which
-         *     the general, authenticated `/refs/*` router already answers and this
-         *     anonymous surface has no reason to repeat. `name` carries whatever
-         *     languages the row has — `uz_latn` since migration `0032`'s backfill
-         *     (decision #90, closing `tz/12` #31's backend half) — returned as-is,
-         *     never invented.
+         *     /public/refs/activity-types`: only what the public catalog needs — `id`,
+         *     `code` (the front-end's own hook for "this is grazing", so it can decide
+         *     whether to render herd inputs), `name`, `description` and
+         *     `processing_days`. Never `quantity_unit`/`status`, which the general,
+         *     authenticated `/refs/*` router already answers and this anonymous
+         *     surface has no reason to repeat. `name` carries whatever languages the
+         *     row has — `uz_latn` since migration `0032`'s backfill (decision #90,
+         *     closing `tz/12` #31's backend half) — returned as-is, never invented.
+         *
+         *     `description`/`processing_days` ARE public (ruling #138), unlike
+         *     `quantity_unit`/`status` above: they are the shop-window copy — what the
+         *     landing site shows a citizen deciding which service to apply for — and
+         *     the landing is their only consumer. `description` may be NULL (a row
+         *     with no seeded copy yet, migration `0038`'s own docstring); `processing_days`
+         *     is DISPLAY ONLY, never the enforced deadline (`applications.service.SLA_DAYS`).
          */
         PublicActivityTypeOut: {
             /**
@@ -9219,6 +9270,12 @@ export interface components {
             name: {
                 [key: string]: unknown;
             };
+            /** Description */
+            description: {
+                [key: string]: unknown;
+            } | null;
+            /** Processing Days */
+            processing_days: number;
         };
         /**
          * PublicCheckCard
@@ -12075,6 +12132,41 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ActivityTypeOut"][];
+                };
+            };
+        };
+    };
+    update_activity_type_api_v1_refs_activity_types__activity_type_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                activity_type_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ActivityTypePatch"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ActivityTypeOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

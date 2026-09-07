@@ -21,6 +21,7 @@ import {
   ShieldAlert,
   ShieldCheck,
   Stamp,
+  Trees,
   User,
   Users,
   Wallet,
@@ -169,6 +170,12 @@ export const NAVIGATION: NavItem[] = [
   { to: '/admin/roles', labelKey: 'nav.roles', permission: 'auth.users.manage', icon: ShieldCheck },
   { to: '/admin/organizations', labelKey: 'nav.organizations', permission: 'admin.organizations.manage', icon: Building2 },
   { to: '/admin/classifiers', labelKey: 'nav.classifiers', permission: 'admin.classifiers.manage', icon: BookMarked },
+  // Ruling #139 (stage 7.7): the six `activity_types` rows are fixed by law —
+  // this screen edits copy and switches one off, never adds or removes one.
+  // Same permission as `/admin/classifiers` above: `PATCH
+  // /refs/activity-types/{id}` is gated on `admin.classifiers.manage`
+  // (`refs_router.py`), not a permission of its own.
+  { to: '/admin/activities', labelKey: 'nav.activityTypes', permission: 'admin.classifiers.manage', icon: Trees },
   { to: '/admin/settings', labelKey: 'nav.settings', permission: 'admin.settings.manage', icon: Settings },
   { to: '/admin/announcements', labelKey: 'nav.announcements', permission: 'admin.announcements.manage', icon: Megaphone },
   { to: '/admin/notification-templates', labelKey: 'nav.templates', permission: 'notifications.templates.manage', icon: MailPlus },

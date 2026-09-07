@@ -22,6 +22,7 @@ export const uz_latn = {
   'nav.roles': 'Rollar va huquqlar',
   'nav.organizations': 'Tashkilotlar',
   'nav.classifiers': 'Klassifikatorlar',
+  'nav.activityTypes': 'Xizmatlar katalogi',
   'nav.settings': 'Tizim sozlamalari',
   'nav.announcements': "E'lonlar",
   'nav.templates': 'Bildirishnoma shablonlari',
@@ -1655,4 +1656,38 @@ export const uz_latn = {
   'archive.newItemModal.submit': "Arxivlash",
   'archive.newItemModal.cancel': "Bekor qilish",
   'archive.newItemModal.error': "Obyektni arxivlab boʻlmadi",
+
+  // --- Stage 7.7 (H-services): activity types catalog, `pages/admin/activities/` ---
+  // Rulings #138/#139/#139a: `PATCH` only, no add/delete; archiving closes the
+  // service everywhere the same `status = 'active'` filter feeds (the landing,
+  // the price calculator, the application wizard).
+  'activityTypes.title': 'Xizmatlar katalogi',
+  'activityTypes.subtitle':
+    "Oʻrmon fondidan foydalanishning oltita turi qonun bilan belgilangan — bu yerda ular qoʻshilmaydi yoki oʻchirib tashlanmaydi: faqat nomi, tavsifi va muddati tahrirlanadi, yoki xizmat butunlay yopiladi.",
+  'activityTypes.loading': 'Yuklanmoqda…',
+  'activityTypes.loadError': "Roʻyxatni yuklab boʻlmadi.",
+  'activityTypes.termLabel': 'Muddat',
+  'activityTypes.termDays': 'kun',
+  'activityTypes.descriptionEmpty': 'Tavsif kiritilmagan',
+  'activityTypes.actionEdit': 'Tahrirlash',
+  'activityTypes.editTitle': 'Xizmatni tahrirlash',
+  'activityTypes.fieldNameUz': 'Nomi (uz)',
+  'activityTypes.fieldNameRu': 'Nomi (ru)',
+  'activityTypes.fieldDescriptionUz': 'Tavsif (uz)',
+  'activityTypes.fieldDescriptionRu': 'Tavsif (ru)',
+  'activityTypes.fieldProcessingDays': 'Muddat (kun)',
+  'activityTypes.save': 'Saqlash',
+  'activityTypes.cancel': 'Bekor qilish',
+  'activityTypes.errNameRequiresUzLatn':
+    "Nomi: uz_latn (oʻzbekcha lotin) tili boʻsh boʻlishi mumkin emas.",
+  'activityTypes.errDescriptionRequiresUzLatn':
+    "Tavsif: uz_latn (oʻzbekcha lotin) tili boʻsh boʻlishi mumkin emas.",
+  'activityTypes.errProcessingDays': "Muddat musbat butun son boʻlishi kerak.",
+  'activityTypes.saveError': "Saqlab boʻlmadi.",
+  'activityTypes.archiveTitle': "Xizmatni oʻchirish",
+  'activityTypes.archiveBody':
+    "Bu xizmat bosh sahifada, narx kalkulyatorida va ariza shaklida koʻrinmay qoladi — bu xizmat boʻyicha yangi ariza berish ham yopiladi.",
+  'activityTypes.archiveConfirm': 'Tasdiqlash',
+  'activityTypes.archiveCancel': 'Bekor qilish',
+  'activityTypes.archiveError': "Xizmatni oʻchirib boʻlmadi.",
 };

@@ -8,6 +8,7 @@ import { LoginPage } from './pages/LoginPage';
 import { OneIdReturnPage } from './pages/OneIdReturnPage';
 import { UsersPage } from './pages/UsersPage';
 import { AnnouncementsPage } from './pages/admin/announcements/AnnouncementsPage';
+import { ActivityTypesPage } from './pages/admin/activities/ActivityTypesPage';
 import { ClassifiersPage } from './pages/admin/classifiers/ClassifiersPage';
 import { IntegrationsPage } from './pages/admin/integrations/IntegrationsPage';
 import { OrganizationsPage } from './pages/admin/organizations/OrganizationsPage';
@@ -71,6 +72,7 @@ const CHILD_PAGES: Record<string, ReactNode> = {
   '/admin/roles': <RolesPage />,
   '/admin/organizations': <OrganizationsPage />,
   '/admin/classifiers': <ClassifiersPage />,
+  '/admin/activities': <ActivityTypesPage />,
   '/admin/settings': <SettingsPage />,
   '/admin/announcements': <AnnouncementsPage />,
   '/admin/notification-templates': <TemplatesPage />,

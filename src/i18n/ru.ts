@@ -18,6 +18,7 @@ export const ru = {
   'nav.roles': 'Роли и права',
   'nav.organizations': 'Организации',
   'nav.classifiers': 'Классификаторы',
+  'nav.activityTypes': 'Каталог услуг',
   'nav.settings': 'Системные настройки',
   'nav.announcements': 'Объявления',
   'nav.templates': 'Шаблоны уведомлений',
@@ -1648,4 +1649,35 @@ export const ru = {
   'archive.newItemModal.submit': 'Архивировать',
   'archive.newItemModal.cancel': 'Отмена',
   'archive.newItemModal.error': 'Не удалось архивировать объект',
+
+  // --- Stage 7.7 (H-services): activity types catalog, `pages/admin/activities/` ---
+  'activityTypes.title': 'Каталог услуг',
+  'activityTypes.subtitle':
+    'Шесть видов пользования лесным фондом закреплены законом — их нельзя добавить или удалить: можно только изменить название, описание и срок либо полностью отключить услугу.',
+  'activityTypes.loading': 'Загрузка…',
+  'activityTypes.loadError': 'Не удалось загрузить список.',
+  'activityTypes.termLabel': 'Срок',
+  'activityTypes.termDays': 'дней',
+  'activityTypes.descriptionEmpty': 'Описание не заполнено',
+  'activityTypes.actionEdit': 'Редактировать',
+  'activityTypes.editTitle': 'Редактирование услуги',
+  'activityTypes.fieldNameUz': 'Название (uz)',
+  'activityTypes.fieldNameRu': 'Название (ru)',
+  'activityTypes.fieldDescriptionUz': 'Описание (uz)',
+  'activityTypes.fieldDescriptionRu': 'Описание (ru)',
+  'activityTypes.fieldProcessingDays': 'Срок (дней)',
+  'activityTypes.save': 'Сохранить',
+  'activityTypes.cancel': 'Отмена',
+  'activityTypes.errNameRequiresUzLatn':
+    'Название: язык uz_latn (узбекский, латиница) не может быть пустым.',
+  'activityTypes.errDescriptionRequiresUzLatn':
+    'Описание: язык uz_latn (узбекский, латиница) не может быть пустым.',
+  'activityTypes.errProcessingDays': 'Срок должен быть положительным целым числом.',
+  'activityTypes.saveError': 'Не удалось сохранить.',
+  'activityTypes.archiveTitle': 'Отключить услугу',
+  'activityTypes.archiveBody':
+    'Эта услуга исчезнет с главной страницы, из калькулятора цены и из формы заявки — новые заявки по ней тоже перестанут приниматься.',
+  'activityTypes.archiveConfirm': 'Подтвердить',
+  'activityTypes.archiveCancel': 'Отмена',
+  'activityTypes.archiveError': 'Не удалось отключить услугу.',
 };
