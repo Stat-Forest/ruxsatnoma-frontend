@@ -26,6 +26,7 @@ export const uz_latn = {
   'nav.activityTypes': 'Xizmatlar katalogi',
   'nav.settings': 'Tizim sozlamalari',
   'nav.announcements': "E'lonlar",
+  'nav.legalDocuments': 'Normativ hujjatlar',
   'nav.templates': 'Bildirishnoma shablonlari',
   'nav.integrations': 'Integratsiyalar',
   'nav.notifications': 'Bildirishnomalar',
