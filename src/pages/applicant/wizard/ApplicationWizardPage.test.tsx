@@ -77,7 +77,7 @@ function authValue(language: string): AuthContextValue {
   },
   loading: false,
   authError: null,
-  requestMfa: vi.fn(),
+  submitPassword: vi.fn(),
   verifyMfa: vi.fn(),
   startOneId: vi.fn(),
   loginViaEimzo: vi.fn(),

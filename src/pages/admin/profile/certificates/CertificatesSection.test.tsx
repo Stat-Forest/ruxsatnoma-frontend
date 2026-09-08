@@ -24,7 +24,7 @@ function renderSection() {
     me: { user: { full_name: 'Aliyev Vali' } },
     loading: false,
     authError: null,
-    requestMfa: async () => {},
+    submitPassword: async () => 'mfa-required',
     verifyMfa: async () => {},
     startOneId: async () => {},
     loginViaEimzo: async () => {},

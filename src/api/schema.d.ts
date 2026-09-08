@@ -82,7 +82,14 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Login */
+        /**
+         * Login
+         * @description Password step — and, while `mfa_enabled` is off, the whole login.
+         *
+         *     With the switch off there is no second step to send the client to: the
+         *     session is opened here and its cookies ride this response, exactly as
+         *     /auth/mfa/verify would have set them.
+         */
         post: operations["login_api_v1_auth_login_post"];
         delete?: never;
         options?: never;
@@ -7110,7 +7117,7 @@ export interface components {
             /** Email */
             email?: string | null;
             /** Otp Token */
-            otp_token: string;
+            otp_token?: string | null;
         };
         /**
          * ContourCardOut
@@ -8151,12 +8158,21 @@ export interface components {
             /** Password */
             password: string;
         };
-        /** LoginOut */
+        /**
+         * LoginOut
+         * @description Answer to the password step, in one of two shapes.
+         *
+         *     MFA on: `mfa_required` true, `mfa_token` set, `me` null — the client must
+         *     still call /auth/mfa/verify. MFA off (`mfa_enabled`): `mfa_required` false,
+         *     `mfa_token` null, `me` set — the session cookies are already on THIS
+         *     response and there is no second step to take.
+         */
         LoginOut: {
             /** Mfa Required */
             mfa_required: boolean;
             /** Mfa Token */
-            mfa_token: string;
+            mfa_token?: string | null;
+            me?: components["schemas"]["MeOut"] | null;
         };
         /**
          * ManualConfirmationIn

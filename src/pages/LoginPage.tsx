@@ -49,7 +49,7 @@ function storedMethod(): Method {
 }
 
 export function LoginPage() {
-  const { requestMfa, verifyMfa, startOneId, loginViaEimzo } = useAuth();
+  const { submitPassword, verifyMfa, startOneId, loginViaEimzo } = useAuth();
   const t = useT();
   const navigate = useNavigate();
   const location = useLocation();
@@ -86,7 +86,14 @@ export function LoginPage() {
     setErrorKind(null);
     setSubmitting(true);
     try {
-      await requestMfa(loginId, password);
+      // Only the server knows whether a second factor is still in force
+      // (`mfa_enabled`). When it is off the session already exists by the time
+      // this resolves, so showing the code screen would strand a signed-in user
+      // in front of a field nothing checks.
+      if ((await submitPassword(loginId, password)) === 'signed-in') {
+        navigate(next, { replace: true });
+        return;
+      }
       setStep('code');
     } catch (err) {
       setErrorKind(classify(err));
