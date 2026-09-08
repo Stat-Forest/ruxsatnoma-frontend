@@ -28,7 +28,7 @@ function renderSection(applyMe: (me: unknown) => void = () => {}) {
     },
     loading: false,
     authError: null,
-    requestMfa: async () => {},
+    submitPassword: async () => 'mfa-required',
     verifyMfa: async () => {},
     startOneId: async () => {},
     loginViaEimzo: async () => {},

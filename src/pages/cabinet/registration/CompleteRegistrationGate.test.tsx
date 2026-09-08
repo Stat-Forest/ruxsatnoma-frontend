@@ -29,7 +29,7 @@ function renderGate(applyMe: (me: unknown) => void = () => {}, logout: () => Pro
     me: null,
     loading: false,
     authError: null,
-    requestMfa: async () => {},
+    submitPassword: async () => 'mfa-required',
     verifyMfa: async () => {},
     startOneId: async () => {},
     loginViaEimzo: async () => {},
