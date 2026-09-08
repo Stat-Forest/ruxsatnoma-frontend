@@ -396,6 +396,28 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/refs/activity-types/{activity_type_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Update Activity Type
+         * @description Ruling #139: the only write the hard catalog offers. `admin.classifiers.manage`,
+         *     the same grant the other reference edits carry — this router's own module-level
+         *     `get_current_user` dependency is a read gate and is not enough for a write.
+         */
+        patch: operations["update_activity_type_api_v1_refs_activity_types__activity_type_id__patch"];
+        trace?: never;
+    };
     "/api/v1/refs/livestock-types": {
         parameters: {
             query?: never;
@@ -3499,6 +3521,31 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/permits/{permit_id}/rating": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Rate Permit
+         * @description The citizen's verdict on their own issued permit, 1-5, once (ruling #140).
+         *
+         *     404 `ERR-SYS-003` for a stranger — the card's own answer, so this route is
+         *     not a permit-existence oracle. 403 `ERR-ACL-001` for a caller who can READ
+         *     the permit (a required signer, a `permits.view_any` holder) but is not its
+         *     holder. 409 `ERR-PERM-001` for a permit not yet issued, or already rated.
+         */
+        post: operations["rate_permit_api_v1_permits__permit_id__rating_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/permits/{permit_id}/suspend": {
         parameters: {
             query?: never;
@@ -3673,6 +3720,52 @@ export interface paths {
          *     already open against this permit.
          */
         post: operations["extend_permit_api_v1_permits__permit_id__extend_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/ratings/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Ratings Summary
+         * @description The overall average and count over the caller's own zone
+         *     (`app.core.abac.zone_filter`, all three axes: region, district AND
+         *     organization — never `organization_id` alone, the finding
+         *     `dashboard.repo.permits_kpi` already closed), plus the same pair broken
+         *     down by organization and by activity type. `organization_id`/
+         *     `activity_type_id` narrow the zone further; neither widens it.
+         */
+        get: operations["get_ratings_summary_api_v1_admin_ratings_summary_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/ratings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Ratings
+         * @description The anonymous comment feed: date, service, leshoz, score, text — never
+         *     who left it. Zone-scoped the same way the summary above is.
+         */
+        get: operations["list_ratings_api_v1_admin_ratings_get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -5155,6 +5248,28 @@ export interface components {
             quantity_unit: string;
             /** Status */
             status: string;
+            /** Description */
+            description: {
+                [key: string]: unknown;
+            } | null;
+            /** Processing Days */
+            processing_days: number;
+        };
+        /**
+         * ActivityTypePatch
+         * @description Ruling #139: presentation and the on/off switch. Never `code` (tariffs and
+         *     the calculator resolve by it) and never `quantity_unit` (a CHECK-constrained
+         *     enum the price arithmetic depends on).
+         */
+        ActivityTypePatch: {
+            name?: components["schemas"]["LocalizedName"] | null;
+            description?: components["schemas"]["LocalizedName"] | null;
+            /** Processing Days */
+            processing_days?: number | null;
+            /** Sort Order */
+            sort_order?: number | null;
+            /** Status */
+            status?: ("active" | "archived") | null;
         };
         /** AddRepresentationIn */
         AddRepresentationIn: {
@@ -7691,6 +7806,7 @@ export interface components {
             rejections: components["schemas"]["RejectionRowOut"][];
             risk_indicators: components["schemas"]["RiskIndicatorsKpiOut"];
             inspections: components["schemas"]["InspectionsKpiOut"];
+            satisfaction: components["schemas"]["SatisfactionKpiOut"];
             /** Omitted */
             omitted: string[];
         };
@@ -8616,6 +8732,17 @@ export interface components {
             /** Page Size */
             page_size: number;
         };
+        /** Page[RatingCommentRow] */
+        Page_RatingCommentRow_: {
+            /** Items */
+            items: components["schemas"]["RatingCommentRow"][];
+            /** Total */
+            total: number;
+            /** Page */
+            page: number;
+            /** Page Size */
+            page_size: number;
+        };
         /** Page[ReconciliationOut] */
         Page_ReconciliationOut_: {
             /** Items */
@@ -8969,6 +9096,7 @@ export interface components {
              * Format: date
              */
             document_date: string;
+            rating?: components["schemas"]["PermitRatingOut"] | null;
         };
         /**
          * PermitHistoryRow
@@ -9081,6 +9209,35 @@ export interface components {
             template_id: string | null;
             /** Issued At */
             issued_at: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+        };
+        /**
+         * PermitRatingIn
+         * @description `POST /permits/{id}/rating` — the citizen's verdict on a permit they
+         *     actually received (ruling #140). One per permit, checked by the service,
+         *     never left to `permit_ratings`'s own UNIQUE index.
+         */
+        PermitRatingIn: {
+            /** Score */
+            score: number;
+            /** Comment */
+            comment?: string | null;
+        };
+        /**
+         * PermitRatingOut
+         * @description One rating, exactly as `permit_ratings` stores it. No `permit_id`, no
+         *     applicant: ruling #141 keeps the author off every response built from this
+         *     table, and this is the shape every such response embeds.
+         */
+        PermitRatingOut: {
+            /** Score */
+            score: number;
+            /** Comment */
+            comment: string | null;
             /**
              * Created At
              * Format: date-time
@@ -9226,14 +9383,21 @@ export interface components {
         /**
          * PublicActivityTypeOut
          * @description A narrowed `admin.schemas.ActivityTypeOut` for `GET
-         *     /public/refs/activity-types`: only what a dropdown needs — `id`, `code`
-         *     (the front-end's own hook for "this is grazing", so it can decide whether
-         *     to render herd inputs) and `name`. Never `quantity_unit`/`status`, which
-         *     the general, authenticated `/refs/*` router already answers and this
-         *     anonymous surface has no reason to repeat. `name` carries whatever
-         *     languages the row has — `uz_latn` since migration `0032`'s backfill
-         *     (decision #90, closing `tz/12` #31's backend half) — returned as-is,
-         *     never invented.
+         *     /public/refs/activity-types`: only what the public catalog needs — `id`,
+         *     `code` (the front-end's own hook for "this is grazing", so it can decide
+         *     whether to render herd inputs), `name`, `description` and
+         *     `processing_days`. Never `quantity_unit`/`status`, which the general,
+         *     authenticated `/refs/*` router already answers and this anonymous
+         *     surface has no reason to repeat. `name` carries whatever languages the
+         *     row has — `uz_latn` since migration `0032`'s backfill (decision #90,
+         *     closing `tz/12` #31's backend half) — returned as-is, never invented.
+         *
+         *     `description`/`processing_days` ARE public (ruling #138), unlike
+         *     `quantity_unit`/`status` above: they are the shop-window copy — what the
+         *     landing site shows a citizen deciding which service to apply for — and
+         *     the landing is their only consumer. `description` may be NULL (a row
+         *     with no seeded copy yet, migration `0038`'s own docstring); `processing_days`
+         *     is DISPLAY ONLY, never the enforced deadline (`applications.service.SLA_DAYS`).
          */
         PublicActivityTypeOut: {
             /**
@@ -9247,6 +9411,12 @@ export interface components {
             name: {
                 [key: string]: unknown;
             };
+            /** Description */
+            description: {
+                [key: string]: unknown;
+            } | null;
+            /** Processing Days */
+            processing_days: number;
         };
         /**
          * PublicCheckCard
@@ -9453,6 +9623,73 @@ export interface components {
             code: string;
             /** Message */
             message: string;
+        };
+        /**
+         * RatingCommentRow
+         * @description `GET /admin/ratings` — one row of the anonymous comment feed.
+         *
+         *     Ruling #141: date, service, leshoz, score, text. No applicant, no permit
+         *     number — anything that identifies WHO rated is absent by construction, not
+         *     filtered out at render time. `test_comments_never_name_the_author` asserts
+         *     this on the SERIALIZED body rather than on this class, on purpose: a field
+         *     added here later would pass a field-name check and still leak.
+         */
+        RatingCommentRow: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Score */
+            score: number;
+            /** Comment */
+            comment: string | null;
+            /** Organization Name */
+            organization_name: {
+                [key: string]: unknown;
+            };
+            /** Activity Type Name */
+            activity_type_name: {
+                [key: string]: unknown;
+            };
+        };
+        /**
+         * RatingsBreakdownRow
+         * @description One group of `GET /admin/ratings/summary`'s two breakdowns — exactly
+         *     one of `organization_id`/`activity_type_id` is set, depending on which
+         *     list this row sits in.
+         */
+        RatingsBreakdownRow: {
+            /** Organization Id */
+            organization_id?: string | null;
+            /** Activity Type Id */
+            activity_type_id?: string | null;
+            /** Name */
+            name: {
+                [key: string]: unknown;
+            };
+            /** Avg Score */
+            avg_score: string;
+            /** Count */
+            count: number;
+        };
+        /**
+         * RatingsSummaryOut
+         * @description `GET /admin/ratings/summary` — the overall average and count over the
+         *     caller's zone and the given period, plus the same pair broken down by
+         *     organization and by activity type. `avg_score`/`count` are both null-safe:
+         *     zero ratings in scope reads as `avg_score: null, count: 0`, never a 404 or
+         *     a division-by-zero — a summary has no row to refuse.
+         */
+        RatingsSummaryOut: {
+            /** Avg Score */
+            avg_score: string | null;
+            /** Count */
+            count: number;
+            /** By Organization */
+            by_organization: components["schemas"]["RatingsBreakdownRow"][];
+            /** By Activity Type */
+            by_activity_type: components["schemas"]["RatingsBreakdownRow"][];
         };
         /**
          * ReassignIn
@@ -10144,6 +10381,17 @@ export interface components {
             effective_to?: string | null;
             /** Basis */
             basis?: string | null;
+        };
+        /**
+         * SatisfactionKpiOut
+         * @description Ruling #143. `avg_score` is `None`, never `0`, for a period with no
+         *     ratings — a portal may not state a number it cannot produce.
+         */
+        SatisfactionKpiOut: {
+            /** Avg Score */
+            avg_score: string | null;
+            /** Count */
+            count: number;
         };
         /** SavedFilterIn */
         SavedFilterIn: {
@@ -12116,6 +12364,41 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ActivityTypeOut"][];
+                };
+            };
+        };
+    };
+    update_activity_type_api_v1_refs_activity_types__activity_type_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                activity_type_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ActivityTypePatch"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ActivityTypeOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
@@ -17549,6 +17832,41 @@ export interface operations {
             };
         };
     };
+    rate_permit_api_v1_permits__permit_id__rating_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                permit_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PermitRatingIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PermitRatingOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     suspend_permit_api_v1_permits__permit_id__suspend_post: {
         parameters: {
             query?: never;
@@ -17804,6 +18122,74 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ApplicationOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_ratings_summary_api_v1_admin_ratings_summary_get: {
+        parameters: {
+            query: {
+                period_from: string;
+                period_to: string;
+                organization_id?: string | null;
+                activity_type_id?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RatingsSummaryOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_ratings_api_v1_admin_ratings_get: {
+        parameters: {
+            query: {
+                period_from: string;
+                period_to: string;
+                page?: number;
+                page_size?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Page_RatingCommentRow_"];
                 };
             };
             /** @description Validation Error */

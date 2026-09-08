@@ -13,11 +13,13 @@ export const ru = {
   'nav.search': 'Поиск',
   'nav.archive': 'Архивный реестр',
   'nav.reports': 'Отчёты',
+  'nav.ratings': 'Оценки',
   'nav.inspections': 'Проверки',
   'nav.users': 'Пользователи',
   'nav.roles': 'Роли и права',
   'nav.organizations': 'Организации',
   'nav.classifiers': 'Классификаторы',
+  'nav.activityTypes': 'Каталог услуг',
   'nav.settings': 'Системные настройки',
   'nav.announcements': 'Объявления',
   'nav.templates': 'Шаблоны уведомлений',
@@ -1047,6 +1049,10 @@ export const ru = {
   'leadership.dash.tile.payments.paidOfInvoiced': 'оплачено от выставленного',
   'leadership.dash.tile.sla.label': 'Заявки в работе (SLA)',
   'leadership.dash.tile.sla.hint': 'Просрочено',
+  // Stage 7.7, task 9 (ruling #143): `KpiOut.satisfaction`, obeying the same
+  // period/zone filters every other tile on this row already does.
+  'leadership.dash.tile.satisfaction.label': 'Удовлетворённость услугой',
+  'leadership.dash.tile.satisfaction.hint': 'Количество оценок',
   'leadership.dash.occupancy.title': 'Средняя занятость контуров',
   'leadership.dash.occupancy.subtitle': 'По контурам:',
   'leadership.dash.sbLoad.title': 'Нагрузка (условные головы)',
@@ -1658,4 +1664,90 @@ export const ru = {
   'archive.newItemModal.submit': 'Архивировать',
   'archive.newItemModal.cancel': 'Отмена',
   'archive.newItemModal.error': 'Не удалось архивировать объект',
+
+  // --- Stage 7.7 (H-services): activity types catalog, `pages/admin/activities/` ---
+  'activityTypes.title': 'Каталог услуг',
+  'activityTypes.subtitle':
+    'Шесть видов пользования лесным фондом закреплены законом — их нельзя добавить или удалить: можно только изменить название, описание и срок либо полностью отключить услугу.',
+  'activityTypes.loading': 'Загрузка…',
+  'activityTypes.loadError': 'Не удалось загрузить список.',
+  'activityTypes.termLabel': 'Срок',
+  'activityTypes.termDays': 'дней',
+  'activityTypes.descriptionEmpty': 'Описание не заполнено',
+  'activityTypes.actionEdit': 'Редактировать',
+  'activityTypes.editTitle': 'Редактирование услуги',
+  'activityTypes.fieldNameUz': 'Название (uz)',
+  'activityTypes.fieldNameRu': 'Название (ru)',
+  'activityTypes.fieldDescriptionUz': 'Описание (uz)',
+  'activityTypes.fieldDescriptionRu': 'Описание (ru)',
+  'activityTypes.fieldProcessingDays': 'Срок (дней)',
+  'activityTypes.save': 'Сохранить',
+  'activityTypes.cancel': 'Отмена',
+  'activityTypes.errNameRequiresUzLatn':
+    'Название: язык uz_latn (узбекский, латиница) не может быть пустым.',
+  'activityTypes.errDescriptionRequiresUzLatn':
+    'Описание: язык uz_latn (узбекский, латиница) не может быть пустым.',
+  'activityTypes.errProcessingDays': 'Срок должен быть положительным целым числом.',
+  'activityTypes.saveError': 'Не удалось сохранить.',
+  'activityTypes.archiveTitle': 'Отключить услугу',
+  'activityTypes.archiveBody':
+    'Эта услуга исчезнет с главной страницы, из калькулятора цены и из формы заявки — новые заявки по ней тоже перестанут приниматься.',
+  'activityTypes.archiveConfirm': 'Подтвердить',
+  'activityTypes.archiveCancel': 'Отмена',
+  'activityTypes.archiveError': 'Не удалось отключить услугу.',
+
+  // Permit rating panel (B10 cabinet, task 8 of 07.7-services-catalog-and-ratings).
+  // Option copy for 5-2 is the old landing form's own wording, carried over
+  // unchanged (`ruxsatnoma-landing` history, commit before 04ff511 removed
+  // the dead form); "1" never existed there and is written fresh here.
+  'permitRating.title': 'Оцените качество услуги',
+  'permitRating.subtitle':
+    'Ваша оценка поможет в дальнейшем совершенствовании государственных электронных услуг.',
+  'permitRating.option5Title': '5 - Отлично',
+  'permitRating.option5Desc': 'Очень удобно, быстро и понятно',
+  'permitRating.option4Title': '4 - Хорошо',
+  'permitRating.option4Desc': 'Хорошо, но есть некоторые предложения',
+  'permitRating.option3Title': '3 - Удовлетворительно',
+  'permitRating.option3Desc': 'Средне, немного сложнее для понимания',
+  'permitRating.option2Title': '2 - Неудовлетворительно',
+  'permitRating.option2Desc': 'Есть недостатки',
+  'permitRating.option1Title': '1 - Плохо',
+  'permitRating.option1Desc': 'Очень неудобно, были серьёзные проблемы',
+  'permitRating.commentLabel': 'Комментарий (необязательно)',
+  'permitRating.submitButton': 'Отправить оценку',
+  'permitRating.submitError': 'Не удалось отправить оценку.',
+  'permitRating.ratedTitle': 'Ваша оценка успешно принята!',
+  'permitRating.thankYou':
+    'Благодарим вас за оценку качества услуг портала и оставленный отзыв.',
+  'permitRating.resultLabel': 'Выставленная оценка:',
+  'permitRating.resultUnit': 'балл',
+
+  // The Agency's ratings screen (rulings #140-#143, stage 7.7, task 9).
+  // `GET /admin/ratings/summary` + `GET /admin/ratings`, both zone-scoped
+  // server-side — this screen filters nothing beyond the period itself.
+  'ratings.title': 'Оценки качества услуг',
+  'ratings.subtitle':
+    'Граждане оценивают качество услуги после получения разрешения. Здесь показаны средний балл, количество оценок за выбранный период и разбивка по организациям и видам услуг.',
+  'ratings.loading': 'Загрузка…',
+  'ratings.loadError': 'Не удалось загрузить данные.',
+  'ratings.filters.periodFrom': 'Период — с',
+  'ratings.filters.periodTo': 'Период — по',
+  'ratings.filters.apply': 'Применить',
+  'ratings.filters.reset': 'Сбросить',
+  'ratings.tile.avgScoreLabel': 'Средний балл',
+  'ratings.tile.countLabel': 'Количество оценок',
+  'ratings.byOrganization.title': 'По организациям',
+  'ratings.byOrganization.empty': 'Нет данных за этот период.',
+  'ratings.byActivityType.title': 'По видам услуг',
+  'ratings.byActivityType.empty': 'Нет данных за этот период.',
+  // Ruling #141: the feed below is the anonymous comment stream — date,
+  // service, leshoz, score, text, and NOTHING that identifies who left it.
+  // No column here may ever name an applicant or a permit.
+  'ratings.feed.title': 'Комментарии',
+  'ratings.feed.empty': 'За этот период комментариев нет.',
+  'ratings.feed.colDate': 'Дата',
+  'ratings.feed.colOrganization': 'Организация',
+  'ratings.feed.colActivityType': 'Вид услуги',
+  'ratings.feed.colScore': 'Оценка',
+  'ratings.feed.colComment': 'Комментарий',
 };

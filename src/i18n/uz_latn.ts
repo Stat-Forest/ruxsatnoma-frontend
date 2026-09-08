@@ -17,11 +17,13 @@ export const uz_latn = {
   'nav.search': 'Qidiruv',
   'nav.archive': 'Arxiv reyestri',
   'nav.reports': 'Hisobotlar',
+  'nav.ratings': 'Baholashlar',
   'nav.inspections': 'Tekshiruvlar',
   'nav.users': 'Foydalanuvchilar',
   'nav.roles': 'Rollar va huquqlar',
   'nav.organizations': 'Tashkilotlar',
   'nav.classifiers': 'Klassifikatorlar',
+  'nav.activityTypes': 'Xizmatlar katalogi',
   'nav.settings': 'Tizim sozlamalari',
   'nav.announcements': "E'lonlar",
   'nav.templates': 'Bildirishnoma shablonlari',
@@ -1054,6 +1056,10 @@ export const uz_latn = {
   'leadership.dash.tile.payments.paidOfInvoiced': "hisob-fakturadan toʻlangan",
   'leadership.dash.tile.sla.label': "Ishdagi arizalar (SLA)",
   'leadership.dash.tile.sla.hint': "Muddati oʻtgan",
+  // Stage 7.7, task 9 (ruling #143): `KpiOut.satisfaction`, obeying the same
+  // period/zone filters every other tile on this row already does.
+  'leadership.dash.tile.satisfaction.label': "Xizmatdan mamnunlik",
+  'leadership.dash.tile.satisfaction.hint': "Baholar soni",
   'leadership.dash.occupancy.title': "Konturlarning oʻrtacha bandligi",
   'leadership.dash.occupancy.subtitle': "Konturlar boʻyicha:",
   'leadership.dash.sbLoad.title': "Yuklama (shartli boshlar)",
@@ -1665,4 +1671,93 @@ export const uz_latn = {
   'archive.newItemModal.submit': "Arxivlash",
   'archive.newItemModal.cancel': "Bekor qilish",
   'archive.newItemModal.error': "Obyektni arxivlab boʻlmadi",
+
+  // --- Stage 7.7 (H-services): activity types catalog, `pages/admin/activities/` ---
+  // Rulings #138/#139/#139a: `PATCH` only, no add/delete; archiving closes the
+  // service everywhere the same `status = 'active'` filter feeds (the landing,
+  // the price calculator, the application wizard).
+  'activityTypes.title': 'Xizmatlar katalogi',
+  'activityTypes.subtitle':
+    "Oʻrmon fondidan foydalanishning oltita turi qonun bilan belgilangan — bu yerda ular qoʻshilmaydi yoki oʻchirib tashlanmaydi: faqat nomi, tavsifi va muddati tahrirlanadi, yoki xizmat butunlay yopiladi.",
+  'activityTypes.loading': 'Yuklanmoqda…',
+  'activityTypes.loadError': "Roʻyxatni yuklab boʻlmadi.",
+  'activityTypes.termLabel': 'Muddat',
+  'activityTypes.termDays': 'kun',
+  'activityTypes.descriptionEmpty': 'Tavsif kiritilmagan',
+  'activityTypes.actionEdit': 'Tahrirlash',
+  'activityTypes.editTitle': 'Xizmatni tahrirlash',
+  'activityTypes.fieldNameUz': 'Nomi (uz)',
+  'activityTypes.fieldNameRu': 'Nomi (ru)',
+  'activityTypes.fieldDescriptionUz': 'Tavsif (uz)',
+  'activityTypes.fieldDescriptionRu': 'Tavsif (ru)',
+  'activityTypes.fieldProcessingDays': 'Muddat (kun)',
+  'activityTypes.save': 'Saqlash',
+  'activityTypes.cancel': 'Bekor qilish',
+  'activityTypes.errNameRequiresUzLatn':
+    "Nomi: uz_latn (oʻzbekcha lotin) tili boʻsh boʻlishi mumkin emas.",
+  'activityTypes.errDescriptionRequiresUzLatn':
+    "Tavsif: uz_latn (oʻzbekcha lotin) tili boʻsh boʻlishi mumkin emas.",
+  'activityTypes.errProcessingDays': "Muddat musbat butun son boʻlishi kerak.",
+  'activityTypes.saveError': "Saqlab boʻlmadi.",
+  'activityTypes.archiveTitle': "Xizmatni oʻchirish",
+  'activityTypes.archiveBody':
+    "Bu xizmat bosh sahifada, narx kalkulyatorida va ariza shaklida koʻrinmay qoladi — bu xizmat boʻyicha yangi ariza berish ham yopiladi.",
+  'activityTypes.archiveConfirm': 'Tasdiqlash',
+  'activityTypes.archiveCancel': 'Bekor qilish',
+  'activityTypes.archiveError': "Xizmatni oʻchirib boʻlmadi.",
+
+  // Permit rating panel (B10 cabinet, task 8 of 07.7-services-catalog-and-ratings).
+  // Option copy for 5-2 is the old landing form's own wording, carried over
+  // unchanged (`ruxsatnoma-landing` history, commit before 04ff511 removed
+  // the dead form); "1" never existed there and is written fresh here.
+  'permitRating.title': 'Xizmat sifatini baholang',
+  'permitRating.subtitle':
+    'Sizning bahoingiz davlat elektron xizmatlarini yanada takomillashtirishga xizmat qiladi.',
+  'permitRating.option5Title': '5 - Aʼlo',
+  'permitRating.option5Desc': 'Juda qulay, tez va tushunarli',
+  'permitRating.option4Title': '4 - Yaxshi',
+  'permitRating.option4Desc': 'Yaxshi, lekin ayrim takliflarim bor',
+  'permitRating.option3Title': '3 - Qoniqarli',
+  'permitRating.option3Desc': "Oʻrtacha, tushunish qiyinroq",
+  'permitRating.option2Title': '2 - Qoniqarsiz',
+  'permitRating.option2Desc': 'Kamchiliklar mavjud',
+  'permitRating.option1Title': '1 - Yomon',
+  'permitRating.option1Desc': 'Juda noqulay, jiddiy muammolar boʻldi',
+  'permitRating.commentLabel': 'Izoh (ixtiyoriy)',
+  'permitRating.submitButton': 'Baho yuborish',
+  'permitRating.submitError': "Bahoni yuborib boʻlmadi.",
+  'permitRating.ratedTitle': 'Bahoingiz muvaffaqiyatli qabul qilindi!',
+  'permitRating.thankYou':
+    'Portal xizmati sifatini baholaganingiz va fikr-mulohazangiz uchun tashakkur bildiramiz.',
+  'permitRating.resultLabel': 'Berilgan baho:',
+  'permitRating.resultUnit': 'ball',
+
+  // The Agency's ratings screen (rulings #140-#143, stage 7.7, task 9).
+  // `GET /admin/ratings/summary` + `GET /admin/ratings`, both zone-scoped
+  // server-side — this screen filters nothing beyond the period itself.
+  'ratings.title': 'Xizmatlarni baholash',
+  'ratings.subtitle':
+    "Fuqarolar ruxsatnoma olingandan keyin xizmat sifatini shu yerda baholaydi — oʻrtacha baho, baholar soni va tashkilot/xizmat turi boʻyicha taqsimot tanlangan davr uchun koʻrsatiladi.",
+  'ratings.loading': 'Yuklanmoqda…',
+  'ratings.loadError': "Maʼlumotlarni yuklab boʻlmadi.",
+  'ratings.filters.periodFrom': 'Davr — dan',
+  'ratings.filters.periodTo': 'Davr — gacha',
+  'ratings.filters.apply': 'Qoʻllash',
+  'ratings.filters.reset': 'Tiklash',
+  'ratings.tile.avgScoreLabel': "Oʻrtacha baho",
+  'ratings.tile.countLabel': 'Baholar soni',
+  'ratings.byOrganization.title': 'Tashkilotlar boʻyicha',
+  'ratings.byOrganization.empty': 'Bu davr uchun maʼlumot yoʻq.',
+  'ratings.byActivityType.title': 'Xizmat turlari boʻyicha',
+  'ratings.byActivityType.empty': 'Bu davr uchun maʼlumot yoʻq.',
+  // Ruling #141: the feed below is the anonymous comment stream — date,
+  // service, leshoz, score, text, and NOTHING that identifies who left it.
+  // No column here may ever name an applicant or a permit.
+  'ratings.feed.title': 'Fikr-mulohazalar',
+  'ratings.feed.empty': 'Bu davr uchun fikr-mulohaza yoʻq.',
+  'ratings.feed.colDate': 'Sana',
+  'ratings.feed.colOrganization': 'Tashkilot',
+  'ratings.feed.colActivityType': 'Xizmat turi',
+  'ratings.feed.colScore': 'Baho',
+  'ratings.feed.colComment': 'Izoh',
 };
