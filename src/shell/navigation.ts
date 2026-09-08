@@ -187,6 +187,7 @@ export const NAVIGATION: NavItem[] = [
   { to: '/admin/activities', labelKey: 'nav.activityTypes', permission: 'admin.classifiers.manage', icon: Trees },
   { to: '/admin/settings', labelKey: 'nav.settings', permission: 'admin.settings.manage', icon: Settings },
   { to: '/admin/announcements', labelKey: 'nav.announcements', permission: 'admin.announcements.manage', icon: Megaphone },
+  { to: '/admin/legal-documents', labelKey: 'nav.legalDocuments', permission: 'admin.legal_documents.manage', icon: Scale },
   { to: '/admin/notification-templates', labelKey: 'nav.templates', permission: 'notifications.templates.manage', icon: MailPlus },
   { to: '/admin/integrations', labelKey: 'nav.integrations', permission: 'admin.integrations.view', icon: Radio },
   { to: '/notifications', labelKey: 'nav.notifications', icon: Bell },

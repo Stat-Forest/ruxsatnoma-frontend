@@ -22,6 +22,7 @@ export const ru = {
   'nav.activityTypes': 'Каталог услуг',
   'nav.settings': 'Системные настройки',
   'nav.announcements': 'Объявления',
+  'nav.legalDocuments': 'Нормативные документы',
   'nav.templates': 'Шаблоны уведомлений',
   'nav.integrations': 'Интеграции',
   'nav.notifications': 'Уведомления',

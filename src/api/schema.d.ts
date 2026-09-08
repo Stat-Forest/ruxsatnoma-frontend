@@ -1024,6 +1024,132 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/legal-documents": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Legal Documents */
+        get: operations["list_legal_documents_api_v1_admin_legal_documents_get"];
+        put?: never;
+        /** Create Legal Document */
+        post: operations["create_legal_document_api_v1_admin_legal_documents_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/legal-documents/{doc_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Legal Document */
+        get: operations["get_legal_document_api_v1_admin_legal_documents__doc_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Patch Legal Document */
+        patch: operations["patch_legal_document_api_v1_admin_legal_documents__doc_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/admin/legal-documents/{doc_id}/publish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Publish Legal Document */
+        post: operations["publish_legal_document_api_v1_admin_legal_documents__doc_id__publish_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/legal-documents/{doc_id}/archive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Archive Legal Document */
+        post: operations["archive_legal_document_api_v1_admin_legal_documents__doc_id__archive_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/public/legal-documents": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Public Legal Documents */
+        get: operations["list_public_legal_documents_api_v1_public_legal_documents_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/public/legal-documents/{doc_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Public Legal Document */
+        get: operations["get_public_legal_document_api_v1_public_legal_documents__doc_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/public/legal-documents/{doc_id}/file": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Download Public Legal Document
+         * @description The document is addressed by ITS id, not the file's: `GET /files/{id}`
+         *     needs a session, so without this route a public document's own PDF would be
+         *     a link the visitor cannot open.
+         */
+        get: operations["download_public_legal_document_api_v1_public_legal_documents__doc_id__file_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/public/announcements": {
         parameters: {
             query?: never;
@@ -3761,7 +3887,11 @@ export interface paths {
         /**
          * List Ratings
          * @description The anonymous comment feed: date, service, leshoz, score, text — never
-         *     who left it. Zone-scoped the same way the summary above is.
+         *     who left it. Zone-scoped the same way the summary above is, and narrowable
+         *     by the same two optional filters — a screen that narrows the summary to
+         *     one leshoz must narrow this feed too, or the numbers above and the
+         *     comments below them describe different populations with nothing saying so
+         *     (final review, finding 3).
          */
         get: operations["list_ratings_api_v1_admin_ratings_get"];
         put?: never;
@@ -7855,6 +7985,117 @@ export interface components {
             /** Status */
             status?: string | null;
         };
+        /** LegalDocumentAdminOut */
+        LegalDocumentAdminOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Title */
+            title: {
+                [key: string]: unknown;
+            };
+            /** Summary */
+            summary: {
+                [key: string]: unknown;
+            } | null;
+            /** Doc Number */
+            doc_number: string;
+            /**
+             * Adopted On
+             * Format: date
+             */
+            adopted_on: string;
+            /** Source Url */
+            source_url: string | null;
+            file: components["schemas"]["FileRef"] | null;
+            /** Status */
+            status: string;
+            /** Sort Order */
+            sort_order: number;
+            /**
+             * Created By
+             * Format: uuid
+             */
+            created_by: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+        };
+        /** LegalDocumentCreateIn */
+        LegalDocumentCreateIn: {
+            title: components["schemas"]["LocalizedName"];
+            summary?: components["schemas"]["LocalizedName"] | null;
+            /** Doc Number */
+            doc_number: string;
+            /**
+             * Adopted On
+             * Format: date
+             */
+            adopted_on: string;
+            /** Source Url */
+            source_url?: string | null;
+            /** File Id */
+            file_id?: string | null;
+            /**
+             * Sort Order
+             * @default 0
+             */
+            sort_order: number;
+        };
+        /**
+         * LegalDocumentOut
+         * @description What the anonymous site gets. No `status`, no `sort_order`, no
+         *     `created_by`: those are editorial bookkeeping, and the citizen gets what the
+         *     page prints. `file` is null for a document that lives only on lex.uz.
+         */
+        LegalDocumentOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Title */
+            title: {
+                [key: string]: unknown;
+            };
+            /** Summary */
+            summary: {
+                [key: string]: unknown;
+            } | null;
+            /** Doc Number */
+            doc_number: string;
+            /**
+             * Adopted On
+             * Format: date
+             */
+            adopted_on: string;
+            /** Source Url */
+            source_url: string | null;
+            file: components["schemas"]["FileRef"] | null;
+        };
+        /**
+         * LegalDocumentPatchIn
+         * @description All fields optional — only keys present in the request are touched
+         *     (`exclude_unset=True`), the convention `AnnouncementPatchIn` established.
+         */
+        LegalDocumentPatchIn: {
+            title?: components["schemas"]["LocalizedName"] | null;
+            summary?: components["schemas"]["LocalizedName"] | null;
+            /** Doc Number */
+            doc_number?: string | null;
+            /** Adopted On */
+            adopted_on?: string | null;
+            /** Source Url */
+            source_url?: string | null;
+            /** File Id */
+            file_id?: string | null;
+            /** Sort Order */
+            sort_order?: number | null;
+        };
         /**
          * LivestockItemIn
          * @description One grazing line: how many head of one livestock type. Validity of the
@@ -8648,6 +8889,28 @@ export interface components {
         Page_InvoiceOut_: {
             /** Items */
             items: components["schemas"]["InvoiceOut"][];
+            /** Total */
+            total: number;
+            /** Page */
+            page: number;
+            /** Page Size */
+            page_size: number;
+        };
+        /** Page[LegalDocumentAdminOut] */
+        Page_LegalDocumentAdminOut_: {
+            /** Items */
+            items: components["schemas"]["LegalDocumentAdminOut"][];
+            /** Total */
+            total: number;
+            /** Page */
+            page: number;
+            /** Page Size */
+            page_size: number;
+        };
+        /** Page[LegalDocumentOut] */
+        Page_LegalDocumentOut_: {
+            /** Items */
+            items: components["schemas"]["LegalDocumentOut"][];
             /** Total */
             total: number;
             /** Page */
@@ -13715,6 +13978,294 @@ export interface operations {
             };
         };
     };
+    list_legal_documents_api_v1_admin_legal_documents_get: {
+        parameters: {
+            query?: {
+                status?: string | null;
+                page?: number;
+                page_size?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Page_LegalDocumentAdminOut_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_legal_document_api_v1_admin_legal_documents_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LegalDocumentCreateIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LegalDocumentAdminOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_legal_document_api_v1_admin_legal_documents__doc_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                doc_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LegalDocumentAdminOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    patch_legal_document_api_v1_admin_legal_documents__doc_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                doc_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LegalDocumentPatchIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LegalDocumentAdminOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    publish_legal_document_api_v1_admin_legal_documents__doc_id__publish_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                doc_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LegalDocumentAdminOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    archive_legal_document_api_v1_admin_legal_documents__doc_id__archive_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                doc_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LegalDocumentAdminOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_public_legal_documents_api_v1_public_legal_documents_get: {
+        parameters: {
+            query?: {
+                page?: number;
+                page_size?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Page_LegalDocumentOut_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_public_legal_document_api_v1_public_legal_documents__doc_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                doc_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LegalDocumentOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    download_public_legal_document_api_v1_public_legal_documents__doc_id__file_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                doc_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_landing_announcements_api_v1_public_announcements_get: {
         parameters: {
             query?: {
@@ -18174,6 +18725,8 @@ export interface operations {
             query: {
                 period_from: string;
                 period_to: string;
+                organization_id?: string | null;
+                activity_type_id?: string | null;
                 page?: number;
                 page_size?: number;
             };
