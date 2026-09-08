@@ -6,7 +6,8 @@ import { Alert } from '../../../components/ui/Feedback';
 import { Checkbox, Input } from '../../../components/ui/FormControls';
 import { Tabs } from '../../../components/ui/Navigation';
 import { useApiErrorText } from '../../../i18n/useApiErrorText';
-import { pickName, formatDate } from '../format';
+import { useLanguage } from '../../../i18n/useT';
+import { pickName, pickLayerName, formatDate } from '../format';
 import type { LayerOut } from '../api';
 import {
   useArchiveLayerFeature,
@@ -151,12 +152,13 @@ function FeatureRow({
   const publish = usePublishLayerFeature(code);
   const archive = useArchiveLayerFeature(code);
   const errorText = useApiErrorText();
+  const { lang } = useLanguage();
   const { name, valid_from: validFrom, valid_to: validTo } = feature.properties;
 
   return (
     <div className="flex items-center justify-between gap-3 p-3 text-xs" data-testid={`feature-${feature.id}`}>
       <div className="min-w-0">
-        <div className="font-semibold text-[#1A1F24] truncate">{pickName(name) || t('gis.layers.unnamed')}</div>
+        <div className="font-semibold text-[#1A1F24] truncate">{pickName(name, lang) || t('gis.layers.unnamed')}</div>
         {(validFrom || validTo) && (
           <div className="text-[11px] text-[#5A646D]">
             {formatDate(validFrom)} — {formatDate(validTo) || t('gis.layers.noEnd')}
@@ -194,6 +196,7 @@ function FeatureRow({
 
 function LayerFeatures({ layer, t }: { layer: LayerOut; t: (key: string) => string }) {
   const { me } = useAuth();
+  const { lang } = useLanguage();
   const errorText = useApiErrorText();
   const canManage = !!me?.permissions.includes(LAYERS_MANAGE) || !!me?.is_superuser;
   const patchLayer = usePatchLayer();
@@ -207,7 +210,7 @@ function LayerFeatures({ layer, t }: { layer: LayerOut; t: (key: string) => stri
         <div className="flex items-center justify-between">
           <div>
             <span className="font-mono text-xs text-[#5A646D]">{layer.code}</span>
-            <h3 className="text-sm font-bold text-[#1A1F24]">{pickName(layer.name) || layer.code}</h3>
+            <h3 className="text-sm font-bold text-[#1A1F24]">{pickLayerName(layer, lang)}</h3>
           </div>
           {canManage && (
             <Button size="sm" variant="primary" leftIcon={<Plus className="w-4 h-4" />} className="cursor-pointer" onClick={() => setCreating(true)}>
@@ -284,6 +287,7 @@ function LayerFeatures({ layer, t }: { layer: LayerOut; t: (key: string) => stri
  * comment: "tz/07 gives that lifecycle to CONTOURS only").
  */
 export function LayersTab({ t }: { t: (key: string) => string }) {
+  const { lang } = useLanguage();
   const layersQuery = useLayers();
   const errorText = useApiErrorText();
   const [selectedCode, setSelectedCode] = useState<string | null>(null);
@@ -308,7 +312,7 @@ export function LayersTab({ t }: { t: (key: string) => string }) {
               selectedCode === layer.code ? 'bg-[#F0F7F1]' : 'hover:bg-[#F8F9FA]'
             }`}
           >
-            <div className="font-semibold text-[#1A1F24]">{pickName(layer.name) || layer.code}</div>
+            <div className="font-semibold text-[#1A1F24]">{pickLayerName(layer, lang)}</div>
             <div className="text-[11px] text-[#5A646D] font-mono">{layer.code}</div>
           </button>
         ))}

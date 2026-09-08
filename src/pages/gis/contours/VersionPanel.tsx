@@ -3,6 +3,8 @@ import { useAuth } from '../../../auth/useAuth';
 import { Button } from '../../../components/ui/button';
 import { Alert } from '../../../components/ui/Feedback';
 import { useApiErrorText } from '../../../i18n/useApiErrorText';
+import { useLanguage } from '../../../i18n/useT';
+import { translateTerm } from '../../../i18n/terms';
 import { formatDate, formatDateTime, formatDecimal } from '../format';
 import type { VersionOut } from '../api';
 import {
@@ -61,6 +63,7 @@ export function VersionPanel({
   t: (key: string) => string;
 }) {
   const { me } = useAuth();
+  const { lang } = useLanguage();
   const errorText = useApiErrorText();
   const canManage = !!me?.permissions.includes(CONTOURS_MANAGE) || !!me?.is_superuser;
   const canApprove = !!me?.permissions.includes(CONTOURS_APPROVE) || !!me?.is_superuser;
@@ -137,7 +140,7 @@ export function VersionPanel({
         <dt className="text-[#5A646D]">{t('gis.versions.declaredAreaHa')}</dt>
         <dd className="text-right font-mono">{formatDecimal(version.declared_area_ha, 'ga')}</dd>
         <dt className="text-[#5A646D]">{t('gis.versions.source')}</dt>
-        <dd className="text-right">{version.source}</dd>
+        <dd className="text-right">{translateTerm(version.source, lang)}</dd>
         <dt className="text-[#5A646D]">{t('gis.versions.surveyDate')}</dt>
         <dd className="text-right">{formatDate(version.survey_date)}</dd>
         <dt className="text-[#5A646D]">{t('gis.versions.effectiveFrom')}</dt>

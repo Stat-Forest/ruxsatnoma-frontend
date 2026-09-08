@@ -10,9 +10,13 @@ export type LocalizedNameLike = Record<string, unknown> | null | undefined;
 
 const LANG_FALLBACKS = ['uz_latn', 'uz_cyrl', 'ru', 'en', 'kaa'];
 
-export function pickName(name: LocalizedNameLike, lang: string = 'uz_latn'): string {
+export function pickName(name: LocalizedNameLike, lang?: string): string {
+  const activeLang =
+    lang ||
+    (typeof document !== 'undefined' && document.documentElement.lang) ||
+    'uz_latn';
   if (!name) return '';
-  const direct = name[lang];
+  const direct = name[activeLang];
   let raw = '';
   if (typeof direct === 'string' && direct) {
     raw = direct;
@@ -29,7 +33,23 @@ export function pickName(name: LocalizedNameLike, lang: string = 'uz_latn'): str
       raw = typeof first === 'string' ? first : '';
     }
   }
-  return translateTerm(raw, lang);
+  return translateTerm(raw, activeLang);
+}
+
+export function pickLayerName(layer: { code: string; name?: LocalizedNameLike }, lang?: string): string {
+  const activeLang =
+    lang ||
+    (typeof document !== 'undefined' && document.documentElement.lang) ||
+    'uz_latn';
+  const fromName = pickName(layer.name, activeLang);
+  if (fromName && fromName !== layer.code) {
+    const translated = translateTerm(fromName, activeLang);
+    if (translated && translated !== fromName) return translated;
+    return fromName;
+  }
+  const fromCode = translateTerm(layer.code, activeLang);
+  if (fromCode && fromCode !== layer.code) return fromCode;
+  return fromName || layer.code;
 }
 
 /** `date` column (`YYYY-MM-DD`) as `DD.MM.YYYY` — never re-parsed through

@@ -364,6 +364,583 @@ export const TERM_TRANSLATIONS: Record<string, Record<string, string>> = {
     uz_cyrl: 'Бурчмулла ДЎХ',
     kaa: 'Burchmulla TOX',
   },
+
+  // --- GIS Layers & Geodata --------------------------------------------------
+  'apiaries': {
+    uz_latn: 'Asalarichilik joylari',
+    ru: 'Пасеки',
+    en: 'Apiaries',
+    uz_cyrl: 'Асаларичилик жойлари',
+    kaa: 'Hárre xojalıǵı orınları',
+  },
+  'asalarichilik joylari': {
+    uz_latn: 'Asalarichilik joylari',
+    ru: 'Пасеки',
+    en: 'Apiaries',
+    uz_cyrl: 'Асаларичилик жойлари',
+    kaa: 'Hárre xojalıǵı orınları',
+  },
+  'пасеки': {
+    uz_latn: 'Asalarichilik joylari',
+    ru: 'Пасеки',
+    en: 'Apiaries',
+    uz_cyrl: 'Асаларичилик жойлари',
+    kaa: 'Hárre xojalıǵı orınları',
+  },
+  'асаларичилик жойлари': {
+    uz_latn: 'Asalarichilik joylari',
+    ru: 'Пасеки',
+    en: 'Apiaries',
+    uz_cyrl: 'Асаларичилик жойлари',
+    kaa: 'Hárre xojalıǵı orınları',
+  },
+  'hárre xojalıǵı orınları': {
+    uz_latn: 'Asalarichilik joylari',
+    ru: 'Пасеки',
+    en: 'Apiaries',
+    uz_cyrl: 'Асаларичилик жойлари',
+    kaa: 'Hárre xojalıǵı orınları',
+  },
+
+  'cattle_corridors': {
+    uz_latn: 'Chorva yoʻlaklari',
+    ru: 'Скотопрогоны',
+    en: 'Cattle corridors',
+    uz_cyrl: 'Чорва йўлаклари',
+    kaa: 'Qara mal jolları',
+  },
+  'cattle corridors': {
+    uz_latn: 'Chorva yoʻlaklari',
+    ru: 'Скотопрогоны',
+    en: 'Cattle corridors',
+    uz_cyrl: 'Чорва йўлаклари',
+    kaa: 'Qara mal jolları',
+  },
+  'chorva yoʻlaklari': {
+    uz_latn: 'Chorva yoʻlaklari',
+    ru: 'Скотопрогоны',
+    en: 'Cattle corridors',
+    uz_cyrl: 'Чорва йўлаклари',
+    kaa: 'Qara mal jolları',
+  },
+  "chorva yo'laklari": {
+    uz_latn: 'Chorva yoʻlaklari',
+    ru: 'Скотопрогоны',
+    en: 'Cattle corridors',
+    uz_cyrl: 'Чорва йўлаклари',
+    kaa: 'Qara mal jolları',
+  },
+  'chorva yoʻllaklari': {
+    uz_latn: 'Chorva yoʻlaklari',
+    ru: 'Скотопрогоны',
+    en: 'Cattle corridors',
+    uz_cyrl: 'Чорва йўлаклари',
+    kaa: 'Qara mal jolları',
+  },
+  "chorva yo'llaklari": {
+    uz_latn: 'Chorva yoʻlaklari',
+    ru: 'Скотопрогоны',
+    en: 'Cattle corridors',
+    uz_cyrl: 'Чорва йўлаклари',
+    kaa: 'Qara mal jolları',
+  },
+  'скотопрогоны': {
+    uz_latn: 'Chorva yoʻlaklari',
+    ru: 'Скотопрогоны',
+    en: 'Cattle corridors',
+    uz_cyrl: 'Чорва йўлаклари',
+    kaa: 'Qara mal jolları',
+  },
+  'чорва йўлаклари': {
+    uz_latn: 'Chorva yoʻlaklari',
+    ru: 'Скотопрогоны',
+    en: 'Cattle corridors',
+    uz_cyrl: 'Чорва йўлаклари',
+    kaa: 'Qara mal jolları',
+  },
+  'qara mal jolları': {
+    uz_latn: 'Chorva yoʻlaklari',
+    ru: 'Скотопрогоны',
+    en: 'Cattle corridors',
+    uz_cyrl: 'Чорва йўлаклари',
+    kaa: 'Qara mal jolları',
+  },
+
+  'contours': {
+    uz_latn: 'Konturlar',
+    ru: 'Контуры',
+    en: 'Contours',
+    uz_cyrl: 'Контурлар',
+    kaa: 'Konturlar',
+  },
+  'konturlar': {
+    uz_latn: 'Konturlar',
+    ru: 'Контуры',
+    en: 'Contours',
+    uz_cyrl: 'Контурлар',
+    kaa: 'Konturlar',
+  },
+  'kontur': {
+    uz_latn: 'Kontur',
+    ru: 'Контур',
+    en: 'Contour',
+    uz_cyrl: 'Контур',
+    kaa: 'Kontur',
+  },
+  'контуры': {
+    uz_latn: 'Konturlar',
+    ru: 'Контуры',
+    en: 'Contours',
+    uz_cyrl: 'Контурлар',
+    kaa: 'Konturlar',
+  },
+  'контурлар': {
+    uz_latn: 'Konturlar',
+    ru: 'Контуры',
+    en: 'Contours',
+    uz_cyrl: 'Контурлар',
+    kaa: 'Konturlar',
+  },
+
+  'fire_bans': {
+    uz_latn: 'Yongʻin taqiqlari',
+    ru: 'Противопожарные запреты',
+    en: 'Fire bans',
+    uz_cyrl: 'Ёнғин тақиқлари',
+    kaa: 'Órt qadaǵanları',
+  },
+  'fire bans': {
+    uz_latn: 'Yongʻin taqiqlari',
+    ru: 'Противопожарные запреты',
+    en: 'Fire bans',
+    uz_cyrl: 'Ёнғин тақиқлари',
+    kaa: 'Órt qadaǵanları',
+  },
+  'yongʻin taqiqlari': {
+    uz_latn: 'Yongʻin taqiqlari',
+    ru: 'Противопожарные запреты',
+    en: 'Fire bans',
+    uz_cyrl: 'Ёнғин тақиқлари',
+    kaa: 'Órt qadaǵanları',
+  },
+  "yong'in taqiqlari": {
+    uz_latn: 'Yongʻin taqiqlari',
+    ru: 'Противопожарные запреты',
+    en: 'Fire bans',
+    uz_cyrl: 'Ёнғин тақиқлари',
+    kaa: 'Órt qadaǵanları',
+  },
+  'yongʻin taqiqi': {
+    uz_latn: 'Yongʻin taqiqi',
+    ru: 'Противопожарный запрет',
+    en: 'Fire ban',
+    uz_cyrl: 'Ёнғин тақиқи',
+    kaa: 'Órt qadaǵanı',
+  },
+  "yong'in taqiqi": {
+    uz_latn: 'Yongʻin taqiqi',
+    ru: 'Противопожарный запрет',
+    en: 'Fire ban',
+    uz_cyrl: 'Ёнғин тақиқи',
+    kaa: 'Órt qadaǵan',
+  },
+  'противопожарные запреты': {
+    uz_latn: 'Yongʻin taqiqlari',
+    ru: 'Противопожарные запреты',
+    en: 'Fire bans',
+    uz_cyrl: 'Ёнғин тақиқлари',
+    kaa: 'Órt qadaǵanları',
+  },
+  'ёнғин тақиқлари': {
+    uz_latn: 'Yongʻin taqiqlari',
+    ru: 'Противопожарные запреты',
+    en: 'Fire bans',
+    uz_cyrl: 'Ёнғин тақиқлари',
+    kaa: 'Órt qadaǵanları',
+  },
+  'órt qadaǵanları': {
+    uz_latn: 'Yongʻin taqiqlari',
+    ru: 'Противопожарные запреты',
+    en: 'Fire bans',
+    uz_cyrl: 'Ёнғин тақиқлари',
+    kaa: 'Órt qadaǵanları',
+  },
+
+  'forest_fund': {
+    uz_latn: 'Oʻrmon fondi chegaralari',
+    ru: 'Границы лесного фонда',
+    en: 'Forest fund boundaries',
+    uz_cyrl: 'Ўрмон фонди чегаралари',
+    kaa: 'Togʻay fondı shegaraları',
+  },
+  'forest fund': {
+    uz_latn: 'Oʻrmon fondi',
+    ru: 'Лесной фонд',
+    en: 'Forest fund',
+    uz_cyrl: 'Ўрмон фонди',
+    kaa: 'Togʻay fondı',
+  },
+  'oʻrmon fondi chegaralari': {
+    uz_latn: 'Oʻrmon fondi chegaralari',
+    ru: 'Границы лесного фонда',
+    en: 'Forest fund boundaries',
+    uz_cyrl: 'Ўрмон фонди чегаралари',
+    kaa: 'Togʻay fondı shegaraları',
+  },
+  "o'rmon fondi chegaralari": {
+    uz_latn: 'Oʻrmon fondi chegaralari',
+    ru: 'Границы лесного фонда',
+    en: 'Forest fund boundaries',
+    uz_cyrl: 'Ўрмон фонди чегаралари',
+    kaa: 'Togʻay fondı shegaraları',
+  },
+  'oʻrmon fondi': {
+    uz_latn: 'Oʻrmon fondi',
+    ru: 'Лесной фонд',
+    en: 'Forest fund',
+    uz_cyrl: 'Ўрмон фонди',
+    kaa: 'Togʻay fondı',
+  },
+  "o'rmon fondi": {
+    uz_latn: 'Oʻrmon fondi',
+    ru: 'Лесной фонд',
+    en: 'Forest fund',
+    uz_cyrl: 'Ўрмон фонди',
+    kaa: 'Togʻay fondı',
+  },
+  'границы лесного фонда': {
+    uz_latn: 'Oʻrmon fondi chegaralari',
+    ru: 'Границы лесного фонда',
+    en: 'Forest fund boundaries',
+    uz_cyrl: 'Ўрмон фонди чегаралари',
+    kaa: 'Togʻay fondı shegaraları',
+  },
+  'ўрмон фонди чегаралари': {
+    uz_latn: 'Oʻrmon fondi chegaralari',
+    ru: 'Границы лесного фонда',
+    en: 'Forest fund boundaries',
+    uz_cyrl: 'Ўрмон фонди чегаралари',
+    kaa: 'Togʻay fondı shegaraları',
+  },
+  'togʻay fondı shegaraları': {
+    uz_latn: 'Oʻrmon fondi chegaralari',
+    ru: 'Границы лесного фонда',
+    en: 'Forest fund boundaries',
+    uz_cyrl: 'Ўрмон фонди чегаралари',
+    kaa: 'Togʻay fondı shegaraları',
+  },
+
+  'hayfields': {
+    uz_latn: 'Pichanzorlar',
+    ru: 'Сенокосы',
+    en: 'Hayfields',
+    uz_cyrl: 'Пичанзорлар',
+    kaa: 'Pishenzarlar',
+  },
+  'pichanzorlar': {
+    uz_latn: 'Pichanzorlar',
+    ru: 'Сенокосы',
+    en: 'Hayfields',
+    uz_cyrl: 'Пичанзорлар',
+    kaa: 'Pishenzarlar',
+  },
+  'pichanzor': {
+    uz_latn: 'Pichanzor',
+    ru: 'Сенокос',
+    en: 'Hayfield',
+    uz_cyrl: 'Пичанзор',
+    kaa: 'Pishenzar',
+  },
+  'сенокосы': {
+    uz_latn: 'Pichanzorlar',
+    ru: 'Сенокосы',
+    en: 'Hayfields',
+    uz_cyrl: 'Пичанзорлар',
+    kaa: 'Pishenzarlar',
+  },
+  'пичанзорлар': {
+    uz_latn: 'Pichanzorlar',
+    ru: 'Сенокосы',
+    en: 'Hayfields',
+    uz_cyrl: 'Пичанзорлар',
+    kaa: 'Pishenzarlar',
+  },
+  'pishenzarlar': {
+    uz_latn: 'Pichanzorlar',
+    ru: 'Сенокосы',
+    en: 'Hayfields',
+    uz_cyrl: 'Пичанзорлар',
+    kaa: 'Pishenzarlar',
+  },
+
+  'org_boundaries': {
+    uz_latn: 'Tashkilot chegaralari',
+    ru: 'Границы организаций',
+    en: 'Organization boundaries',
+    uz_cyrl: 'Ташкилот чегаралари',
+    kaa: 'Shólkem shegaraları',
+  },
+  'organization boundaries': {
+    uz_latn: 'Tashkilot chegaralari',
+    ru: 'Границы организаций',
+    en: 'Organization boundaries',
+    uz_cyrl: 'Ташкилот чегаралари',
+    kaa: 'Shólkem shegaraları',
+  },
+  'tashkilot chegaralari': {
+    uz_latn: 'Tashkilot chegaralari',
+    ru: 'Границы организаций',
+    en: 'Organization boundaries',
+    uz_cyrl: 'Ташкилот чегаралари',
+    kaa: 'Shólkem shegaraları',
+  },
+  'tashkilot chegarasi': {
+    uz_latn: 'Tashkilot chegarasi',
+    ru: 'Граница организации',
+    en: 'Organization boundary',
+    uz_cyrl: 'Ташкилот чегараси',
+    kaa: 'Shólkem shegarası',
+  },
+  'границы организаций': {
+    uz_latn: 'Tashkilot chegaralari',
+    ru: 'Границы организаций',
+    en: 'Organization boundaries',
+    uz_cyrl: 'Ташкилот чегаралари',
+    kaa: 'Shólkem shegaraları',
+  },
+  'ташкилот чегаралари': {
+    uz_latn: 'Tashkilot chegaralari',
+    ru: 'Границы организаций',
+    en: 'Organization boundaries',
+    uz_cyrl: 'Ташкилот чегаралари',
+    kaa: 'Shólkem shegaraları',
+  },
+  'shólkem shegaraları': {
+    uz_latn: 'Tashkilot chegaralari',
+    ru: 'Границы организаций',
+    en: 'Organization boundaries',
+    uz_cyrl: 'Ташкилот чегаралари',
+    kaa: 'Shólkem shegaraları',
+  },
+
+  'pastures': {
+    uz_latn: 'Yaylovlar',
+    ru: 'Пастбища',
+    en: 'Pastures',
+    uz_cyrl: 'Яйловлар',
+    kaa: 'Jayımlıqlar',
+  },
+  'yaylovlar': {
+    uz_latn: 'Yaylovlar',
+    ru: 'Пастбища',
+    en: 'Pastures',
+    uz_cyrl: 'Яйловлар',
+    kaa: 'Jayımlıqlar',
+  },
+  'yaylov': {
+    uz_latn: 'Yaylov',
+    ru: 'Пастбище',
+    en: 'Pasture',
+    uz_cyrl: 'Яйлов',
+    kaa: 'Jayımlıq',
+  },
+  'пастбища': {
+    uz_latn: 'Yaylovlar',
+    ru: 'Пастбища',
+    en: 'Pastures',
+    uz_cyrl: 'Яйловлар',
+    kaa: 'Jayımlıqlar',
+  },
+  'яйловлар': {
+    uz_latn: 'Yaylovlar',
+    ru: 'Пастбища',
+    en: 'Pastures',
+    uz_cyrl: 'Яйловлар',
+    kaa: 'Jayımlıqlar',
+  },
+  'jayımlıqlar': {
+    uz_latn: 'Yaylovlar',
+    ru: 'Пастбища',
+    en: 'Pastures',
+    uz_cyrl: 'Яйловлар',
+    kaa: 'Jayımlıqlar',
+  },
+
+  'restrictions': {
+    uz_latn: 'Cheklovlar',
+    ru: 'Ограничения',
+    en: 'Restrictions',
+    uz_cyrl: 'Чекловлар',
+    kaa: 'Sheklewler',
+  },
+  'cheklovlar': {
+    uz_latn: 'Cheklovlar',
+    ru: 'Ограничения',
+    en: 'Restrictions',
+    uz_cyrl: 'Чекловлар',
+    kaa: 'Sheklewler',
+  },
+  'ограничения': {
+    uz_latn: 'Cheklovlar',
+    ru: 'Ограничения',
+    en: 'Restrictions',
+    uz_cyrl: 'Чекловлар',
+    kaa: 'Sheklewler',
+  },
+  'чекловлар': {
+    uz_latn: 'Cheklovlar',
+    ru: 'Ограничения',
+    en: 'Restrictions',
+    uz_cyrl: 'Чекловлар',
+    kaa: 'Sheklewler',
+  },
+  'sheklewler': {
+    uz_latn: 'Cheklovlar',
+    ru: 'Ограничения',
+    en: 'Restrictions',
+    uz_cyrl: 'Чекловлар',
+    kaa: 'Sheklewler',
+  },
+
+  'water_points': {
+    uz_latn: 'Suv nuqtalari',
+    ru: 'Водные точки',
+    en: 'Water points',
+    uz_cyrl: 'Сув нуқталари',
+    kaa: 'Suw noqatları',
+  },
+  'suv nuqtalari': {
+    uz_latn: 'Suv nuqtalari',
+    ru: 'Водные точки',
+    en: 'Water points',
+    uz_cyrl: 'Сув нуқталари',
+    kaa: 'Suw noqatları',
+  },
+
+  'hunting_grounds': {
+    uz_latn: 'Ovchilik xoʻjaliklari',
+    ru: 'Охотничьи угодья',
+    en: 'Hunting grounds',
+    uz_cyrl: 'Овчилик хўжаликлари',
+    kaa: 'Ańshılıq xojalıqları',
+  },
+  'ovchilik xoʻjaliklari': {
+    uz_latn: 'Ovchilik xoʻjaliklari',
+    ru: 'Охотничьи угодья',
+    en: 'Hunting grounds',
+    uz_cyrl: 'Овчилик хўжаликлари',
+    kaa: 'Ańshılıq xojalıqları',
+  },
+  "ovchilik xo'jaliklari": {
+    uz_latn: 'Ovchilik xoʻjaliklari',
+    ru: 'Охотничьи угодья',
+    en: 'Hunting grounds',
+    uz_cyrl: 'Овчилик хўжаликлари',
+    kaa: 'Ańshılıq xojalıqları',
+  },
+
+  'roads': {
+    uz_latn: 'Yoʻllar',
+    ru: 'Дороги',
+    en: 'Roads',
+    uz_cyrl: 'Йўллар',
+    kaa: 'Jollar',
+  },
+  'yoʻllar': {
+    uz_latn: 'Yoʻllar',
+    ru: 'Дороги',
+    en: 'Roads',
+    uz_cyrl: 'Йўллар',
+    kaa: 'Jollar',
+  },
+  "yo'llar": {
+    uz_latn: 'Yoʻllar',
+    ru: 'Дороги',
+    en: 'Roads',
+    uz_cyrl: 'Йўллар',
+    kaa: 'Jollar',
+  },
+
+  'admin_boundaries': {
+    uz_latn: 'Maʼmuriy chegaralar',
+    ru: 'Административные границы',
+    en: 'Administrative boundaries',
+    uz_cyrl: 'Маъмурий чегаралар',
+    kaa: 'Hákimshilik shegaralar',
+  },
+  'maʼmuriy chegaralar': {
+    uz_latn: 'Maʼmuriy chegaralar',
+    ru: 'Административные границы',
+    en: 'Administrative boundaries',
+    uz_cyrl: 'Маъмурий чегаралар',
+    kaa: 'Hákimshilik shegaralar',
+  },
+  "ma'muriy chegaralar": {
+    uz_latn: 'Maʼmuriy chegaralar',
+    ru: 'Административные границы',
+    en: 'Administrative boundaries',
+    uz_cyrl: 'Маъмурий чегаралар',
+    kaa: 'Hákimshilik shegaralar',
+  },
+
+  'forestry_departments': {
+    uz_latn: 'Oʻrmon xoʻjaligi boʻlimlari',
+    ru: 'Лесничества',
+    en: 'Forestry departments',
+    uz_cyrl: 'Ўрмон хўжалиги бўлимлари',
+    kaa: 'Togʻay xojalıǵı bólimleri',
+  },
+  'oʻrmon xoʻjaligi boʻlimlari': {
+    uz_latn: 'Oʻrmon xoʻjaligi boʻlimlari',
+    ru: 'Лесничества',
+    en: 'Forestry departments',
+    uz_cyrl: 'Ўрмон хўжалиги бўлимлари',
+    kaa: 'Togʻay xojalıǵı bólimleri',
+  },
+  "o'rmon xo'jaligi bo'limlari": {
+    uz_latn: 'Oʻrmon xoʻjaligi boʻlimlari',
+    ru: 'Лесничества',
+    en: 'Forestry departments',
+    uz_cyrl: 'Ўрмон хўжалиги бўлимлари',
+    kaa: 'Togʻay xojalıǵı bólimleri',
+  },
+
+  // GIS version sources
+  'cadastre': {
+    uz_latn: 'Kadastr',
+    ru: 'Кадастр',
+    en: 'Cadastre',
+    uz_cyrl: 'Кадастр',
+    kaa: 'Kadastr',
+  },
+  'survey': {
+    uz_latn: 'Dala oʻlchovi',
+    ru: 'Полевая съемка',
+    en: 'Field survey',
+    uz_cyrl: 'Дала ўлчови',
+    kaa: 'Dala ólshewi',
+  },
+  'aerial': {
+    uz_latn: 'Aero-surat',
+    ru: 'Аэрофотосъемка',
+    en: 'Aerial photo',
+    uz_cyrl: 'Аэро-сурат',
+    kaa: 'Aero-súwret',
+  },
+  'gps': {
+    uz_latn: 'GPS',
+    ru: 'GPS',
+    en: 'GPS',
+    uz_cyrl: 'GPS',
+    kaa: 'GPS',
+  },
+  'import': {
+    uz_latn: 'Import',
+    ru: 'Импорт',
+    en: 'Import',
+    uz_cyrl: 'Импорт',
+    kaa: 'Import',
+  },
 };
 
 /**
@@ -371,8 +948,18 @@ export const TERM_TRANSLATIONS: Record<string, Record<string, string>> = {
  */
 export function translateTerm(value: string | null | undefined, lang: string): string {
   if (!value || typeof value !== 'string') return value ?? '';
-  const key = value.trim().toLowerCase();
-  const mapping = TERM_TRANSLATIONS[key];
+  const trimmed = value.trim().toLowerCase();
+  let mapping: Record<string, string> | undefined = TERM_TRANSLATIONS[trimmed];
+  if (!mapping) {
+    const normalized = trimmed.replace(/[ʻ’‘`]/g, "'");
+    mapping = TERM_TRANSLATIONS[normalized];
+  }
+  if (!mapping) {
+    const simplified = trimmed.replace(/[ʻ’‘`']/g, '');
+    mapping = Object.entries(TERM_TRANSLATIONS).find(
+      ([k]) => k.replace(/[ʻ’‘`']/g, '') === simplified,
+    )?.[1];
+  }
   if (mapping && mapping[lang]) {
     return mapping[lang];
   }
