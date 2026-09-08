@@ -776,6 +776,9 @@ export const uz_latn = {
   'gis.page.tabImports': 'Import',
   'gis.page.tabLayers': 'Qatlamlar',
 
+  'gis.map.basemapScheme': 'Xarita',
+  'gis.map.basemapSatellite': 'Sputnik',
+
   'gis.versions.checks.title': 'Topologik tekshiruvlar',
   'gis.versions.checks.run': 'Tekshirish',
   'gis.versions.checks.failed': "Tekshiruvni bajarib bo'lmadi",

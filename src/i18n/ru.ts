@@ -769,6 +769,9 @@ export const ru = {
   'gis.page.tabImports': 'Импорт',
   'gis.page.tabLayers': 'Слои',
 
+  'gis.map.basemapScheme': 'Схема',
+  'gis.map.basemapSatellite': 'Спутник',
+
   'gis.versions.checks.title': 'Топологические проверки',
   'gis.versions.checks.run': 'Проверить',
   'gis.versions.checks.failed': 'Не удалось выполнить проверку',
