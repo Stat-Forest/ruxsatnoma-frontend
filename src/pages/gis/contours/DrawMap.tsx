@@ -20,6 +20,7 @@ import { TerraDraw } from 'terra-draw';
 import { TerraDrawMapLibreGLAdapter } from 'terra-draw-maplibre-gl-adapter';
 import { createDrawModes } from './drawModes';
 import { computeGeometryBounds } from './geometryBounds';
+import { useT } from '../../../i18n/useT';
 
 setWorkerUrl(workerUrl);
 
@@ -33,6 +34,41 @@ const UZBEKISTAN_BOUNDS: [[number, number], [number, number]] = [
 ];
 const MIN_ZOOM = 4.5;
 
+/** The same two basemaps `ContourMapPreview.tsx` offers an applicant, carried
+ * over to the operator's map (Oybek, 2026-09-08): the scheme answers "where
+ * is this parcel", the imagery answers "what is actually on the ground" —
+ * which is the question when an operator draws a contour's boundary or cuts
+ * one in two, because the boundary they are drawing usually follows something
+ * visible (a forest edge, a river, a track) and nothing on the OSM scheme
+ * shows it.
+ *
+ * Neither provider is a production answer — OSM's tile policy covers a dev
+ * server and a demo, not public traffic, and Esri's imagery is served for use
+ * inside its own platform. Both REQUIRE the credit the attribution control
+ * shows. Swapping the `tiles` arrays is the whole migration to our own tile
+ * server, which is why they are declared here and nowhere else in this file. */
+const BASEMAPS = [
+  { id: 'osm', labelKey: 'gis.map.basemapScheme' },
+  { id: 'satellite', labelKey: 'gis.map.basemapSatellite' },
+] as const;
+
+type BasemapId = (typeof BASEMAPS)[number]['id'];
+
+/** Every fill on this map has to do opposite jobs on the two basemaps. Over
+ * the flat scheme the fill IS the parcel — nothing else marks it. Over
+ * imagery it hides the very thing the imagery was switched on to show, so it
+ * thins to a tint and the outlines carry the shape. */
+const BROWSABLE_FILL_OPACITY: Record<BasemapId, number> = { osm: 0.12, satellite: 0.08 };
+const REFERENCE_FILL_OPACITY: Record<BasemapId, number> = { osm: 0.08, satellite: 0.05 };
+const SELECTED_FILL_OPACITY: Record<BasemapId, number> = { osm: 0.28, satellite: 0.16 };
+
+/** White halos under the two thin outlines, shown ONLY over imagery. A dark
+ * line over dark-green vegetation is the one combination satellite mode is
+ * guaranteed to produce, and a parcel whose edge cannot be seen is the whole
+ * feature failing. The selected contour already carries its own casing on
+ * both basemaps, so it is not in this list. */
+const SATELLITE_ONLY_LAYERS = ['browsable-casing', 'reference-casing'] as const;
+
 const BASEMAP_STYLE: StyleSpecification = {
   version: 8,
   sources: {
@@ -43,10 +79,28 @@ const BASEMAP_STYLE: StyleSpecification = {
       maxzoom: 19,
       attribution: '© OpenStreetMap',
     },
+    satellite: {
+      type: 'raster',
+      // {y}/{x}, not {x}/{y} — ArcGIS orders the path row-then-column, and
+      // getting it backwards yields tiles of the wrong place rather than an
+      // error. `maxzoom` caps requests at the deepest level the imagery
+      // actually has, so a closer zoom upscales the last real tile instead of
+      // asking for one that does not exist.
+      tiles: [
+        'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+      ],
+      tileSize: 256,
+      maxzoom: 18,
+      attribution: '© Esri, Maxar, Earthstar Geographics',
+    },
   },
   layers: [
     { id: 'bg', type: 'background', paint: { 'background-color': '#EAF3EC' } },
     { id: 'osm', type: 'raster', source: 'osm' },
+    // Declared hidden rather than added on demand: MapLibre requests no tiles
+    // for an invisible layer, so the unused provider costs nothing until it is
+    // switched to, and switching is then a visibility flip with no reload.
+    { id: 'satellite', type: 'raster', source: 'satellite', layout: { visibility: 'none' } },
   ],
 };
 
@@ -112,6 +166,8 @@ export function DrawMap({
   const mapRef = useRef<MaplibreMap | null>(null);
   const drawRef = useRef<TerraDraw | null>(null);
   const [mapReady, setMapReady] = useState(false);
+  const [basemap, setBasemap] = useState<BasemapId>('osm');
+  const t = useT();
   const onDrawFinishRef = useRef(onDrawFinish);
   const onViewportChangeRef = useRef(onViewportChange);
   const heightRef = useRef(height);
@@ -194,6 +250,13 @@ export function DrawMap({
         paint: { 'fill-color': '#2E7D4F', 'fill-opacity': 0.12 },
       });
       map.addLayer({
+        id: 'browsable-casing',
+        type: 'line',
+        source: 'browsable',
+        layout: { visibility: 'none' },
+        paint: { 'line-color': '#FFFFFF', 'line-width': 3, 'line-opacity': 0.85 },
+      });
+      map.addLayer({
         id: 'browsable-line',
         type: 'line',
         source: 'browsable',
@@ -206,6 +269,21 @@ export function DrawMap({
         type: 'fill',
         source: 'reference',
         paint: { 'fill-color': '#0369A1', 'fill-opacity': 0.08 },
+      });
+      map.addLayer({
+        id: 'reference-casing',
+        type: 'line',
+        source: 'reference',
+        layout: { visibility: 'none' },
+        // Same dash pattern as the line above it, one step wider: the halo
+        // has to follow the dashes, or the guide reads as a solid white line
+        // with a blue pattern painted on it.
+        paint: {
+          'line-color': '#FFFFFF',
+          'line-width': 4,
+          'line-opacity': 0.85,
+          'line-dasharray': [1, 1],
+        },
       });
       map.addLayer({
         id: 'reference-line',
@@ -257,6 +335,24 @@ export function DrawMap({
     // Mounted once; every prop that can change afterwards (mode, geometries)
     // is applied by its own effect below, reading the live refs.
   }, []);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    // Every layer touched below is created in the `load` handler that sets
+    // `mapReady`, so past this guard they all exist — including when the
+    // operator switches basemap before the map has finished loading, because
+    // `mapReady` is itself a dependency and re-runs this effect afterwards.
+    if (!map || !mapReady) return;
+    for (const { id } of BASEMAPS) {
+      map.setLayoutProperty(id, 'visibility', id === basemap ? 'visible' : 'none');
+    }
+    for (const id of SATELLITE_ONLY_LAYERS) {
+      map.setLayoutProperty(id, 'visibility', basemap === 'satellite' ? 'visible' : 'none');
+    }
+    map.setPaintProperty('browsable-fill', 'fill-opacity', BROWSABLE_FILL_OPACITY[basemap]);
+    map.setPaintProperty('reference-fill', 'fill-opacity', REFERENCE_FILL_OPACITY[basemap]);
+    map.setPaintProperty('selected-fill', 'fill-opacity', SELECTED_FILL_OPACITY[basemap]);
+  }, [basemap, mapReady]);
 
   useEffect(() => {
     const draw = drawRef.current;
@@ -313,6 +409,26 @@ export function DrawMap({
   return (
     <div ref={shellRef} className="relative bg-white border border-[#E4E7EA] rounded-2xl overflow-hidden">
       <div ref={containerRef} style={{ height }} data-testid="draw-map-canvas" />
+      {/* Top-LEFT: the fullscreen control sits top-right, and the attribution
+          — the one thing on this map that may not be covered — bottom-right.
+          A child of the shell, not of the map container, so it survives the
+          pseudo-fullscreen expansion the shell (not the canvas) undergoes. */}
+      <div className="absolute top-2 left-2 z-10 flex rounded-lg overflow-hidden border border-[#E4E7EA] shadow-xs bg-white">
+        {BASEMAPS.map(({ id, labelKey }) => (
+          <button
+            key={id}
+            type="button"
+            aria-pressed={basemap === id}
+            data-testid={`basemap-${id}`}
+            onClick={() => setBasemap(id)}
+            className={`px-3 py-1 text-[11px] font-semibold cursor-pointer transition-colors ${
+              basemap === id ? 'bg-[#2E7D4F] text-white' : 'text-[#5A646D] hover:bg-[#F0F7F1]'
+            }`}
+          >
+            {t(labelKey)}
+          </button>
+        ))}
+      </div>
     </div>
   );
 }
