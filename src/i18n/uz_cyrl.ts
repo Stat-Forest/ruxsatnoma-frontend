@@ -869,7 +869,7 @@ export const uz_cyrl = {
   'gis.imports.form.numberField': "Рақам майдони",
   'gis.imports.form.areaField': 'Майдон (га) устуни',
   'gis.imports.form.orgNameField': 'Ташкилот номи устуни',
-  'gis.imports.form.file': 'Геома\ълумот файли',
+  'gis.imports.form.file': 'Геомаълумот файли',
   'gis.imports.form.approvalDoc': 'Тасдиқлаш ҳужжати',
   'gis.imports.form.failed': "Юклаб бўлмади",
   'gis.imports.form.submit': 'Юклаш',
@@ -895,7 +895,7 @@ export const uz_cyrl = {
   'gis.imports.actions.publish': 'Нашр этиш',
   'gis.imports.actions.failed': "Амални бажариб бўлмади",
 
-  'gis.imports.openById': 'ИД бо\ъйича очиш',
+  'gis.imports.openById': 'ИД бўйича очиш',
   'gis.imports.open': 'Очиш',
   'gis.imports.recent': "Сўнгги импортлар (шу браузерда)",
   'gis.imports.noneSelected': "Импорт танланмаган",

@@ -24,7 +24,7 @@ import { DataTable, type Column } from '../../components/ui/DataTable';
 import { FormField, Input, Select } from '../../components/ui/FormControls';
 import { useLanguage, useT } from '../../i18n/useT';
 import { pickLocalizedName } from '../permits/format';
-import { statusLabel } from '../staff/format';
+import { statusLabel, type ApplicationStatus } from '../staff/format';
 import { getPermitStatusLabel } from '../permits/statusMeta';
 import { useActivityTypes, useLeshozOrganizations } from './refs';
 import { SearchExportPanel } from './SearchExportPanel';
@@ -130,7 +130,7 @@ export function SearchPage() {
       header: t('search.col.status'),
       accessor: (row) =>
         row.kind === 'applications'
-          ? statusLabel(row.status as any, lang)
+          ? statusLabel(row.status as ApplicationStatus, lang)
           : getPermitStatusLabel(row.status, lang),
     },
     {

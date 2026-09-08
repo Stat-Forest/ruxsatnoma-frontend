@@ -169,6 +169,7 @@ export function ApplicationsListPage() {
       setAppliedFilters(filters);
     }, 400);
     return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filters.number, filters.period_from, filters.period_to]);
 
   const statusOptions = useMemo(

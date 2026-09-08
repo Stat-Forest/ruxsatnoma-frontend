@@ -178,6 +178,7 @@ export function PermitsListPage({ variant }: { variant: 'staff' | 'applicant' })
       setAppliedFilters(filters);
     }, 400);
     return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filters.series, filters.number]);
 
   const statusOptions = useMemo(

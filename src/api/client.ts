@@ -30,7 +30,9 @@ function getCsrfToken(): string | null {
       const match = document.cookie.match(/(?:^|;\s*)csrf_token=([^;]+)/);
       if (match) return decodeURIComponent(match[1]);
     }
-  } catch {}
+  } catch {
+    // Non-browser or inaccessible document.cookie
+  }
   return null;
 }
 
