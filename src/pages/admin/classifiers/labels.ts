@@ -219,9 +219,17 @@ export const ru: Record<keyof typeof uz_latn, string> = {
   errSaveFailed: 'Не удалось сохранить',
 };
 
-export const LABELS = { uz_latn, ru };
+import type { UiLanguage } from '../../../i18n/context';
 
 export type ClassifiersLabels = typeof uz_latn;
+
+export const LABELS: Record<UiLanguage, ClassifiersLabels> = {
+  uz_latn,
+  ru,
+  uz_cyrl: uz_latn,
+  kaa: uz_latn,
+  en: uz_latn,
+};
 
 /**
  * The six classifiers the backend seeds (`migrations/versions/0005_admin_seeds.py`

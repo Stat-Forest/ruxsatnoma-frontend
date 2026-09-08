@@ -59,4 +59,14 @@ export const ru: Record<keyof typeof uz_latn, string> = {
   saveFailed: 'Не удалось сохранить',
 };
 
-export const LABELS = { uz_latn, ru };
+import type { UiLanguage } from '../../../i18n/context';
+
+export type SettingsLabels = Record<keyof typeof uz_latn, string>;
+
+export const LABELS: Record<UiLanguage, SettingsLabels> = {
+  uz_latn,
+  ru,
+  uz_cyrl: uz_latn,
+  kaa: uz_latn,
+  en: uz_latn,
+};

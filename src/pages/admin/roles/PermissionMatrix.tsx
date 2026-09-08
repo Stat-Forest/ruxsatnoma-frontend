@@ -42,10 +42,12 @@ function groupPermissions(permissions: PermissionOut[]): PermissionGroup[] {
     .sort((a, b) => rank(a.prefix) - rank(b.prefix) || a.prefix.localeCompare(b.prefix));
 }
 
+import type { UiLanguage } from '../../../i18n/context';
+
 interface PermissionMatrixProps {
   role: RoleAdminOut;
   permissions: PermissionOut[];
-  lang: 'uz_latn' | 'ru';
+  lang: UiLanguage;
 }
 
 /**

@@ -57,7 +57,7 @@ export function KpiFilters({
   initial: KpiParams;
   onApply: (filters: KpiParams) => void;
   t: (key: string) => string;
-  lang: 'uz_latn' | 'ru';
+  lang: string;
 }) {
   const [draft, setDraft] = useState<DraftState>(() => toDraft(initial));
 

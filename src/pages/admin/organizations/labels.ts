@@ -167,9 +167,17 @@ export const ru: Labels = {
   'archive.done': 'Организация архивирована и убрана из активного списка.',
 };
 
-export const LABELS: Record<'uz_latn' | 'ru', Labels> = { uz_latn, ru };
+import type { UiLanguage } from '../../../i18n/context';
+
+export const LABELS: Record<UiLanguage, Labels> = {
+  uz_latn,
+  ru,
+  uz_cyrl: uz_latn,
+  kaa: uz_latn,
+  en: uz_latn,
+};
 
 export function useLabels(): Labels {
   const { lang } = useLanguage();
-  return LABELS[lang];
+  return LABELS[lang] ?? LABELS.uz_latn;
 }

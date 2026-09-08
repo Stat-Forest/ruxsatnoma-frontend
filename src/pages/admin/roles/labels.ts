@@ -89,7 +89,15 @@ const ru: RoleScreenLabels = {
   },
 };
 
-export const labels: Record<'uz_latn' | 'ru', RoleScreenLabels> = { uz_latn, ru };
+import type { UiLanguage } from '../../../i18n/context';
+
+export const labels: Record<UiLanguage, RoleScreenLabels> = {
+  uz_latn,
+  ru,
+  uz_cyrl: uz_latn,
+  kaa: uz_latn,
+  en: uz_latn,
+};
 
 /** The order the modules are shown in — the citizen-facing flow first, the
  *  administrative modules last. A prefix this list does not name (a module
@@ -107,7 +115,8 @@ export const GROUP_ORDER: readonly string[] = [
   'admin',
 ];
 
-export function groupTitle(prefix: string, lang: 'uz_latn' | 'ru'): string {
-  const known = labels[lang].groups as Record<string, string | undefined>;
+export function groupTitle(prefix: string, lang: UiLanguage | string): string {
+  const map = labels[lang as UiLanguage] ?? labels.uz_latn;
+  const known = map.groups as Record<string, string | undefined>;
   return known[prefix] ?? prefix;
 }

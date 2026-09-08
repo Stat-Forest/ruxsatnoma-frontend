@@ -169,7 +169,13 @@ export const ru: Record<keyof typeof uz_latn, string> = {
 
 export type IntegrationsLabels = typeof uz_latn;
 
-export const LABELS: Record<UiLanguage, IntegrationsLabels> = { uz_latn, ru };
+export const LABELS: Record<UiLanguage, IntegrationsLabels> = {
+  uz_latn,
+  ru,
+  uz_cyrl: uz_latn,
+  kaa: uz_latn,
+  en: uz_latn,
+};
 
 /**
  * `outbox_messages.status` — the four values the table's own CHECK constraint

@@ -132,7 +132,7 @@ export function FaqReaderTab() {
   );
 }
 
-function FaqItem({ item, lang }: { item: FaqOut; lang: 'uz_latn' | 'ru' }) {
+function FaqItem({ item, lang }: { item: FaqOut; lang: string }) {
   return (
     <details
       className="rounded-xl border border-[#E4E7EA] bg-white p-4 open:shadow-xs"

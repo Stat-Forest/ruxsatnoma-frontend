@@ -345,6 +345,8 @@ export const ru: Record<keyof typeof uz_latn, string> = {
 
 export type UsersLabels = typeof uz_latn;
 
-export function labelsFor(lang: 'uz_latn' | 'ru'): Record<keyof typeof uz_latn, string> {
+import type { UiLanguage } from '../../../i18n/context';
+
+export function labelsFor(lang: UiLanguage | string): Record<keyof typeof uz_latn, string> {
   return lang === 'ru' ? ru : uz_latn;
 }

@@ -52,8 +52,6 @@ export function formatPermitNumber(series: string, number: number): string {
   return `${series} № ${String(number).padStart(6, '0')}`;
 }
 
-import { translateTerm } from '../../i18n/terms';
-
 const LANG_FALLBACKS = ['uz_latn', 'uz_cyrl', 'ru', 'en', 'kaa'];
 
 /** A `LocalizedName`-shaped map (`{uz_latn, uz_cyrl, ru, ...}`) picked for

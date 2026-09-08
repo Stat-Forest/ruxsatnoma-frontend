@@ -35,10 +35,12 @@ export function formatDateTime(value: string | null | undefined): string {
  *  so a `uz_latn` caller is owed their own field. */
 export function pickLocalizedName(
   name: Record<string, unknown> | undefined,
-  lang: 'uz_latn' | 'uz_cyrl' | 'ru' | 'en',
+  lang: string = 'uz_latn',
 ): string {
   if (!name) return '';
-  const preferred = lang === 'ru' ? name.ru : lang === 'uz_cyrl' ? name.uz_cyrl : name.uz_latn;
+  const direct = name[lang];
+  if (typeof direct === 'string' && direct) return direct;
+  const preferred = lang === 'ru' ? name.ru : lang === 'uz_cyrl' ? name.uz_cyrl : lang === 'en' ? name.en : lang === 'kaa' ? name.kaa : name.uz_latn;
   const candidate = preferred ?? name.uz_latn ?? name.uz_cyrl ?? name.ru ?? Object.values(name)[0];
   return typeof candidate === 'string' ? candidate : '';
 }

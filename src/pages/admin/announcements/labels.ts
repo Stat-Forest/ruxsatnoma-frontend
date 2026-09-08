@@ -135,7 +135,15 @@ export const ru: AnnouncementLabels = {
   langEn: 'Английский',
 };
 
-export const LABELS: Record<'uz_latn' | 'ru', AnnouncementLabels> = { uz_latn, ru };
+import type { UiLanguage } from '../../../i18n/context';
+
+export const LABELS: Record<UiLanguage, AnnouncementLabels> = {
+  uz_latn,
+  ru,
+  uz_cyrl: uz_latn,
+  kaa: uz_latn,
+  en: uz_latn,
+};
 
 /** Which label names each per-language input. Keyed by the schema's own
  *  language codes, so adding a code to `ANNOUNCEMENT_LANGUAGES` without a

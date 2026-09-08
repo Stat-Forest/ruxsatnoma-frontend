@@ -3,11 +3,13 @@ import type { RoleAdminOut } from '../api';
 import { pickName } from '../../applicant/format';
 import { labels } from './labels';
 
+import type { UiLanguage } from '../../../i18n/context';
+
 interface RolesListProps {
   roles: RoleAdminOut[];
   selectedId: string | null;
   onSelect: (roleId: string) => void;
-  lang: 'uz_latn' | 'ru';
+  lang: UiLanguage;
 }
 
 /**

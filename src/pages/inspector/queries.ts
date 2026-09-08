@@ -137,7 +137,7 @@ export function usePermitByNumber(input: { series: string; number: number } | nu
 // QueryClient still shares one cache entry with whichever screen fetched
 // them first.
 
-export function useActivityTypeName(activityTypeId: string | undefined, lang: 'uz_latn' | 'ru'): string | null {
+export function useActivityTypeName(activityTypeId: string | undefined, lang: string = 'uz_latn'): string | null {
   const query = useQuery({
     queryKey: ['refs', 'activity-types'],
     queryFn: async () => {
@@ -151,7 +151,7 @@ export function useActivityTypeName(activityTypeId: string | undefined, lang: 'u
   return found ? pickLocalizedName(found.name, lang) : null;
 }
 
-export function useOrganizationName(organizationId: string | undefined, lang: 'uz_latn' | 'ru'): string | null {
+export function useOrganizationName(organizationId: string | undefined, lang: string = 'uz_latn'): string | null {
   const query = useQuery({
     queryKey: ['refs', 'organizations', 'leshoz'],
     queryFn: async () => {

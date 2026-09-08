@@ -265,7 +265,7 @@ export function checkResultStyle(result: string, lang: string = 'uz_latn') {
  * this function's old comment assumed. */
 export function localizedName(
   name: Record<string, unknown> | null | undefined,
-  lang: 'uz_latn' | 'ru' = 'uz_latn',
+  lang: string = 'uz_latn',
 ): string {
   if (!name) return '';
   const direct = name[lang];

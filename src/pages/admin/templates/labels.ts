@@ -156,4 +156,12 @@ export const ru: TemplateLabels = {
   archiveError: 'Не удалось архивировать.',
 };
 
-export const labels: Record<'uz_latn' | 'ru', TemplateLabels> = { uz_latn, ru };
+import type { UiLanguage } from '../../../i18n/context';
+
+export const labels: Record<UiLanguage, TemplateLabels> = {
+  uz_latn,
+  ru,
+  uz_cyrl: uz_latn,
+  kaa: uz_latn,
+  en: uz_latn,
+};

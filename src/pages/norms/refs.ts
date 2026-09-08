@@ -50,7 +50,7 @@ export function useActivityTypes(enabled = true) {
  *  each track keeps its own copy of a small format helper. */
 export function pickLocalizedName(
   name: Record<string, unknown> | null | undefined,
-  lang: 'uz_latn' | 'ru',
+  lang: string = 'uz_latn',
 ): string {
   if (!name) return '';
   const direct = name[lang];

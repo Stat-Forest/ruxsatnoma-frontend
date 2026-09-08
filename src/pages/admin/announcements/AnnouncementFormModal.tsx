@@ -95,7 +95,7 @@ export interface AnnouncementFormModalProps {
   announcementId: string | null;
   roles: RoleAdminOut[];
   regions: RegionOut[];
-  lang: 'uz_latn' | 'ru';
+  lang: string;
   L: AnnouncementLabels;
   onClose: () => void;
 }

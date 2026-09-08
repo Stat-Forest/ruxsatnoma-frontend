@@ -50,7 +50,7 @@ function isKnownStatus(status: string): status is AnnouncementStatus {
 export function AnnouncementsPage() {
   const { lang } = useLanguage();
   const errorText = useApiErrorText();
-  const L = LABELS[lang];
+  const L = LABELS[lang] ?? LABELS.uz_latn;
 
   const [status, setStatus] = useState<AnnouncementStatus | ''>('');
   const [page, setPage] = useState(1);
@@ -273,7 +273,7 @@ export function AnnouncementsPage() {
 interface AnnouncementRowProps {
   row: AnnouncementAdminOut;
   L: AnnouncementLabels;
-  lang: 'uz_latn' | 'ru';
+  lang: string;
   audience: AudienceSummary;
   onEdit: () => void;
   onPublish: () => void;

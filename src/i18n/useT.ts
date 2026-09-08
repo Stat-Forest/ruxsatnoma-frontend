@@ -12,8 +12,8 @@ export function useLanguage() {
   if (!ctx) {
     return {
       lang: 'uz_latn' as const,
-      backendLang: 'uz' as const,
-      setLanguage: () => {},
+      backendLang: 'uz_latn' as const,
+      setLanguage: async () => {},
     };
   }
   return { lang: ctx.lang, backendLang: ctx.backendLang, setLanguage: ctx.setLanguage };
