@@ -194,3 +194,11 @@ test('the role name renders in the account\'s own uz_latn field, never uz_cyrl',
   expect(await screen.findByText('Executor head')).toBeInTheDocument();
   expect(screen.queryByText("Ijrochi boshlig'i")).not.toBeInTheDocument();
 });
+
+test('clicking the user profile in the header navigates to /profile', async () => {
+  await renderShell();
+  const profileLink = await screen.findByTestId('header-profile-link');
+  expect(profileLink).toHaveAttribute('href', '/profile');
+  await userEvent.click(profileLink);
+  expect(await screen.findByTestId('profile-page')).toBeInTheDocument();
+});

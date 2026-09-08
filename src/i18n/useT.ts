@@ -9,6 +9,12 @@ export function useT() {
 
 export function useLanguage() {
   const ctx = useContext(I18nContext);
-  if (!ctx) throw new Error('useLanguage must be used within an I18nProvider');
+  if (!ctx) {
+    return {
+      lang: 'uz_latn' as const,
+      backendLang: 'uz' as const,
+      setLanguage: () => {},
+    };
+  }
   return { lang: ctx.lang, backendLang: ctx.backendLang, setLanguage: ctx.setLanguage };
 }

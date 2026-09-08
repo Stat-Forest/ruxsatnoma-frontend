@@ -11,13 +11,77 @@ import {
   buildMockPkcs7,
   canAttemptPurpose,
   isPlausiblePinflOrStir,
-  PURPOSE_LABEL,
+  getPurposeLabel,
   RECIPIENT_PURPOSE,
   SIGNATURE_ORDER,
 } from './eimzo';
 import { formatDateTime } from './format';
+import { useLanguage } from '../../i18n/useT';
 
 type PermitCardOut = components['schemas']['PermitCardOut'];
+
+const SIG_I18N = {
+  uz_latn: {
+    panelTitle: 'Elektron raqamli imzolar',
+    signedCount: (signed: number, total: number) => `Imzolangan ${signed} dan ${total}`,
+    signedAt: 'Imzolangan:',
+    signButton: 'E-IMZO bilan imzolash',
+    pinflLabel: 'PINFL (14 ta) yoki tashkilot STIR (9 ta raqam)',
+    waitingSignature: 'Imzo kutilmoqda — bu qatorni faqat tegishli mansabdor imzolashi mumkin.',
+    notRequired: 'Bu qator hozircha talab qilinmagan roʻyxatda emas.',
+    invalidAttempts: (n: number) => `${n} ta muvaffaqiyatsiz urinish qayd etilgan (audit jurnalida saqlanadi).`,
+    pinflError: 'PINFL 14 ta, tashkilot STIR 9 ta raqamdan iborat boʻlishi kerak.',
+    notRenderedError: 'Hujjat hali render qilinmagan — imzolab boʻlmaydi.',
+  },
+  uz_cyrl: {
+    panelTitle: 'Электрон рақамли имзолар',
+    signedCount: (signed: number, total: number) => `Имзоланган ${signed} дан ${total}`,
+    signedAt: 'Имзоланган:',
+    signButton: 'E-IMZO билан имзолаш',
+    pinflLabel: 'ЖШШИР (14 та) ёки ташкилот СТИР (9 та рақам)',
+    waitingSignature: 'Имзо кутилмоқда — бу қаторни фақат тегишли мансабдор имзолаши мумкин.',
+    notRequired: 'Бу қатор ҳозирча талаб қилинмаган рўйхатда эмас.',
+    invalidAttempts: (n: number) => `${n} та муваффақиятсиз уриниш қайд этилган (аудит журналида сақланади).`,
+    pinflError: 'ЖШШИР 14 та, ташкилот СТИР 9 та рақамдан иборат бўлиши керак.',
+    notRenderedError: 'Ҳужжат ҳали рендер қилинмаган — имзолаб бўлмайди.',
+  },
+  ru: {
+    panelTitle: 'Электронные цифровые подписи',
+    signedCount: (signed: number, total: number) => `Подписано ${signed} из ${total}`,
+    signedAt: 'Подписано:',
+    signButton: 'Подписать через E-IMZO',
+    pinflLabel: 'ПИНФЛ (14 цифр) или ИНН организации (9 цифр)',
+    waitingSignature: 'Ожидается подпись — эту строку может подписать только соответствующее должностное лицо.',
+    notRequired: 'Эта строка пока не требуется в списке.',
+    invalidAttempts: (n: number) => `Зафиксировано неудачных попыток: ${n} (сохраняется в журнале аудита).`,
+    pinflError: 'ПИНФЛ должен содержать 14 цифр, ИНН организации — 9 цифр.',
+    notRenderedError: 'Документ еще не сформирован — подписание невозможно.',
+  },
+  en: {
+    panelTitle: 'Electronic digital signatures',
+    signedCount: (signed: number, total: number) => `Signed ${signed} of ${total}`,
+    signedAt: 'Signed:',
+    signButton: 'Sign with E-IMZO',
+    pinflLabel: 'PINFL (14 digits) or organization TIN (9 digits)',
+    waitingSignature: 'Signature pending — only the authorized official can sign this row.',
+    notRequired: 'This row is not currently in the required list.',
+    invalidAttempts: (n: number) => `${n} failed attempt(s) recorded (kept in audit log).`,
+    pinflError: 'PINFL must be 14 digits, organization TIN must be 9 digits.',
+    notRenderedError: 'Document has not been rendered yet — cannot sign.',
+  },
+  kaa: {
+    panelTitle: 'Elektron sanlı qol qoyıwlar',
+    signedCount: (signed: number, total: number) => `Qol qoyılǵan ${signed} den ${total}`,
+    signedAt: 'Qol qoyılǵan:',
+    signButton: 'E-IMZO menen qol qoyıw',
+    pinflLabel: 'JShShIR (14 san) yamasa shólkem STIR (9 san)',
+    waitingSignature: 'Qol qoyıw kútilmekte — bul qatardı tek tiyisli mansapdar qol qoya aladı.',
+    notRequired: 'Bul qatar házirshe talap etilmegen dizimde.',
+    invalidAttempts: (n: number) => `${n} áwmetsiz urınıs jazıp alındı (audit jurnalında saqlanadı).`,
+    pinflError: 'JShShIR 14 san, shólkem STIR 9 sannan ibarat bolıwı kerek.',
+    notRenderedError: 'Hújjet háli render qılınbaǵan — qol qoyıw múmkin emes.',
+  },
+};
 
 /** Every error `POST /permits/{id}/signatures` (and `sign()` underneath it)
  *  documents, turned into copy a signer can act on. Falls back to the raw
@@ -50,6 +114,9 @@ function SignatureSlot({
   onSigned: () => void;
 }) {
   const { me } = useAuth();
+  const { lang } = useLanguage();
+  const t = SIG_I18N[lang as keyof typeof SIG_I18N] || SIG_I18N.uz_latn;
+
   const validRow = permit.signatures.find((s) => s.purpose === purpose && s.verification_status === 'valid');
   const invalidAttempts = permit.signatures.filter(
     (s) => s.purpose === purpose && s.verification_status !== 'valid',
@@ -77,21 +144,9 @@ function SignatureSlot({
       return data;
     },
     onSuccess: () => onSigned(),
-    // `err` here is ALREADY the `ApiError` `mutationFn` threw above (react
-    // query hands `onError` the exact rejection reason, not the raw response
-    // body) — running it through `apiError()` a second time treats a real,
-    // typed error as an untyped body, finds no nested `.error` on it and
-    // falls back to the generic `ERR-SYS-000` "Unexpected error", discarding
-    // whatever specific code/message the server actually sent (this is the
-    // false "Unexpected error" over a signature that had, in truth, just
-    // been correctly refused as a duplicate). `toApiError` is idempotent —
-    // it recognizes an `ApiError` instance and passes it through unchanged.
     onError: (err: unknown) => {
       const apiErr = toApiError(err);
       setFormError(signErrorMessage(apiErr));
-      // `ERR-SIGN-002` (already signed) proves the permit's signatures moved
-      // since this screen last read them — refresh instead of leaving the
-      // count frozen until the next unrelated reload.
       if (apiErr.code === 'ERR-SIGN-002') onSigned();
     },
   });
@@ -99,11 +154,11 @@ function SignatureSlot({
   function handleSign() {
     setFormError(null);
     if (!isPlausiblePinflOrStir(pinfl)) {
-      setFormError("PINFL 14 ta, tashkilot STIR 9 ta raqamdan iborat boʻlishi kerak.");
+      setFormError(t.pinflError);
       return;
     }
     if (!permit.doc_hash) {
-      setFormError("Hujjat hali render qilinmagan — imzolab boʻlmaydi.");
+      setFormError(t.notRenderedError);
       return;
     }
     const pkcs7 = buildMockPkcs7({
@@ -121,11 +176,11 @@ function SignatureSlot({
           <span className="w-8 h-8 rounded-full bg-[#DCFCE7] border border-[#86EFAC] text-[#15803D] font-bold flex items-center justify-center">
             <CheckCircle2 className="w-4 h-4" />
           </span>
-          <span className="text-[10px] uppercase font-bold text-[#5A646D]">{PURPOSE_LABEL[purpose] ?? purpose}</span>
+          <span className="text-[10px] uppercase font-bold text-[#5A646D]">{getPurposeLabel(purpose, lang)}</span>
         </div>
         <div className="space-y-1 font-mono text-[#5A646D] pt-2 border-t border-[#86EFAC]/50">
           <div className="flex justify-between">
-            <span>Imzolangan:</span>
+            <span>{t.signedAt}</span>
             <strong className="text-[#1A1F24]">{formatDateTime(validRow.signed_at)}</strong>
           </div>
         </div>
@@ -139,18 +194,18 @@ function SignatureSlot({
         <span className="w-8 h-8 rounded-full bg-white border border-dashed border-[#B45309] text-[#B45309] font-bold flex items-center justify-center">
           ⧗
         </span>
-        <span className="text-[10px] uppercase font-bold text-[#5A646D]">{PURPOSE_LABEL[purpose] ?? purpose}</span>
+        <span className="text-[10px] uppercase font-bold text-[#5A646D]">{getPurposeLabel(purpose, lang)}</span>
       </div>
 
       {!isMissing ? (
-        <p className="text-[#5A646D]">Bu qator hozircha talab qilinmagan roʻyxatda emas.</p>
+        <p className="text-[#5A646D]">{t.notRequired}</p>
       ) : !eligible ? (
-        <p className="text-[#B45309]">Imzo kutilmoqda — bu qatorni faqat tegishli mansabdor imzolashi mumkin.</p>
+        <p className="text-[#B45309]">{t.waitingSignature}</p>
       ) : (
         <div className="space-y-2">
           <label className="block">
             <span className="block text-[11px] font-semibold text-[#5A646D] mb-1">
-              PINFL (14 ta) yoki tashkilot STIR (9 ta raqam)
+              {t.pinflLabel}
             </span>
             <input
               value={pinfl}
@@ -171,13 +226,13 @@ function SignatureSlot({
             onClick={handleSign}
             className="bg-[#2E7D4F] hover:bg-[#23653F] text-white font-bold h-9 text-xs"
           >
-            E-IMZO bilan imzolash
+            {t.signButton}
           </Button>
         </div>
       )}
       {invalidAttempts > 0 && (
         <p className="text-[10px] text-[#B91C1C]">
-          {invalidAttempts} ta muvaffaqiyatsiz urinish qayd etilgan (audit jurnalida saqlanadi).
+          {t.invalidAttempts(invalidAttempts)}
         </p>
       )}
     </div>
@@ -191,13 +246,15 @@ function SignatureSlot({
  * pending slots and no ACTIVE badge anywhere on the page, honestly.
  */
 export function PermitSignaturesPanel({ permit, onSigned }: { permit: PermitCardOut; onSigned: () => void }) {
+  const { lang } = useLanguage();
+  const t = SIG_I18N[lang as keyof typeof SIG_I18N] || SIG_I18N.uz_latn;
   const signedCount = SIGNATURE_ORDER.length - permit.missing_signatures.length;
   return (
     <div className="bg-white border border-[#E4E7EA] rounded-2xl p-6 shadow-xs font-sans space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#E4E7EA] pb-3">
-        <h2 className="text-base font-bold text-[#1A1F24]">Elektron raqamli imzolar</h2>
+        <h2 className="text-base font-bold text-[#1A1F24]">{t.panelTitle}</h2>
         <span className="text-xs font-bold text-[#15803D] bg-[#DCFCE7] px-3 py-1 rounded-full border border-[#86EFAC]">
-          Imzolangan {signedCount} dan {SIGNATURE_ORDER.length}
+          {t.signedCount(signedCount, SIGNATURE_ORDER.length)}
         </span>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -208,3 +265,4 @@ export function PermitSignaturesPanel({ permit, onSigned }: { permit: PermitCard
     </div>
   );
 }
+

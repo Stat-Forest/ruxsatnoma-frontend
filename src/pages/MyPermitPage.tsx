@@ -1,26 +1,80 @@
-import { useParams } from 'react-router';
+import { useNavigate, useParams } from 'react-router';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { ArrowLeft } from 'lucide-react';
 import { api } from '../api/client';
 import { apiError } from '../api/errors';
 import { Alert } from '../components/ui/Feedback';
+import { Button } from '../components/ui/button';
 import { toApiError } from './permits/apiErrorHelpers';
 import { formatPermitNumber } from './permits/format';
 import { PermitPdfPanel } from './permits/PermitPdfPanel';
 import { PermitRequisitesPanel } from './permits/PermitRequisitesPanel';
 import { PermitSignaturesPanel } from './permits/PermitSignaturesPanel';
 import { useAuth } from '../auth/useAuth';
+import { useLanguage } from '../i18n/useT';
+
+const MY_PERMIT_PAGE_I18N = {
+  uz_latn: {
+    back: 'Orqaga',
+    loading: 'Yuklanmoqda…',
+    notFoundTitle: 'Ruxsatnoma topilmadi',
+    notFoundMsg: 'Bunday ruxsatnoma mavjud emas yoki sizga tegishli emas.',
+    permit: 'Ruxsatnoma',
+    pendingSigTitle: 'Barcha imzolar hali qoʻyilmagan',
+    pendingSigMsg:
+      'Ruxsatnoma hujjati shakllantirilgan va toʻlov qabul qilingan, lekin u faqat toʻrtta imzoning barchasi qoʻyilgach kuchga kiradi. Quyida qaysi imzolar qoʻyilganini koʻrishingiz mumkin.',
+  },
+  uz_cyrl: {
+    back: 'Орқага',
+    loading: 'Юкланмоқда…',
+    notFoundTitle: 'Рухсатнома топилмади',
+    notFoundMsg: 'Бундай рухсатнома мавжуд эмас ёки сизга тегишли эмас.',
+    permit: 'Рухсатнома',
+    pendingSigTitle: 'Барча имзолар ҳали қўйилмаган',
+    pendingSigMsg:
+      'Рухсатнома ҳужжати шакллантирилган ва тўлов қабул қилинган, лекин у фақат тўртта имзонинг барчаси қўйилгач кучга киради. Қуйида қайси имзолар қўйилганини кўришингиз мумкин.',
+  },
+  ru: {
+    back: 'Назад',
+    loading: 'Загрузка…',
+    notFoundTitle: 'Разрешение не найдено',
+    notFoundMsg: 'Такое разрешение не существует или вам не принадлежит.',
+    permit: 'Разрешение',
+    pendingSigTitle: 'Не все подписи еще проставлены',
+    pendingSigMsg:
+      'Документ разрешения сформирован и оплата принята, но он вступает в силу только после проставления всех четырех подписей. Ниже вы можете увидеть статус каждой подписи.',
+  },
+  en: {
+    back: 'Back',
+    loading: 'Loading…',
+    notFoundTitle: 'Permit not found',
+    notFoundMsg: 'Such permit does not exist or does not belong to you.',
+    permit: 'Permit',
+    pendingSigTitle: 'All signatures are not yet placed',
+    pendingSigMsg:
+      'The permit document has been generated and payment accepted, but it takes effect only after all four signatures are placed. Below you can see which signatures have been placed.',
+  },
+  kaa: {
+    back: 'Artqa',
+    loading: 'Júklenbekte…',
+    notFoundTitle: 'Ruxsatnama tabılmadı',
+    notFoundMsg: 'Bunday ruxsatnama joq yamasa sizge tiyisli emes.',
+    permit: 'Ruxsatnama',
+    pendingSigTitle: 'Barlıq qol qoyıwlar háli qoyılmaǵan',
+    pendingSigMsg:
+      'Ruxsatnama hújjeti qáliplestirilgen hám tólem qabıllanǵan, biraq ol tek tórt qol qoyıwdıń barlıǵı qoyılǵannan soń kúshke kiredi. Tómende qaysı qol qoyıwlar qoyılǵanın kóriwińiz múmkin.',
+  },
+};
 
 /**
  * B10 — the applicant's own permit: view, download the PDF, sign with ERI.
- *
- * `GET /permits/{id}` gates on ownership inside the service layer
- * (`permits/service.py::_readable_permit`), not on a route-level permission —
- * a plain citizen with no staff grant at all still reads their own permit
- * here, which is why `routes.tsx` carries no `permission` on this route.
  */
 export function MyPermitPage() {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const { me } = useAuth();
+  const { lang } = useLanguage();
+  const t = MY_PERMIT_PAGE_I18N[lang as keyof typeof MY_PERMIT_PAGE_I18N] || MY_PERMIT_PAGE_I18N.uz_latn;
   const queryClient = useQueryClient();
 
   const permitQuery = useQuery({
@@ -37,36 +91,66 @@ export function MyPermitPage() {
   });
 
   if (permitQuery.isLoading) {
-    return <div className="text-sm text-[#5A646D]">Yuklanmoqda…</div>;
+    return <div className="text-sm text-[#5A646D]">{t.loading}</div>;
   }
   if (permitQuery.isError) {
     const e = toApiError(permitQuery.error);
     return (
-      <Alert variant="danger" title="Ruxsatnoma topilmadi">
-        {e.code === 'ERR-SYS-003'
-          ? "Bunday ruxsatnoma mavjud emas yoki sizga tegishli emas."
-          : e.message}
-      </Alert>
+      <div className="max-w-4xl mx-auto space-y-4 font-sans">
+        <Button
+          variant="ghost"
+          size="sm"
+          leftIcon={<ArrowLeft className="w-4 h-4" />}
+          onClick={() => {
+            if (window.history.length > 1) {
+              navigate(-1);
+            } else {
+              navigate('/my/permits');
+            }
+          }}
+          className="text-[#2E7D4F] font-semibold hover:bg-[#F0F7F1] cursor-pointer"
+        >
+          {t.back}
+        </Button>
+        <Alert variant="danger" title={t.notFoundTitle}>
+          {e.code === 'ERR-SYS-003' ? t.notFoundMsg : e.message}
+        </Alert>
+      </div>
     );
   }
 
   const permit = permitQuery.data!;
-  // Fact 3 (task brief): a paid, unsigned permit is a real state — shown
-  // honestly, never hidden behind an "active"-looking screen.
   const isPendingSignatures = permit.status === 'pending_signatures';
 
   return (
     <div className="max-w-4xl mx-auto space-y-6 font-sans pb-16">
+      <div className="flex items-center gap-2 border-b border-[#E4E7EA] pb-3">
+        <Button
+          variant="ghost"
+          size="sm"
+          leftIcon={<ArrowLeft className="w-4 h-4" />}
+          onClick={() => {
+            if (window.history.length > 1) {
+              navigate(-1);
+            } else {
+              navigate('/my/permits');
+            }
+          }}
+          className="text-[#2E7D4F] font-semibold hover:bg-[#F0F7F1] cursor-pointer"
+        >
+          {t.back}
+        </Button>
+      </div>
+
       <div className="border-b border-[#E4E7EA] pb-4">
         <h1 className="text-2xl font-extrabold text-[#1A1F24] tracking-tight">
-          Ruxsatnoma {formatPermitNumber(permit.series, permit.number)}
+          {t.permit} {formatPermitNumber(permit.series, permit.number)}
         </h1>
       </div>
 
       {isPendingSignatures && (
-        <Alert variant="warning" title="Barcha imzolar hali qoʻyilmagan">
-          Ruxsatnoma hujjati shakllantirilgan va toʻlov qabul qilingan, lekin u faqat toʻrtta imzoning
-          barchasi qoʻyilgach kuchga kiradi. Quyida qaysi imzolar qoʻyilganini koʻrishingiz mumkin.
+        <Alert variant="warning" title={t.pendingSigTitle}>
+          {t.pendingSigMsg}
         </Alert>
       )}
 

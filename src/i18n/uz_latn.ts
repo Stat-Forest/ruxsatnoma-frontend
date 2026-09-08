@@ -41,6 +41,7 @@ export const uz_latn = {
   'login.codeHelp': 'Autentifikator ilovasidagi 6 xonali kod',
   'login.submitPassword': 'Kirish',
   'login.submitCode': 'Tasdiqlash',
+  'login.back': 'Orqaga',
   'login.badCredentials': "Login yoki parol noto'g'ri.",
   'login.blockedAccount': "Hisob bloklangan. Administrator bilan bog'laning.",
   'login.rateLimited': "Urinishlar soni ko'p. Birozdan so'ng qayta urinib ko'ring.",

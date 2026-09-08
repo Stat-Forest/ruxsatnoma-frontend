@@ -1,13 +1,47 @@
 import { useEffect, useState } from 'react';
 import { Download, FileText, RefreshCw } from 'lucide-react';
 import { Button } from '../../components/ui/button';
+import { useLanguage } from '../../i18n/useT';
 
-// Not imported from `src/api/client.ts`: that module's `BASE_URL` is not
-// exported, and this is the one call in Track 4's scope that cannot go
-// through `api.GET` (openapi-fetch parses every response as JSON; this route
-// answers `application/pdf`). Same fallback default as `client.ts`'s own —
-// see that file if the two ever need to move together.
 const API_BASE = import.meta.env.VITE_API_BASE ?? 'http://localhost:8000';
+
+const PDF_PANEL_I18N = {
+  uz_latn: {
+    title: 'PDF/A-1b hujjat',
+    refresh: 'Yangilash',
+    download: 'Yuklab olish',
+    notReady: 'Hujjat hali render qilinmagan.',
+    loadError: 'Faylni yuklab boʻlmadi',
+  },
+  uz_cyrl: {
+    title: 'PDF/A-1b ҳужжат',
+    refresh: 'Янгилаш',
+    download: 'Юклаб олиш',
+    notReady: 'Ҳужжат ҳали рендер қилинмаган.',
+    loadError: 'Файлни юклаб бўлмади',
+  },
+  ru: {
+    title: 'PDF/A-1b документ',
+    refresh: 'Обновить',
+    download: 'Скачать',
+    notReady: 'Документ еще не сформирован.',
+    loadError: 'Не удалось загрузить файл',
+  },
+  en: {
+    title: 'PDF/A-1b document',
+    refresh: 'Refresh',
+    download: 'Download',
+    notReady: 'Document has not been rendered yet.',
+    loadError: 'Failed to download file',
+  },
+  kaa: {
+    title: 'PDF/A-1b hújjet',
+    refresh: 'Jańalaw',
+    download: 'Júklep alıw',
+    notReady: 'Hújjet háli render qılınbaǵan.',
+    loadError: 'Fayldı júklep bolmadı',
+  },
+};
 
 function triggerDownload(url: string, fileName: string) {
   const a = document.createElement('a');
@@ -18,10 +52,6 @@ function triggerDownload(url: string, fileName: string) {
   a.remove();
 }
 
-/** No state of its own — a plain fetch that resolves to a `Blob` or throws a
- *  message-bearing `Error`. Kept separate from the component so neither call
- *  site (the mount effect below, and the "Yangilash" button) has to route
- *  through a shared function that itself calls `setState`. */
 async function fetchPermitPdf(permitId: string): Promise<Blob> {
   const res = await fetch(`${API_BASE}/api/v1/permits/${permitId}/pdf`, { credentials: 'include' });
   if (!res.ok) {
@@ -37,24 +67,14 @@ async function fetchPermitPdf(permitId: string): Promise<Blob> {
   return res.blob();
 }
 
-/**
- * Fact 1 (task brief): the PDF is rendered exactly once at issuance and these
- * are the exact bytes `doc_hash` was frozen over — this panel only ever
- * fetches `GET /permits/{id}/pdf` and shows what came back, never anything
- * that could be read as "regenerate". `credentials: 'include'` is set by
- * hand because this fetch bypasses `src/api/client.ts` entirely (binary
- * response, see above) and so does not inherit its CSRF/session middleware —
- * acceptable here since this is a plain GET, which needs neither.
- */
 export function PermitPdfPanel({ permitId, fileName, ready }: { permitId: string; fileName: string; ready: boolean }) {
+  const { lang } = useLanguage();
+  const t = PDF_PANEL_I18N[lang as keyof typeof PDF_PANEL_I18N] || PDF_PANEL_I18N.uz_latn;
+
   const [state, setState] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle');
   const [url, setUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  // Mirrors `AuthProvider`'s own mount-effect shape: every `setState` call
-  // lives inside the async callback, never synchronously in the effect body,
-  // and a `cancelled` flag drops a response that resolves after the id
-  // (or this panel) has already moved on.
   useEffect(() => {
     if (!ready) return;
     let cancelled = false;
@@ -71,14 +91,14 @@ export function PermitPdfPanel({ permitId, fileName, ready }: { permitId: string
         setState('ready');
       } catch (e) {
         if (cancelled) return;
-        setError(e instanceof Error ? e.message : 'Faylni yuklab boʻlmadi');
+        setError(e instanceof Error ? e.message : t.loadError);
         setState('error');
       }
     })();
     return () => {
       cancelled = true;
     };
-  }, [permitId, ready]);
+  }, [permitId, ready, t.loadError]);
 
   useEffect(() => () => { if (url) URL.revokeObjectURL(url); }, [url]);
 
@@ -93,7 +113,7 @@ export function PermitPdfPanel({ permitId, fileName, ready }: { permitId: string
       });
       setState('ready');
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Faylni yuklab boʻlmadi');
+      setError(e instanceof Error ? e.message : t.loadError);
       setState('error');
     }
   }
@@ -101,7 +121,7 @@ export function PermitPdfPanel({ permitId, fileName, ready }: { permitId: string
   if (!ready) {
     return (
       <div className="bg-white border border-[#E4E7EA] rounded-2xl p-5 shadow-xs font-sans text-xs text-[#5A646D]">
-        Hujjat hali render qilinmagan.
+        {t.notReady}
       </div>
     );
   }
@@ -110,7 +130,7 @@ export function PermitPdfPanel({ permitId, fileName, ready }: { permitId: string
     <div className="bg-white border border-[#E4E7EA] rounded-2xl p-5 shadow-xs space-y-3 font-sans">
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#E4E7EA] pb-3">
         <h3 className="text-sm font-bold text-[#1A1F24] flex items-center gap-2">
-          <FileText className="w-5 h-5 text-[#2E7D4F]" /> PDF/A-1b hujjat
+          <FileText className="w-5 h-5 text-[#2E7D4F]" /> {t.title}
         </h3>
         <div className="flex items-center gap-2">
           <Button
@@ -120,7 +140,7 @@ export function PermitPdfPanel({ permitId, fileName, ready }: { permitId: string
             leftIcon={<RefreshCw className="w-4 h-4" />}
             onClick={() => void reload()}
           >
-            Yangilash
+            {t.refresh}
           </Button>
           <Button
             variant="primary"
@@ -130,14 +150,14 @@ export function PermitPdfPanel({ permitId, fileName, ready }: { permitId: string
             onClick={() => url && triggerDownload(url, fileName)}
             className="bg-[#2E7D4F] hover:bg-[#23653F] text-white font-bold"
           >
-            Yuklab olish
+            {t.download}
           </Button>
         </div>
       </div>
       {error && <p className="text-xs text-[#B91C1C] font-semibold">{error}</p>}
       {url && (
         <iframe
-          title="Ruxsatnoma PDF"
+          title="Permit PDF"
           src={url}
           className="w-full h-[70vh] border border-[#E4E7EA] rounded-xl bg-[#F8F9FA]"
         />
@@ -145,3 +165,4 @@ export function PermitPdfPanel({ permitId, fileName, ready }: { permitId: string
     </div>
   );
 }
+

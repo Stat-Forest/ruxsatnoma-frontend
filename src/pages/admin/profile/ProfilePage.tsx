@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { Tabs } from '../../../components/ui/Navigation';
 import { useAuth } from '../../../auth/useAuth';
 import { useLanguage, useT } from '../../../i18n/useT';
 import { pickName } from '../../applicant/format';
@@ -8,30 +7,24 @@ import { CertificatesSection } from './certificates/CertificatesSection';
 import { ContactsSection } from './contacts/ContactsSection';
 import { RepresentationSection } from './representation/RepresentationSection';
 import { LABELS } from './labels';
+import {
+  User,
+  Shield,
+  KeyRound,
+  Lock,
+  Building2,
+  Globe,
+} from 'lucide-react';
 
 type TabId = 'profile' | 'representation' | 'certificates' | 'password';
 
-/**
- * `/profile` — shared shell for every role (C5, shipped earlier: changing
- * one's own password). This stage (06.5, track F4) extends it rather than
- * replacing it, per that track's own brief:
- *
- *  - B3 (contacts) lives in the "Profil" tab, alongside the identity card.
- *    Language is deliberately not repeated here — it has had a real control
- *    in the shell header since stage 6.0 (`LanguageMenu`).
- *  - B4 (legal-entity representation) is its own tab, shown only for
- *    `role.code === 'applicant'` — every other role's `attach_legal`/
- *    `add_representation` call is refused with `ERR-ACL-001`
- *    (`auth.service`), and an action the backend would refuse is not
- *    offered at all.
- *  - B5 (my certificates) is its own tab too, offered to EVERY role —
- *    `GET/POST/DELETE /certificates` carry no role restriction beyond being
- *    logged in (`signatures/router.py`), since staff sign decisions with
- *    their own bound certificates too. No route exists for either B4 or B5
- *    (`src/routes.tsx` and `NAVIGATION` are both off limits to this track;
- *    `/profile` is the one screen every role already reaches with no
- *    permission gate), and both are natural profile sub-screens.
- */
+function getInitials(name?: string | null): string {
+  if (!name) return 'U';
+  const parts = name.trim().split(/\s+/);
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[0][0] + parts[1][0]).toUpperCase();
+}
+
 export function ProfilePage() {
   const { me } = useAuth();
   const { lang } = useLanguage();
@@ -39,35 +32,88 @@ export function ProfilePage() {
   const passwordLabels = LABELS[lang];
   const [tab, setTab] = useState<TabId>('profile');
   const isApplicant = me?.role.code === 'applicant';
+  const roleName = me ? pickName(me.role.name, lang) : '—';
 
   return (
-    <div className="max-w-xl space-y-5 pb-8">
-      <section className="bg-white border border-[#E4E7EA] rounded-2xl p-6 shadow-xs">
-        <h1 className="text-lg font-bold text-[#1A1F24]">{me?.user.full_name}</h1>
-        <dl className="mt-3 space-y-1.5 text-sm">
-          <div className="flex gap-2">
-            <dt className="text-[#5A646D]">Login:</dt>
-            <dd className="font-mono text-[#1A1F24]">{me?.user.login ?? '—'}</dd>
+    <div data-testid="profile-page" className="max-w-4xl mx-auto space-y-6 pb-12">
+      {/* Hero Banner Card */}
+      <section className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#123522] via-[#1E5638] to-[#2E7D4F] text-white p-6 sm:p-8 shadow-md">
+        {/* Subtle decorative glow elements */}
+        <div className="absolute -top-16 -right-16 w-64 h-64 rounded-full bg-white/5 pointer-events-none blur-2xl" />
+        <div className="absolute -bottom-20 -left-20 w-72 h-72 rounded-full bg-emerald-400/10 pointer-events-none blur-3xl" />
+
+        <div className="relative z-10 flex flex-col sm:flex-row items-start sm:items-center gap-6">
+          {/* Avatar with Initials */}
+          <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl bg-white/15 backdrop-blur-md border border-white/25 shadow-inner flex items-center justify-center text-2xl sm:text-3xl font-extrabold text-white tracking-wider shrink-0 ring-4 ring-white/10">
+            {getInitials(me?.user.full_name)}
           </div>
-          <div className="flex gap-2">
-            <dt className="text-[#5A646D]">Rol:</dt>
-            <dd className="text-[#1A1F24]">{me ? pickName(me.role.name, lang) : '—'}</dd>
+
+          <div className="flex-1 min-w-0">
+            <div className="flex flex-wrap items-center gap-2 mb-2">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-white/20 text-white backdrop-blur-sm border border-white/25 shadow-xs">
+                <Shield className="w-3.5 h-3.5 text-emerald-300" />
+                {roleName}
+              </span>
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-400/20 text-emerald-200 border border-emerald-400/30">
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                {lang === 'ru' ? 'Активный аккаунт' : lang === 'uz_cyrl' ? 'Фаол ҳисоб' : lang === 'en' ? 'Active account' : lang === 'kaa' ? 'Aktiv esap' : 'Faol hisob'}
+              </span>
+              {me?.is_superuser && (
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-400/25 text-amber-200 border border-amber-400/40">
+                  Superuser
+                </span>
+              )}
+            </div>
+
+            <h1 className="text-xl sm:text-2xl font-bold text-white tracking-tight leading-tight mb-3">
+              {me?.user.full_name}
+            </h1>
+
+            <div className="flex flex-wrap items-center gap-y-2 gap-x-4 text-xs text-emerald-100/90">
+              <div className="flex items-center gap-1.5 bg-black/20 backdrop-blur-xs px-2.5 py-1 rounded-lg border border-white/10">
+                <span className="text-emerald-300 font-mono">@</span>
+                <span className="font-mono text-white">{me?.user.login ?? '—'}</span>
+              </div>
+              <div className="flex items-center gap-1.5 bg-black/20 backdrop-blur-xs px-2.5 py-1 rounded-lg border border-white/10">
+                <Globe className="w-3.5 h-3.5 text-emerald-300" />
+                <span>{lang === 'ru' ? 'Русский' : lang === 'uz_cyrl' ? 'Ўзбекча' : lang === 'en' ? 'English' : lang === 'kaa' ? 'Qaraqalpaqsha' : 'O‘zbekcha'}</span>
+              </div>
+            </div>
           </div>
-        </dl>
+        </div>
       </section>
 
-      <Tabs
-        tabs={[
-          { id: 'profile', label: t('cabinet.profile.tabProfile') },
-          ...(isApplicant
-            ? [{ id: 'representation', label: t('cabinet.profile.tabRepresentation') }]
-            : []),
-          { id: 'certificates', label: t('cabinet.profile.tabCertificates') },
-          { id: 'password', label: t('cabinet.profile.tabPassword') },
-        ]}
-        activeTabId={tab}
-        onChange={(id) => setTab(id as TabId)}
-      />
+      {/* Modern Tabs Navigation */}
+      <div className="bg-white border border-[#E4E7EA] rounded-2xl p-1.5 shadow-xs overflow-x-auto">
+        <nav className="flex gap-1.5 min-w-max" aria-label="Tabs">
+          {[
+            { id: 'profile' as const, label: t('cabinet.profile.tabProfile'), icon: User },
+            ...(isApplicant
+              ? [{ id: 'representation' as const, label: t('cabinet.profile.tabRepresentation'), icon: Building2 }]
+              : []),
+            { id: 'certificates' as const, label: t('cabinet.profile.tabCertificates'), icon: KeyRound },
+            { id: 'password' as const, label: t('cabinet.profile.tabPassword'), icon: Lock },
+          ].map((item) => {
+            const isActive = tab === item.id;
+            const Icon = item.icon;
+            return (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => setTab(item.id)}
+                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm transition-all duration-150 cursor-pointer ${
+                  isActive
+                    ? 'bg-[#2E7D4F] text-white shadow-sm'
+                    : 'text-[#5A646D] hover:text-[#1A1F24] hover:bg-[#F8F9FA]'
+                }`}
+              >
+                <Icon className={`w-4 h-4 ${isActive ? 'text-white' : 'text-[#767F87]'}`} />
+                <span>{item.label}</span>
+              </button>
+            );
+          })}
+        </nav>
+      </div>
 
       {tab === 'profile' && <ContactsSection />}
 
@@ -76,13 +122,24 @@ export function ProfilePage() {
       {tab === 'certificates' && <CertificatesSection />}
 
       {tab === 'password' && (
-        <section className="bg-white border border-[#E4E7EA] rounded-2xl p-6 shadow-xs">
-          <h2 className="text-base font-bold text-[#1A1F24] mb-4">{passwordLabels.title}</h2>
-          {/* A full reload, not `applyMe`: unlike every other write in this
-              track, `POST /auth/password/change` answers 204 with no body
-              (`app/modules/auth/router.py`), so there is no fresh `MeOut` to
-              adopt — and `must_change_password` must be re-read from the
-              server before the shell lets the user anywhere else. */}
+        <section className="bg-white border border-[#E4E7EA] rounded-2xl p-6 sm:p-7 shadow-xs">
+          <div className="mb-6 pb-4 border-b border-[#E4E7EA]">
+            <h2 className="text-base sm:text-lg font-bold text-[#1A1F24] flex items-center gap-2">
+              <Lock className="w-5 h-5 text-[#2E7D4F]" />
+              {passwordLabels.title}
+            </h2>
+            <p className="text-xs sm:text-sm text-[#5A646D] mt-1">
+              {lang === 'ru'
+                ? 'Используйте новый и надежный пароль для безопасности вашей учетной записи'
+                : lang === 'uz_cyrl'
+                ? 'Ҳисобингиз хавфсизлигини таъминлаш учун янги ва мустаҳкам паролдан фойдаланинг'
+                : lang === 'en'
+                ? 'Use a new and strong password to keep your account secure'
+                : lang === 'kaa'
+                ? "Esabıńız qawipsizligin támiyinlew ushın jańa hám bekkem paroldan paydalanıń"
+                : "Hisobingiz xavfsizligini ta'minlash uchun yangi va mustahkam paroldan foydalaning"}
+            </p>
+          </div>
           <ChangePasswordForm onChanged={() => window.location.assign('/')} />
         </section>
       )}

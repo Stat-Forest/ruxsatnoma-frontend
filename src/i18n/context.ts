@@ -1,28 +1,34 @@
 import { createContext } from 'react';
 import type { components } from '../api/schema';
+import { en } from './en';
+import { kaa } from './kaa';
 import { ru } from './ru';
+import { uz_cyrl } from './uz_cyrl';
 import { uz_latn } from './uz_latn';
 
 export type BackendLanguage = components['schemas']['LanguageIn']['language'];
-export type UiLanguage = 'uz_latn' | 'ru';
+export type UiLanguage = 'uz_latn' | 'uz_cyrl' | 'ru' | 'kaa' | 'en';
 export type TranslationKey = keyof typeof uz_latn;
 
 // `Record<TranslationKey, string>` makes a key present in one map but missing
 // from the other a compile error, not a silent runtime fallback.
-export const DICTIONARIES: Record<UiLanguage, Record<TranslationKey, string>> = { uz_latn, ru };
+export const DICTIONARIES: Record<UiLanguage, Record<TranslationKey, string>> = {
+  uz_latn,
+  uz_cyrl,
+  ru,
+  kaa,
+  en,
+};
 
 /**
- * Maps all five backend language codes (`LanguageIn`) onto the UI dictionaries
- * that actually exist. `uz_cyrl`, `kaa` and `en` fall back to `uz_latn` until a
- * later stage adds a map of their own — add a file next to `uz_latn.ts` and one
- * row here, nothing else changes shape.
+ * Maps all five backend language codes (`LanguageIn`) onto the UI dictionaries.
  */
 const LANGUAGE_MAP: Record<string, UiLanguage> = {
-  uz_cyrl: 'uz_latn',
+  uz_cyrl: 'uz_cyrl',
   uz_latn: 'uz_latn',
   ru: 'ru',
-  kaa: 'uz_latn',
-  en: 'uz_latn',
+  kaa: 'kaa',
+  en: 'en',
 };
 
 export function resolveLanguage(code: string): UiLanguage {

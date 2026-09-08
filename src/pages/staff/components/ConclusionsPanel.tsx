@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Compass, FileCheck2, Info, ThumbsDown, ThumbsUp } from 'lucide-react';
 import { useAuth } from '../../../auth/useAuth';
 import { useApiErrorText } from '../../../i18n/useApiErrorText';
-import { useT } from '../../../i18n/useT';
+import { useLanguage, useT } from '../../../i18n/useT';
 import { Button } from '../../../components/ui/button';
 import { FormField, Select, Textarea } from '../../../components/ui/FormControls';
 import { ApiError } from '../../../api/errors';
@@ -67,6 +67,7 @@ function ConclusionRow({ conclusion }: { conclusion: ApplicationConclusionOut })
 export function ConclusionsPanel({ card }: { card: ApplicationCardOut }) {
   const { me } = useAuth();
   const t = useT();
+  const { lang } = useLanguage();
   const errorText = useApiErrorText();
   const gisChecks = card.checks.filter((c) => GIS_CHECK_TYPES.has(c.check_type));
   const [text, setText] = useState('');
@@ -98,10 +99,10 @@ export function ConclusionsPanel({ card }: { card: ApplicationCardOut }) {
           <p className="text-xs text-[#5A646D]">{t('staff.conclusions.gisChecksEmpty')}</p>
         ) : (
           gisChecks.map((check) => {
-            const style = checkResultStyle(check.result);
+            const style = checkResultStyle(check.result, lang);
             return (
               <div key={check.id} className={`p-2 rounded-lg border text-xs ${style.badgeClass}`}>
-                <span className="font-semibold">{checkTypeLabel(check.check_type)}</span> — {style.label}
+                <span className="font-semibold">{checkTypeLabel(check.check_type, lang)}</span> — {style.label}
               </div>
             );
           })

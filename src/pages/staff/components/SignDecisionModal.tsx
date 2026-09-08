@@ -22,6 +22,99 @@ interface SignDecisionModalProps {
   onSubmitReject: (input: { pkcs7: string; reason_item_id: string; legal_basis: string }) => void;
 }
 
+const SIGN_DECISION_I18N = {
+  uz_latn: {
+    approveTitle: 'Arizani tasdiqlash',
+    rejectTitle: 'Arizani rad etish',
+    subtitle: 'ERI (E-IMZO) bilan tasdiqlanadi — demo rejimida mock imzo',
+    cancel: 'Bekor qilish',
+    approveSubmit: 'Tasdiqlash va imzolash',
+    rejectSubmit: 'Rad etish va imzolash',
+    loadingPackage: 'Imzolanadigan hujjat yuklanmoqda (GET .../package)...',
+    packageErrorFallback: 'Hujjat yuklanmadi.',
+    reasonLabel: 'Rad etish sababi',
+    selectPlaceholder: 'Tanlang...',
+    legalBasisLabel: 'Huquqiy asos (legal_basis)',
+    legalBasisPlaceholder: 'Masalan: VMQ 278-son, 12-band',
+    pinflLabel: 'ERI sertifikatingiz PINFL (JSHSHIR)',
+    pinflHelper: '14 xonali raqam — mock ERI uchun kiritiladi, haqiqiy E-IMZO kalitida bu avtomatik oʻqiladi.',
+    pinflRequired: 'PINFL kiritilishi shart — bu maydondagi 14 xonali raqam faqat namuna sifatida koʻrsatilgan.',
+    pinflMustBe14: '14 xonali raqam boʻlishi kerak',
+  },
+  uz_cyrl: {
+    approveTitle: 'Аризани тасдиқлаш',
+    rejectTitle: 'Аризани рад этиш',
+    subtitle: 'ЭРИ (E-IMZO) билан тасдиқланади — демо режимида мок имзо',
+    cancel: 'Бекор қилиш',
+    approveSubmit: 'Тасдиқлаш ва имзолаш',
+    rejectSubmit: 'Рад этиш ва имзолаш',
+    loadingPackage: 'Имзоланадиган ҳужжат юкланмоқда (GET .../package)...',
+    packageErrorFallback: 'Ҳужжат юкланмади.',
+    reasonLabel: 'Рад этиш сабаби',
+    selectPlaceholder: 'Танланг...',
+    legalBasisLabel: 'Ҳуқуқий асос (legal_basis)',
+    legalBasisPlaceholder: 'Масалан: ВМҚ 278-сон, 12-банд',
+    pinflLabel: 'ЭРИ сертификатингиз ПИНФЛ (ЖШШИР)',
+    pinflHelper: '14 хонали рақам — мок ЭРИ учун киритилади, ҳақиқий E-IMZO калитида бу автоматик ўқилади.',
+    pinflRequired: 'ПИНФЛ киритилиши шарт — бу майдондаги 14 хонали рақам фақат намуна сифатида кўрсатилган.',
+    pinflMustBe14: '14 хонали рақам бўлиши керак',
+  },
+  ru: {
+    approveTitle: 'Утверждение заявления',
+    rejectTitle: 'Отклонение заявления',
+    subtitle: 'Подтверждается ЭЦП (E-IMZO) — в демо-режиме тестовая подпись',
+    cancel: 'Отмена',
+    approveSubmit: 'Утвердить и подписать',
+    rejectSubmit: 'Отклонить и подписать',
+    loadingPackage: 'Загрузка подписываемого документа (GET .../package)...',
+    packageErrorFallback: 'Документ не загружен.',
+    reasonLabel: 'Причина отклонения',
+    selectPlaceholder: 'Выберите...',
+    legalBasisLabel: 'Правовое основание (legal_basis)',
+    legalBasisPlaceholder: 'Например: ПКМ № 278, пункт 12',
+    pinflLabel: 'ПИНФЛ вашего сертификата ЭЦП',
+    pinflHelper: '14-значный номер — вводится для mock ЭЦП, в реальном ключе E-IMZO считывается автоматически.',
+    pinflRequired: 'ПИНФЛ обязателен — 14-значное число в поле показано лишь как пример.',
+    pinflMustBe14: 'Должен содержать 14 цифр',
+  },
+  en: {
+    approveTitle: 'Approve application',
+    rejectTitle: 'Reject application',
+    subtitle: 'Confirmed with EDS (E-IMZO) — mock signature in demo mode',
+    cancel: 'Cancel',
+    approveSubmit: 'Approve and sign',
+    rejectSubmit: 'Reject and sign',
+    loadingPackage: 'Loading document package to sign (GET .../package)...',
+    packageErrorFallback: 'Failed to load document.',
+    reasonLabel: 'Rejection reason',
+    selectPlaceholder: 'Select...',
+    legalBasisLabel: 'Legal basis (legal_basis)',
+    legalBasisPlaceholder: 'For example: Resolution No. 278, item 12',
+    pinflLabel: 'PINFL of your EDS certificate',
+    pinflHelper: '14-digit number — entered for mock EDS, in real E-IMZO key read automatically.',
+    pinflRequired: 'PINFL is required — 14-digit number in field is shown only as placeholder.',
+    pinflMustBe14: 'Must be a 14-digit number',
+  },
+  kaa: {
+    approveTitle: 'Arzanı tastıyıqlaw',
+    rejectTitle: 'Arzanı biykar etiw',
+    subtitle: 'ERI (E-IMZO) menen tastıyıqlanadı — demo rejiminde mock imzo',
+    cancel: 'Biykar etiw',
+    approveSubmit: 'Tastıyıqlaw hám qol qoyıw',
+    rejectSubmit: 'Biykar etiw hám qol qoyıw',
+    loadingPackage: 'Qol qoyılatuǵın hújjet júklenbekte (GET .../package)...',
+    packageErrorFallback: 'Hújjet júklenbedi.',
+    reasonLabel: 'Biykar etiw sebebi',
+    selectPlaceholder: 'Saylań...',
+    legalBasisLabel: 'Huqıqıy tiykar (legal_basis)',
+    legalBasisPlaceholder: 'Mısalı: VMQ 278-san, 12-bánt',
+    pinflLabel: 'ERI sertifikatıńızdıń PINFL (JSHSHIR)',
+    pinflHelper: '14 xanalı san — mock ERI ushın kiritiledi, haqıyqıy E-IMZO giltinde bul avtomatikalıq oqıladı.',
+    pinflRequired: 'PINFL kiritiliwi shárt — bul maydandaǵı 14 xanalı san tek úlgi retinde kórsetilgen.',
+    pinflMustBe14: '14 xanalı san bolıwı kerek',
+  },
+};
+
 /**
  * The one place both decision routes get their `pkcs7` from. A real E-IMZO
  * client reads the signer's own certificate off an inserted key; this mocks
@@ -42,6 +135,7 @@ export function SignDecisionModal({
   onSubmitReject,
 }: SignDecisionModalProps) {
   const { lang } = useLanguage();
+  const tr = SIGN_DECISION_I18N[lang] ?? SIGN_DECISION_I18N.uz_latn;
   const errorText = useApiErrorText();
   const [pinfl, setPinfl] = useState('');
   const [reasonItemId, setReasonItemId] = useState('');
@@ -57,16 +151,10 @@ export function SignDecisionModal({
   const packageError = packageQuery.error
     ? packageQuery.error instanceof ApiError
       ? errorText(packageQuery.error)
-      : 'Hujjat yuklanmadi.'
+      : tr.packageErrorFallback
     : null;
 
   const pinflValid = PINFL_PATTERN.test(pinfl);
-  // `pinflValid` is deliberately NOT part of `canSubmit`: with it there, an
-  // empty field simply disabled the button and a click did nothing at all —
-  // no error, no feedback (the defect this task fixes). The button stays
-  // clickable so `handleSubmit` below can run its own check and say why it
-  // refused, the same way `PermitSignaturesPanel.tsx::handleSign` already
-  // does for the permit's own signature slots.
   const canSubmit =
     packageQuery.data !== undefined &&
     !isSubmitting &&
@@ -92,12 +180,12 @@ export function SignDecisionModal({
     <Modal
       isOpen
       onClose={onClose}
-      title={mode === 'approve' ? 'Arizani tasdiqlash' : 'Arizani rad etish'}
-      subtitle="ERI (E-IMZO) bilan tasdiqlanadi — demo rejimida mock imzo"
+      title={mode === 'approve' ? tr.approveTitle : tr.rejectTitle}
+      subtitle={tr.subtitle}
       footer={
         <>
           <Button variant="outline" onClick={onClose} disabled={isSubmitting}>
-            Bekor qilish
+            {tr.cancel}
           </Button>
           <Button
             variant={mode === 'approve' ? 'primary' : 'danger'}
@@ -105,7 +193,7 @@ export function SignDecisionModal({
             disabled={!canSubmit}
             isLoading={isSubmitting}
           >
-            {mode === 'approve' ? 'Tasdiqlash va imzolash' : 'Rad etish va imzolash'}
+            {mode === 'approve' ? tr.approveSubmit : tr.rejectSubmit}
           </Button>
         </>
       }
@@ -113,7 +201,7 @@ export function SignDecisionModal({
       <div className="space-y-4">
         {loadingPackage && (
           <div className="flex items-center gap-2 text-xs text-[#5A646D]">
-            <Loader2 className="w-4 h-4 animate-spin" /> Imzolanadigan hujjat yuklanmoqda (GET .../package)...
+            <Loader2 className="w-4 h-4 animate-spin" /> {tr.loadingPackage}
           </div>
         )}
         {packageError && (
@@ -124,21 +212,21 @@ export function SignDecisionModal({
 
         {mode === 'reject' && (
           <>
-            <FormField label="Rad etish sababi" required>
+            <FormField label={tr.reasonLabel} required>
               <Select
                 value={reasonItemId}
                 onChange={(e) => setReasonItemId(e.target.value)}
                 options={[
-                  { value: '', label: 'Tanlang...' },
+                  { value: '', label: tr.selectPlaceholder },
                   ...(rejectionReasons.data ?? []).map((r) => ({ value: r.id, label: localizedName(r.name, lang) || r.code })),
                 ]}
               />
             </FormField>
-            <FormField label="Huquqiy asos (legal_basis)" required>
+            <FormField label={tr.legalBasisLabel} required>
               <Textarea
                 value={legalBasis}
                 onChange={(e) => setLegalBasis(e.target.value)}
-                placeholder="Masalan: VMQ 278-son, 12-band"
+                placeholder={tr.legalBasisPlaceholder}
                 maxLength={2000}
               />
             </FormField>
@@ -146,14 +234,14 @@ export function SignDecisionModal({
         )}
 
         <FormField
-          label="ERI sertifikatingiz PINFL (JSHSHIR)"
+          label={tr.pinflLabel}
           required
-          helperText="14 xonali raqam — mock ERI uchun kiritiladi, haqiqiy E-IMZO kalitida bu avtomatik oʻqiladi."
+          helperText={tr.pinflHelper}
           error={
             (pinflTouched || pinfl !== '') && !pinflValid
               ? pinfl === ''
-                ? 'PINFL kiritilishi shart — bu maydondagi 14 xonali raqam faqat namuna sifatida koʻrsatilgan.'
-                : '14 xonali raqam boʻlishi kerak'
+                ? tr.pinflRequired
+                : tr.pinflMustBe14
               : undefined
           }
         >

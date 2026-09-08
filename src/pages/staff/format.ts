@@ -22,54 +22,204 @@ export type CheckResult = 'pass' | 'fail' | 'warning' | 'skipped';
  * Every literal `ApplicationOut.status` can carry (`app/modules/applications
  * /schemas.py::ApplicationStatus`), not only the ones 3.9a-flow can itself
  * produce — a filter or a stray row must never render as an unlabeled code. */
-export const STATUS_LABELS: Record<ApplicationStatus, string> = {
-  DRAFT: "Qoralama",
-  SUBMITTED: "Yuborilgan",
-  IN_REVIEW: "Koʻrib chiqilmoqda",
-  PENDING_INFO: "Maʼlumot kutilmoqda",
-  RETURNED: "Tuzatishga qaytarilgan",
-  APPROVED: "Tasdiqlangan",
-  INVOICED: "Hisob-faktura yuborilgan",
-  PAID: "Toʻlangan",
-  PERMIT_ISSUED: "Ruxsatnoma berilgan",
-  REJECTED: "Rad etilgan",
-  CANCELLED: "Bekor qilingan",
-  EXPIRED_UNPAID: "Toʻlanmay muddati oʻtgan",
-  CLOSED: "Yopilgan",
-  ARCHIVED: "Arxivlangan",
+export const STATUS_LABELS_I18N: Record<string, Record<ApplicationStatus, string>> = {
+  uz_latn: {
+    DRAFT: 'Qoralama',
+    SUBMITTED: 'Yuborilgan',
+    IN_REVIEW: 'Koʻrib chiqilmoqda',
+    PENDING_INFO: 'Maʼlumot kutilmoqda',
+    RETURNED: 'Tuzatishga qaytarilgan',
+    APPROVED: 'Tasdiqlangan',
+    INVOICED: 'Hisob-faktura yuborilgan',
+    PAID: 'Toʻlangan',
+    PERMIT_ISSUED: 'Ruxsatnoma berilgan',
+    REJECTED: 'Rad etilgan',
+    CANCELLED: 'Bekor qilingan',
+    EXPIRED_UNPAID: 'Toʻlanmay muddati oʻtgan',
+    CLOSED: 'Yopilgan',
+    ARCHIVED: 'Arxivlangan',
+  },
+  uz_cyrl: {
+    DRAFT: 'Қоралама',
+    SUBMITTED: 'Юборилган',
+    IN_REVIEW: 'Кўриб чиқилмоқда',
+    PENDING_INFO: 'Маълумот кутилмоқда',
+    RETURNED: 'Тузатишга қайтарилган',
+    APPROVED: 'Тасдиқланган',
+    INVOICED: 'Ҳисоб-фактура юборилган',
+    PAID: 'Тўланган',
+    PERMIT_ISSUED: 'Рухсатнома берилган',
+    REJECTED: 'Рад этилган',
+    CANCELLED: 'Бекор қилинган',
+    EXPIRED_UNPAID: 'Тўланмай муддати ўтган',
+    CLOSED: 'Ёпилган',
+    ARCHIVED: 'Архивланган',
+  },
+  ru: {
+    DRAFT: 'Черновик',
+    SUBMITTED: 'Отправлено',
+    IN_REVIEW: 'На рассмотрении',
+    PENDING_INFO: 'Запрос информации',
+    RETURNED: 'Возвращено на доработку',
+    APPROVED: 'Одобрено',
+    INVOICED: 'Выставлен счет-фактура',
+    PAID: 'Оплачено',
+    PERMIT_ISSUED: 'Разрешение выдано',
+    REJECTED: 'Отклонено',
+    CANCELLED: 'Отменено',
+    EXPIRED_UNPAID: 'Просрочено (не оплачено)',
+    CLOSED: 'Закрыто',
+    ARCHIVED: 'В архиве',
+  },
+  en: {
+    DRAFT: 'Draft',
+    SUBMITTED: 'Submitted',
+    IN_REVIEW: 'In review',
+    PENDING_INFO: 'Pending information',
+    RETURNED: 'Returned for correction',
+    APPROVED: 'Approved',
+    INVOICED: 'Invoiced',
+    PAID: 'Paid',
+    PERMIT_ISSUED: 'Permit issued',
+    REJECTED: 'Rejected',
+    CANCELLED: 'Cancelled',
+    EXPIRED_UNPAID: 'Expired (unpaid)',
+    CLOSED: 'Closed',
+    ARCHIVED: 'Archived',
+  },
+  kaa: {
+    DRAFT: 'Dáslepki nusqa',
+    SUBMITTED: 'Jiberilgen',
+    IN_REVIEW: 'Kórip shıǵılmaqta',
+    PENDING_INFO: 'Maǵlıwmat kútilmekte',
+    RETURNED: 'Dúzetiwge qaytarılǵan',
+    APPROVED: 'Tastıyıqlanǵan',
+    INVOICED: 'Esap-faktura jiberilgen',
+    PAID: 'Tólengen',
+    PERMIT_ISSUED: 'Ruxsatnama berilgen',
+    REJECTED: 'Biykarlanǵan',
+    CANCELLED: 'Biykar etilgen',
+    EXPIRED_UNPAID: 'Tólenbey múddeti ótken',
+    CLOSED: 'Jabılǵan',
+    ARCHIVED: 'Arxivlengen',
+  },
 };
 
-export function statusLabel(status: ApplicationStatus): string {
-  return STATUS_LABELS[status] ?? status;
+export const STATUS_LABELS: Record<ApplicationStatus, string> = STATUS_LABELS_I18N.uz_latn;
+
+export function statusLabel(status: ApplicationStatus, lang: string = 'uz_latn'): string {
+  const table = STATUS_LABELS_I18N[lang] || STATUS_LABELS_I18N.uz_latn;
+  return table[status] ?? STATUS_LABELS[status] ?? status;
 }
 
-/** `application_checks.check_type` labels — the nine values `applications
- * /checks.py`'s ruling 21 vocabulary actually produces (`vet`/`cadastre` are
- * 3.9b's and never appear in a 3.9a-flow row, but are named here too so an
- * unexpected row still reads as words, not a raw code). */
-export const CHECK_TYPE_LABELS: Record<string, string> = {
-  gis_validity: "GIS: geometriya yaroqliligi",
-  gis_within_fund: "GIS: oʻrmon fondi chegarasida",
-  gis_overlap: "GIS: boshqa ruxsatnoma bilan kesishuv",
-  norm_available: "Meʼyor: mavjudligi",
-  norm_season: "Meʼyor: mavsum",
-  norm_rotation: "Meʼyor: almashlab foydalanish",
-  norm_fire_ban: "Meʼyor: yong'in xavfi taqiqi",
-  norm_restrictions: "Meʼyor: cheklov qatlamlari (maslahat xarakterida)",
-  norm_limit: "Meʼyor: sigʻim limiti (MaxSB)",
-  vet: "Veterinariya",
-  cadastre: "Kadastr",
+export const CHECK_TYPE_LABELS_I18N: Record<string, Record<string, string>> = {
+  uz_latn: {
+    gis_validity: 'GIS: geometriya yaroqliligi',
+    gis_within_fund: 'GIS: oʻrmon fondi chegarasida',
+    gis_overlap: 'GIS: boshqa ruxsatnoma bilan kesishuv',
+    norm_available: 'Meʼyor: mavjudligi',
+    norm_season: 'Meʼyor: mavsum',
+    norm_rotation: 'Meʼyor: almashlab foydalanish',
+    norm_fire_ban: 'Meʼyor: yong\'in xavfi taqiqi',
+    norm_restrictions: 'Meʼyor: cheklov qatlamlari (maslahat xarakterida)',
+    norm_limit: 'Meʼyor: sigʻim limiti (MaxSB)',
+    vet: 'Veterinariya',
+    cadastre: 'Kadastr',
+  },
+  uz_cyrl: {
+    gis_validity: 'ГИС: геометрия яроқлилиги',
+    gis_within_fund: 'ГИС: ўрмон фонди чегарасида',
+    gis_overlap: 'ГИС: бошқа рухсатнома билан кесишув',
+    norm_available: 'Меъёр: мавжудлиги',
+    norm_season: 'Меъёр: мавсум',
+    norm_rotation: 'Меъёр: алмашлаб фойдаланиш',
+    norm_fire_ban: 'Меъёр: ёнғин хавфи тақиқи',
+    norm_restrictions: 'Меъёр: чеклов қатламлари (маслаҳат характерида)',
+    norm_limit: 'Меъёр: сиғим лимити (MaxSB)',
+    vet: 'Ветеринария',
+    cadastre: 'Кадастр',
+  },
+  ru: {
+    gis_validity: 'ГИС: валидность геометрии',
+    gis_within_fund: 'ГИС: в границах лесного фонда',
+    gis_overlap: 'ГИС: пересечение с другим разрешением',
+    norm_available: 'Норма: доступность',
+    norm_season: 'Норма: сезон',
+    norm_rotation: 'Норма: ротация',
+    norm_fire_ban: 'Норма: запрет пожарной опасности',
+    norm_restrictions: 'Норма: слои ограничений (рекомендательные)',
+    norm_limit: 'Норма: лимит вместимости (MaxSB)',
+    vet: 'Ветеринария',
+    cadastre: 'Кадастр',
+  },
+  en: {
+    gis_validity: 'GIS: geometry validity',
+    gis_within_fund: 'GIS: within forest fund boundary',
+    gis_overlap: 'GIS: overlap with another permit',
+    norm_available: 'Norm: availability',
+    norm_season: 'Norm: season',
+    norm_rotation: 'Norm: rotation',
+    norm_fire_ban: 'Norm: fire hazard ban',
+    norm_restrictions: 'Norm: restriction layers (advisory)',
+    norm_limit: 'Norm: capacity limit (MaxSB)',
+    vet: 'Veterinary',
+    cadastre: 'Cadastre',
+  },
+  kaa: {
+    gis_validity: 'GIS: geometriya jaramlılıǵı',
+    gis_within_fund: 'GIS: toǵay fondı shegarasında',
+    gis_overlap: 'GIS: basqa ruxsatnama menen kesilisiw',
+    norm_available: 'Norma: barlıǵı',
+    norm_season: 'Norma: máwsim',
+    norm_rotation: 'Norma: almastırıp paydalanıw',
+    norm_fire_ban: 'Norma: órt qáwipi qadaǵanı',
+    norm_restrictions: 'Norma: sheklew qatlamları (maslahát sıpatında)',
+    norm_limit: 'Norma: sıyımlılıq limiti (MaxSB)',
+    vet: 'Veterinariya',
+    cadastre: 'Kadastr',
+  },
 };
 
-export function checkTypeLabel(checkType: string): string {
-  return CHECK_TYPE_LABELS[checkType] ?? checkType;
+export const CHECK_TYPE_LABELS: Record<string, string> = CHECK_TYPE_LABELS_I18N.uz_latn;
+
+export function checkTypeLabel(checkType: string, lang: string = 'uz_latn'): string {
+  const table = CHECK_TYPE_LABELS_I18N[lang] || CHECK_TYPE_LABELS_I18N.uz_latn;
+  return table[checkType] ?? CHECK_TYPE_LABELS[checkType] ?? checkType;
 }
 
-/** `application_checks.result` visual treatment. `skipped` is its own state
- * on purpose (task brief): it is the common case for `gis_within_fund` today
- * because the forest-fund boundary layer is still empty, and must never read
- * as either a pass or a failure. F16: the Russian gloss is gone from `label`
- * for the same reason `STATUS_LABELS` above lost its own. */
+const CHECK_RESULT_LABELS_I18N: Record<string, Record<CheckResult, string>> = {
+  uz_latn: {
+    pass: 'Oʻtdi',
+    fail: 'Oʻtmadi',
+    warning: 'Ogohlantirish',
+    skipped: 'Oʻtkazib yuborilgan',
+  },
+  uz_cyrl: {
+    pass: 'Ўтди',
+    fail: 'Ўтмади',
+    warning: 'Огоҳлантириш',
+    skipped: 'Ўтказиб юборилган',
+  },
+  ru: {
+    pass: 'Пройдено',
+    fail: 'Не пройдено',
+    warning: 'Предупреждение',
+    skipped: 'Пропущено',
+  },
+  en: {
+    pass: 'Passed',
+    fail: 'Failed',
+    warning: 'Warning',
+    skipped: 'Skipped',
+  },
+  kaa: {
+    pass: 'Ótti',
+    fail: 'Ótpedi',
+    warning: 'Eskertiw',
+    skipped: 'Ótkizip jiberilgen',
+  },
+};
+
 export const CHECK_RESULT_STYLE: Record<
   CheckResult,
   { label: string; badgeClass: string; dotClass: string }
@@ -96,8 +246,11 @@ export const CHECK_RESULT_STYLE: Record<
   },
 };
 
-export function checkResultStyle(result: string) {
-  return CHECK_RESULT_STYLE[result as CheckResult] ?? CHECK_RESULT_STYLE.skipped;
+export function checkResultStyle(result: string, lang: string = 'uz_latn') {
+  const base = CHECK_RESULT_STYLE[result as CheckResult] ?? CHECK_RESULT_STYLE.skipped;
+  const table = CHECK_RESULT_LABELS_I18N[lang] || CHECK_RESULT_LABELS_I18N.uz_latn;
+  const label = table[result as CheckResult] ?? base.label;
+  return { ...base, label };
 }
 
 /** A localized `{lang: text}` map (`ActivityTypeOut.name`,

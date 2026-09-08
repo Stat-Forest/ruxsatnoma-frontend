@@ -1,8 +1,42 @@
 import { ArrowRight, ShieldCheck } from 'lucide-react';
 import type { ApplicationTimelineOut } from '../api';
-import { STATUS_LABELS } from '../statusMeta';
+import { getStatusLabel } from '../statusMeta';
 import type { ApplicationStatus } from '../api';
 import { formatDateTime } from '../format';
+import { useLanguage } from '../../../i18n/useT';
+
+const TIMELINE_I18N = {
+  uz_latn: {
+    empty: 'Hozircha tarix yozuvlari yoʻq.',
+    start: 'Boshlanishi',
+    basis: 'Asos:',
+    signedWith: 'E-IMZO bilan imzolangan',
+  },
+  uz_cyrl: {
+    empty: 'Ҳозирча тарих ёзувлари йўқ.',
+    start: 'Бошланиши',
+    basis: 'Асос:',
+    signedWith: 'E-IMZO билан имзоланган',
+  },
+  ru: {
+    empty: 'Записей в истории пока нет.',
+    start: 'Начало',
+    basis: 'Основание:',
+    signedWith: 'Подписано ЭЦП',
+  },
+  en: {
+    empty: 'No history records yet.',
+    start: 'Start',
+    basis: 'Basis:',
+    signedWith: 'Signed with E-IMZO',
+  },
+  kaa: {
+    empty: 'Házirshe tariyx jazıwları joq.',
+    start: 'Baslanıwı',
+    basis: 'Tiykar:',
+    signedWith: 'E-IMZO menen qol qoyılǵan',
+  },
+};
 
 /**
  * The applicant's own timeline panel — deliberately the SIMPLE rendering of
@@ -12,8 +46,11 @@ import { formatDateTime } from '../format';
  * ownership-boundary note in `MyApplicationCardPage.tsx`.
  */
 export function ApplicantTimeline({ timeline }: { timeline: ApplicationTimelineOut | undefined }) {
+  const { lang } = useLanguage();
+  const t = TIMELINE_I18N[lang as keyof typeof TIMELINE_I18N] || TIMELINE_I18N.uz_latn;
+
   if (!timeline || timeline.status_history.length === 0) {
-    return <p className="text-sm text-[#5A646D]">Hozircha tarix yozuvlari yoʻq.</p>;
+    return <p className="text-sm text-[#5A646D]">{t.empty}</p>;
   }
 
   return (
@@ -26,14 +63,14 @@ export function ApplicantTimeline({ timeline }: { timeline: ApplicationTimelineO
           <div className="bg-white border border-[#E4E7EA] rounded-xl p-4 space-y-2">
             <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#E4E7EA] pb-2">
               <div className="flex items-center gap-2 text-xs font-bold text-[#1A1F24]">
-                <span>{entry.from_status ? STATUS_LABELS[entry.from_status as ApplicationStatus] : 'Boshlanishi'}</span>
+                <span>{entry.from_status ? getStatusLabel(entry.from_status as ApplicationStatus, lang) : t.start}</span>
                 <ArrowRight className="w-3.5 h-3.5 text-[#5A646D]" />
-                <span className="text-[#2E7D4F]">{STATUS_LABELS[entry.to_status as ApplicationStatus]}</span>
+                <span className="text-[#2E7D4F]">{getStatusLabel(entry.to_status as ApplicationStatus, lang)}</span>
               </div>
               <span className="font-mono text-xs text-[#5A646D]">{formatDateTime(entry.occurred_at)}</span>
             </div>
             {entry.reason_text && <p className="text-xs text-[#5A646D]">{entry.reason_text}</p>}
-            {entry.legal_basis && <p className="text-xs text-[#5A646D]">Asos: {entry.legal_basis}</p>}
+            {entry.legal_basis && <p className="text-xs text-[#5A646D]">{t.basis} {entry.legal_basis}</p>}
             {entry.signatures.length > 0 && (
               <div className="flex flex-wrap gap-2 pt-1">
                 {entry.signatures.map((sig) => (
@@ -41,7 +78,7 @@ export function ApplicantTimeline({ timeline }: { timeline: ApplicationTimelineO
                     key={sig.id}
                     className="inline-flex items-center gap-1 text-[11px] font-bold text-[#15803D] bg-[#DCFCE7] px-2 py-0.5 rounded border border-[#86EFAC]"
                   >
-                    <ShieldCheck className="w-3.5 h-3.5" /> E-IMZO bilan imzolangan ({formatDateTime(sig.signed_at)})
+                    <ShieldCheck className="w-3.5 h-3.5" /> {t.signedWith} ({formatDateTime(sig.signed_at)})
                   </span>
                 ))}
               </div>

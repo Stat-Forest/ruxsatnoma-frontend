@@ -37,9 +37,18 @@ export function toPermitsQuery(filters: PermitListFilters) {
   const parsedNumber = filters.number ? Number(filters.number) : undefined;
   const number = parsedNumber !== undefined && Number.isInteger(parsedNumber) && parsedNumber > 0 ? parsedNumber : undefined;
 
+  let series = filters.series ? filters.series.trim() : undefined;
+  if (series) {
+    // Both Latin 'A' (\u0041) and Cyrillic 'А' (\u0410) are used interchangeably by users.
+    // The database seeds and generates Cyrillic 'А', so normalize Latin 'A'/'a' to Cyrillic 'А'.
+    if (series === 'A' || series === 'a') {
+      series = 'А';
+    }
+  }
+
   return {
     status: filters.status || undefined,
-    series: filters.series || undefined,
+    series,
     number,
     organization_id: filters.organization_id || undefined,
     page: filters.page,

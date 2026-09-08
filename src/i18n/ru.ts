@@ -37,6 +37,7 @@ export const ru = {
   'login.codeHelp': 'Код из приложения-аутентификатора (6 цифр)',
   'login.submitPassword': 'Войти',
   'login.submitCode': 'Подтвердить',
+  'login.back': 'Назад',
   'login.badCredentials': 'Неверный логин или пароль.',
   'login.blockedAccount': 'Аккаунт заблокирован. Обратитесь к администратору.',
   'login.rateLimited': 'Слишком много попыток. Повторите позже.',

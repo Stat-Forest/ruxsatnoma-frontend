@@ -23,9 +23,21 @@ const ME_PATH = '/api/v1/auth/me';
 
 const pristineClones = new WeakMap<Request, Request>();
 
+function getCsrfToken(): string | null {
+  if (csrf) return csrf;
+  try {
+    if (typeof document !== 'undefined') {
+      const match = document.cookie.match(/(?:^|;\s*)csrf_token=([^;]+)/);
+      if (match) return decodeURIComponent(match[1]);
+    }
+  } catch {}
+  return null;
+}
+
 const csrfMiddleware: Middleware = {
   async onRequest({ request }) {
-    if (MUTATING.has(request.method) && csrf) request.headers.set('X-CSRF-Token', csrf);
+    const token = getCsrfToken();
+    if (MUTATING.has(request.method) && token) request.headers.set('X-CSRF-Token', token);
     // Stashed before the request is sent — a `Request`'s body can only be
     // read once, so cloning it here, while it is still pristine, is the only
     // point a retryable copy can be taken. `sessionMiddleware.onResponse`

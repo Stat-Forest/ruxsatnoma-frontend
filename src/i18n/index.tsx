@@ -22,13 +22,13 @@ export function I18nProvider({ children }: { children: ReactNode }) {
   // during render (not in an effect) when an id we track changes is the
   // pattern React itself recommends for this — it avoids the extra
   // effect-then-setState render pass.
-  const seenUserId = useRef(me?.user.id);
-  if (seenUserId.current !== me?.user.id) {
-    seenUserId.current = me?.user.id;
+  const seenUserId = useRef(me?.user?.id);
+  if (seenUserId.current !== me?.user?.id) {
+    seenUserId.current = me?.user?.id;
     if (override !== null) setOverride(null);
   }
 
-  const backendLang = override ?? normalizeBackendLanguage(me?.user.language);
+  const backendLang = override ?? normalizeBackendLanguage(me?.user?.language);
   const lang = resolveLanguage(backendLang);
   const dict = DICTIONARIES[lang];
 

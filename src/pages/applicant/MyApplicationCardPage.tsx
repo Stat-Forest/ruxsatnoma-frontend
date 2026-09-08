@@ -12,26 +12,162 @@ import {
   listLivestockTypes,
 } from './api';
 import { formatDate, formatDateTime, formatMoney, pickName } from './format';
-import { STATUS_BADGE_KIND, STATUS_LABELS } from './statusMeta';
+import { STATUS_BADGE_KIND, getStatusLabel } from './statusMeta';
 import { ApplicantTimeline } from './components/ApplicantTimeline';
 import { formatPermitNumber } from '../permits/format';
 import { usePermitForApplication } from '../permits/usePermitForApplication';
+import { useLanguage } from '../../i18n/useT';
 
 const API_BASE = (import.meta.env.VITE_API_BASE as string | undefined) ?? 'http://localhost:8000';
+
+const CARD_I18N = {
+  uz_latn: {
+    backToList: 'Arizalar roʻyxatiga qaytish',
+    draft: 'Qoralama',
+    loading: 'Yuklanmoqda...',
+    notFound: 'Ariza topilmadi yoki uni koʻrish huquqingiz yoʻq.',
+    returnToList: 'Roʻyxatga qaytish',
+    period: 'Davr',
+    area: 'Maydon',
+    submitted: 'Topshirilgan',
+    livestockComposition: 'Chorva tarkibi',
+    head: 'bosh',
+    quantity: 'Miqdor:',
+    continueEditing: 'Tahrirlashni davom ettirish',
+    calculatedAmount: 'Hisoblangan summa',
+    som: 'soʻm',
+    notCalculatedYet: 'Hali hisob-kitob qilinmagan.',
+    invoice: 'Hisob-faktura:',
+    viewInvoice: 'Hisob-fakturani koʻrish',
+    permit: 'Ruxsatnoma',
+    viewPermit: 'Ruxsatnomani koʻrish',
+    attachedDocuments: 'Ilova qilingan hujjatlar',
+    noDocuments: 'Hujjat biriktirilmagan.',
+    download: 'Yuklab olish',
+    history: 'Holatlar tarixi',
+    defaultDocName: 'Hujjat',
+    condHead: 'shartli bosh',
+  },
+  uz_cyrl: {
+    backToList: 'Аризалар рўйхатига қайтиш',
+    draft: 'Қоралама',
+    loading: 'Юкланмоқда...',
+    notFound: 'Ариза топилмади ёки уни кўриш ҳуқуқингиз йўқ.',
+    returnToList: 'Рўйхатга қайтиш',
+    period: 'Давр',
+    area: 'Майдон',
+    submitted: 'Топширилган',
+    livestockComposition: 'Чорва таркиби',
+    head: 'бош',
+    quantity: 'Миқдор:',
+    continueEditing: 'Таҳрирлашни давом эттириш',
+    calculatedAmount: 'Ҳисобланган сумма',
+    som: 'сўм',
+    notCalculatedYet: 'Ҳали ҳисоб-китоб қилинмаган.',
+    invoice: 'Ҳисоб-фактура:',
+    viewInvoice: 'Ҳисоб-фактурани кўриш',
+    permit: 'Рухсатнома',
+    viewPermit: 'Рухсатномани кўриш',
+    attachedDocuments: 'Илова қилинган ҳужжатлар',
+    noDocuments: 'Ҳужжат бириктирилмаган.',
+    download: 'Юклаб олиш',
+    history: 'Ҳолатлар тарихи',
+    defaultDocName: 'Ҳужжат',
+    condHead: 'шартли бош',
+  },
+  ru: {
+    backToList: 'Вернуться к списку заявок',
+    draft: 'Черновик',
+    loading: 'Загрузка...',
+    notFound: 'Заявка не найдена или у вас нет прав на её просмотр.',
+    returnToList: 'Вернуться к списку',
+    period: 'Период',
+    area: 'Площадь',
+    submitted: 'Подано',
+    livestockComposition: 'Состав скота',
+    head: 'голов',
+    quantity: 'Количество:',
+    continueEditing: 'Продолжить редактирование',
+    calculatedAmount: 'Рассчитанная сумма',
+    som: 'сум',
+    notCalculatedYet: 'Расчет еще не произведен.',
+    invoice: 'Счет-фактура:',
+    viewInvoice: 'Посмотреть счет-фактуру',
+    permit: 'Разрешение',
+    viewPermit: 'Посмотреть разрешение',
+    attachedDocuments: 'Прикрепленные документы',
+    noDocuments: 'Документы не прикреплены.',
+    download: 'Скачать',
+    history: 'История статусов',
+    defaultDocName: 'Документ',
+    condHead: 'усл. голов',
+  },
+  en: {
+    backToList: 'Back to applications list',
+    draft: 'Draft',
+    loading: 'Loading...',
+    notFound: 'Application not found or you do not have permission to view it.',
+    returnToList: 'Back to list',
+    period: 'Period',
+    area: 'Area',
+    submitted: 'Submitted',
+    livestockComposition: 'Livestock details',
+    head: 'heads',
+    quantity: 'Quantity:',
+    continueEditing: 'Continue editing',
+    calculatedAmount: 'Calculated amount',
+    som: 'UZS',
+    notCalculatedYet: 'Not calculated yet.',
+    invoice: 'Invoice:',
+    viewInvoice: 'View invoice',
+    permit: 'Permit',
+    viewPermit: 'View permit',
+    attachedDocuments: 'Attached documents',
+    noDocuments: 'No documents attached.',
+    download: 'Download',
+    history: 'Status history',
+    defaultDocName: 'Document',
+    condHead: 'standard head',
+  },
+  kaa: {
+    backToList: 'Arzalar dizimine qaytıw',
+    draft: 'Dáslepki nusqa',
+    loading: 'Júklenbekte...',
+    notFound: 'Arza tabılmadı yamasa onı kóriw huqıqıńız joq.',
+    returnToList: 'Dizimge qaytıw',
+    period: 'Dáwir',
+    area: 'Maydan',
+    submitted: 'Tapsırılǵan',
+    livestockComposition: 'Sharwa quramı',
+    head: 'bas',
+    quantity: 'Muǵdarı:',
+    continueEditing: 'Ońlawdı dawam ettiriw',
+    calculatedAmount: 'Esaplanǵan summa',
+    som: 'swm',
+    notCalculatedYet: 'Házirshe esap-kitap qılınbaǵan.',
+    invoice: 'Esap-faktura:',
+    viewInvoice: 'Esap-fakturanı kóriw',
+    permit: 'Ruxsatnama',
+    viewPermit: 'Ruxsatnamanı kóriw',
+    attachedDocuments: 'Qosımsha etilgen hújjetler',
+    noDocuments: 'Hújjet biriktirilmegen.',
+    download: 'Júklep alıw',
+    history: 'Jaǵdaylar tariyxı',
+    defaultDocName: 'Hújjet',
+    condHead: 'shártli bas',
+  },
+};
 
 /**
  * B8 — the applicant's OWN application card. Deliberately the SIMPLE view:
  * status, timeline, attached documents, the calculated amount and a link to
- * the invoice. The staff card (checks, GIS conclusion, action rail, the
- * richer history) is a separate, staff-owned component built by the parallel
- * "staff path" track (`StaffApplicationCardPage`) — this file intentionally
- * does not share panels with it, per the sprint's ownership boundary: a
- * duplicated ninety-line panel costs less today than a merge conflict on a
- * shared one.
+ * the invoice.
  */
 export function MyApplicationCardPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { lang } = useLanguage();
+  const t = CARD_I18N[lang as keyof typeof CARD_I18N] || CARD_I18N.uz_latn;
 
   const cardQuery = useQuery({
     queryKey: ['my-application-card', id],
@@ -50,17 +186,8 @@ export function MyApplicationCardPage() {
     queryKey: ['invoices-for-application', id],
     queryFn: () => listInvoicesForApplication(id!),
     enabled: !!id,
-    // Most statuses never had an invoice at all; a 404-shaped empty result is
-    // the normal case here, not a fetch failure worth retrying.
     retry: false,
   });
-  // The link this card was missing (task brief, gap 2): once a permit
-  // exists for this application, offer it here rather than leaving the
-  // citizen to find it by other means. Checked for both `PAID` and
-  // `PERMIT_ISSUED` — a paid-but-unsigned permit does not move the
-  // application out of `PAID` (`docs/status.md`'s own "stuck forever" fact),
-  // so gating on `PERMIT_ISSUED` alone would hide the link exactly when a
-  // citizen most needs to see their pending signatures.
   const permitQuery = usePermitForApplication({
     applicationId: id ?? '',
     applicantId: cardQuery.data?.applicant_id,
@@ -71,16 +198,16 @@ export function MyApplicationCardPage() {
   if (!id) return null;
 
   if (cardQuery.isLoading) {
-    return <div className="max-w-5xl mx-auto py-16 text-center text-sm text-[#5A646D]">Yuklanmoqda...</div>;
+    return <div className="max-w-5xl mx-auto py-16 text-center text-sm text-[#5A646D]">{t.loading}</div>;
   }
   if (cardQuery.isError || !cardQuery.data) {
     return (
       <div className="max-w-5xl mx-auto py-16 text-center space-y-3">
         <p className="text-sm text-[#B91C1C]" role="alert">
-          Ariza topilmadi yoki uni koʻrish huquqingiz yoʻq.
+          {t.notFound}
         </p>
         <Button variant="outline" onClick={() => navigate('/my/applications')}>
-          Roʻyxatga qaytish
+          {t.returnToList}
         </Button>
       </div>
     );
@@ -88,12 +215,12 @@ export function MyApplicationCardPage() {
 
   const card = cardQuery.data;
   const activityName = card.activity_type_id
-    ? pickName(activityTypesQuery.data?.find((a) => a.id === card.activity_type_id)?.name)
+    ? pickName(activityTypesQuery.data?.find((a) => a.id === card.activity_type_id)?.name, lang)
     : '—';
   const livestockName = (livestockTypeId: string) =>
-    pickName(livestockTypesQuery.data?.find((l) => l.id === livestockTypeId)?.name);
+    pickName(livestockTypesQuery.data?.find((l) => l.id === livestockTypeId)?.name, lang);
   const docTypeName = (docTypeItemId: string) =>
-    pickName(docTypesQuery.data?.find((d) => d.id === docTypeItemId)?.name) || 'Hujjat';
+    pickName(docTypesQuery.data?.find((d) => d.id === docTypeItemId)?.name, lang) || t.defaultDocName;
 
   const invoice = invoicesQuery.data?.[0];
 
@@ -107,45 +234,45 @@ export function MyApplicationCardPage() {
           onClick={() => navigate('/my/applications')}
           className="text-[#2E7D4F] font-bold hover:bg-[#F0F7F1] cursor-pointer"
         >
-          Arizalar roʻyxatiga qaytish
+          {t.backToList}
         </Button>
       </div>
 
       <div className="bg-white border border-[#E4E7EA] rounded-2xl p-6 shadow-xs space-y-3">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <h1 className="text-xl font-bold text-[#1A1F24] font-mono">{card.number ?? `Qoralama (${card.id.slice(0, 8)})`}</h1>
+            <h1 className="text-xl font-bold text-[#1A1F24] font-mono">{card.number ?? `${t.draft} (${card.id.slice(0, 8)})`}</h1>
             <p className="text-sm text-[#5A646D] mt-1">{activityName}</p>
           </div>
-          <StatusBadge status={STATUS_BADGE_KIND[card.status]} label={STATUS_LABELS[card.status]} />
+          <StatusBadge status={STATUS_BADGE_KIND[card.status]} label={getStatusLabel(card.status, lang)} />
         </div>
 
         <dl className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-3 border-t border-[#E4E7EA] text-xs">
           <div>
-            <dt className="text-[#5A646D]">Davr</dt>
+            <dt className="text-[#5A646D]">{t.period}</dt>
             <dd className="font-semibold text-[#1A1F24] mt-0.5">
               {card.period_from && card.period_to ? `${formatDate(card.period_from)} — ${formatDate(card.period_to)}` : '—'}
             </dd>
           </div>
           <div>
-            <dt className="text-[#5A646D]">Maydon</dt>
+            <dt className="text-[#5A646D]">{t.area}</dt>
             <dd className="font-semibold text-[#1A1F24] mt-0.5">
               {card.requested_area_ha ? `${card.requested_area_ha} ga` : '—'}
             </dd>
           </div>
           <div>
-            <dt className="text-[#5A646D]">Topshirilgan</dt>
+            <dt className="text-[#5A646D]">{t.submitted}</dt>
             <dd className="font-semibold text-[#1A1F24] mt-0.5">{formatDateTime(card.submitted_at)}</dd>
           </div>
         </dl>
 
         {card.items.length > 0 && (
           <div className="pt-3 border-t border-[#E4E7EA]">
-            <dt className="text-xs text-[#5A646D] mb-1">Chorva tarkibi</dt>
+            <dt className="text-xs text-[#5A646D] mb-1">{t.livestockComposition}</dt>
             <ul className="text-xs text-[#1A1F24] space-y-0.5">
               {card.items.map((item) => (
                 <li key={item.id}>
-                  {livestockName(item.livestock_type_id)}: <strong>{item.head_count}</strong> bosh
+                  {livestockName(item.livestock_type_id)}: <strong>{item.head_count}</strong> {t.head}
                 </li>
               ))}
             </ul>
@@ -153,7 +280,7 @@ export function MyApplicationCardPage() {
         )}
         {card.quantity && (
           <div className="pt-3 border-t border-[#E4E7EA] text-xs">
-            <span className="text-[#5A646D]">Miqdor: </span>
+            <span className="text-[#5A646D]">{t.quantity} </span>
             <strong className="text-[#1A1F24]">{card.quantity}</strong>
           </div>
         )}
@@ -161,7 +288,7 @@ export function MyApplicationCardPage() {
         {card.status === 'DRAFT' && (
           <div className="pt-3 border-t border-[#E4E7EA]">
             <Button variant="primary" size="sm" onClick={() => navigate(`/my/applications/new?draft=${card.id}`)} className="cursor-pointer font-bold">
-              Tahrirlashni davom ettirish
+              {t.continueEditing}
             </Button>
           </div>
         )}
@@ -169,29 +296,29 @@ export function MyApplicationCardPage() {
 
       {/* Calculated amount */}
       <section className="bg-[#F0F9FF] border border-[#BAE6FD] rounded-2xl p-6 shadow-xs space-y-2">
-        <h2 className="text-sm font-bold text-[#0369A1] uppercase tracking-wider">Hisoblangan summa</h2>
+        <h2 className="text-sm font-bold text-[#0369A1] uppercase tracking-wider">{t.calculatedAmount}</h2>
         {card.calculation ? (
           <>
-            <div className="font-mono text-2xl font-extrabold text-[#123522]">{formatMoney(card.calculation.amount)} soʻm</div>
+            <div className="font-mono text-2xl font-extrabold text-[#123522]">{formatMoney(card.calculation.amount)} {t.som}</div>
             <p className="text-xs text-[#5A646D]">
               rule_version: <code className="bg-white px-1 py-0.5 rounded border border-[#BAE6FD]">{card.calculation.rule_version}</code>
               {card.calculation.max_sb !== null && (
                 <>
                   {' '}
-                  · limit: {card.calculation.used_sb}/{card.calculation.max_sb} shartli bosh
+                  · limit: {card.calculation.used_sb}/{card.calculation.max_sb} {t.condHead}
                 </>
               )}
             </p>
           </>
         ) : (
-          <p className="text-xs text-[#5A646D]">Hali hisob-kitob qilinmagan.</p>
+          <p className="text-xs text-[#5A646D]">{t.notCalculatedYet}</p>
         )}
 
         {invoice && (
           <div className="pt-3 border-t border-[#BAE6FD] flex items-center justify-between gap-3">
             <div className="text-xs text-[#1A1F24]">
-              <span className="text-[#5A646D]">Hisob-faktura: </span>
-              <strong className="font-mono">{invoice.number}</strong> — {formatMoney(invoice.amount)} soʻm
+              <span className="text-[#5A646D]">{t.invoice} </span>
+              <strong className="font-mono">{invoice.number}</strong> — {formatMoney(invoice.amount)} {t.som}
             </div>
             <Button
               variant="outline"
@@ -200,17 +327,17 @@ export function MyApplicationCardPage() {
               onClick={() => navigate(`/my/invoices/${invoice.id}`)}
               className="cursor-pointer"
             >
-              Hisob-fakturani koʻrish
+              {t.viewInvoice}
             </Button>
           </div>
         )}
       </section>
 
-      {/* Permit — shown once one exists for this application (gap 2). */}
+      {/* Permit */}
       {permitQuery.data && (
         <section className="bg-[#F0F7F1] border border-[#D9EBDC] rounded-2xl p-6 shadow-xs flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h2 className="text-sm font-bold text-[#123522] uppercase tracking-wider">Ruxsatnoma</h2>
+            <h2 className="text-sm font-bold text-[#123522] uppercase tracking-wider">{t.permit}</h2>
             <p className="text-xs text-[#5A646D] mt-1 font-mono">
               {formatPermitNumber(permitQuery.data.series, permitQuery.data.number)}
             </p>
@@ -222,7 +349,7 @@ export function MyApplicationCardPage() {
             onClick={() => navigate(`/my/permits/${permitQuery.data!.id}`)}
             className="cursor-pointer font-bold"
           >
-            Ruxsatnomani koʻrish
+            {t.viewPermit}
           </Button>
         </section>
       )}
@@ -230,10 +357,10 @@ export function MyApplicationCardPage() {
       {/* Documents */}
       <section className="bg-white border border-[#E4E7EA] rounded-2xl shadow-xs p-6 space-y-3">
         <h2 className="text-sm font-bold text-[#1A1F24] uppercase tracking-wider">
-          Ilova qilingan hujjatlar {card.documents.length > 0 && `(${card.documents.length})`}
+          {t.attachedDocuments} {card.documents.length > 0 && `(${card.documents.length})`}
         </h2>
         {card.documents.length === 0 ? (
-          <p className="text-xs text-[#5A646D]">Hujjat biriktirilmagan.</p>
+          <p className="text-xs text-[#5A646D]">{t.noDocuments}</p>
         ) : (
           <ul className="space-y-2">
             {card.documents.map((doc) => (
@@ -252,7 +379,7 @@ export function MyApplicationCardPage() {
                   rel="noreferrer"
                   className="font-bold text-[#2E7D4F] hover:underline shrink-0"
                 >
-                  Yuklab olish
+                  {t.download}
                 </a>
               </li>
             ))}
@@ -262,9 +389,10 @@ export function MyApplicationCardPage() {
 
       {/* Timeline */}
       <section className="bg-white border border-[#E4E7EA] rounded-2xl shadow-xs p-6 space-y-3">
-        <h2 className="text-sm font-bold text-[#1A1F24] uppercase tracking-wider">Holatlar tarixi</h2>
+        <h2 className="text-sm font-bold text-[#1A1F24] uppercase tracking-wider">{t.history}</h2>
         <ApplicantTimeline timeline={timelineQuery.data} />
       </section>
     </div>
   );
 }
+

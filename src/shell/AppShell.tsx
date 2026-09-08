@@ -7,6 +7,7 @@ import { apiError } from '../api/errors';
 import { useAuth } from '../auth/useAuth';
 import type { UiLanguage } from '../i18n/context';
 import { useLanguage, useT } from '../i18n/useT';
+import { translateTerm } from '../i18n/terms';
 import { LanguageMenu } from './LanguageMenu';
 import { Nav } from './Nav';
 
@@ -21,9 +22,10 @@ import { Nav } from './Nav';
  * page.
  */
 function pickLocalizedName(name: Record<string, unknown>, uiLang: UiLanguage): string {
-  const preferred = uiLang === 'ru' ? name.ru : name.uz_latn;
+  const preferred = name[uiLang] ?? (uiLang === 'ru' ? name.ru : uiLang === 'uz_cyrl' ? name.uz_cyrl : name.uz_latn);
   const candidate = preferred ?? name.uz_latn ?? name.uz_cyrl ?? name.ru ?? Object.values(name)[0];
-  return typeof candidate === 'string' ? candidate : '';
+  const raw = typeof candidate === 'string' ? candidate : '';
+  return translateTerm(raw, uiLang);
 }
 
 /**
@@ -125,12 +127,17 @@ export function AppShell() {
           <RefreshCw className="w-4 h-4" />
         </button>
 
-        <div className="hidden sm:flex flex-col items-end shrink-0 pl-3 border-l border-[#E4E7EA] max-w-[12rem]">
-          <span className="text-xs font-semibold text-[#1A1F24] leading-tight truncate w-full text-right">
+        <Link
+          to="/profile"
+          aria-label={t('nav.profile')}
+          data-testid="header-profile-link"
+          className="hidden sm:flex flex-col items-end shrink-0 pl-3 border-l border-[#E4E7EA] max-w-[12rem] py-1 px-2 rounded-md hover:bg-[#F8F9FA] transition-colors"
+        >
+          <span className="text-xs font-semibold text-[#1A1F24] hover:text-[#2E7D4F] leading-tight truncate w-full text-right transition-colors">
             {me.user.full_name}
           </span>
           <span className="text-[11px] text-[#5A646D] truncate w-full text-right">{roleName}</span>
-        </div>
+        </Link>
 
         <button
           type="button"
