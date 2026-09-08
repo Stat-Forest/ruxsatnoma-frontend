@@ -6,9 +6,14 @@ import { Alert } from '../../components/ui/Feedback';
 import { useAuth } from '../../auth/useAuth';
 import { ApiError } from '../../api/errors';
 import { useApiErrorText } from '../../i18n/useApiErrorText';
-import { useT } from '../../i18n/useT';
+import { useLanguage, useT } from '../../i18n/useT';
 import { formatDate, formatDateTime, formatMoney } from '../permits/format';
-import { MATCH_STATUS_LABEL, MATCH_STATUS_STYLE, STATEMENT_STATUS_LABEL, STATEMENT_STATUS_STYLE } from './statusMeta';
+import {
+  MATCH_STATUS_STYLE,
+  STATEMENT_STATUS_STYLE,
+  getMatchStatusLabel,
+  getStatementStatusLabel,
+} from './statusMeta';
 import { useBankStatement, useCreateBankStatement } from './queries';
 
 const PAYMENTS_VIEW = 'payments.view';
@@ -214,6 +219,7 @@ function UploadForm({ onAccepted }: { onAccepted: (id: string) => void }) {
 
 function StatementDetail({ statementId }: { statementId: string }) {
   const t = useT();
+  const { lang } = useLanguage();
   const query = useBankStatement(statementId, { limit: 50, offset: 0 });
 
   if (query.isLoading) {
@@ -242,7 +248,7 @@ function StatementDetail({ statementId }: { statementId: string }) {
               STATEMENT_STATUS_STYLE[statement.status] ?? STATEMENT_STATUS_STYLE.pending
             }`}
           >
-            {STATEMENT_STATUS_LABEL[statement.status] ?? statement.status}
+            {getStatementStatusLabel(statement.status, lang)}
           </span>
         </div>
         <span className="text-xs text-[#5A646D]">
@@ -317,7 +323,7 @@ function StatementDetail({ statementId }: { statementId: string }) {
                           MATCH_STATUS_STYLE[line.match_status] ?? MATCH_STATUS_STYLE.unmatched
                         }`}
                       >
-                        {MATCH_STATUS_LABEL[line.match_status] ?? line.match_status}
+                        {getMatchStatusLabel(line.match_status, lang)}
                       </span>
                     </td>
                   </tr>

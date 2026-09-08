@@ -7,9 +7,9 @@ import { Alert } from '../../components/ui/Feedback';
 import { useAuth } from '../../auth/useAuth';
 import { ApiError } from '../../api/errors';
 import { useApiErrorText } from '../../i18n/useApiErrorText';
-import { useT } from '../../i18n/useT';
+import { useLanguage, useT } from '../../i18n/useT';
 import { formatDate, formatDateTime, formatMoney } from '../permits/format';
-import { REFUND_STATUS_LABEL, REFUND_STATUS_STYLE } from './statusMeta';
+import { REFUND_STATUS_STYLE, getAllocationTargetLabel, getRefundStatusLabel } from './statusMeta';
 import type { RefundOut } from './api';
 import { useApproveRefund, useRefunds, useRequestRefund, useSubmitRefundDecision } from './queries';
 
@@ -77,6 +77,7 @@ export function RefundsTab() {
 
 function RefundsRegister({ canFile, canApprove }: { canFile: boolean; canApprove: boolean }) {
   const t = useT();
+  const { lang } = useLanguage();
   const canDecide = canFile;
 
   const [status, setStatus] = useState<StatusFilter>('');
@@ -97,10 +98,10 @@ function RefundsRegister({ canFile, canApprove }: { canFile: boolean; canApprove
               onChange={(e) => setStatus(e.target.value as StatusFilter)}
               options={[
                 { value: '', label: t('accountant.refunds.filterAll') },
-                { value: 'requested', label: REFUND_STATUS_LABEL.requested },
-                { value: 'in_review', label: REFUND_STATUS_LABEL.in_review },
-                { value: 'returned', label: REFUND_STATUS_LABEL.returned },
-                { value: 'rejected', label: REFUND_STATUS_LABEL.rejected },
+                { value: 'requested', label: getRefundStatusLabel('requested', lang) },
+                { value: 'in_review', label: getRefundStatusLabel('in_review', lang) },
+                { value: 'returned', label: getRefundStatusLabel('returned', lang) },
+                { value: 'rejected', label: getRefundStatusLabel('rejected', lang) },
               ]}
             />
             {canFile && (
@@ -149,7 +150,7 @@ function RefundsRegister({ canFile, canApprove }: { canFile: boolean; canApprove
                           REFUND_STATUS_STYLE[refund.status] ?? REFUND_STATUS_STYLE.requested
                         }`}
                       >
-                        {REFUND_STATUS_LABEL[refund.status] ?? refund.status}
+                        {getRefundStatusLabel(refund.status, lang)}
                       </span>
                     </td>
                     <td className="px-4 py-3 font-mono text-xs">{formatDate(refund.due_at)}</td>
@@ -399,6 +400,7 @@ function DecisionModal({ refund, onClose }: { refund: RefundOut; onClose: () => 
 
 function ApproveModal({ refund, onClose }: { refund: RefundOut; onClose: () => void }) {
   const t = useT();
+  const { lang } = useLanguage();
   const errorText = useApiErrorText();
   const [comment, setComment] = useState('');
   const mutation = useApproveRefund();
@@ -452,7 +454,7 @@ function ApproveModal({ refund, onClose }: { refund: RefundOut; onClose: () => v
             <ul className="space-y-1 text-xs">
               {result.allocations.map((allocation, i) => (
                 <li key={i} className="flex justify-between rounded-lg border border-[#E4E7EA] bg-[#F8F9FA] px-3 py-2">
-                  <span>{allocation.target}</span>
+                  <span>{getAllocationTargetLabel(allocation.target, lang)}</span>
                   <span className="font-mono">{formatMoney(allocation.amount)}</span>
                   <span className="text-[#9AA3AB]">
                     {allocation.account ?? t('accountant.invoices.ledgerAccountSettledExternally')}

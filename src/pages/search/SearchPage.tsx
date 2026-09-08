@@ -23,7 +23,10 @@ import { Button } from '../../components/ui/button';
 import { DataTable, type Column } from '../../components/ui/DataTable';
 import { FormField, Input, Select } from '../../components/ui/FormControls';
 import { useLanguage, useT } from '../../i18n/useT';
-import { pickLocalizedName, useActivityTypes, useLeshozOrganizations } from './refs';
+import { pickLocalizedName } from '../permits/format';
+import { statusLabel } from '../staff/format';
+import { getPermitStatusLabel } from '../permits/statusMeta';
+import { useActivityTypes, useLeshozOrganizations } from './refs';
 import { SearchExportPanel } from './SearchExportPanel';
 import { useCreateSavedFilter, useDeleteSavedFilter, useSavedFilters, useSearchResults } from './queries';
 import type { SavedFilterOut, SearchKind, SearchResultOut } from './api';
@@ -122,7 +125,14 @@ export function SearchPage() {
         </Link>
       ),
     },
-    { key: 'status', header: t('search.col.status'), accessor: (row) => row.status },
+    {
+      key: 'status',
+      header: t('search.col.status'),
+      accessor: (row) =>
+        row.kind === 'applications'
+          ? statusLabel(row.status as any, lang)
+          : getPermitStatusLabel(row.status, lang),
+    },
     {
       key: 'organization',
       header: t('search.col.organization'),

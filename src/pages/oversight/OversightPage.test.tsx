@@ -114,7 +114,7 @@ test('switching to the Events tab requests /oversight/events and renders its own
   await user.click(screen.getByText('Voqealar'));
 
   const eventRow = await screen.findByTestId(`event-row-${EVENT_ROW_ID}`);
-  expect(within(eventRow).getByText('permit.issued')).toBeInTheDocument();
+  expect(within(eventRow).getByText('Ruxsatnoma berildi')).toBeInTheDocument();
   expect(riskCalls).toBe(1);
 });
 
@@ -147,7 +147,7 @@ test('CSV export on the risk indicators tab downloads a real file', async () => 
 // guarantees the two dictionaries hold the SAME keys — it cannot know whether
 // this screen asks for a key that exists in neither, which `t` renders as the
 // bare key and a reader sees in the middle of the page.
-test.each(['uz_latn', 'ru'] as const)('no untranslated leadership.oversight.* key reaches the screen in %s', async (lang) => {
+test.each(['uz_latn', 'uz_cyrl', 'ru', 'en', 'kaa'] as const)('no untranslated leadership.oversight.* key reaches the screen in %s', async (lang) => {
   server.use(
     http.get('*/api/v1/oversight/risk-indicators', () => HttpResponse.json(page([riskIndicatorFixture()]))),
     http.get('*/api/v1/oversight/events', () => HttpResponse.json(page([eventFixture()]))),

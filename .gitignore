@@ -26,3 +26,4 @@ yarn-error.log*
 
 # Per-session git worktrees (root CLAUDE.md: one worktree per parallel session)
 .claude/worktrees/
+.agents/

@@ -172,9 +172,8 @@ test('the switcher offers all five backend languages, and one without a string m
   expect(stored).toBe('kaa');
   // The menu closes on a pick — it is a header control, not a panel.
   expect(screen.queryByTestId('language-menu')).toBeNull();
-  // `kaa` has no dictionary yet, so the copy stays Latin Uzbek rather than
-  // rendering raw keys — the fallback, not a missing translation.
-  expect(screen.getByRole('button', { name: 'Chiqish' })).toBeInTheDocument();
+  // `kaa` dictionary renders translated Karakalpak copy
+  expect(screen.getByRole('button', { name: 'Shıǵıw' })).toBeInTheDocument();
 });
 
 // F14 (`docs/plans/07.3-findings.md`): the shell used to render the role

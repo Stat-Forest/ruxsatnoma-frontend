@@ -252,11 +252,11 @@ export const TERM_TRANSLATIONS: Record<string, Record<string, string>> = {
     kaa: 'Sharwa malların baǵıw',
   },
   'chorva molini boqish': {
-    uz_latn: 'Chorva mollarini boqish',
+    uz_latn: 'Chorva molini boqish',
     ru: 'Выпас скота',
     en: 'Livestock grazing',
-    uz_cyrl: 'Чорва молларини боқиш',
-    kaa: 'Sharwa malların baǵıw',
+    uz_cyrl: 'Чорва молини боқиш',
+    kaa: 'Sharwa malın baǵıw',
   },
   'чорва молларини боқиш': {
     uz_latn: 'Chorva mollarini boqish',

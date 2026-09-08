@@ -5,10 +5,10 @@ import { FormField, Input, Select } from '../../components/ui/FormControls';
 import { Pagination } from '../../components/ui/Navigation';
 import { Alert } from '../../components/ui/Feedback';
 import { ApiError } from '../../api/errors';
-import { useT } from '../../i18n/useT';
+import { useLanguage, useT } from '../../i18n/useT';
 import { formatDateTime, formatMoney, shortId } from '../permits/format';
 import type { InvoiceStatus } from './api';
-import { INVOICE_STATUS_LABEL, INVOICE_STATUS_STYLE } from './statusMeta';
+import { INVOICE_STATUS_LABEL, INVOICE_STATUS_STYLE, getInvoiceStatusLabel } from './statusMeta';
 import { useInvoicesList } from './queries';
 import { InvoiceDetailDrawer } from './InvoiceDetailDrawer';
 
@@ -24,6 +24,7 @@ const PAGE_SIZE = 20;
  */
 export function InvoicesTab() {
   const t = useT();
+  const { lang } = useLanguage();
   const [applicationIdDraft, setApplicationIdDraft] = useState('');
   const [applicationId, setApplicationId] = useState<string | null>(null);
   const [directInvoiceId, setDirectInvoiceId] = useState('');
@@ -40,9 +41,9 @@ export function InvoicesTab() {
 
   const statusOptions = [
     { value: '', label: t('accountant.common.all') },
-    ...(Object.entries(INVOICE_STATUS_LABEL) as [InvoiceStatus, string][]).map(([value, label]) => ({
+    ...(Object.keys(INVOICE_STATUS_LABEL) as InvoiceStatus[]).map((value) => ({
       value,
-      label,
+      label: getInvoiceStatusLabel(value, lang),
     })),
   ];
 
@@ -179,7 +180,7 @@ export function InvoicesTab() {
                           INVOICE_STATUS_STYLE[invoice.status] ?? INVOICE_STATUS_STYLE.pending
                         }`}
                       >
-                        {INVOICE_STATUS_LABEL[invoice.status] ?? invoice.status}
+                        {getInvoiceStatusLabel(invoice.status, lang)}
                       </span>
                     </td>
                     {!applicationId && (

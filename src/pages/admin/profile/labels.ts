@@ -96,7 +96,7 @@ const kaa: Record<keyof typeof uz_latn, string> = {
   ruleLowercase: 'kishi hárip',
   ruleDigit: 'san',
   ruleSpecial: 'arnawlı belgi',
-  logout: 'Chiqish',
+  logout: 'Shıǵıw',
 };
 
 export const LABELS: Record<string, ProfileLabels> = { uz_latn, uz_cyrl, ru, kaa, en };

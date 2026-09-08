@@ -1,5 +1,5 @@
-import React from 'react';
-import { AlertCircle, CheckCircle2 } from 'lucide-react';
+import React, { useState, useRef, useEffect, useId } from 'react';
+import { AlertCircle, Check, CheckCircle2, ChevronDown } from 'lucide-react';
 
 // ── FormField Container ──────────────────────────────────────────────────────
 export interface FormFieldProps {
@@ -77,11 +77,11 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
     const isError = Boolean(error);
     const heightClass = touchSize ? 'h-[48px] text-base' : 'h-[40px] text-sm';
 
-    let borderClass = 'border-[#767F87] focus:border-[#2E7D4F] focus:ring-2 focus:ring-[#2E7D4F]/20';
+    let borderClass = 'border-[#E4E7EA] hover:border-[#CBD5E1] focus:border-[#2E7D4F] focus:ring-4 focus:ring-[#2E7D4F]/10';
     if (isError) {
-      borderClass = 'border-[#B91C1C] focus:border-[#B91C1C] focus:ring-2 focus:ring-[#B91C1C]/20';
+      borderClass = 'border-[#B91C1C] focus:border-[#B91C1C] focus:ring-4 focus:ring-[#B91C1C]/15';
     } else if (success) {
-      borderClass = 'border-[#15803D] focus:border-[#15803D] focus:ring-2 focus:ring-[#15803D]/20';
+      borderClass = 'border-[#15803D] focus:border-[#15803D] focus:ring-4 focus:ring-[#15803D]/15';
     }
 
     return (
@@ -95,7 +95,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
           ref={ref}
           id={id}
           disabled={disabled}
-          className={`w-full bg-white border rounded-md px-3 text-[#1A1F24] placeholder-[#9AA3AB] transition-all outline-none disabled:bg-[#F8F9FA] disabled:text-[#9AA3AB] disabled:cursor-not-allowed ${heightClass} ${
+          className={`w-full bg-white border rounded-xl px-3.5 text-[#1A1F24] placeholder-[#9AA3AB] shadow-2xs transition-all outline-none disabled:bg-[#F8F9FA] disabled:text-[#9AA3AB] disabled:border-[#E4E7EA] disabled:cursor-not-allowed disabled:shadow-none ${heightClass} ${
             leftIcon ? 'pl-9' : ''
           } ${rightIcon || isError || success ? 'pr-9' : ''} ${borderClass} ${className}`}
           {...props}
@@ -131,25 +131,157 @@ export interface SelectProps extends React.SelectHTMLAttributes<HTMLSelectElemen
 }
 
 export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
-  ({ options, error, touchSize = false, className = '', disabled, ...props }, ref) => {
+  (
+    {
+      options,
+      error,
+      touchSize = false,
+      className = '',
+      disabled,
+      value,
+      defaultValue,
+      onChange,
+      id,
+      name,
+      ...props
+    },
+    ref
+  ) => {
+    const [isOpen, setIsOpen] = useState(false);
+    const containerRef = useRef<HTMLDivElement>(null);
+    const nativeSelectRef = useRef<HTMLSelectElement | null>(null);
+    const autoId = useId();
+    const selectId = id || autoId;
+
+    const [internalValue, setInternalValue] = useState<string>(
+      value !== undefined ? String(value) : defaultValue !== undefined ? String(defaultValue) : ''
+    );
+
+    const currentValue = value !== undefined ? String(value) : internalValue;
+    const selectedOption = options.find((opt) => String(opt.value) === currentValue);
+    const displayLabel = selectedOption ? selectedOption.label : (options[0]?.label ?? '');
+
+    useEffect(() => {
+      if (!isOpen) return;
+      function handleClickOutside(event: MouseEvent) {
+        if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+          setIsOpen(false);
+        }
+      }
+      function handleKeyDown(event: KeyboardEvent) {
+        if (event.key === 'Escape') {
+          setIsOpen(false);
+        }
+      }
+      document.addEventListener('mousedown', handleClickOutside);
+      document.addEventListener('keydown', handleKeyDown);
+      return () => {
+        document.removeEventListener('mousedown', handleClickOutside);
+        document.removeEventListener('keydown', handleKeyDown);
+      };
+    }, [isOpen]);
+
+    function handleSelect(val: string) {
+      if (disabled) return;
+      setInternalValue(val);
+      setIsOpen(false);
+
+      if (nativeSelectRef.current) {
+        nativeSelectRef.current.value = val;
+        const event = new Event('change', { bubbles: true });
+        nativeSelectRef.current.dispatchEvent(event);
+      }
+
+      if (onChange) {
+        const syntheticEvent = {
+          target: { value: val, name, id: selectId },
+          currentTarget: { value: val, name, id: selectId },
+        } as React.ChangeEvent<HTMLSelectElement>;
+        onChange(syntheticEvent);
+      }
+    }
+
     const heightClass = touchSize ? 'h-[48px] text-base' : 'h-[40px] text-sm';
     const borderClass = error
-      ? 'border-[#B91C1C] focus:ring-2 focus:ring-[#B91C1C]/20'
-      : 'border-[#767F87] focus:border-[#2E7D4F] focus:ring-2 focus:ring-[#2E7D4F]/20';
+      ? 'border-[#B91C1C] ring-4 ring-[#B91C1C]/15'
+      : isOpen
+      ? 'border-[#2E7D4F] ring-4 ring-[#2E7D4F]/10'
+      : 'border-[#E4E7EA] hover:border-[#CBD5E1]';
 
     return (
-      <select
-        ref={ref}
-        disabled={disabled}
-        className={`w-full bg-white border rounded-md px-3 text-[#1A1F24] transition-all outline-none disabled:bg-[#F8F9FA] disabled:text-[#9AA3AB] disabled:cursor-not-allowed ${heightClass} ${borderClass} ${className}`}
-        {...props}
-      >
-        {options.map((opt) => (
-          <option key={opt.value} value={opt.value} disabled={opt.disabled}>
-            {opt.label}
-          </option>
-        ))}
-      </select>
+      <div ref={containerRef} className="relative w-full">
+        {/* Accessible select for forms, testing-library and screen readers */}
+        <select
+          ref={(node) => {
+            nativeSelectRef.current = node;
+            if (typeof ref === 'function') ref(node);
+            else if (ref) (ref as React.MutableRefObject<HTMLSelectElement | null>).current = node;
+          }}
+          id={selectId}
+          name={name}
+          value={currentValue}
+          onChange={(e) => {
+            setInternalValue(e.target.value);
+            onChange?.(e);
+          }}
+          disabled={disabled}
+          className="sr-only"
+          {...props}
+        >
+          {options.map((opt) => (
+            <option key={opt.value} value={opt.value} disabled={opt.disabled}>
+              {opt.label}
+            </option>
+          ))}
+        </select>
+
+        {/* Custom styled trigger button */}
+        <button
+          type="button"
+          disabled={disabled}
+          onClick={() => !disabled && setIsOpen((prev) => !prev)}
+          className={`w-full flex items-center justify-between bg-white border rounded-xl pl-3.5 pr-3 text-[#1A1F24] font-medium shadow-2xs transition-all duration-150 outline-none text-left cursor-pointer hover:bg-[#FDFDFD] focus:bg-white disabled:bg-[#F8F9FA] disabled:text-[#9AA3AB] disabled:border-[#E4E7EA] disabled:cursor-not-allowed disabled:shadow-none ${heightClass} ${borderClass} ${className}`}
+          aria-haspopup="listbox"
+          aria-expanded={isOpen}
+        >
+          <span className="truncate pr-2">{displayLabel}</span>
+          <ChevronDown
+            className={`w-4 h-4 shrink-0 transition-transform duration-200 ${
+              isOpen ? 'rotate-180 text-[#2E7D4F]' : disabled ? 'text-[#C2C9D0]' : 'text-[#767F87]'
+            }`}
+          />
+        </button>
+
+        {/* Custom floating dropdown popover with smooth shadcn-like styling */}
+        {isOpen && (
+          <div
+            role="listbox"
+            className="absolute left-0 top-[calc(100%+6px)] w-full min-w-full z-50 bg-white border border-[#E4E7EA] rounded-2xl shadow-xl p-1.5 max-h-64 overflow-y-auto outline-none transition-all"
+          >
+            {options.map((opt) => {
+              const isSelected = String(opt.value) === currentValue;
+              return (
+                <div
+                  key={opt.value}
+                  role="option"
+                  aria-selected={isSelected}
+                  onClick={() => !opt.disabled && handleSelect(opt.value)}
+                  className={`flex items-center justify-between px-3 py-2 text-sm rounded-xl transition-colors cursor-pointer select-none ${
+                    opt.disabled
+                      ? 'text-[#9AA3AB] cursor-not-allowed bg-transparent'
+                      : isSelected
+                      ? 'bg-[#F0FDF4] text-[#15803D] font-semibold'
+                      : 'text-[#1A1F24] hover:bg-[#F8F9FA]'
+                  }`}
+                >
+                  <span className="truncate">{opt.label}</span>
+                  {isSelected && <Check className="w-4 h-4 text-[#15803D] shrink-0 ml-2" />}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
     );
   }
 );
@@ -165,8 +297,8 @@ export const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
   ({ error, maxLength, value, onChange, className = '', disabled, ...props }, ref) => {
     const charCount = typeof value === 'string' ? value.length : 0;
     const borderClass = error
-      ? 'border-[#B91C1C] focus:ring-2 focus:ring-[#B91C1C]/20'
-      : 'border-[#767F87] focus:border-[#2E7D4F] focus:ring-2 focus:ring-[#2E7D4F]/20';
+      ? 'border-[#B91C1C] focus:border-[#B91C1C] focus:ring-4 focus:ring-[#B91C1C]/15'
+      : 'border-[#E4E7EA] hover:border-[#CBD5E1] focus:border-[#2E7D4F] focus:ring-4 focus:ring-[#2E7D4F]/10';
 
     return (
       <div className="w-full flex flex-col">
@@ -176,7 +308,7 @@ export const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
           onChange={onChange}
           maxLength={maxLength}
           disabled={disabled}
-          className={`w-full bg-white border rounded-md p-3 text-sm text-[#1A1F24] placeholder-[#9AA3AB] min-h-[100px] resize-y transition-all outline-none disabled:bg-[#F8F9FA] disabled:text-[#9AA3AB] ${borderClass} ${className}`}
+          className={`w-full bg-white border rounded-xl p-3.5 text-sm text-[#1A1F24] placeholder-[#9AA3AB] shadow-2xs min-h-[100px] resize-y transition-all outline-none disabled:bg-[#F8F9FA] disabled:text-[#9AA3AB] disabled:border-[#E4E7EA] disabled:shadow-none ${borderClass} ${className}`}
           {...props}
         />
         {maxLength && (

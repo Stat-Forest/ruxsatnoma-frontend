@@ -7,9 +7,14 @@ import { Alert } from '../../components/ui/Feedback';
 import { useAuth } from '../../auth/useAuth';
 import { ApiError } from '../../api/errors';
 import { useApiErrorText } from '../../i18n/useApiErrorText';
-import { useT } from '../../i18n/useT';
+import { useLanguage, useT } from '../../i18n/useT';
 import { formatDateTime, formatMoney } from '../permits/format';
-import { INVOICE_STATUS_LABEL, INVOICE_STATUS_STYLE, ALLOCATION_TARGET_LABEL, ENTRY_TYPE_LABEL } from './statusMeta';
+import {
+  INVOICE_STATUS_STYLE,
+  getInvoiceStatusLabel,
+  getEntryTypeLabel,
+  getAllocationTargetLabel,
+} from './statusMeta';
 import { uploadFile } from './api';
 import { useAllocationsForInvoice, useFileManualConfirmation, useInvoice } from './queries';
 
@@ -56,6 +61,7 @@ export function InvoiceDetailDrawer({ invoiceId, onClose }: { invoiceId: string;
 
 function InvoiceHeader({ invoice }: { invoice: import('./api').InvoiceOut }) {
   const t = useT();
+  const { lang } = useLanguage();
   return (
     <dl className="grid grid-cols-1 gap-3 text-xs sm:grid-cols-2">
       <div>
@@ -70,7 +76,7 @@ function InvoiceHeader({ invoice }: { invoice: import('./api').InvoiceOut }) {
               INVOICE_STATUS_STYLE[invoice.status] ?? INVOICE_STATUS_STYLE.pending
             }`}
           >
-            {INVOICE_STATUS_LABEL[invoice.status] ?? invoice.status}
+            {getInvoiceStatusLabel(invoice.status, lang)}
           </span>
         </dd>
       </div>
@@ -109,6 +115,7 @@ function LedgerSection({
   isLoading: boolean;
 }) {
   const t = useT();
+  const { lang } = useLanguage();
   return (
     <section>
       <h3 className="mb-2 text-sm font-bold text-[#1A1F24]">{t('accountant.invoices.ledgerTitle')}</h3>
@@ -131,8 +138,8 @@ function LedgerSection({
             <tbody>
               {allocations.map((row) => (
                 <tr key={row.id} className="border-t border-[#E4E7EA]">
-                  <td className="px-3 py-2">{ENTRY_TYPE_LABEL[row.entry_type] ?? row.entry_type}</td>
-                  <td className="px-3 py-2">{ALLOCATION_TARGET_LABEL[row.target] ?? row.target}</td>
+                  <td className="px-3 py-2">{getEntryTypeLabel(row.entry_type, lang)}</td>
+                  <td className="px-3 py-2">{getAllocationTargetLabel(row.target, lang)}</td>
                   <td className="px-3 py-2">
                     {row.account ?? (
                       <span className="italic text-[#9AA3AB]">{t('accountant.invoices.ledgerAccountSettledExternally')}</span>

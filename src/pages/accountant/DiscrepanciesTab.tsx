@@ -7,9 +7,13 @@ import { Alert } from '../../components/ui/Feedback';
 import { useAuth } from '../../auth/useAuth';
 import { ApiError } from '../../api/errors';
 import { useApiErrorText } from '../../i18n/useApiErrorText';
-import { useT } from '../../i18n/useT';
+import { useLanguage, useT } from '../../i18n/useT';
 import { formatDateTime, formatMoney } from '../permits/format';
-import { RECONCILIATION_RESULT_LABEL, RECONCILIATION_STATUS_LABEL, RECONCILIATION_STATUS_STYLE } from './statusMeta';
+import {
+  RECONCILIATION_STATUS_STYLE,
+  getReconciliationResultLabel,
+  getReconciliationStatusLabel,
+} from './statusMeta';
 import { fileUrl, uploadFile, type ManualConfirmationOut, type ReconciliationOut } from './api';
 import {
   useConfirmManualConfirmation,
@@ -60,6 +64,7 @@ export function DiscrepanciesTab() {
 
 function ReconciliationRegister({ canResolve }: { canResolve: boolean }) {
   const t = useT();
+  const { lang } = useLanguage();
   const [status, setStatus] = useState<'open' | 'resolved'>('open');
   const [resolveTarget, setResolveTarget] = useState<ReconciliationOut | null>(null);
   const query = useReconciliations({ status, limit: 100, offset: 0 });
@@ -108,7 +113,7 @@ function ReconciliationRegister({ canResolve }: { canResolve: boolean }) {
                       ? row.invoice_id.slice(0, 8)
                       : <span className="italic text-[#9AA3AB]">{t('accountant.discrepancies.periodNote')}</span>}
                   </td>
-                  <td className="px-4 py-3">{RECONCILIATION_RESULT_LABEL[row.result] ?? row.result}</td>
+                  <td className="px-4 py-3">{getReconciliationResultLabel(row.result, lang)}</td>
                   <td className="px-4 py-3 text-right font-mono">{row.difference ? formatMoney(row.difference) : '—'}</td>
                   <td className="px-4 py-3">
                     <span
@@ -116,7 +121,7 @@ function ReconciliationRegister({ canResolve }: { canResolve: boolean }) {
                         RECONCILIATION_STATUS_STYLE[row.status] ?? RECONCILIATION_STATUS_STYLE.open
                       }`}
                     >
-                      {RECONCILIATION_STATUS_LABEL[row.status] ?? row.status}
+                      {getReconciliationStatusLabel(row.status, lang)}
                     </span>
                   </td>
                   <td className="px-4 py-3 font-mono text-xs">{formatDateTime(row.occurred_at)}</td>

@@ -209,7 +209,6 @@ function LayerFeatures({ layer, t }: { layer: LayerOut; t: (key: string) => stri
       <div className="bg-white border border-[#E4E7EA] rounded-2xl p-4 shadow-xs space-y-2">
         <div className="flex items-center justify-between">
           <div>
-            <span className="font-mono text-xs text-[#5A646D]">{layer.code}</span>
             <h3 className="text-sm font-bold text-[#1A1F24]">{pickLayerName(layer, lang)}</h3>
           </div>
           {canManage && (
@@ -313,7 +312,6 @@ export function LayersTab({ t }: { t: (key: string) => string }) {
             }`}
           >
             <div className="font-semibold text-[#1A1F24]">{pickLayerName(layer, lang)}</div>
-            <div className="text-[11px] text-[#5A646D] font-mono">{layer.code}</div>
           </button>
         ))}
       </div>

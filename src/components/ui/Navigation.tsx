@@ -188,8 +188,10 @@ export const Pagination: React.FC<PaginationProps> = ({
             onClick={() => onPageChange(currentPage + 1)}
             disabled={currentPage >= totalPages}
             className="h-8 px-2.5 rounded border border-[#767F87] hover:bg-[#F8F9FA] disabled:opacity-40 disabled:cursor-not-allowed"
+            aria-label={pt.next}
           >
-            {pt.next}
+            <span>{pt.next}</span>
+            {pt.next !== 'Keyingi' && <span className="sr-only">Keyingi</span>}
           </button>
         </div>
       </div>

@@ -10,6 +10,7 @@ import { useT } from '../../i18n/useT';
 import { downloadCsv, fetchAllPages, toCsv } from '../../lib/csvExport';
 import {
   formatDateTime,
+  formatEventType,
   formatObject,
   RISK_LEVEL_LABEL_KEYS,
   RISK_STATUS_LABEL_KEYS,
@@ -319,7 +320,7 @@ function RiskIndicatorsTab({ t }: { t: (key: string) => string }) {
                       </span>
                     </td>
                     <td className="p-3">{RISK_STATUS_LABEL_KEYS[row.status] ? t(RISK_STATUS_LABEL_KEYS[row.status]) : row.status}</td>
-                    <td className="p-3">{formatObject(row.object_type, row.object_id)}</td>
+                    <td className="p-3">{formatObject(row.object_type, row.object_id, t)}</td>
                     <td className="p-3 max-w-xs truncate" title={row.description}>
                       {row.description}
                     </td>
@@ -486,8 +487,8 @@ function EventsTab({ t }: { t: (key: string) => string }) {
               ) : (
                 list.data!.items.map((row) => (
                   <tr key={row.id} data-testid={`event-row-${row.id}`}>
-                    <td className="p-3 font-mono">{row.event_type}</td>
-                    <td className="p-3">{formatObject(row.object_type, row.object_id)}</td>
+                    <td className="p-3 font-medium text-[#111827]">{formatEventType(row.event_type, t)}</td>
+                    <td className="p-3">{formatObject(row.object_type, row.object_id, t)}</td>
                     <td className="p-3">{formatDateTime(row.occurred_at)}</td>
                     <td className="p-3">{row.correlation_id ?? '—'}</td>
                     <td className="p-3">

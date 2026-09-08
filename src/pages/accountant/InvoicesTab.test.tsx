@@ -57,10 +57,10 @@ beforeAll(() => server.listen({ onUnhandledRequest: 'error' }));
 afterEach(() => server.resetHandlers());
 afterAll(() => server.close());
 
-function renderTab(permissions: string[] = ['payments.view', 'payments.manage']) {
+function renderTab(permissions: string[] = ['payments.view', 'payments.manage'], lang: keyof typeof DICTIONARIES = 'uz_latn') {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
   const me = {
-    user: { id: 'u-1', full_name: 'Accountant', login: 'acc', language: 'uz_latn' },
+    user: { id: 'u-1', full_name: 'Accountant', login: 'acc', language: lang },
     role: { code: 'accountant', name: {} },
     permissions,
     zone: { region_id: null, district_id: null, organization_id: 'org-1' },
@@ -72,9 +72,9 @@ function renderTab(permissions: string[] = ['payments.view', 'payments.manage'])
   };
   const authValue = { me, loading: false, authError: null } as unknown as AuthContextValue;
   const i18n = {
-    lang: 'uz_latn' as const,
-    backendLang: 'uz_latn' as const,
-    t: (key: string) => (DICTIONARIES.uz_latn as Record<string, string>)[key] ?? key,
+    lang,
+    backendLang: lang,
+    t: (key: string) => (DICTIONARIES[lang] as Record<string, string>)[key] ?? key,
     setLanguage: async () => {},
   };
   const wrapper = ({ children }: { children: ReactNode }) => (
@@ -344,3 +344,31 @@ test('filing a manual confirmation uploads the document first, then files it, an
   expect(filedBody).toMatchObject({ invoice_id: INVOICE_PENDING, amount: '2060000.00', bank_doc_file_id: 'file-1' });
   expect(typeof (filedBody as { amount: unknown }).amount).toBe('string');
 });
+
+test('status translates properly in all 5 languages (uz_latn, uz_cyrl, ru, en, kaa)', async () => {
+  server.use(
+    http.get('*/api/v1/invoices', () =>
+      HttpResponse.json({
+        items: [invoice({ id: INVOICE_PAID, status: 'paid' })],
+        total: 1,
+        page: 1,
+        page_size: 20,
+      }),
+    ),
+  );
+
+  const expectations: Record<keyof typeof DICTIONARIES, string> = {
+    uz_latn: 'Toʻlangan',
+    uz_cyrl: 'Тўланган',
+    ru: 'Оплачено',
+    en: 'Paid',
+    kaa: 'Tólengen',
+  };
+
+  for (const [lang, expectedLabel] of Object.entries(expectations)) {
+    const { unmount } = renderTab(['payments.view'], lang as keyof typeof DICTIONARIES);
+    expect(await screen.findByText(expectedLabel)).toBeInTheDocument();
+    unmount();
+  }
+});
+
