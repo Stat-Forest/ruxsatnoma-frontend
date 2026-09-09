@@ -24,6 +24,25 @@ function formatDateTime(value: string): string {
   return date.toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 }
 
+function getStatusBadgeConfig(status: string) {
+  if (status === 'revoked') {
+    return {
+      container: 'bg-rose-50 text-rose-700 border-rose-200/80',
+      dot: 'bg-rose-500',
+    };
+  }
+  if (status === 'expired') {
+    return {
+      container: 'bg-amber-50 text-amber-700 border-amber-200/80',
+      dot: 'bg-amber-500',
+    };
+  }
+  return {
+    container: 'bg-emerald-50 text-emerald-700 border-emerald-200/80',
+    dot: 'bg-emerald-500',
+  };
+}
+
 /**
  * B5 — my ERI certificates. `GET/POST/DELETE /certificates`
  * (`app/modules/signatures/router.py`) carry no permission code and no
@@ -92,7 +111,7 @@ export function CertificatesSection() {
 
   return (
     <div className="space-y-5">
-      <section className="bg-white border border-[#E4E7EA] rounded-2xl p-6 shadow-xs">
+      <section className="bg-white border border-[#E4E7EA] rounded-2xl p-5 sm:p-6 shadow-xs">
         <h2 className="text-base font-bold text-[#1A1F24] mb-1">{t('cabinet.certificates.title')}</h2>
         <p className="text-xs text-[#5A646D] mb-4">{t('cabinet.certificates.intro')}</p>
 
@@ -112,39 +131,50 @@ export function CertificatesSection() {
 
         {(query.data?.length ?? 0) > 0 && (
           <ul className="divide-y divide-[#E4E7EA]">
-            {query.data?.map((cert) => (
-              <li key={cert.id} className="py-2.5 flex items-center justify-between gap-3">
-                <div>
-                  <p className="text-sm font-medium text-[#1A1F24] font-mono">{cert.serial_number}</p>
-                  <p className="text-xs text-[#5A646D]">
-                    {cert.subject} · {cert.pinfl_or_stir}
-                  </p>
-                  <p className="text-xs text-[#5A646D]">
-                    {t('cabinet.certificates.validFrom')} {formatDateTime(cert.valid_from)} —{' '}
-                    {t('cabinet.certificates.validTo')} {formatDateTime(cert.valid_to)}
-                  </p>
-                </div>
-                <div className="flex items-center gap-2 shrink-0">
-                  <span className="text-xs font-semibold text-[#15803D]">{statusLabel(cert.status, t)}</span>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    data-testid={`unbind-${cert.id}`}
-                    disabled={unbindingId === cert.id}
-                    isLoading={unbindingId === cert.id}
-                    onClick={() => void handleUnbind(cert.id)}
-                  >
-                    {t('cabinet.certificates.unbind')}
-                  </Button>
-                </div>
-              </li>
-            ))}
+            {query.data?.map((cert) => {
+              const statusConfig = getStatusBadgeConfig(cert.status);
+              return (
+                <li
+                  key={cert.id}
+                  className="py-3.5 sm:py-3 flex flex-col items-start sm:flex-row sm:items-center sm:justify-between gap-3"
+                >
+                  <div className="min-w-0 flex-1 space-y-1 w-full sm:w-auto">
+                    <p className="text-sm font-medium text-[#1A1F24] font-mono break-all">{cert.serial_number}</p>
+                    <p className="text-xs text-[#5A646D] break-words">
+                      {cert.subject} · {cert.pinfl_or_stir}
+                    </p>
+                    <p className="text-xs text-[#5A646D] break-words">
+                      {t('cabinet.certificates.validFrom')} {formatDateTime(cert.valid_from)} —{' '}
+                      {t('cabinet.certificates.validTo')} {formatDateTime(cert.valid_to)}
+                    </p>
+                  </div>
+                  <div className="w-full flex items-center justify-between sm:w-auto sm:justify-end gap-2 pt-2 sm:pt-0 border-t border-[#F1F3F5] sm:border-t-0 shrink-0">
+                    <span
+                      className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium border shrink-0 ${statusConfig.container}`}
+                    >
+                      <span className={`w-1.5 h-1.5 rounded-full ${statusConfig.dot}`} aria-hidden="true" />
+                      {statusLabel(cert.status, t)}
+                    </span>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      data-testid={`unbind-${cert.id}`}
+                      disabled={unbindingId === cert.id}
+                      isLoading={unbindingId === cert.id}
+                      onClick={() => void handleUnbind(cert.id)}
+                    >
+                      {t('cabinet.certificates.unbind')}
+                    </Button>
+                  </div>
+                </li>
+              );
+            })}
           </ul>
         )}
       </section>
 
-      <section className="bg-white border border-[#E4E7EA] rounded-2xl p-6 shadow-xs">
+      <section className="bg-white border border-[#E4E7EA] rounded-2xl p-5 sm:p-6 shadow-xs">
         <h2 className="text-base font-bold text-[#1A1F24] mb-3">{t('cabinet.certificates.bind')}</h2>
         <form onSubmit={(e) => void handleBind(e)} noValidate className="space-y-4">
           <FormField label={t('cabinet.certificates.pinflLabel')} required>
@@ -163,7 +193,13 @@ export function CertificatesSection() {
               <Alert variant="danger">{bindError}</Alert>
             </div>
           )}
-          <Button type="submit" data-testid="bind-submit" disabled={!pinflValid || binding} isLoading={binding}>
+          <Button
+            type="submit"
+            data-testid="bind-submit"
+            disabled={!pinflValid || binding}
+            isLoading={binding}
+            className="w-full sm:w-auto"
+          >
             {binding ? t('cabinet.certificates.binding') : t('cabinet.certificates.bind')}
           </Button>
         </form>

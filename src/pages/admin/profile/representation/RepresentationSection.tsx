@@ -43,17 +43,17 @@ function RepresentationsList() {
   const rows = me?.representations ?? [];
 
   return (
-    <section className="bg-white border border-[#E4E7EA] rounded-2xl p-6 shadow-xs">
+    <section className="bg-white border border-[#E4E7EA] rounded-xl sm:rounded-2xl p-4 sm:p-6 shadow-xs">
       <h2 className="text-base font-bold text-[#1A1F24] mb-3">{t('cabinet.representation.listTitle')}</h2>
       {rows.length === 0 ? (
         <p className="text-sm text-[#5A646D]">{t('cabinet.representation.listEmpty')}</p>
       ) : (
         <ul className="divide-y divide-[#E4E7EA]">
           {rows.map((rep) => (
-            <li key={rep.id} className="py-2.5 flex items-center justify-between gap-3">
-              <div>
-                <p className="text-sm font-medium text-[#1A1F24]">{rep.applicant.name}</p>
-                <p className="text-xs text-[#5A646D]">
+            <li key={rep.id} className="py-2.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-3">
+              <div className="min-w-0">
+                <p className="text-sm font-medium text-[#1A1F24] break-words">{rep.applicant.name}</p>
+                <p className="text-xs text-[#5A646D] break-words">
                   STIR {rep.applicant.stir} · {t(`cabinet.representation.basisShort.${rep.basis}`)}
                   {' · '}
                   {t('cabinet.representation.validFrom')} {formatDate(rep.valid_from)}
@@ -61,7 +61,7 @@ function RepresentationsList() {
                   {rep.valid_until ? formatDate(rep.valid_until) : t('cabinet.representation.validUntilNone')}
                 </p>
               </div>
-              <span className="text-xs font-semibold text-[#15803D] shrink-0">
+              <span className="text-xs font-semibold text-[#15803D] shrink-0 self-start sm:self-auto">
                 {t('cabinet.representation.statusActive')}
               </span>
             </li>
@@ -149,7 +149,7 @@ function AttachLegalForm() {
   }
 
   return (
-    <section className="bg-white border border-[#E4E7EA] rounded-2xl p-6 shadow-xs">
+    <section className="bg-white border border-[#E4E7EA] rounded-xl sm:rounded-2xl p-4 sm:p-6 shadow-xs">
       <h2 className="text-base font-bold text-[#1A1F24] mb-1">{t('cabinet.representation.attachTitle')}</h2>
       <p className="text-xs text-[#5A646D] mb-4">{t('cabinet.representation.attachIntro')}</p>
       <form onSubmit={(e) => void handleSubmit(e)} noValidate className="space-y-4">
@@ -230,7 +230,7 @@ function AttachLegalForm() {
           </div>
         )}
 
-        <Button type="submit" data-testid="attach-submit" disabled={submitting} isLoading={submitting}>
+        <Button type="submit" data-testid="attach-submit" disabled={submitting} isLoading={submitting} className="w-full sm:w-auto">
           {submitting ? t('cabinet.representation.attachSubmitting') : t('cabinet.representation.attachSubmit')}
         </Button>
       </form>
@@ -266,7 +266,7 @@ function AddColleagueForm() {
 
   if (eligible.length === 0) {
     return (
-      <section className="bg-white border border-[#E4E7EA] rounded-2xl p-6 shadow-xs">
+      <section className="bg-white border border-[#E4E7EA] rounded-xl sm:rounded-2xl p-4 sm:p-6 shadow-xs">
         <h2 className="text-base font-bold text-[#1A1F24] mb-1">{t('cabinet.representation.addColleagueTitle')}</h2>
         <p className="text-xs text-[#5A646D]">{t('cabinet.representation.needOrgEriOrDirector')}</p>
       </section>
@@ -332,7 +332,7 @@ function AddColleagueForm() {
   }
 
   return (
-    <section className="bg-white border border-[#E4E7EA] rounded-2xl p-6 shadow-xs">
+    <section className="bg-white border border-[#E4E7EA] rounded-xl sm:rounded-2xl p-4 sm:p-6 shadow-xs">
       <h2 className="text-base font-bold text-[#1A1F24] mb-1">{t('cabinet.representation.addColleagueTitle')}</h2>
       <p className="text-xs text-[#5A646D] mb-4">{t('cabinet.representation.addColleagueIntro')}</p>
       <form onSubmit={(e) => void handleSubmit(e)} noValidate className="space-y-4">
@@ -416,7 +416,7 @@ function AddColleagueForm() {
           </div>
         )}
 
-        <Button type="submit" data-testid="colleague-submit" disabled={submitting} isLoading={submitting}>
+        <Button type="submit" data-testid="colleague-submit" disabled={submitting} isLoading={submitting} className="w-full sm:w-auto">
           {t('cabinet.representation.addColleagueSubmit')}
         </Button>
       </form>
@@ -445,7 +445,7 @@ function AddColleagueForm() {
  */
 export function RepresentationSection() {
   return (
-    <div className="space-y-5">
+    <div className="space-y-4 sm:space-y-5">
       <RepresentationsList />
       <AttachLegalForm />
       <AddColleagueForm />
