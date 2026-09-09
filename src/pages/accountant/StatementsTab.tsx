@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
 import { AlertTriangle, Search, UploadCloud } from 'lucide-react';
 import { Button } from '../../components/ui/button';
-import { FormField, Input } from '../../components/ui/FormControls';
+import { FileInput, FormField, Input } from '../../components/ui/FormControls';
 import { Alert } from '../../components/ui/Feedback';
 import { useAuth } from '../../auth/useAuth';
 import { ApiError } from '../../api/errors';
@@ -161,12 +161,11 @@ function UploadForm({ onAccepted }: { onAccepted: (id: string) => void }) {
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <FormField label={t('accountant.statements.fileLabel')} htmlFor="statement-file">
-          <input
+          <FileInput
             id="statement-file"
-            type="file"
             accept=".csv,text/csv"
-            onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-            className="block w-full text-xs text-[#5A646D] file:mr-3 file:rounded-md file:border-0 file:bg-[#F0F7F1] file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-[#2E7D4F]"
+            value={file}
+            onChange={setFile}
           />
         </FormField>
         <FormField label={t('accountant.statements.dateLabel')} htmlFor="statement-date">

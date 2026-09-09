@@ -114,6 +114,7 @@ export function TicketsTab() {
         columns={columns}
         data={list.data?.items ?? []}
         isLoading={list.isLoading}
+        loadingText={t('support.common.loading')}
         emptyTitle={t('support.tickets.empty')}
         emptyDescription=""
         pagination={{ currentPage: page, totalPages, onPageChange: setPage, totalRecords: total }}

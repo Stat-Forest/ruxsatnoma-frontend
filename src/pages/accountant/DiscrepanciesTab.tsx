@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { CheckCircle2, XCircle } from 'lucide-react';
 import { Button } from '../../components/ui/button';
-import { FormField, Input, Textarea } from '../../components/ui/FormControls';
+import { FileInput, FormField, Input, Textarea } from '../../components/ui/FormControls';
 import { Modal } from '../../components/ui/Overlay';
 import { Alert } from '../../components/ui/Feedback';
 import { useAuth } from '../../auth/useAuth';
@@ -197,11 +197,10 @@ function ResolveModal({ row, onClose }: { row: ReconciliationOut; onClose: () =>
           <Textarea id="resolve-comment" value={comment} onChange={(e) => setComment(e.target.value)} rows={3} />
         </FormField>
         <FormField label={t('accountant.discrepancies.resolveDocLabel')} htmlFor="resolve-doc">
-          <input
+          <FileInput
             id="resolve-doc"
-            type="file"
-            onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-            className="block w-full text-xs text-[#5A646D] file:mr-3 file:rounded-md file:border-0 file:bg-[#F0F7F1] file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-[#2E7D4F]"
+            value={file}
+            onChange={setFile}
           />
         </FormField>
         {uploadError && <Alert variant="danger">{uploadError}</Alert>}

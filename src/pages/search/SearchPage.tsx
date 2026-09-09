@@ -22,6 +22,7 @@ import { ApiError } from '../../api/errors';
 import { Button } from '../../components/ui/button';
 import { DataTable, type Column } from '../../components/ui/DataTable';
 import { FormField, Input, Select } from '../../components/ui/FormControls';
+import { Drawer } from '../../components/ui/Overlay';
 import { useLanguage, useT } from '../../i18n/useT';
 import { pickLocalizedName } from '../permits/format';
 import { statusLabel, type ApplicationStatus } from '../staff/format';
@@ -112,18 +113,35 @@ export function SearchPage() {
     );
   }
 
+  const [selectedRow, setSelectedRow] = useState<SearchResultOut | null>(null);
+
   const columns: Column<SearchResultOut>[] = [
     {
       key: 'number',
       header: t('search.col.number'),
-      accessor: (row) => (
-        <Link
-          to={row.kind === 'applications' ? `/applications/${row.id}` : `/permits/${row.id}`}
-          className="font-mono font-semibold text-[#2E7D4F] hover:underline"
-        >
-          {row.number ?? row.id.slice(0, 8)}
-        </Link>
-      ),
+      accessor: (row) => {
+        const isNoOrgOrDraft =
+          row.kind === 'applications' && (!row.organization_id || row.status?.toUpperCase() === 'DRAFT');
+        if (isNoOrgOrDraft) {
+          return (
+            <button
+              type="button"
+              onClick={() => setSelectedRow(row)}
+              className="font-mono font-semibold text-[#2E7D4F] hover:underline text-left cursor-pointer"
+            >
+              {row.number || row.id.slice(0, 8)}
+            </button>
+          );
+        }
+        return (
+          <Link
+            to={row.kind === 'applications' ? `/applications/${row.id}` : `/permits/${row.id}`}
+            className="font-mono font-semibold text-[#2E7D4F] hover:underline"
+          >
+            {row.number || row.id.slice(0, 8)}
+          </Link>
+        );
+      },
     },
     {
       key: 'status',
@@ -137,8 +155,12 @@ export function SearchPage() {
       key: 'organization',
       header: t('search.col.organization'),
       accessor: (row) => {
-        const org = organizations.data?.items.find((o) => o.id === row.organization_id);
-        return org ? pickLocalizedName(org.name, lang) : (row.organization_id?.slice(0, 8) ?? '—');
+        const org = row.organization_id
+          ? organizations.data?.items.find((o) => o.id === row.organization_id)
+          : undefined;
+        return org
+          ? pickLocalizedName(org.name, lang)
+          : (row.organization_id ? row.organization_id.slice(0, 8) : '—');
       },
     },
     { key: 'applicant', header: t('search.col.applicant'), accessor: (row) => row.applicant_name ?? '—' },
@@ -322,6 +344,82 @@ export function SearchPage() {
           series: kind === 'permits' ? applied.series || undefined : undefined,
         }}
       />
+
+      <Drawer
+        isOpen={!!selectedRow}
+        onClose={() => setSelectedRow(null)}
+        title={t('search.detail.title')}
+      >
+        {selectedRow && (
+          <div className="space-y-4 text-sm" data-testid="search-detail-drawer">
+            {(!selectedRow.organization_id || selectedRow.status?.toUpperCase() === 'DRAFT') && (
+              <div className="p-3.5 bg-[#FFFBEB] border border-[#FDE68A] rounded-xl text-xs text-[#92400E] leading-relaxed">
+                {t('search.detail.noOrgDraftNotice')}
+              </div>
+            )}
+
+            <div className="divide-y divide-[#E4E7EA] rounded-xl border border-[#E4E7EA] bg-[#F8F9FA] px-4">
+              <div className="flex justify-between py-2.5">
+                <span className="text-xs text-[#5A646D]">{t('search.col.number')}</span>
+                <span className="font-mono font-semibold text-[#1A1F24]">
+                  {selectedRow.number || selectedRow.id.slice(0, 8)}
+                </span>
+              </div>
+              <div className="flex justify-between py-2.5">
+                <span className="text-xs text-[#5A646D]">{t('search.detail.kind')}</span>
+                <span className="font-medium text-[#1A1F24]">
+                  {selectedRow.kind === 'applications' ? t('archive.typeApplication') : t('archive.typePermit')}
+                </span>
+              </div>
+              <div className="flex justify-between py-2.5">
+                <span className="text-xs text-[#5A646D]">{t('search.col.status')}</span>
+                <span>
+                  {selectedRow.kind === 'applications'
+                    ? statusLabel(selectedRow.status as ApplicationStatus, lang)
+                    : getPermitStatusLabel(selectedRow.status, lang)}
+                </span>
+              </div>
+              <div className="flex justify-between py-2.5">
+                <span className="text-xs text-[#5A646D]">{t('search.col.organization')}</span>
+                <span className="font-medium text-[#1A1F24]">
+                  {(() => {
+                    const org = selectedRow.organization_id
+                      ? organizations.data?.items.find((o) => o.id === selectedRow.organization_id)
+                      : undefined;
+                    return org
+                      ? pickLocalizedName(org.name, lang)
+                      : (selectedRow.organization_id ? selectedRow.organization_id.slice(0, 8) : t('search.detail.noOrg'));
+                  })()}
+                </span>
+              </div>
+              <div className="flex justify-between py-2.5">
+                <span className="text-xs text-[#5A646D]">{t('search.col.applicant')}</span>
+                <span className="font-medium text-[#1A1F24]">{selectedRow.applicant_name ?? '—'}</span>
+              </div>
+              <div className="flex justify-between py-2.5">
+                <span className="text-xs text-[#5A646D]">{t('search.col.createdAt')}</span>
+                <span className="text-xs text-[#5A646D]">
+                  {selectedRow.created_at ? new Date(selectedRow.created_at).toLocaleString() : '—'}
+                </span>
+              </div>
+            </div>
+
+            <div className="pt-2 flex justify-end gap-2">
+              {selectedRow.organization_id && (
+                <Link
+                  to={selectedRow.kind === 'applications' ? `/applications/${selectedRow.id}` : `/permits/${selectedRow.id}`}
+                  className="inline-flex items-center justify-center rounded-lg font-medium text-xs px-3 py-2 bg-[#2E7D4F] text-white hover:bg-[#23653F] transition-colors"
+                >
+                  {t('search.detail.openCard')}
+                </Link>
+              )}
+              <Button variant="secondary" onClick={() => setSelectedRow(null)}>
+                {t('search.detail.close')}
+              </Button>
+            </div>
+          </div>
+        )}
+      </Drawer>
     </div>
   );
 }

@@ -1,7 +1,6 @@
 import { ShieldCheck } from 'lucide-react';
 import type { RoleAdminOut } from '../api';
-import { pickName } from '../../applicant/format';
-import { labels } from './labels';
+import { labels, pickRoleName } from './labels';
 
 import type { UiLanguage } from '../../../i18n/context';
 
@@ -44,7 +43,7 @@ export function RolesList({ roles, selectedId, onSelect, lang }: RolesListProps)
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
                   <div className="text-sm font-semibold text-[#1A1F24] truncate">
-                    {pickName(role.name, lang) || role.code}
+                    {pickRoleName(role, lang)}
                   </div>
                   <div className="text-[11px] text-[#5A646D] font-mono truncate">{role.code}</div>
                 </div>

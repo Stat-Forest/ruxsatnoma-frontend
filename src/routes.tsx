@@ -145,6 +145,8 @@ const DETAIL_ROUTES: { path: string; element: ReactNode; permission?: string }[]
   // arrival (a stale bookmark, a failed callback) is bounced to `/login`
   // rather than looping.
   { path: 'auth/oneid/return', element: <OneIdReturnPage /> },
+  // Route alias for /admin/system-settings -> SettingsPage
+  { path: 'admin/system-settings', element: <SettingsPage />, permission: 'admin.settings.manage' },
 ];
 
 const detailRouteChildren: RouteObject[] = DETAIL_ROUTES.map(({ path, element, permission }) => ({

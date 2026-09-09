@@ -2,7 +2,7 @@ import { useRef, useState } from 'react';
 import { AlertTriangle, CheckCircle2, Copy, Loader2 } from 'lucide-react';
 import { Drawer } from '../../components/ui/Overlay';
 import { Button } from '../../components/ui/button';
-import { FormField, Input } from '../../components/ui/FormControls';
+import { FileInput, FormField, Input } from '../../components/ui/FormControls';
 import { Alert } from '../../components/ui/Feedback';
 import { useAuth } from '../../auth/useAuth';
 import { ApiError } from '../../api/errors';
@@ -252,12 +252,11 @@ function ManualPaidFilingForm({ invoiceId }: { invoiceId: string }) {
             />
           </FormField>
           <FormField label={t('accountant.invoices.manualPaidDocLabel')} htmlFor="manual-paid-doc">
-            <input
+            <FileInput
               ref={fileInputRef}
               id="manual-paid-doc"
-              type="file"
-              onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-              className="block w-full max-w-full text-xs text-[#5A646D] file:mr-2 file:rounded-md file:border-0 file:bg-[#F0F7F1] file:px-2.5 file:py-1.5 file:text-xs file:font-semibold file:text-[#2E7D4F]"
+              value={file}
+              onChange={setFile}
             />
           </FormField>
           {uploadError && <Alert variant="danger">{uploadError}</Alert>}

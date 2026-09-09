@@ -135,14 +135,200 @@ export const ru: AnnouncementLabels = {
   langEn: 'Английский',
 };
 
+export const uz_cyrl: AnnouncementLabels = {
+  pageTitle: 'Эълонлар',
+  pageSubtitle: 'Тизим фойдаланувчиларига кўрсатиладиган эълонлар',
+  create: 'Янги эълон',
+
+  filterStatus: 'Ҳолати',
+  filterAll: 'Барчаси',
+
+  colTitle: 'Сарлавҳа',
+  colAudience: 'Кимга кўринади',
+  colStatus: 'Ҳолати',
+  colPeriod: 'Кўрсатиш муддати',
+  colCreated: 'Яратилган',
+  colActions: 'Амаллар',
+
+  statusDraft: 'Қоралама',
+  statusPublished: 'Чоп этилган',
+  statusArchived: 'Архивланган',
+
+  audienceEveryone: 'Барча фойдаланувчилар',
+  audienceRoles: 'Роллар',
+  audienceRegions: 'Ҳудудлар',
+  audienceHint: 'Ҳеч нарса танланмаса — эълон барча фойдаланувчиларга кўринади.',
+
+  loading: 'Юкланмоқда...',
+  empty: 'Эълон топилмади.',
+  loadFailed: 'Эълонлар рўйхати юкланмади.',
+  untitled: '(сарлавҳасиз)',
+
+  actionEdit: 'Таҳрирлаш',
+  actionPublish: 'Чоп этиш',
+  actionArchive: 'Архивлаш',
+  cancel: 'Бекор қилиш',
+  save: 'Сақлаш',
+
+  formCreateTitle: 'Янги эълон',
+  formEditTitle: 'Эълонни таҳрирлаш',
+  formTitleField: 'Сарлавҳа',
+  formBodyField: 'Матн',
+  formPublishFrom: 'Бошланиш санаси',
+  formPublishTo: 'Тугаш санаси',
+  formLanguagesHint: 'Тўлдирилган тиллар сақланади. Ўзбекча (лотин) мажбурий.',
+  formRequired: 'Ўзбекча (лотин) сарлавҳа ва матн тўлдирилиши шарт.',
+  formLoading: 'Эълон юкланмоқда...',
+  formLoadFailed: 'Эълонни юклаб бўлмади.',
+
+  publishConfirmTitle: 'Эълонни чоп этиш',
+  publishConfirmLead: 'Эълон қуйидагиларга кўринади:',
+  publishConfirmTail: 'Чоп этилгандан сўнг эълонни қайтариб бўлмайди — уни фақат архивлаш мумкин.',
+  publishConfirmAction: 'Ҳа, чоп этиш',
+
+  archiveConfirmTitle: 'Эълонни архивлаш',
+  archiveConfirmText: 'Эълон рўйхатдан олиб ташланади ва фойдаланувчиларга кўринмайди.',
+  archiveConfirmAction: 'Ҳа, архивлаш',
+
+  langUzLatn: 'Ўзбекча (лотин)',
+  langUzCyrl: 'Ўзбекча (кирилл)',
+  langRu: 'Русча',
+  langKaa: 'Қорақалпоқча',
+  langEn: 'Инглизча',
+};
+
+export const en: AnnouncementLabels = {
+  pageTitle: 'Announcements',
+  pageSubtitle: 'Announcements displayed to system users',
+  create: 'New announcement',
+
+  filterStatus: 'Status',
+  filterAll: 'All',
+
+  colTitle: 'Title',
+  colAudience: 'Audience',
+  colStatus: 'Status',
+  colPeriod: 'Display period',
+  colCreated: 'Created at',
+  colActions: 'Actions',
+
+  statusDraft: 'Draft',
+  statusPublished: 'Published',
+  statusArchived: 'Archived',
+
+  audienceEveryone: 'All users',
+  audienceRoles: 'Roles',
+  audienceRegions: 'Regions',
+  audienceHint: 'If nothing is selected — announcement is visible to all users.',
+
+  loading: 'Loading...',
+  empty: 'No announcements found.',
+  loadFailed: 'Failed to load announcements list.',
+  untitled: '(untitled)',
+
+  actionEdit: 'Edit',
+  actionPublish: 'Publish',
+  actionArchive: 'Archive',
+  cancel: 'Cancel',
+  save: 'Save',
+
+  formCreateTitle: 'New announcement',
+  formEditTitle: 'Edit announcement',
+  formTitleField: 'Title',
+  formBodyField: 'Body',
+  formPublishFrom: 'Start date',
+  formPublishTo: 'End date',
+  formLanguagesHint: 'Only filled languages are saved. Uzbek (Latin) is required.',
+  formRequired: 'Uzbek (Latin) title and body are required.',
+  formLoading: 'Loading announcement...',
+  formLoadFailed: 'Failed to load announcement.',
+
+  publishConfirmTitle: 'Publish announcement',
+  publishConfirmLead: 'Announcement will be visible to:',
+  publishConfirmTail: 'Once published, it cannot be reverted to draft — only archived.',
+  publishConfirmAction: 'Yes, publish',
+
+  archiveConfirmTitle: 'Archive announcement',
+  archiveConfirmText: 'The announcement will be removed from list and hidden from users.',
+  archiveConfirmAction: 'Yes, archive',
+
+  langUzLatn: 'Uzbek (Latin)',
+  langUzCyrl: 'Uzbek (Cyrillic)',
+  langRu: 'Russian',
+  langKaa: 'Karakalpak',
+  langEn: 'English',
+};
+
+export const kaa: AnnouncementLabels = {
+  pageTitle: 'Xabarlandırıwlar',
+  pageSubtitle: 'Sistema paydalanıwshılarına kórsetiletuǵın xabarlandırıwlar',
+  create: 'Jańa xabarlandırıw',
+
+  filterStatus: 'Jaǵdayı',
+  filterAll: 'Barlıǵı',
+
+  colTitle: 'Sarlawha',
+  colAudience: 'Kimge kórinedi',
+  colStatus: 'Jaǵdayı',
+  colPeriod: 'Kórsetiw múddeti',
+  colCreated: 'Jaratılǵan',
+  colActions: 'Ámeller',
+
+  statusDraft: 'Dáslepki nusqa',
+  statusPublished: 'Baspada shıǵarılǵan',
+  statusArchived: 'Arxivlengen',
+
+  audienceEveryone: 'Barlıq paydalanıwshılar',
+  audienceRoles: 'Rollar',
+  audienceRegions: 'Aymaqlar',
+  audienceHint: 'Hesh nárse saylanbasa — xabarlandırıw barlıq paydalanıwshılarǵa kórinedi.',
+
+  loading: 'Júklenbekte...',
+  empty: 'Xabarlandırıw tabılmadı.',
+  loadFailed: 'Xabarlandırıwlar dizimi júklenbedi.',
+  untitled: '(sarlawhasız)',
+
+  actionEdit: 'Ózgertiw',
+  actionPublish: 'Baspada shıǵarıw',
+  actionArchive: 'Arxivlew',
+  cancel: 'Biykar etiw',
+  save: 'Saqlaw',
+
+  formCreateTitle: 'Jańa xabarlandırıw',
+  formEditTitle: 'Xabarlandırıwdı ózgertiw',
+  formTitleField: 'Sarlawha',
+  formBodyField: 'Tekst',
+  formPublishFrom: 'Baslanıw sánesi',
+  formPublishTo: 'Tamamlanıw sánesi',
+  formLanguagesHint: 'Toltırılǵan tiller saqlanadı. Ózbekshe (latın) májbúriy.',
+  formRequired: 'Ózbekshe (latın) sarlawha hám tekst toltırılıwı shárt.',
+  formLoading: 'Xabarlandırıw júklenbekte...',
+  formLoadFailed: 'Xabarlandırıwdı júklep bolmadı.',
+
+  publishConfirmTitle: 'Xabarlandırıwdı baspaǵa shıǵarıw',
+  publishConfirmLead: 'Xabarlandırıw tómendegilerge kórinedi:',
+  publishConfirmTail: 'Baspada shıqqannan soń xabarlandırıwdı qaytarıp bolmaydı — onı tek arxivlew múmkin.',
+  publishConfirmAction: 'Awa, baspada shıǵarıw',
+
+  archiveConfirmTitle: 'Xabarlandırıwdı arxivlew',
+  archiveConfirmText: 'Xabarlandırıw dizimnen alıp taslanadı hám paydalanıwshılarǵa kórinbeydi.',
+  archiveConfirmAction: 'Awa, arxivlew',
+
+  langUzLatn: 'Ózbekshe (latın)',
+  langUzCyrl: 'Ózbekshe (kirill)',
+  langRu: 'Orıssha',
+  langKaa: 'Qaraqalpaqsha',
+  langEn: 'Inglishe',
+};
+
 import type { UiLanguage } from '../../../i18n/context';
 
 export const LABELS: Record<UiLanguage, AnnouncementLabels> = {
   uz_latn,
   ru,
-  uz_cyrl: uz_latn,
-  kaa: uz_latn,
-  en: uz_latn,
+  uz_cyrl,
+  kaa,
+  en,
 };
 
 /** Which label names each per-language input. Keyed by the schema's own

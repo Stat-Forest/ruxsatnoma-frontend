@@ -88,7 +88,7 @@ export const en: Record<keyof typeof uz_latn, string> = {
   loadFailed: 'Failed to load settings.',
   empty: 'No settings found.',
   overridden: 'Overridden',
-  atDefault: 'Default value',
+  atDefault: 'At default',
   overriddenCount: 'settings overridden',
   currentValue: 'Current value',
   defaultValue: 'Default value',

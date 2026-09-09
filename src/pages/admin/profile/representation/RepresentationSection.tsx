@@ -2,7 +2,7 @@ import { useState } from 'react';
 import type { FormEvent } from 'react';
 import { Alert } from '../../../../components/ui/Feedback';
 import { Button } from '../../../../components/ui/button';
-import { FormField, Input, RadioGroup, Select } from '../../../../components/ui/FormControls';
+import { FileInput, FormField, Input, RadioGroup, Select } from '../../../../components/ui/FormControls';
 import { useAuth } from '../../../../auth/useAuth';
 import { useApiErrorText } from '../../../../i18n/useApiErrorText';
 import { useT } from '../../../../i18n/useT';
@@ -195,16 +195,15 @@ function AttachLegalForm() {
               <Input data-testid="attach-org-name" value={orgName} onChange={(e) => setOrgName(e.target.value)} />
             </FormField>
             <FormField label={t('cabinet.representation.poaFileLabel')} required>
-              <input
+              <FileInput
                 data-testid="attach-poa-file"
-                type="file"
                 accept="application/pdf"
                 disabled={uploading}
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
+                isLoading={uploading}
+                value={poaFileName ? { name: poaFileName } : null}
+                onChange={(file) => {
                   if (file) void handleUpload(file);
                 }}
-                className="block w-full text-sm text-[#1A1F24]"
               />
               {uploading && <p className="text-xs text-[#5A646D] mt-1">{t('cabinet.representation.poaUploading')}</p>}
               {poaFileName && (
@@ -382,16 +381,15 @@ function AddColleagueForm() {
         {basis === 'poa' && (
           <>
             <FormField label={t('cabinet.representation.poaFileLabel')} required>
-              <input
+              <FileInput
                 data-testid="colleague-poa-file"
-                type="file"
                 accept="application/pdf"
                 disabled={uploading}
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
+                isLoading={uploading}
+                value={poaFileName ? { name: poaFileName } : null}
+                onChange={(file) => {
                   if (file) void handleUpload(file);
                 }}
-                className="block w-full text-sm text-[#1A1F24]"
               />
               {poaFileName && (
                 <p data-testid="colleague-poa-uploaded" className="text-xs text-[#15803D] mt-1">

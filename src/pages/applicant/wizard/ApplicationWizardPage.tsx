@@ -10,6 +10,7 @@ import { ApiError } from '../../../api/errors';
 import { saveApplicantAddress } from '../../../api/address';
 import { useAuth } from '../../../auth/useAuth';
 import { useApiErrorText } from '../../../i18n/useApiErrorText';
+import { useT } from '../../../i18n/useT';
 import {
   addApplicationDocument,
   createApplicationDraft,
@@ -36,14 +37,6 @@ import { buildMockSignature } from '../../../lib/eimzoMock';
 
 const GRAZING_CODE = 'grazing';
 
-const WIZARD_STEPS = [
-  { id: 1, title: 'Faoliyat turi', description: 'Foydalanish turi' },
-  { id: 2, title: 'Uchastka', description: 'Kontur va davr' },
-  { id: 3, title: 'Parametrlar', description: 'Miqdor va narx' },
-  { id: 4, title: 'Hujjatlar', description: 'Ilova fayllar' },
-  { id: 5, title: 'Yuborish', description: 'Tekshiruv va ERI' },
-];
-
 interface LivestockRow {
   key: string;
   livestockTypeId: string;
@@ -60,6 +53,7 @@ interface LivestockRow {
  * `MyApplicationCardPage` links back here with `?draft=<id>` to resume.
  */
 export function ApplicationWizardPage() {
+  const t = useT();
   const { me, refreshMe } = useAuth();
   const errorText = useApiErrorText();
   const navigate = useNavigate();
@@ -269,7 +263,7 @@ export function ApplicationWizardPage() {
     try {
       const applicant = me?.applicant;
       if (!applicant?.pinfl) {
-        setSubmitError("ERI bilan imzolash uchun shaxsingizni tasdiqlovchi PINFL topilmadi. Profilni tekshiring.");
+        setSubmitError(t('wizard.step5.noPinfl'));
         return;
       }
       if (filingApplicant && !filingApplicant.address && !addressSaved) {
@@ -308,12 +302,20 @@ export function ApplicationWizardPage() {
 
   const hasBlockingCheck = precheckResult?.checks.some((c) => c.result === 'fail') ?? false;
 
+  const wizardSteps = [
+    { id: 1, title: t('wizard.step1.title'), description: t('wizard.step1.desc') },
+    { id: 2, title: t('wizard.step2.title'), description: t('wizard.step2.desc') },
+    { id: 3, title: t('wizard.step3.title'), description: t('wizard.step3.desc') },
+    { id: 4, title: t('wizard.step4.title'), description: t('wizard.step4.desc') },
+    { id: 5, title: t('wizard.step5.title'), description: t('wizard.step5.desc') },
+  ];
+
   return (
     <div className="max-w-5xl mx-auto space-y-6 font-sans pb-24">
       <div className="flex flex-wrap items-start justify-between gap-4 border-b border-[#E4E7EA] pb-4">
         <div>
-          <h1 className="text-2xl font-extrabold text-[#1A1F24] tracking-tight">Yangi ariza topshirish</h1>
-          <p className="text-xs text-[#5A646D] mt-1">Bosqichlarni ketma-ket toʻldiring — qoralama har bosqichda saqlanadi</p>
+          <h1 className="text-2xl font-extrabold text-[#1A1F24] tracking-tight">{t('wizard.title')}</h1>
+          <p className="text-xs text-[#5A646D] mt-1">{t('wizard.subtitle')}</p>
         </div>
         <Button
           variant="outline"
@@ -322,20 +324,20 @@ export function ApplicationWizardPage() {
           onClick={() => navigate('/my/applications')}
           className="cursor-pointer font-bold"
         >
-          Roʻyxatga qaytish
+          {t('wizard.backToList')}
         </Button>
       </div>
 
       <div className="bg-white border border-[#E4E7EA] rounded-2xl p-4 shadow-xs">
-        <Stepper steps={WIZARD_STEPS.map((s) => ({ id: s.id, title: s.title, description: s.description }))} currentStep={step} />
+        <Stepper steps={wizardSteps} currentStep={step} />
       </div>
 
       {/* Step 1 — activity type */}
       {step === 1 && (
         <section className="bg-white border border-[#E4E7EA] rounded-2xl p-6 shadow-xs space-y-4">
-          <h2 className="text-sm font-bold text-[#1A1F24] uppercase tracking-wider">1. Faoliyat turini tanlang</h2>
+          <h2 className="text-sm font-bold text-[#1A1F24] uppercase tracking-wider">{t('wizard.step1.heading')}</h2>
           {me && me.representations.length > 0 && (
-            <FormField label="Kim nomidan topshirilmoqda">
+            <FormField label={t('wizard.step1.onBehalfLabel')}>
               <Select
                 value={onBehalf === 'legal' ? representationApplicantId : ''}
                 onChange={(e) => {
@@ -348,7 +350,7 @@ export function ApplicationWizardPage() {
                   }
                 }}
                 options={[
-                  { value: '', label: "Oʻzim uchun (jismoniy shaxs)" },
+                  { value: '', label: t('wizard.step1.onBehalfSelf') },
                   ...me.representations.map((r) => ({ value: r.applicant.id, label: r.applicant.name })),
                 ]}
               />
@@ -366,7 +368,7 @@ export function ApplicationWizardPage() {
                 }`}
               >
                 <span className="font-bold text-sm text-[#1A1F24] block">{pickName(a.name)}</span>
-                <span className="text-[11px] text-[#5A646D]">Birlik: {a.quantity_unit}</span>
+                <span className="text-[11px] text-[#5A646D]">{t('wizard.step1.unit')} {a.quantity_unit}</span>
               </button>
             ))}
           </div>
@@ -377,19 +379,19 @@ export function ApplicationWizardPage() {
       {step === 2 && (
         <section className="space-y-4">
           <div className="bg-white border border-[#E4E7EA] rounded-2xl p-6 shadow-xs space-y-4">
-            <h2 className="text-sm font-bold text-[#1A1F24] uppercase tracking-wider">2. Uchastkani tanlang</h2>
+            <h2 className="text-sm font-bold text-[#1A1F24] uppercase tracking-wider">{t('wizard.step2.heading')}</h2>
             <ContourPicker value={contour} onChange={setContour} />
             {contour && (
               <Alert variant="success">
-                Tanlangan kontur: <strong className="font-mono">{contour.number}</strong> ({contour.areaHa ?? '—'} ga)
+                {t('wizard.step2.selectedContour')} <strong className="font-mono">{contour.number}</strong> ({contour.areaHa ?? '—'} ga)
               </Alert>
             )}
           </div>
           <div className="bg-white border border-[#E4E7EA] rounded-2xl p-6 shadow-xs grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <FormField label="Boshlanish sanasi" required htmlFor="period-from">
+            <FormField label={t('wizard.step2.periodFrom')} required htmlFor="period-from">
               <Input id="period-from" type="date" value={periodFrom} onChange={(e) => setPeriodFrom(e.target.value)} />
             </FormField>
-            <FormField label="Tugash sanasi" required htmlFor="period-to">
+            <FormField label={t('wizard.step2.periodTo')} required htmlFor="period-to">
               <Input id="period-to" type="date" value={periodTo} onChange={(e) => setPeriodTo(e.target.value)} />
             </FormField>
           </div>
@@ -400,12 +402,12 @@ export function ApplicationWizardPage() {
       {step === 3 && (
         <section className="space-y-4">
           <div className="bg-white border border-[#E4E7EA] rounded-2xl p-6 shadow-xs space-y-4">
-            <h2 className="text-sm font-bold text-[#1A1F24] uppercase tracking-wider">3. Parametrlar</h2>
+            <h2 className="text-sm font-bold text-[#1A1F24] uppercase tracking-wider">{t('wizard.step3.heading')}</h2>
             {isGrazing ? (
               <div className="space-y-3">
                 {items.map((row, idx) => (
                   <div key={row.key} className="flex items-end gap-3">
-                    <FormField label="Chorva turi" className="flex-1">
+                    <FormField label={t('wizard.step3.livestockType')} className="flex-1">
                       <Select
                         value={row.livestockTypeId}
                         onChange={(e) => {
@@ -414,12 +416,12 @@ export function ApplicationWizardPage() {
                           setItems(next);
                         }}
                         options={[
-                          { value: '', label: 'Tanlang...' },
+                          { value: '', label: t('wizard.step3.selectPrompt') },
                           ...(livestockTypesQuery.data ?? []).map((l) => ({ value: l.id, label: pickName(l.name) })),
                         ]}
                       />
                     </FormField>
-                    <FormField label="Bosh soni" className="w-32">
+                    <FormField label={t('wizard.step3.headCount')} className="w-32">
                       <Input
                         type="number"
                         min={1}
@@ -443,23 +445,23 @@ export function ApplicationWizardPage() {
                   onClick={() => setItems([...items, { key: crypto.randomUUID(), livestockTypeId: '', headCount: '' }])}
                   className="cursor-pointer"
                 >
-                  Chorva turini qoʻshish
+                  {t('wizard.step3.addLivestock')}
                 </Button>
               </div>
             ) : (
-              <FormField label={`Miqdor (${quantityUnit ?? ''})`} required htmlFor="quantity">
+              <FormField label={quantityUnit ? `${t('wizard.step3.quantity')} (${quantityUnit})` : t('wizard.step3.quantity')} required htmlFor="quantity">
                 <Input id="quantity" type="number" min={0} step="0.0001" value={quantity} onChange={(e) => setQuantity(e.target.value)} />
               </FormField>
             )}
 
             {benefitCategoriesQuery.data && benefitCategoriesQuery.data.length > 0 && (
-              <FormField label="Imtiyoz toifasi (agar mavjud boʻlsa)" htmlFor="benefit">
+              <FormField label={t('wizard.step3.benefitCategory')} htmlFor="benefit">
                 <Select
                   id="benefit"
                   value={benefitCategoryItemId}
                   onChange={(e) => setBenefitCategoryItemId(e.target.value)}
                   options={[
-                    { value: '', label: 'Imtiyozsiz' },
+                    { value: '', label: t('wizard.step3.noBenefit') },
                     ...benefitCategoriesQuery.data.map((b) => ({ value: b.id, label: pickName(b.name) })),
                   ]}
                 />
@@ -468,7 +470,7 @@ export function ApplicationWizardPage() {
           </div>
 
           <div className="bg-[#F0F9FF] border border-[#BAE6FD] rounded-2xl p-6 shadow-xs space-y-3">
-            <h3 className="text-sm font-bold text-[#0369A1] uppercase tracking-wider">Taxminiy narx</h3>
+            <h3 className="text-sm font-bold text-[#0369A1] uppercase tracking-wider">{t('wizard.step3.estimatedPrice')}</h3>
             <PricePreviewPanel request={calculationRequest} />
           </div>
         </section>
@@ -477,7 +479,7 @@ export function ApplicationWizardPage() {
       {/* Step 4 — documents */}
       {step === 4 && (
         <section className="bg-white border border-[#E4E7EA] rounded-2xl p-6 shadow-xs space-y-4">
-          <h2 className="text-sm font-bold text-[#1A1F24] uppercase tracking-wider">4. Hujjatlarni biriktiring</h2>
+          <h2 className="text-sm font-bold text-[#1A1F24] uppercase tracking-wider">{t('wizard.step4.heading')}</h2>
           <DocumentsStep
             docTypes={docTypesQuery.data ?? []}
             documents={cardQuery.data?.documents ?? []}
@@ -494,15 +496,15 @@ export function ApplicationWizardPage() {
       {step === 5 && (
         <section className="space-y-4">
           <div className="bg-white border border-[#E4E7EA] rounded-2xl p-6 shadow-xs space-y-3">
-            <h2 className="text-sm font-bold text-[#1A1F24] uppercase tracking-wider">5. Yakuniy tekshiruv</h2>
+            <h2 className="text-sm font-bold text-[#1A1F24] uppercase tracking-wider">{t('wizard.step5.heading')}</h2>
             {precheckMutation.isPending && (
               <p className="text-xs text-[#5A646D] flex items-center gap-2">
-                <Loader2 className="w-4 h-4 animate-spin" /> Tekshirilmoqda...
+                <Loader2 className="w-4 h-4 animate-spin" /> {t('wizard.step5.checking')}
               </p>
             )}
             {precheckMutation.isError && (
               <Alert variant="danger">
-                {errorText(precheckMutation.error, 'Tekshiruvda xatolik yuz berdi.')}
+                {errorText(precheckMutation.error, t('wizard.step5.checkError'))}
               </Alert>
             )}
             {precheckResult && (
@@ -510,14 +512,14 @@ export function ApplicationWizardPage() {
                 <ChecksList checks={fromApplicationChecks(precheckResult.checks)} />
                 {precheckResult.calculation ? (
                   <div className="bg-[#F0F9FF] border border-[#BAE6FD] rounded-xl p-4 font-mono text-lg font-bold text-[#123522]">
-                    {formatMoney(precheckResult.calculation.amount)} soʻm
+                    {formatMoney(precheckResult.calculation.amount)} {t('wizard.step3.currency')}
                   </div>
                 ) : (
-                  <Alert variant="warning">Ariza hali toʻliq emas — narx hisoblanmadi.</Alert>
+                  <Alert variant="warning">{t('wizard.step5.incompleteWarning')}</Alert>
                 )}
                 {hasBlockingCheck && (
-                  <Alert variant="danger" title="Yuborib boʻlmaydi">
-                    Bloklovchi tekshiruv aniqlandi. Avvalgi bosqichlarga qaytib maʼlumotlarni tuzating.
+                  <Alert variant="danger" title={t('wizard.step5.cannotSubmitTitle')}>
+                    {t('wizard.step5.cannotSubmitDesc')}
                   </Alert>
                 )}
               </>
@@ -526,15 +528,15 @@ export function ApplicationWizardPage() {
 
           {needsAddress && (
             <div className="bg-white border border-[#E4E7EA] rounded-2xl p-6 shadow-xs space-y-3">
-              <h2 className="text-sm font-bold text-[#1A1F24] uppercase tracking-wider">Manzil</h2>
+              <h2 className="text-sm font-bold text-[#1A1F24] uppercase tracking-wider">{t('wizard.step5.addressTitle')}</h2>
               <p className="text-xs text-[#5A646D]">
-                Ruxsatnomada koʻrsatiladigan manzilingiz profilingizda topilmadi — yuborishdan oldin kiriting.
+                {t('wizard.step5.addressDesc')}
               </p>
               <FormField
-                label="Manzil"
+                label={t('wizard.step5.addressLabel')}
                 required
                 htmlFor="applicant-address"
-                error={addressTouched && !address.trim() ? 'Manzil kiritilishi shart.' : undefined}
+                error={addressTouched && !address.trim() ? t('wizard.step5.addressRequired') : undefined}
               >
                 <Input
                   id="applicant-address"
@@ -547,13 +549,12 @@ export function ApplicationWizardPage() {
           )}
 
           <div className="bg-white border border-[#E4E7EA] rounded-2xl p-6 shadow-xs space-y-3">
-            <h2 className="text-sm font-bold text-[#1A1F24] uppercase tracking-wider">ERI bilan imzolash va yuborish</h2>
+            <h2 className="text-sm font-bold text-[#1A1F24] uppercase tracking-wider">{t('wizard.step5.eriTitle')}</h2>
             <p className="text-xs text-[#5A646D]">
-              Arizani yuborish uchun elektron raqamli imzo (ERI) bilan tasdiqlashingiz kerak. Ushbu muhitda ERI mock
-              (demo) rejimida ishlaydi.
+              {t('wizard.step5.eriDesc')}
             </p>
             {submitError && (
-              <Alert variant="danger" title="Yuborilmadi">
+              <Alert variant="danger" title={t('wizard.step5.notSubmittedTitle')}>
                 {submitError}
               </Alert>
             )}
@@ -571,8 +572,8 @@ export function ApplicationWizardPage() {
               className="cursor-pointer font-bold"
             >
               {needsAddress && !addressSaved
-                ? 'Manzilni saqlash va narxni hisoblash'
-                : 'ERI bilan imzolash va yuborish'}
+                ? t('wizard.step5.saveAddressAndCalc')
+                : t('wizard.step5.signAndSubmit')}
             </Button>
           </div>
         </section>
@@ -582,7 +583,7 @@ export function ApplicationWizardPage() {
       <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-[#E4E7EA] p-4 shadow-lg z-30">
         <div className="max-w-5xl mx-auto flex items-center justify-between gap-4">
           <Button variant="outline" leftIcon={<ArrowLeft className="w-4 h-4" />} disabled={step <= 1} onClick={goBack} className="cursor-pointer font-bold">
-            Orqaga
+            {t('wizard.nav.back')}
           </Button>
           {step < 5 && (
             <Button
@@ -598,7 +599,7 @@ export function ApplicationWizardPage() {
               onClick={goNext}
               className="cursor-pointer font-bold"
             >
-              Keyingisi
+              {t('wizard.nav.next')}
             </Button>
           )}
         </div>
@@ -618,6 +619,7 @@ function DocumentsStep({
   onUpload: (file: File, docTypeItemId: string) => Promise<void>;
   onRemove: (documentId: string) => void;
 }) {
+  const t = useT();
   const [docTypeItemId, setDocTypeItemId] = useState('');
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -625,7 +627,7 @@ function DocumentsStep({
 
   async function handleFile(file: File) {
     if (!docTypeItemId) {
-      setError('Avval hujjat turini tanlang.');
+      setError(t('wizard.step4.selectDocTypeFirst'));
       return;
     }
     setError(null);
@@ -633,7 +635,7 @@ function DocumentsStep({
     try {
       await onUpload(file, docTypeItemId);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Hujjatni yuklashda xatolik yuz berdi.');
+      setError(err instanceof ApiError ? err.message : t('wizard.step4.uploadError'));
     } finally {
       setUploading(false);
       if (inputRef.current) inputRef.current.value = '';
@@ -641,17 +643,17 @@ function DocumentsStep({
   }
 
   if (docTypes.length === 0) {
-    return <Alert variant="warning">Hujjat turlari hali sozlanmagan — hozircha fayl biriktirish mumkin emas.</Alert>;
+    return <Alert variant="warning">{t('wizard.step4.notConfigured')}</Alert>;
   }
 
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-end gap-3">
-        <FormField label="Hujjat turi" className="flex-1 min-w-[220px]">
+        <FormField label={t('wizard.step4.docType')} className="flex-1 min-w-[220px]">
           <Select
             value={docTypeItemId}
             onChange={(e) => setDocTypeItemId(e.target.value)}
-            options={[{ value: '', label: 'Tanlang...' }, ...docTypes.map((d) => ({ value: d.id, label: pickName(d.name) }))]}
+            options={[{ value: '', label: t('wizard.step4.selectDocType') }, ...docTypes.map((d) => ({ value: d.id, label: pickName(d.name) }))]}
           />
         </FormField>
         <Button
@@ -661,7 +663,7 @@ function DocumentsStep({
           onClick={() => inputRef.current?.click()}
           className="cursor-pointer font-bold"
         >
-          Fayl tanlash
+          {t('wizard.step4.chooseFile')}
         </Button>
         <input
           ref={inputRef}
@@ -678,9 +680,9 @@ function DocumentsStep({
         <ul className="space-y-2">
           {documents.map((doc) => (
             <li key={doc.id} className="flex items-center justify-between p-3 border border-[#E4E7EA] rounded-xl text-xs">
-              <span className="font-semibold">{pickName(docTypes.find((d) => d.id === doc.doc_type_item_id)?.name) || 'Hujjat'}</span>
+              <span className="font-semibold">{pickName(docTypes.find((d) => d.id === doc.doc_type_item_id)?.name) || t('wizard.step4.defaultDocName')}</span>
               <button onClick={() => onRemove(doc.id)} className="text-[#B91C1C] font-bold hover:underline cursor-pointer">
-                Oʻchirish
+                {t('wizard.step4.deleteDoc')}
               </button>
             </li>
           ))}

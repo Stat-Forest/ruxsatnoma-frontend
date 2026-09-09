@@ -7,7 +7,7 @@ import { setupServer } from 'msw/node';
 import { vi } from 'vitest';
 import { AuthContext } from '../../../auth/AuthContext';
 import type { AuthContextValue } from '../../../auth/AuthContext';
-import { I18nContext } from '../../../i18n/context';
+import { DICTIONARIES, I18nContext } from '../../../i18n/context';
 import type { UiLanguage } from '../../../i18n/context';
 import { buildMockSignature } from '../../../lib/eimzoMock';
 import { ApplicationWizardPage } from './ApplicationWizardPage';
@@ -119,7 +119,13 @@ afterAll(() => server.close());
 
 function renderWizard(auth: AuthContextValue = AUTH_VALUE, lang: UiLanguage = 'uz_latn') {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
-  const i18n = { lang, backendLang: lang, t: (key: string) => key, setLanguage: async () => {} };
+  const dict = DICTIONARIES[lang] ?? DICTIONARIES.uz_latn;
+  const i18n = {
+    lang,
+    backendLang: lang,
+    t: (key: string) => dict[key as keyof typeof dict] ?? key,
+    setLanguage: async () => {},
+  };
   return render(
     <QueryClientProvider client={client}>
       <I18nContext.Provider value={i18n}>
@@ -135,19 +141,20 @@ function renderWizard(auth: AuthContextValue = AUTH_VALUE, lang: UiLanguage = 'u
 
 // Drives the wizard through steps 1–4 (activity, contour + period, quantity,
 // documents) to step 5, where precheck fires automatically.
-async function driveToStep5() {
+async function driveToStep5(lang: UiLanguage = 'uz_latn') {
+  const dict = DICTIONARIES[lang] ?? DICTIONARIES.uz_latn;
   await userEvent.click(await screen.findByText('Pichanchilik'));
-  await userEvent.click(screen.getByRole('button', { name: /Keyingisi/ }));
+  await userEvent.click(screen.getByRole('button', { name: new RegExp(dict['wizard.nav.next']) }));
 
   await userEvent.click(await screen.findByText('pick-contour'));
-  fireEvent.change(screen.getByLabelText(/Boshlanish sanasi/), { target: { value: '2026-01-01' } });
-  fireEvent.change(screen.getByLabelText(/Tugash sanasi/), { target: { value: '2026-06-01' } });
-  await userEvent.click(screen.getByRole('button', { name: /Keyingisi/ }));
+  fireEvent.change(screen.getByLabelText(new RegExp(dict['wizard.step2.periodFrom'])), { target: { value: '2026-01-01' } });
+  fireEvent.change(screen.getByLabelText(new RegExp(dict['wizard.step2.periodTo'])), { target: { value: '2026-06-01' } });
+  await userEvent.click(screen.getByRole('button', { name: new RegExp(dict['wizard.nav.next']) }));
 
-  await userEvent.type(await screen.findByLabelText(/Miqdor/), '5');
-  await userEvent.click(screen.getByRole('button', { name: /Keyingisi/ }));
+  await userEvent.type(await screen.findByLabelText(new RegExp(dict['wizard.step3.quantity'])), '5');
+  await userEvent.click(screen.getByRole('button', { name: new RegExp(dict['wizard.nav.next']) }));
 
-  await userEvent.click(await screen.findByRole('button', { name: /Keyingisi/ }));
+  await userEvent.click(await screen.findByRole('button', { name: new RegExp(dict['wizard.nav.next']) }));
 }
 
 // Drives the wizard to step 5 and triggers a submit that the server refuses
@@ -156,10 +163,10 @@ async function driveToStep5() {
 // `handleSignAndSubmit` used to render the server's own Russian string
 // verbatim as `${code}: ${message}`, regardless of the applicant's own
 // interface language.
-async function driveToSubmitFailure() {
-  await driveToStep5();
-
-  const signButton = await screen.findByRole('button', { name: /ERI bilan imzolash va yuborish/ });
+async function driveToSubmitFailure(lang: UiLanguage = 'uz_latn') {
+  await driveToStep5(lang);
+  const dict = DICTIONARIES[lang] ?? DICTIONARIES.uz_latn;
+  const signButton = await screen.findByRole('button', { name: new RegExp(dict['wizard.step5.signAndSubmit']) });
   await waitFor(() => expect(signButton).toBeEnabled());
   await userEvent.click(signButton);
 }
@@ -180,7 +187,7 @@ test.each([
     );
     renderWizard(AUTH_VALUE, language as UiLanguage);
 
-    await driveToSubmitFailure();
+    await driveToSubmitFailure(language as UiLanguage);
 
     expect(await screen.findByText(expectedText)).toBeInTheDocument();
     expect(screen.queryByText(/ERR-APP-002:/)).not.toBeInTheDocument();
@@ -334,3 +341,13 @@ test('an account that already has an address is never asked for one', async () =
   await screen.findByRole('button', { name: /ERI bilan imzolash va yuborish/ });
   expect(screen.queryByLabelText(/Manzil/)).not.toBeInTheDocument();
 });
+
+test.each(['uz_latn', 'uz_cyrl', 'ru', 'en', 'kaa'] as const)(
+  'renders wizard translated in %s',
+  (lang) => {
+    renderWizard(AUTH_VALUE, lang);
+    const dict = DICTIONARIES[lang];
+    expect(screen.getByText(dict['wizard.title'])).toBeInTheDocument();
+    expect(screen.getByText(dict['wizard.step1.heading'])).toBeInTheDocument();
+  },
+);

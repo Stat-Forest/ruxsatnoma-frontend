@@ -364,6 +364,8 @@ function UserInfo({
   const remove = useDeleteUser();
   const resetPassword = useResetPassword();
   const resetMfa = useResetMfa();
+  const statusLabel = (status: string) =>
+    status === 'active' ? L.statusActive : status === 'blocked' ? L.statusBlocked : L.statusDeleted;
 
   return (
     <div className="space-y-4">
@@ -374,7 +376,7 @@ function UserInfo({
         <Field label={L.fieldPosition} value={user.position} />
         <Field label={L.fieldPhone} value={user.phone} />
         <Field label={L.fieldEmail} value={user.email} />
-        <Field label={L.fieldStatus} value={user.status} />
+        <Field label={L.fieldStatus} value={statusLabel(user.status)} />
       </dl>
 
       {user.must_change_password ? <Alert variant="warning">{L.mustChangePassword}</Alert> : null}

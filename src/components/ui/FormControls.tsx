@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect, useId } from 'react';
-import { AlertCircle, Check, CheckCircle2, ChevronDown } from 'lucide-react';
+import { AlertCircle, Check, CheckCircle2, ChevronDown, Loader2, Paperclip, Upload, X } from 'lucide-react';
+import { useLanguage, useT } from '../../i18n/useT';
 
 // ── FormField Container ──────────────────────────────────────────────────────
 export interface FormFieldProps {
@@ -59,6 +60,14 @@ export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> 
   touchSize?: boolean;
 }
 
+const DATE_PLACEHOLDERS: Record<string, string> = {
+  en: 'YYYY-MM-DD',
+  uz_latn: 'KK.OO.YYYY',
+  uz_cyrl: 'КК.ОО.ЙЙЙЙ',
+  ru: 'ДД.ММ.ГГГГ',
+  kaa: 'KK.AA.JJJJ',
+};
+
 export const Input = React.forwardRef<HTMLInputElement, InputProps>(
   (
     {
@@ -70,6 +79,14 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
       disabled,
       className = '',
       id,
+      type,
+      value,
+      defaultValue,
+      placeholder,
+      onFocus,
+      onBlur,
+      onChange,
+      onInput,
       ...props
     },
     ref
@@ -84,6 +101,22 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
       borderClass = 'border-[#15803D] focus:border-[#15803D] focus:ring-4 focus:ring-[#15803D]/15';
     }
 
+    const { lang } = useLanguage();
+    const isDate = type === 'date';
+    const isControlled = value !== undefined;
+    const [isFocused, setIsFocused] = useState(false);
+    const [uncontrolledHasValue, setUncontrolledHasValue] = useState<boolean>(Boolean(defaultValue));
+    const hasValue = isControlled ? Boolean(value) : uncontrolledHasValue;
+
+    const datePlaceholder = placeholder || (isDate ? (DATE_PLACEHOLDERS[lang] ?? 'YYYY-MM-DD') : undefined);
+    const showDatePlaceholder = isDate && !isFocused && !hasValue;
+
+    const dateClasses = showDatePlaceholder
+      ? 'text-transparent [&::-webkit-datetime-edit]:text-transparent [&::-webkit-datetime-edit-fields-wrapper]:text-transparent [&::-webkit-datetime-edit-text]:text-transparent [&::-webkit-datetime-edit-month-field]:text-transparent [&::-webkit-datetime-edit-day-field]:text-transparent [&::-webkit-datetime-edit-year-field]:text-transparent [&::-webkit-calendar-picker-indicator]:opacity-70 hover:[&::-webkit-calendar-picker-indicator]:opacity-100 [&::-webkit-calendar-picker-indicator]:cursor-pointer'
+      : isDate
+      ? '[&::-webkit-calendar-picker-indicator]:opacity-70 hover:[&::-webkit-calendar-picker-indicator]:opacity-100 [&::-webkit-calendar-picker-indicator]:cursor-pointer'
+      : '';
+
     return (
       <div className="relative w-full inline-flex items-center">
         {leftIcon && (
@@ -94,12 +127,50 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
         <input
           ref={ref}
           id={id}
+          type={type}
+          value={value}
+          defaultValue={defaultValue}
+          placeholder={isDate ? undefined : placeholder}
           disabled={disabled}
+          onFocus={(e) => {
+            setIsFocused(true);
+            onFocus?.(e);
+          }}
+          onBlur={(e) => {
+            setIsFocused(false);
+            if (!isControlled) {
+              setUncontrolledHasValue(Boolean(e.target.value));
+            }
+            onBlur?.(e);
+          }}
+          onChange={(e) => {
+            if (!isControlled) {
+              setUncontrolledHasValue(Boolean(e.target.value));
+            }
+            onChange?.(e);
+          }}
+          onInput={(e) => {
+            if (!isControlled) {
+              setUncontrolledHasValue(Boolean((e.target as HTMLInputElement).value));
+            }
+            onInput?.(e);
+          }}
           className={`w-full bg-white border rounded-xl px-3.5 text-[#1A1F24] placeholder-[#9AA3AB] shadow-2xs transition-all outline-none disabled:bg-[#F8F9FA] disabled:text-[#9AA3AB] disabled:border-[#E4E7EA] disabled:cursor-not-allowed disabled:shadow-none ${heightClass} ${
             leftIcon ? 'pl-9' : ''
-          } ${rightIcon || isError || success ? 'pr-9' : ''} ${borderClass} ${className}`}
+          } ${rightIcon || isError || success ? 'pr-9' : ''} ${borderClass} ${dateClasses} ${className}`}
           {...props}
         />
+        {showDatePlaceholder && (
+          <span
+            data-testid="date-placeholder-overlay"
+            aria-hidden="true"
+            className={`absolute left-3.5 text-[#9AA3AB] pointer-events-none select-none tracking-wide ${
+              touchSize ? 'text-base' : 'text-sm'
+            } ${leftIcon ? 'pl-6' : ''}`}
+          >
+            {datePlaceholder}
+          </span>
+        )}
         {(rightIcon || isError || success) && (
           <span className="absolute right-3 inline-flex items-center pointer-events-none">
             {isError ? (
@@ -452,3 +523,139 @@ export const Switch: React.FC<SwitchProps> = ({
     </label>
   );
 };
+
+// ── FileInput Component ─────────────────────────────────────────────────────
+export interface FileInputProps
+  extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'type' | 'value' | 'onChange'> {
+  value?: File | { name: string } | string | null;
+  onChange?: (file: File | null) => void;
+  error?: boolean | string;
+  buttonLabel?: string;
+  clearable?: boolean;
+  isLoading?: boolean;
+}
+
+export const FileInput = React.forwardRef<HTMLInputElement, FileInputProps>(
+  (
+    {
+      id,
+      name,
+      accept,
+      value,
+      onChange,
+      disabled = false,
+      error,
+      className = '',
+      buttonLabel,
+      clearable = true,
+      isLoading = false,
+      ...props
+    },
+    ref
+  ) => {
+    const t = useT();
+    const autoId = useId();
+    const inputId = id || autoId;
+    const nativeInputRef = useRef<HTMLInputElement | null>(null);
+    const [internalFile, setInternalFile] = useState<File | null>(null);
+
+    const isError = Boolean(error);
+    const isInteractionDisabled = disabled || isLoading;
+
+    // Reset native input if value is cleared externally
+    useEffect(() => {
+      if (!value && nativeInputRef.current) {
+        nativeInputRef.current.value = '';
+      }
+    }, [value]);
+
+    const handleNativeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      const selectedFile = e.target.files?.[0] ?? null;
+      setInternalFile(selectedFile);
+      onChange?.(selectedFile);
+    };
+
+    const handleClear = (e: React.MouseEvent) => {
+      e.stopPropagation();
+      e.preventDefault();
+      if (nativeInputRef.current) {
+        nativeInputRef.current.value = '';
+      }
+      setInternalFile(null);
+      onChange?.(null);
+    };
+
+    const displayFileName =
+      value !== undefined
+        ? typeof value === 'string'
+          ? value
+          : value?.name ?? null
+        : internalFile?.name ?? null;
+
+    return (
+      <div className={`flex flex-wrap items-center gap-3 ${className}`}>
+        <input
+          ref={(node) => {
+            nativeInputRef.current = node;
+            if (typeof ref === 'function') ref(node);
+            else if (ref) (ref as React.MutableRefObject<HTMLInputElement | null>).current = node;
+          }}
+          type="file"
+          id={inputId}
+          name={name}
+          accept={accept}
+          disabled={disabled}
+          onChange={handleNativeChange}
+          className="sr-only"
+          {...props}
+        />
+        <button
+          type="button"
+          disabled={isInteractionDisabled}
+          onClick={() => !isInteractionDisabled && nativeInputRef.current?.click()}
+          className={`h-[40px] px-4 rounded-xl border bg-white font-medium text-sm inline-flex items-center gap-2 shadow-2xs transition-all cursor-pointer select-none outline-none ${
+            isError
+              ? 'border-[#B91C1C] text-[#B91C1C] hover:bg-[#FEF2F2] focus:ring-4 focus:ring-[#B91C1C]/15'
+              : 'border-[#E4E7EA] text-[#1A1F24] hover:bg-[#F8F9FA] hover:border-[#CBD5E1] focus:border-[#2E7D4F] focus:ring-4 focus:ring-[#2E7D4F]/10'
+          } disabled:bg-[#F8F9FA] disabled:text-[#9AA3AB] disabled:border-[#E4E7EA] disabled:cursor-not-allowed disabled:shadow-none`}
+        >
+          {isLoading ? (
+            <Loader2 className="w-4 h-4 animate-spin text-[#2E7D4F] shrink-0" />
+          ) : (
+            <Upload
+              className={`w-4 h-4 shrink-0 ${
+                isInteractionDisabled ? 'text-[#9AA3AB]' : isError ? 'text-[#B91C1C]' : 'text-[#2E7D4F]'
+              }`}
+            />
+          )}
+          <span>{buttonLabel || t('common.chooseFile')}</span>
+        </button>
+
+        {displayFileName ? (
+          <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#F0FDF4] border border-[#2E7D4F]/20 text-xs font-medium text-[#15803D] min-w-0 max-w-full">
+            <Paperclip className="w-3.5 h-3.5 text-[#2E7D4F] shrink-0" />
+            <span className="truncate max-w-[200px] sm:max-w-xs" title={displayFileName}>
+              {displayFileName}
+            </span>
+            {clearable && !isInteractionDisabled && (
+              <button
+                type="button"
+                onClick={handleClear}
+                title={t('common.removeFile')}
+                aria-label={t('common.removeFile')}
+                className="p-0.5 -mr-1 rounded-md text-[#2E7D4F] hover:text-[#B91C1C] hover:bg-[#B91C1C]/10 transition-colors cursor-pointer inline-flex items-center justify-center"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
+        ) : (
+          <span className="text-xs text-[#767F87] select-none truncate">
+            {t('common.noFileChosen')}
+          </span>
+        )}
+      </div>
+    );
+  }
+);
+FileInput.displayName = 'FileInput';
