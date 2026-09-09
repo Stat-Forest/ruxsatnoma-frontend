@@ -217,38 +217,37 @@ export function ChiefForesterDashboardPage() {
   };
 
   return (
-    <div className="space-y-4 sm:space-y-5 pb-8 w-full max-w-full min-w-0" data-testid="chief-forester-dashboard">
-      {/* Header Banner */}
-      <section className="bg-gradient-to-r from-[#F0F7F1] via-white to-[#F8F9FA] border border-[#D9EBDC] rounded-2xl p-4 sm:p-6 shadow-xs">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#E3F2E7] text-[#1B5E33] border border-[#C2E3CB] text-xs font-semibold">
-              <Trees className="w-3.5 h-3.5" aria-hidden="true" />
+    <div className="space-y-4 sm:space-y-6 pb-8 w-full max-w-full min-w-0 font-sans" data-testid="chief-forester-dashboard">
+      {/* Page Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-1">
+        <div>
+          <div className="flex flex-wrap items-center gap-2 mb-2">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#E8F5E9] text-[#1B5E33] border border-[#C8E6C9] text-xs font-semibold">
+              <Trees className="w-3.5 h-3.5 text-[#2E7D4F]" aria-hidden="true" />
               {t('chiefForester.dash.roleBadge')}
             </span>
             {orgDisplayName && (
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white text-[#5A646D] border border-[#E4E7EA] text-xs font-medium">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white text-[#5A646D] border border-[#E4E7EA] text-xs font-medium shadow-2xs">
                 <Building2 className="w-3.5 h-3.5 text-[#2E7D4F]" aria-hidden="true" />
                 <span className="font-semibold text-[#1A1F24]">{orgDisplayName}</span>
               </span>
             )}
           </div>
-        </div>
-
-        <div className="mt-3">
-          <h1 className="text-xl sm:text-2xl font-bold text-[#1A1F24] tracking-tight break-words">
+          <h1 className="text-xl sm:text-2xl font-bold text-[#1A1F24] tracking-tight">
             {t('chiefForester.dash.title')}
           </h1>
           <p className="text-xs sm:text-sm text-[#5A646D] mt-1 max-w-3xl leading-relaxed">
             {t('chiefForester.dash.subtitle')}
           </p>
         </div>
+      </div>
 
-        {/* Date Filters Form */}
-        <form onSubmit={handleApplyFilters} className="mt-5 pt-4 border-t border-[#E4E7EA]/80">
-          <div className="flex flex-wrap items-end gap-3 sm:gap-4">
-            <div className="w-full sm:w-44 min-w-0">
-              <label className="block text-xs font-semibold text-[#5A646D] mb-1">
+      {/* Date Filters Card */}
+      <div className="bg-white border border-[#E4E7EA] rounded-2xl p-4 sm:p-5 shadow-xs" data-testid="chief-forester-filters">
+        <form onSubmit={handleApplyFilters} className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-end gap-3 sm:gap-4 flex-1">
+            <div className="w-full sm:w-48">
+              <label className="block text-xs font-semibold text-[#5A646D] mb-1.5">
                 {t('chiefForester.dash.filters.periodFrom')}
               </label>
               <Input
@@ -256,11 +255,11 @@ export function ChiefForesterDashboardPage() {
                 value={periodFrom}
                 onChange={(e) => setPeriodFrom(e.target.value)}
                 data-testid="filter-period-from"
-                className="w-full text-xs"
+                className="w-full text-xs sm:text-sm h-10"
               />
             </div>
-            <div className="w-full sm:w-44 min-w-0">
-              <label className="block text-xs font-semibold text-[#5A646D] mb-1">
+            <div className="w-full sm:w-48">
+              <label className="block text-xs font-semibold text-[#5A646D] mb-1.5">
                 {t('chiefForester.dash.filters.periodTo')}
               </label>
               <Input
@@ -268,38 +267,39 @@ export function ChiefForesterDashboardPage() {
                 value={periodTo}
                 onChange={(e) => setPeriodTo(e.target.value)}
                 data-testid="filter-period-to"
-                className="w-full text-xs"
+                className="w-full text-xs sm:text-sm h-10"
               />
             </div>
-            <div className="flex items-center gap-2 pt-1 sm:pt-0">
-              <Button
-                type="submit"
-                variant="primary"
-                size="sm"
-                data-testid="filter-apply-btn"
-                className="cursor-pointer inline-flex items-center gap-1.5"
-              >
-                <Filter className="w-3.5 h-3.5" aria-hidden="true" />
-                {t('chiefForester.dash.filters.apply')}
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={handleResetFilters}
-                data-testid="filter-reset-btn"
-                className="cursor-pointer inline-flex items-center gap-1.5"
-              >
-                <RotateCcw className="w-3.5 h-3.5" aria-hidden="true" />
-                {t('chiefForester.dash.filters.reset')}
-              </Button>
-            </div>
+          </div>
+
+          <div className="flex items-center gap-2.5 shrink-0 pt-1 sm:pt-0">
+            <Button
+              type="submit"
+              variant="primary"
+              size="md"
+              leftIcon={<Filter className="w-4 h-4" aria-hidden="true" />}
+              data-testid="filter-apply-btn"
+              className="cursor-pointer h-10 px-5 text-xs sm:text-sm font-semibold w-full sm:w-auto justify-center"
+            >
+              {t('chiefForester.dash.filters.apply')}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="md"
+              leftIcon={<RotateCcw className="w-4 h-4" aria-hidden="true" />}
+              onClick={handleResetFilters}
+              data-testid="filter-reset-btn"
+              className="cursor-pointer h-10 px-4 text-xs sm:text-sm font-medium w-full sm:w-auto justify-center"
+            >
+              {t('chiefForester.dash.filters.reset')}
+            </Button>
           </div>
         </form>
-      </section>
+      </div>
 
       {/* KPI Tiles Grid */}
-      <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3 sm:gap-4">
+      <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
         <KpiTile
           testId="tile-contours"
           label={t('chiefForester.dash.tile.contours.label')}
@@ -351,7 +351,7 @@ export function ChiefForesterDashboardPage() {
       </section>
 
       {/* Territory / Zone & Leshoz Statistics Overview */}
-      <section data-testid="zone-overview-card" className="bg-white border border-[#E4E7EA] rounded-2xl p-4 sm:p-5 shadow-xs">
+      <section data-testid="zone-overview-card" className="bg-white border border-[#E4E7EA] rounded-2xl p-4 sm:p-6 shadow-xs">
         <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-lg bg-[#F0F7F1] text-[#2E7D4F] grid place-items-center shrink-0">
@@ -368,52 +368,55 @@ export function ChiefForesterDashboardPage() {
           </div>
           <Link
             to="/gis"
-            className="text-xs font-semibold text-[#2E7D4F] hover:underline inline-flex items-center gap-1"
+            className="text-xs font-semibold text-[#2E7D4F] hover:underline inline-flex items-center gap-1 cursor-pointer"
           >
             {t('chiefForester.dash.contours.allOnMap')}
-            <ExternalLink className="w-3 h-3" aria-hidden="true" />
+            <ExternalLink className="w-3.5 h-3.5" aria-hidden="true" />
           </Link>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
-          <div className="p-3.5 rounded-xl bg-[#F8F9FA] border border-[#E4E7EA]/60">
-            <span className="text-[11px] font-medium text-[#5A646D] block">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 pt-1">
+          <div className="p-4 sm:p-5 rounded-2xl bg-[#F8F9FA] border border-[#E4E7EA] shadow-2xs">
+            <span className="text-xs font-semibold text-[#5A646D] uppercase tracking-wider block">
               {t('chiefForester.dash.zoneOverview.totalArea')}
             </span>
-            <span className="text-base sm:text-lg font-bold font-mono text-[#1A1F24] mt-1 block">
+            <span className="text-xl sm:text-2xl font-extrabold font-mono text-[#1A1F24] mt-2 block">
               {formatHectares(territoryStats.totalArea)}
             </span>
           </div>
 
-          <div className="p-3.5 rounded-xl bg-[#FEF2F2]/60 border border-[#FCA5A5]/40">
-            <span className="text-[11px] font-medium text-[#991B1B] block">
+          <div className="p-4 sm:p-5 rounded-2xl bg-[#FEF2F2]/60 border border-[#FECACA] shadow-2xs">
+            <span className="text-xs font-semibold text-[#991B1B] uppercase tracking-wider block">
               {t('chiefForester.dash.zoneOverview.occupiedArea')}
             </span>
-            <span className="text-base sm:text-lg font-bold font-mono text-[#991B1B] mt-1 block">
+            <span className="text-xl sm:text-2xl font-extrabold font-mono text-[#991B1B] mt-2 block">
               {formatHectares(territoryStats.occupiedArea)}
             </span>
           </div>
 
-          <div className="p-3.5 rounded-xl bg-[#F0F7F1] border border-[#D9EBDC]">
-            <span className="text-[11px] font-medium text-[#1B5E33] block">
+          <div className="p-4 sm:p-5 rounded-2xl bg-[#F0FDF4] border border-[#BBF7D0] shadow-2xs">
+            <span className="text-xs font-semibold text-[#15803D] uppercase tracking-wider block">
               {t('chiefForester.dash.zoneOverview.availableArea')}
             </span>
-            <span className="text-base sm:text-lg font-bold font-mono text-[#1B5E33] mt-1 block">
+            <span className="text-xl sm:text-2xl font-extrabold font-mono text-[#15803D] mt-2 block">
               {formatHectares(territoryStats.availArea)}
             </span>
           </div>
         </div>
 
-        <div className="mt-4 pt-3 border-t border-[#E4E7EA]/60 flex flex-wrap items-center justify-between gap-3 text-xs">
+        <div className="mt-4 pt-3 border-t border-[#E4E7EA]/80 flex flex-wrap items-center justify-between gap-3 text-xs">
           <div className="flex flex-wrap items-center gap-2">
-            <span className="px-2.5 py-1 rounded-full text-[11px] font-medium bg-[#FEF2F2] text-[#991B1B] border border-[#FCA5A5]">
-              {t('chiefForester.dash.zoneOverview.occupiedContours')}: <strong className="font-mono">{territoryStats.occupiedContours}</strong>
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-[#FEF2F2] text-[#991B1B] border border-[#FCA5A5]">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#EF4444]" aria-hidden="true" />
+              {t('chiefForester.dash.zoneOverview.occupiedContours')}: <strong className="font-mono ml-0.5">{territoryStats.occupiedContours}</strong>
             </span>
-            <span className="px-2.5 py-1 rounded-full text-[11px] font-medium bg-[#FFFBEB] text-[#92400E] border border-[#FDE68A]">
-              {t('chiefForester.dash.zoneOverview.partialContours')}: <strong className="font-mono">{territoryStats.partialContours}</strong>
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-[#FFFBEB] text-[#92400E] border border-[#FDE68A]">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#F59E0B]" aria-hidden="true" />
+              {t('chiefForester.dash.zoneOverview.partialContours')}: <strong className="font-mono ml-0.5">{territoryStats.partialContours}</strong>
             </span>
-            <span className="px-2.5 py-1 rounded-full text-[11px] font-medium bg-[#F0F7F1] text-[#1B5E33] border border-[#D9EBDC]">
-              {t('chiefForester.dash.zoneOverview.freeContours')}: <strong className="font-mono">{territoryStats.freeContours}</strong>
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-[#F0FDF4] text-[#166534] border border-[#BBF7D0]">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#22C55E]" aria-hidden="true" />
+              {t('chiefForester.dash.zoneOverview.freeContours')}: <strong className="font-mono ml-0.5">{territoryStats.freeContours}</strong>
             </span>
           </div>
         </div>
@@ -457,7 +460,7 @@ export function ChiefForesterDashboardPage() {
                       </p>
                     </div>
                     <Link to="/gis" className="shrink-0">
-                      <Button variant="primary" size="sm" className="cursor-pointer text-xs">
+                      <Button variant="primary" size="sm" className="cursor-pointer text-xs h-8 px-3 rounded-lg font-semibold">
                         {t('chiefForester.dash.actions.gisVersionsReview')}
                       </Button>
                     </Link>
@@ -516,7 +519,7 @@ export function ChiefForesterDashboardPage() {
                       </p>
                     </div>
                     <Link to="/gis" className="shrink-0">
-                      <Button variant="primary" size="sm" className="cursor-pointer text-xs">
+                      <Button variant="primary" size="sm" className="cursor-pointer text-xs h-8 px-3 rounded-lg font-semibold">
                         {t('chiefForester.dash.actions.gisImportsReview')}
                       </Button>
                     </Link>
@@ -576,7 +579,7 @@ export function ChiefForesterDashboardPage() {
                       </p>
                     </div>
                     <Link to={`/permits/${permit.id}`} className="shrink-0">
-                      <Button variant="success" size="sm" className="cursor-pointer text-xs">
+                      <Button variant="success" size="sm" leftIcon={<PenTool className="w-3.5 h-3.5" aria-hidden="true" />} className="cursor-pointer text-xs h-8 px-3 rounded-lg font-semibold inline-flex items-center gap-1.5">
                         {t('chiefForester.dash.actions.sign')}
                       </Button>
                     </Link>
@@ -625,12 +628,12 @@ export function ChiefForesterDashboardPage() {
               <table className="w-full text-xs text-left">
                 <thead>
                   <tr className="border-b border-[#E4E7EA] bg-[#F8F9FA] text-[#5A646D] font-semibold whitespace-nowrap">
-                    <th className="py-2.5 px-3">{t('chiefForester.dash.contours.colNumber')}</th>
-                    <th className="py-2.5 px-3">{t('chiefForester.dash.contours.colOrg')}</th>
-                    <th className="py-2.5 px-3 text-right">{t('chiefForester.dash.contours.colArea')}</th>
-                    <th className="py-2.5 px-3 text-right">{t('chiefForester.dash.contours.colAvailable')}</th>
-                    <th className="py-2.5 px-3 text-center">{t('chiefForester.dash.contours.colStatus')}</th>
-                    <th className="py-2.5 px-3 text-right">{t('chiefForester.dash.contours.colAction')}</th>
+                    <th className="py-3 px-4">{t('chiefForester.dash.contours.colNumber')}</th>
+                    <th className="py-3 px-4">{t('chiefForester.dash.contours.colOrg')}</th>
+                    <th className="py-3 px-4 text-right">{t('chiefForester.dash.contours.colArea')}</th>
+                    <th className="py-3 px-4 text-right">{t('chiefForester.dash.contours.colAvailable')}</th>
+                    <th className="py-3 px-4 text-center">{t('chiefForester.dash.contours.colStatus')}</th>
+                    <th className="py-3 px-4 text-right">{t('chiefForester.dash.contours.colAction')}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#E4E7EA]">
@@ -648,32 +651,42 @@ export function ChiefForesterDashboardPage() {
 
                     return (
                       <tr key={contour.id} className="hover:bg-[#F8F9FA] transition-colors whitespace-nowrap">
-                        <td className="py-3 px-3 font-mono font-bold text-[#1A1F24]">
+                        <td className="py-3.5 px-4 font-mono font-bold text-[#1A1F24]">
                           {contour.number}
                         </td>
-                        <td className="py-3 px-3 text-[#5A646D]">
+                        <td className="py-3.5 px-4 text-[#5A646D]">
                           {orgDisplayName || '—'}
                         </td>
-                        <td className="py-3 px-3 font-mono text-right text-[#1A1F24]">
+                        <td className="py-3.5 px-4 font-mono text-right text-[#1A1F24]">
                           {formatHectares(contour.area_ha)}
                         </td>
-                        <td className="py-3 px-3 font-mono text-right text-[#2E7D4F] font-semibold">
+                        <td className="py-3.5 px-4 font-mono text-right text-[#2E7D4F] font-semibold">
                           {formatHectares(contour.s_available_ha)}
                         </td>
-                        <td className="py-3 px-3 text-center">
+                        <td className="py-3.5 px-4 text-center">
                           <span
-                            className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-semibold border ${
+                            className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold border ${
                               isOccupied
                                 ? 'bg-[#FEF2F2] text-[#991B1B] border-[#FCA5A5]'
                                 : isPartial
                                   ? 'bg-[#FFFBEB] text-[#92400E] border-[#FDE68A]'
-                                  : 'bg-[#F0F7F1] text-[#1B5E33] border-[#D9EBDC]'
+                                  : 'bg-[#F0FDF4] text-[#166534] border-[#BBF7D0]'
                             }`}
                           >
+                            <span
+                              className={`w-1.5 h-1.5 rounded-full ${
+                                isOccupied
+                                  ? 'bg-[#EF4444]'
+                                  : isPartial
+                                    ? 'bg-[#F59E0B]'
+                                    : 'bg-[#22C55E]'
+                              }`}
+                              aria-hidden="true"
+                            />
                             {statusBadgeText}
                           </span>
                         </td>
-                        <td className="py-3 px-3 text-right">
+                        <td className="py-3.5 px-4 text-right">
                           <Link
                             to="/gis"
                             className="text-[#2E7D4F] hover:underline font-semibold inline-flex items-center gap-1 cursor-pointer"
