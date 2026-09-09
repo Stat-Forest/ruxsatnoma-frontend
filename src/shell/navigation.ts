@@ -190,6 +190,12 @@ export const NAVIGATION: NavItem[] = [
   { to: '/admin/legal-documents', labelKey: 'nav.legalDocuments', permission: 'admin.legal_documents.manage', icon: Scale },
   { to: '/admin/notification-templates', labelKey: 'nav.templates', permission: 'notifications.templates.manage', icon: MailPlus },
   { to: '/admin/integrations', labelKey: 'nav.integrations', permission: 'admin.integrations.view', icon: Radio },
+  // Stage 7.9, task 9 (decisions #154-#160): the configurable payment-split
+  // directory. `payments.recipients.manage` is granted to no role today
+  // (superuser only) — deliberately the WRITE code, not `payments.view`, so
+  // an accountant who can only read the split sees it through the invoice
+  // instead (`InvoiceDetailDrawer.tsx`), never this directory.
+  { to: '/admin/payment-recipients', labelKey: 'nav.paymentRecipients', permission: 'payments.recipients.manage', icon: Wallet },
   { to: '/notifications', labelKey: 'nav.notifications', icon: Bell },
   { to: '/support', labelKey: 'nav.support', icon: LifeBuoy },
   { to: '/profile', labelKey: 'nav.profile', icon: User },

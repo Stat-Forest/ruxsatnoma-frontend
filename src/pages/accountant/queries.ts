@@ -13,6 +13,7 @@ import {
   findOrganizationName,
   getBankStatement,
   getInvoice,
+  getRefund,
   listAllocationsForInvoice,
   listDistricts,
   listInvoices,
@@ -176,6 +177,18 @@ export function useRefunds(params: ListRefundsParams) {
   });
 }
 
+/** The single-item read — the only one that carries `available_sources`
+ *  (`./api.ts::getRefund`'s own docstring). Fires only once a decision is
+ *  actually being made: the list row alone is not enough to build that
+ *  form's rows. */
+export function useRefund(refundId: string | null) {
+  return useQuery({
+    queryKey: [...REFUNDS_KEY, 'one', refundId],
+    queryFn: () => getRefund(refundId!),
+    enabled: refundId !== null,
+  });
+}
+
 export function useRequestRefund() {
   const queryClient = useQueryClient();
   return useMutation({
@@ -196,9 +209,7 @@ export function useSubmitRefundDecision() {
     }: {
       id: string;
       final_amount: string;
-      budget_amount: string;
-      recipient_amount: string;
-      other_amount: string;
+      components: { recipient_id: string | null; amount: string }[];
       comment?: string | null;
     }) => submitRefundDecision(id, body),
     onSuccess: () => {

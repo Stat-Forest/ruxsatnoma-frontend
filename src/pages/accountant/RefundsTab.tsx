@@ -7,11 +7,12 @@ import { Alert } from '../../components/ui/Feedback';
 import { useAuth } from '../../auth/useAuth';
 import { ApiError } from '../../api/errors';
 import { useApiErrorText } from '../../i18n/useApiErrorText';
-import { useT } from '../../i18n/useT';
+import { useT, useLanguage } from '../../i18n/useT';
 import { formatDate, formatDateTime, formatMoney } from '../permits/format';
+import { pickName } from '../applicant/format';
 import { REFUND_STATUS_LABEL, REFUND_STATUS_STYLE } from './statusMeta';
-import type { RefundOut } from './api';
-import { useApproveRefund, useRefunds, useRequestRefund, useSubmitRefundDecision } from './queries';
+import type { AvailableSourceOut, RefundOut } from './api';
+import { useApproveRefund, useRefund, useRefunds, useRequestRefund, useSubmitRefundDecision } from './queries';
 
 const PAYMENTS_VIEW = 'payments.view';
 const PAYMENTS_MANAGE = 'payments.manage';
@@ -322,18 +323,56 @@ function NewRequestModal({ onClose }: { onClose: () => void }) {
   );
 }
 
+/** `null` (the leshoz's own remainder, `AvailableSourceOut.recipient_id`) is
+ *  not usable as a React key or an object key on its own — this gives it a
+ *  stable string stand-in, local to this form. */
+function sourceKey(source: { recipient_id: string | null }): string {
+  return source.recipient_id ?? '__leshoz__';
+}
+
+/** Money as fixed-scale-NUMERIC integer cents — comparing two decimal
+ *  STRINGS for equality has to go through this, never a float `===`, the
+ *  same reasoning `api.ts`'s own header gives for never parsing an amount
+ *  through `Number()` for anything but display. */
+function toCents(value: string): number {
+  const num = Number(value);
+  return Number.isFinite(num) ? Math.round(num * 100) : 0;
+}
+
+function centsToAmount(cents: number): string {
+  return (cents / 100).toFixed(2);
+}
+
 function DecisionModal({ refund, onClose }: { refund: RefundOut; onClose: () => void }) {
   const t = useT();
+  const { lang } = useLanguage();
   const errorText = useApiErrorText();
+  const detail = useRefund(refund.id);
   const [finalAmount, setFinalAmount] = useState(refund.suggested_amount ?? '');
-  const [budgetAmount, setBudgetAmount] = useState('0.00');
-  const [recipientAmount, setRecipientAmount] = useState('0.00');
-  const [otherAmount, setOtherAmount] = useState('0.00');
+  const [amounts, setAmounts] = useState<Record<string, string>>({});
   const [comment, setComment] = useState('');
   const mutation = useSubmitRefundDecision();
 
+  const sources: AvailableSourceOut[] = detail.data?.available_sources ?? [];
+  const amountFor = (key: string) => amounts[key] ?? '0.00';
+  const setAmount = (key: string, value: string) => setAmounts((prev) => ({ ...prev, [key]: value }));
+
+  const totalCents = sources.reduce((sum, source) => sum + toCents(amountFor(sourceKey(source))), 0);
+  const finalCents = toCents(finalAmount);
+  // Nothing to compare against an empty/blank amount — the submit stays
+  // disabled rather than reading a blank field as "zero and therefore equal".
+  const matches = finalAmount.trim() !== '' && sources.length > 0 && totalCents === finalCents;
+
   const error =
     mutation.error instanceof ApiError ? errorText(mutation.error) : mutation.isError ? t('accountant.refunds.decisionFailed') : null;
+
+  function submit() {
+    const components = sources.map((source) => ({ recipient_id: source.recipient_id, amount: amountFor(sourceKey(source)) }));
+    mutation.mutate(
+      { id: refund.id, final_amount: finalAmount.trim(), components, comment: comment.trim() || null },
+      { onSuccess: onClose },
+    );
+  }
 
   return (
     <Modal
@@ -350,24 +389,7 @@ function DecisionModal({ refund, onClose }: { refund: RefundOut; onClose: () => 
           <Button variant="outline" onClick={onClose} disabled={mutation.isPending}>
             {t('accountant.common.cancel')}
           </Button>
-          <Button
-            variant="primary"
-            disabled={!finalAmount.trim()}
-            isLoading={mutation.isPending}
-            onClick={() =>
-              mutation.mutate(
-                {
-                  id: refund.id,
-                  final_amount: finalAmount.trim(),
-                  budget_amount: budgetAmount.trim() || '0.00',
-                  recipient_amount: recipientAmount.trim() || '0.00',
-                  other_amount: otherAmount.trim() || '0.00',
-                  comment: comment.trim() || null,
-                },
-                { onSuccess: onClose },
-              )
-            }
-          >
+          <Button variant="primary" disabled={!matches || mutation.isPending} isLoading={mutation.isPending} onClick={submit}>
             {t('accountant.refunds.decisionSubmit')}
           </Button>
         </>
@@ -377,17 +399,45 @@ function DecisionModal({ refund, onClose }: { refund: RefundOut; onClose: () => 
         <FormField label={t('accountant.refunds.finalAmountLabel')} required htmlFor="refund-final-amount">
           <Input id="refund-final-amount" inputMode="decimal" value={finalAmount} onChange={(e) => setFinalAmount(e.target.value)} />
         </FormField>
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-          <FormField label={t('accountant.refunds.budgetAmountLabel')} htmlFor="refund-budget-amount">
-            <Input id="refund-budget-amount" inputMode="decimal" value={budgetAmount} onChange={(e) => setBudgetAmount(e.target.value)} />
-          </FormField>
-          <FormField label={t('accountant.refunds.recipientAmountLabel')} htmlFor="refund-recipient-amount">
-            <Input id="refund-recipient-amount" inputMode="decimal" value={recipientAmount} onChange={(e) => setRecipientAmount(e.target.value)} />
-          </FormField>
-          <FormField label={t('accountant.refunds.otherAmountLabel')} htmlFor="refund-other-amount">
-            <Input id="refund-other-amount" inputMode="decimal" value={otherAmount} onChange={(e) => setOtherAmount(e.target.value)} />
-          </FormField>
-        </div>
+
+        {detail.isLoading ? (
+          <p className="text-xs text-[#5A646D]">{t('accountant.common.loading')}</p>
+        ) : sources.length === 0 ? (
+          <p className="text-xs text-[#5A646D]">{t('accountant.refunds.noSources')}</p>
+        ) : (
+          <div className="space-y-3" data-testid="refund-components">
+            {/* One row per `available_sources` entry — the invoice's OWN
+             *  frozen split (stage 7.9 task 7), replacing the old fixed
+             *  budget/recipient/other trio; a directory of any size does not
+             *  fit three named buckets. The leshoz's own remainder is just
+             *  the LAST row here (`kind === "remainder"`), not a special case. */}
+            {sources.map((source) => {
+              const key = sourceKey(source);
+              return (
+                <FormField key={key} label={pickName(source.name, lang)} htmlFor={`refund-component-${key}`}>
+                  <Input
+                    id={`refund-component-${key}`}
+                    data-testid={`refund-component-${key}`}
+                    inputMode="decimal"
+                    value={amountFor(key)}
+                    onChange={(e) => setAmount(key, e.target.value)}
+                  />
+                </FormField>
+              );
+            })}
+            <div
+              data-testid="refund-components-total"
+              className={`flex justify-between rounded-lg px-3 py-2 text-xs font-mono ${
+                matches ? 'bg-[#F0F7F1] text-[#15803D]' : 'bg-[#FDF2F2] text-[#B91C1C]'
+              }`}
+            >
+              <span>{t('accountant.refunds.componentsTotalLabel')}</span>
+              <span>{formatMoney(centsToAmount(totalCents))}</span>
+            </div>
+            {!matches && <p className="text-xs text-[#B91C1C]">{t('accountant.refunds.componentsMismatchHint')}</p>}
+          </div>
+        )}
+
         <FormField label={t('accountant.refunds.decisionCommentLabel')} htmlFor="refund-decision-comment">
           <Textarea id="refund-decision-comment" value={comment} onChange={(e) => setComment(e.target.value)} rows={2} />
         </FormField>
@@ -399,6 +449,7 @@ function DecisionModal({ refund, onClose }: { refund: RefundOut; onClose: () => 
 
 function ApproveModal({ refund, onClose }: { refund: RefundOut; onClose: () => void }) {
   const t = useT();
+  const { lang } = useLanguage();
   const errorText = useApiErrorText();
   const [comment, setComment] = useState('');
   const mutation = useApproveRefund();
@@ -448,14 +499,14 @@ function ApproveModal({ refund, onClose }: { refund: RefundOut; onClose: () => v
           <Alert variant={result.status === 'returned' ? 'success' : 'warning'}>
             {result.status === 'returned' ? t('accountant.refunds.approvedReturned') : t('accountant.refunds.approvedRejected')}
           </Alert>
-          {result.status === 'returned' && result.allocations && result.allocations.length > 0 && (
+          {result.status === 'returned' && result.components && result.components.length > 0 && (
             <ul className="space-y-1 text-xs">
-              {result.allocations.map((allocation, i) => (
+              {result.components.map((component, i) => (
                 <li key={i} className="flex justify-between rounded-lg border border-[#E4E7EA] bg-[#F8F9FA] px-3 py-2">
-                  <span>{allocation.target}</span>
-                  <span className="font-mono">{formatMoney(allocation.amount)}</span>
+                  <span>{pickName(component.name, lang)}</span>
+                  <span className="font-mono">{formatMoney(component.amount)}</span>
                   <span className="text-[#9AA3AB]">
-                    {allocation.account ?? t('accountant.invoices.ledgerAccountSettledExternally')}
+                    {component.account ?? t('accountant.invoices.ledgerAccountSettledExternally')}
                   </span>
                 </li>
               ))}

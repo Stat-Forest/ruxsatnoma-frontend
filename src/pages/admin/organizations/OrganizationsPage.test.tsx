@@ -368,6 +368,62 @@ test('editing locks the immutable columns and patches only what OrganizationPatc
   });
 });
 
+test('a Payme account id typed on create is written into requisites', async () => {
+  server.use(...refsHandlers(), ...adminHandlers());
+  const { user } = renderPage();
+
+  await screen.findByTestId(`org-row-${AGENCY}`);
+  await user.click(screen.getByTestId('org-create'));
+
+  await user.selectOptions(screen.getByTestId('field-kind'), 'leshoz');
+  await user.selectOptions(screen.getByTestId('field-parent'), TERRITORIAL);
+  await user.type(screen.getByTestId('field-code'), 'chorvoq');
+  await user.type(screen.getByTestId('field-name-uz_cyrl'), 'Чорвоқ ўрмон хўжалиги');
+  await user.type(screen.getByTestId('field-payme-account-id'), '5550001');
+  await user.click(screen.getByTestId('org-form-submit'));
+
+  await vi.waitFor(() => expect(createdBody).not.toBeNull());
+  expect((createdBody as { requisites: unknown }).requisites).toEqual({ payme_account_id: '5550001' });
+});
+
+test('changing the Payme account id on edit merges it into requisites without losing the bank account already there', async () => {
+  server.use(...refsHandlers(), ...adminHandlers());
+  const { user } = renderPage();
+
+  await screen.findByTestId(`org-row-${LESHOZ_A}`);
+  await user.click(screen.getByTestId(`org-edit-${LESHOZ_A}`));
+
+  const paymeField = (await screen.findByTestId('field-payme-account-id')) as HTMLInputElement;
+  // The GET fixture's `requisites` carries a `bank_account` but no
+  // `payme_account_id` — the field starts blank, not "undefined".
+  expect(paymeField.value).toBe('');
+
+  await user.type(paymeField, '5550001');
+  await user.click(screen.getByTestId('org-form-submit'));
+
+  await vi.waitFor(() => expect(patchedBody).not.toBeNull());
+  expect((patchedBody as { requisites: unknown }).requisites).toEqual({
+    bank_account: '20208000000000000001',
+    payme_account_id: '5550001',
+  });
+});
+
+test('leaving the Payme account id untouched on edit sends no requisites at all', async () => {
+  server.use(...refsHandlers(), ...adminHandlers());
+  const { user } = renderPage();
+
+  await screen.findByTestId(`org-row-${LESHOZ_A}`);
+  await user.click(screen.getByTestId(`org-edit-${LESHOZ_A}`));
+  await screen.findByTestId('field-payme-account-id');
+
+  const latin = screen.getByTestId('field-name-uz_latn');
+  await user.type(latin, ' (2)');
+  await user.click(screen.getByTestId('org-form-submit'));
+
+  await vi.waitFor(() => expect(patchedBody).not.toBeNull());
+  expect(patchedBody).not.toHaveProperty('requisites');
+});
+
 // ── 5. archive ─────────────────────────────────────────────────────────────
 
 test('archiving asks for confirmation before it fires', async () => {
