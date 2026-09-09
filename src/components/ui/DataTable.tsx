@@ -173,9 +173,10 @@ export function DataTable<T extends { id: string | number }>({
                   colSpan={columns.length + (selectable ? 1 : 0) + (actions ? 1 : 0)}
                   className="py-12 text-center text-[#5A646D]"
                 >
-                  <div className="inline-flex items-center gap-2">
+                  <div className="inline-flex items-center gap-2" data-testid="table-loading">
                     <Loader2 className="w-5 h-5 animate-spin text-[#2E7D4F]" />
                     <span>{currentLoadingText}</span>
+                    <span className="sr-only">Yuklanmoqda...</span>
                   </div>
                 </td>
               </tr>
