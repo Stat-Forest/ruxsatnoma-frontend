@@ -46,7 +46,8 @@ export const uz_latn = {
   'login.submitPassword': 'Kirish',
   'login.submitCode': 'Tasdiqlash',
   'login.badCredentials': "Login yoki parol noto'g'ri.",
-  'login.blockedAccount': "Hisob bloklangan. Administrator bilan bog'laning.",
+  'login.blockedAccount':
+    'Notoʻgʻri urinishlar koʻp boʻldi. Kirish vaqtincha bloklandi — bir necha daqiqadan soʻng qayta urinib koʻring.',
   'login.rateLimited': "Urinishlar soni ko'p. Birozdan so'ng qayta urinib ko'ring.",
   'login.connectionError': "Ulanishda xatolik yuz berdi. Internetni tekshirib, qayta urinib ko'ring.",
   'login.tabOneId': 'OneID',

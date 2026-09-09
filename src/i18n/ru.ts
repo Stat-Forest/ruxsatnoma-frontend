@@ -42,7 +42,8 @@ export const ru = {
   'login.submitPassword': 'Войти',
   'login.submitCode': 'Подтвердить',
   'login.badCredentials': 'Неверный логин или пароль.',
-  'login.blockedAccount': 'Аккаунт заблокирован. Обратитесь к администратору.',
+  'login.blockedAccount':
+    'Слишком много неверных попыток. Вход временно заблокирован — повторите через несколько минут.',
   'login.rateLimited': 'Слишком много попыток. Повторите позже.',
   'login.connectionError': 'Ошибка соединения. Проверьте интернет и повторите попытку.',
   'login.tabOneId': 'OneID',
