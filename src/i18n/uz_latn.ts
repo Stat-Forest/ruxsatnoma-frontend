@@ -64,7 +64,7 @@ export const uz_latn = {
   'login.eimzoButton': 'E-IMZO kaliti bilan kirish',
   'login.eimzoBadPinfl': "PINFL 14 ta raqamdan iborat bo'lishi kerak.",
   'login.eimzoMockNotice':
-    'Sinov rejimi: kalit tekshirilmaydi. Haqiqiy E-IMZO — 5.2-bosqich.',
+    'Sinov rejimi: kalit tekshirilmaydi. Haqiqiy E-IMZO NIC dan VPN kaliti olingach yoqiladi.',
   'login.eimzoRealHint':
     "Ulangan E-IMZO kalitingiz orqali tizimga kiring. Kalit parolini E-IMZO dasturining o'zi so'raydi.",
   // Task 11 — the conditions a citizen actually hits with the real E-IMZO

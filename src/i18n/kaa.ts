@@ -1543,7 +1543,8 @@ export const kaa = {
   'archive.newItemModal.cancel': 'Biykar etiw',
   'archive.newItemModal.error': 'Obyektti arxivlep bolmadı',
   'login.oneidHint': 'Jeke hám yuridikalıq shaxslar ushın mámleketlik portal arqalı kiriw.',
-  'login.eimzoMockNotice': 'Sınaw rejimi: gilt tekserilmeydi. Haqıyqıy E-IMZO — 5.2-basqısh.',
+  'login.eimzoMockNotice':
+    'Sınaw rejimi: gilt tekserilmeydi. Haqıyqıy E-IMZO NIC VPN giltin bergennen keyin qosıladı.',
   'login.eimzoUnavailable': 'E-IMZO gilti hám brauzer platini talap etiledi. Bul imkaniyat ele ulanbaǵan.',
   'login.eimzoRealHint': 'Ulanǵan E-IMZO giltińiz arqalı tizimge kiriń. Gilttiń parolin E-IMZO dasturınıń óziniń sorайdı.',
   'eimzo.errors.notInstalled':

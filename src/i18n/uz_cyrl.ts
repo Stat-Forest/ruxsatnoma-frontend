@@ -92,7 +92,7 @@ export const uz_cyrl = {
   'login.eimzoButton': 'Э-ИМЗО калити билан кириш',
   'login.eimzoBadPinfl': "ЖШШИР 14 та рақамдан иборат бўлиши керак.",
   'login.eimzoMockNotice':
-    'Sinov rejimi: kalit tekshirilmaydi. Haqiqiy E-IMZO — 5.2-bosqich.',
+    'Синов режими: калит текширилмайди. Ҳақиқий Э-ИМЗО НИЦ дан ВПН калити олингач ёқилади.',
   'login.eimzoUnavailable':
     "E-IMZO kaliti va brauzer plagini talab qilinadi. Bu imkoniyat hali ulanmagan.",
   'login.eimzoRealHint':
