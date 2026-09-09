@@ -64,6 +64,9 @@ export const uz_latn = {
   'form.district': 'Tuman',
   'form.districtLocked': 'Avval viloyatni tanlang',
   'form.notSelected': 'Tanlanmagan',
+  'form.paymeAccountId': 'Payme hisob raqami',
+  'form.paymeAccountIdHint':
+    "Oʻrmon xoʻjaligi bank hisobidan tashqari — toʻlovning qolgan ulushi shu Payme hisobiga oʻtkaziladi. Koʻrsatilmasa, Payme toʻlovni boʻla olmaydi.",
   'form.submit': 'Saqlash',
   'form.cancel': 'Bekor qilish',
   'form.loading': 'Yuklanmoqda...',
@@ -143,6 +146,9 @@ export const ru: Labels = {
   'form.district': 'Район',
   'form.districtLocked': 'Сначала выберите область',
   'form.notSelected': 'Не выбрано',
+  'form.paymeAccountId': 'Счёт Payme',
+  'form.paymeAccountIdHint':
+    'Отдельно от банковского счёта лесхоза — остаток платежа переводится на этот счёт Payme. Если не указан, Payme не может разделить платёж.',
   'form.submit': 'Сохранить',
   'form.cancel': 'Отмена',
   'form.loading': 'Загрузка...',
