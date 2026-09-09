@@ -19,17 +19,28 @@ export interface RejectionRow {
  */
 export function RejectionsCard({ rows, t }: { rows: RejectionRow[]; t: (key: string) => string }) {
   const sorted = [...rows].sort((a, b) => b.count - a.count);
+  const maxCount = Math.max(...sorted.map((r) => r.count), 1);
 
   return (
     <DashboardCard title={t('leadership.dash.rejections.title')} icon={XCircle}>
       {sorted.length === 0 ? (
         <EmptyPanel testId="rejections-empty">{t('leadership.dash.rejections.empty')}</EmptyPanel>
       ) : (
-        <ul data-testid="rejections-list" className="space-y-2">
+        <ul data-testid="rejections-list" className="space-y-2.5">
           {sorted.map((row) => (
-            <li key={row.id} className="flex items-center justify-between gap-3 text-sm">
-              <span className="text-[#1A1F24] min-w-0 truncate">{row.label}</span>
-              <span className="font-mono font-bold tabular-nums text-[#1A1F24] shrink-0">{row.count}</span>
+            <li key={row.id} className="space-y-1">
+              <div className="flex items-center justify-between gap-3 text-sm">
+                <span className="text-[#1A1F24] min-w-0 truncate" title={row.label}>
+                  {row.label}
+                </span>
+                <span className="font-mono font-bold tabular-nums text-[#1A1F24] shrink-0">{row.count}</span>
+              </div>
+              <div className="w-full bg-[#F1F3F5] rounded-full h-1.5 overflow-hidden">
+                <div
+                  className="bg-[#DC2626] h-1.5 rounded-full transition-all"
+                  style={{ width: `${Math.min(100, Math.round((row.count / maxCount) * 100))}%` }}
+                />
+              </div>
             </li>
           ))}
         </ul>

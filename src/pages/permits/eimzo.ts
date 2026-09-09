@@ -50,12 +50,45 @@ export const SIGNATURE_ORDER = [
   RECIPIENT_PURPOSE,
 ] as const;
 
-export const PURPOSE_LABEL: Record<string, string> = {
-  permit_head: "Xoʻjalik rahbari",
-  permit_chief_forester: "Bosh oʻrmonchi",
-  permit_accountant: 'Bosh buxgalter',
-  permit_recipient: 'Foydalanuvchi / Arizachi',
+export const PURPOSE_LABEL_I18N: Record<string, Record<string, string>> = {
+  uz_latn: {
+    permit_head: 'Xoʻjalik rahbari',
+    permit_chief_forester: 'Bosh oʻrmonchi',
+    permit_accountant: 'Bosh buxgalter',
+    permit_recipient: 'Foydalanuvchi / Arizachi',
+  },
+  uz_cyrl: {
+    permit_head: 'Хўжалик раҳбари',
+    permit_chief_forester: 'Бош ўрмончи',
+    permit_accountant: 'Бош бухгалтер',
+    permit_recipient: 'Фойдаланувчи / Аризачи',
+  },
+  ru: {
+    permit_head: 'Руководитель лесхоза',
+    permit_chief_forester: 'Главный лесничий',
+    permit_accountant: 'Главный бухгалтер',
+    permit_recipient: 'Пользователь / Заявитель',
+  },
+  en: {
+    permit_head: 'Forestry head',
+    permit_chief_forester: 'Chief forester',
+    permit_accountant: 'Chief accountant',
+    permit_recipient: 'User / Applicant',
+  },
+  kaa: {
+    permit_head: 'Xojalıq basshısı',
+    permit_chief_forester: 'Bas tokaýshı',
+    permit_accountant: 'Bas buxgalter',
+    permit_recipient: 'Paydalanıwshı / Arzashı',
+  },
 };
+
+export const PURPOSE_LABEL: Record<string, string> = PURPOSE_LABEL_I18N.uz_latn;
+
+export function getPurposeLabel(purpose: string, lang: string = 'uz_latn'): string {
+  const table = PURPOSE_LABEL_I18N[lang] || PURPOSE_LABEL_I18N.uz_latn;
+  return table[purpose] || PURPOSE_LABEL[purpose] || purpose;
+}
 
 /** Whether `meRoleCode`/`hasApplicant` gives this viewer any chance at all of
  *  satisfying `purpose` — a UI hint only. The backend re-checks the real

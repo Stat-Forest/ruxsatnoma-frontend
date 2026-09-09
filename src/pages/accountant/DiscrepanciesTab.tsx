@@ -1,15 +1,19 @@
 import { useState } from 'react';
 import { CheckCircle2, XCircle } from 'lucide-react';
 import { Button } from '../../components/ui/button';
-import { FormField, Input, Textarea } from '../../components/ui/FormControls';
+import { FileInput, FormField, Input, Textarea } from '../../components/ui/FormControls';
 import { Modal } from '../../components/ui/Overlay';
 import { Alert } from '../../components/ui/Feedback';
 import { useAuth } from '../../auth/useAuth';
 import { ApiError } from '../../api/errors';
 import { useApiErrorText } from '../../i18n/useApiErrorText';
-import { useT } from '../../i18n/useT';
+import { useLanguage, useT } from '../../i18n/useT';
 import { formatDateTime, formatMoney } from '../permits/format';
-import { RECONCILIATION_RESULT_LABEL, RECONCILIATION_STATUS_LABEL, RECONCILIATION_STATUS_STYLE } from './statusMeta';
+import {
+  RECONCILIATION_STATUS_STYLE,
+  getReconciliationResultLabel,
+  getReconciliationStatusLabel,
+} from './statusMeta';
 import { fileUrl, uploadFile, type ManualConfirmationOut, type ReconciliationOut } from './api';
 import {
   useConfirmManualConfirmation,
@@ -60,19 +64,20 @@ export function DiscrepanciesTab() {
 
 function ReconciliationRegister({ canResolve }: { canResolve: boolean }) {
   const t = useT();
+  const { lang } = useLanguage();
   const [status, setStatus] = useState<'open' | 'resolved'>('open');
   const [resolveTarget, setResolveTarget] = useState<ReconciliationOut | null>(null);
   const query = useReconciliations({ status, limit: 100, offset: 0 });
 
   return (
     <section className="rounded-2xl border border-[#E4E7EA] bg-white shadow-xs">
-      <div className="flex items-center justify-between gap-2 border-b border-[#E4E7EA] p-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#E4E7EA] p-4">
         <h2 className="text-sm font-bold text-[#1A1F24]">{t('accountant.discrepancies.title')}</h2>
-        <div className="flex gap-1">
-          <Button size="sm" variant={status === 'open' ? 'primary' : 'outline'} onClick={() => setStatus('open')}>
+        <div className="flex gap-1.5 w-full sm:w-auto">
+          <Button size="sm" className="flex-1 sm:flex-initial" variant={status === 'open' ? 'primary' : 'outline'} onClick={() => setStatus('open')}>
             {t('accountant.discrepancies.filterOpen')}
           </Button>
-          <Button size="sm" variant={status === 'resolved' ? 'primary' : 'outline'} onClick={() => setStatus('resolved')}>
+          <Button size="sm" className="flex-1 sm:flex-initial" variant={status === 'resolved' ? 'primary' : 'outline'} onClick={() => setStatus('resolved')}>
             {t('accountant.discrepancies.filterResolved')}
           </Button>
         </div>
@@ -88,7 +93,7 @@ function ReconciliationRegister({ canResolve }: { canResolve: boolean }) {
         <p className="p-4 text-sm text-[#5A646D]">{t('accountant.discrepancies.empty')}</p>
       ) : (
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+          <table className="w-full text-sm min-w-[750px] whitespace-nowrap">
             <thead className="bg-[#F8F9FA] text-left text-xs font-bold uppercase tracking-wide text-[#5A646D]">
               <tr>
                 <th className="px-4 py-3">{t('accountant.discrepancies.colInvoice')}</th>
@@ -108,7 +113,7 @@ function ReconciliationRegister({ canResolve }: { canResolve: boolean }) {
                       ? row.invoice_id.slice(0, 8)
                       : <span className="italic text-[#9AA3AB]">{t('accountant.discrepancies.periodNote')}</span>}
                   </td>
-                  <td className="px-4 py-3">{RECONCILIATION_RESULT_LABEL[row.result] ?? row.result}</td>
+                  <td className="px-4 py-3">{getReconciliationResultLabel(row.result, lang)}</td>
                   <td className="px-4 py-3 text-right font-mono">{row.difference ? formatMoney(row.difference) : '—'}</td>
                   <td className="px-4 py-3">
                     <span
@@ -116,7 +121,7 @@ function ReconciliationRegister({ canResolve }: { canResolve: boolean }) {
                         RECONCILIATION_STATUS_STYLE[row.status] ?? RECONCILIATION_STATUS_STYLE.open
                       }`}
                     >
-                      {RECONCILIATION_STATUS_LABEL[row.status] ?? row.status}
+                      {getReconciliationStatusLabel(row.status, lang)}
                     </span>
                   </td>
                   <td className="px-4 py-3 font-mono text-xs">{formatDateTime(row.occurred_at)}</td>
@@ -192,11 +197,10 @@ function ResolveModal({ row, onClose }: { row: ReconciliationOut; onClose: () =>
           <Textarea id="resolve-comment" value={comment} onChange={(e) => setComment(e.target.value)} rows={3} />
         </FormField>
         <FormField label={t('accountant.discrepancies.resolveDocLabel')} htmlFor="resolve-doc">
-          <input
+          <FileInput
             id="resolve-doc"
-            type="file"
-            onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-            className="block w-full text-xs text-[#5A646D] file:mr-3 file:rounded-md file:border-0 file:bg-[#F0F7F1] file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-[#2E7D4F]"
+            value={file}
+            onChange={setFile}
           />
         </FormField>
         {uploadError && <Alert variant="danger">{uploadError}</Alert>}
@@ -296,10 +300,11 @@ function ManualConfirmationCheckPanel() {
         </div>
       )}
 
-      <div className="mt-3 flex flex-wrap gap-2">
+      <div className="mt-3 flex flex-col sm:flex-row gap-2">
         <Button
           variant="success"
           size="sm"
+          className="w-full sm:w-auto"
           leftIcon={<CheckCircle2 className="h-4 w-4" />}
           disabled={!confirmationId.trim()}
           isLoading={confirmMutation.isPending}
@@ -308,13 +313,14 @@ function ManualConfirmationCheckPanel() {
           {t('accountant.discrepancies.manualConfirmButton')}
         </Button>
         {!showReject ? (
-          <Button variant="danger" size="sm" leftIcon={<XCircle className="h-4 w-4" />} onClick={() => setShowReject(true)}>
+          <Button variant="danger" size="sm" className="w-full sm:w-auto" leftIcon={<XCircle className="h-4 w-4" />} onClick={() => setShowReject(true)}>
             {t('accountant.discrepancies.manualRejectButton')}
           </Button>
         ) : (
           <Button
             variant="danger"
             size="sm"
+            className="w-full sm:w-auto"
             leftIcon={<XCircle className="h-4 w-4" />}
             disabled={!confirmationId.trim() || !rejectReason.trim()}
             isLoading={rejectMutation.isPending}
@@ -365,7 +371,7 @@ function ManualConfirmationsPendingList({
 
   return (
     <div className="mb-4 overflow-x-auto rounded-xl border border-[#E4E7EA]">
-      <table className="w-full text-xs">
+      <table className="w-full text-xs min-w-[600px] whitespace-nowrap">
         <thead className="bg-[#F8F9FA] text-left font-bold uppercase tracking-wide text-[#5A646D]">
           <tr>
             <th className="px-3 py-2 text-right">{t('accountant.discrepancies.manualPendingColAmount')}</th>
@@ -390,7 +396,7 @@ function ManualConfirmationsPendingList({
                 </a>
               </td>
               <td className="px-3 py-2 text-right">
-                <div className="flex justify-end gap-1.5">
+                <div className="flex justify-end gap-1.5 whitespace-nowrap">
                   <Button
                     size="sm"
                     variant="success"

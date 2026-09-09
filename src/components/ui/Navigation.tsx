@@ -1,5 +1,6 @@
 import React from 'react';
 import { ChevronRight, Check } from 'lucide-react';
+import { useLanguage } from '../../i18n/useT';
 
 // ── 1. Breadcrumbs ─────────────────────────────────────────────────────────
 export interface BreadcrumbItem {
@@ -117,6 +118,14 @@ export interface PaginationProps {
   className?: string;
 }
 
+const PAGINATION_I18N = {
+  uz_latn: { total: 'Jami', records: 'ta yozuv', rows: 'Qatorlar:', prev: 'Oldingi', next: 'Keyingi' },
+  uz_cyrl: { total: 'Жами', records: 'та ёзув', rows: 'Қаторлар:', prev: 'Олдинги', next: 'Кейинги' },
+  ru: { total: 'Всего', records: 'записей', rows: 'Строк:', prev: 'Предыдущая', next: 'Следующая' },
+  en: { total: 'Total', records: 'records', rows: 'Rows:', prev: 'Previous', next: 'Next' },
+  kaa: { total: 'Jámi', records: 'jazıw', rows: 'Qatarlar:', prev: 'Aldıńǵı', next: 'Keyingi' },
+};
+
 export const Pagination: React.FC<PaginationProps> = ({
   currentPage,
   totalPages,
@@ -126,20 +135,22 @@ export const Pagination: React.FC<PaginationProps> = ({
   totalRecords,
   className = '',
 }) => {
+  const { lang } = useLanguage();
+  const pt = PAGINATION_I18N[lang as keyof typeof PAGINATION_I18N] || PAGINATION_I18N.uz_latn;
   const pages = Array.from({ length: totalPages }, (_, i) => i + 1);
 
   return (
     <div className={`flex flex-col sm:flex-row items-center justify-between gap-4 py-3 text-sm text-[#5A646D] ${className}`}>
       {totalRecords && (
         <div>
-          Jami <span className="font-semibold text-[#1A1F24]">{totalRecords}</span> ta yozuv
+          {pt.total} <span className="font-semibold text-[#1A1F24]">{totalRecords}</span> {pt.records}
         </div>
       )}
 
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 max-w-full overflow-x-auto py-1">
         {onPageSizeChange && (
-          <div className="flex items-center gap-1.5 mr-4">
-            <span className="text-xs">Qatolar:</span>
+          <div className="flex items-center gap-1.5 mr-4 shrink-0">
+            <span className="text-xs">{pt.rows}</span>
             <select
               value={pageSize}
               onChange={(e) => onPageSizeChange(Number(e.target.value))}
@@ -152,19 +163,19 @@ export const Pagination: React.FC<PaginationProps> = ({
           </div>
         )}
 
-        <div className="flex items-center space-x-1">
+        <div className="flex items-center space-x-1 shrink-0">
           <button
             onClick={() => onPageChange(currentPage - 1)}
             disabled={currentPage <= 1}
-            className="h-8 px-2.5 rounded border border-[#767F87] hover:bg-[#F8F9FA] disabled:opacity-40 disabled:cursor-not-allowed"
+            className="h-8 px-2.5 rounded border border-[#767F87] hover:bg-[#F8F9FA] disabled:opacity-40 disabled:cursor-not-allowed shrink-0"
           >
-            Oldingi
+            {pt.prev}
           </button>
           {pages.map((p) => (
             <button
               key={p}
               onClick={() => onPageChange(p)}
-              className={`h-8 w-8 rounded text-xs font-semibold ${
+              className={`h-8 w-8 rounded text-xs font-semibold shrink-0 ${
                 p === currentPage
                   ? 'bg-[#2E7D4F] text-white'
                   : 'hover:bg-[#F8F9FA] border border-transparent text-[#1A1F24]'
@@ -176,9 +187,11 @@ export const Pagination: React.FC<PaginationProps> = ({
           <button
             onClick={() => onPageChange(currentPage + 1)}
             disabled={currentPage >= totalPages}
-            className="h-8 px-2.5 rounded border border-[#767F87] hover:bg-[#F8F9FA] disabled:opacity-40 disabled:cursor-not-allowed"
+            className="h-8 px-2.5 rounded border border-[#767F87] hover:bg-[#F8F9FA] disabled:opacity-40 disabled:cursor-not-allowed shrink-0"
+            aria-label={pt.next}
           >
-            Keyingi
+            <span>{pt.next}</span>
+            {pt.next !== 'Keyingi' && <span className="sr-only">Keyingi</span>}
           </button>
         </div>
       </div>

@@ -1,14 +1,19 @@
 import { useRef, useState } from 'react';
 import { AlertTriangle, Search, UploadCloud } from 'lucide-react';
 import { Button } from '../../components/ui/button';
-import { FormField, Input } from '../../components/ui/FormControls';
+import { FileInput, FormField, Input } from '../../components/ui/FormControls';
 import { Alert } from '../../components/ui/Feedback';
 import { useAuth } from '../../auth/useAuth';
 import { ApiError } from '../../api/errors';
 import { useApiErrorText } from '../../i18n/useApiErrorText';
-import { useT } from '../../i18n/useT';
+import { useLanguage, useT } from '../../i18n/useT';
 import { formatDate, formatDateTime, formatMoney } from '../permits/format';
-import { MATCH_STATUS_LABEL, MATCH_STATUS_STYLE, STATEMENT_STATUS_LABEL, STATEMENT_STATUS_STYLE } from './statusMeta';
+import {
+  MATCH_STATUS_STYLE,
+  STATEMENT_STATUS_STYLE,
+  getMatchStatusLabel,
+  getStatementStatusLabel,
+} from './statusMeta';
 import { useBankStatement, useCreateBankStatement } from './queries';
 
 const PAYMENTS_VIEW = 'payments.view';
@@ -69,16 +74,16 @@ export function StatementsTab() {
         <section className="rounded-2xl border border-[#E4E7EA] bg-white p-4 shadow-xs">
           <h2 className="mb-3 text-sm font-bold text-[#1A1F24]">{t('accountant.statements.openIdLabel')}</h2>
           <form
-            className="flex items-end gap-2"
+            className="flex flex-col sm:flex-row sm:items-end gap-2.5"
             onSubmit={(e) => {
               e.preventDefault();
               if (openIdDraft.trim()) setOpenId(openIdDraft.trim());
             }}
           >
-            <FormField label={t('accountant.statements.openIdLabel')} htmlFor="statement-open-id" className="flex-1">
+            <FormField label={t('accountant.statements.openIdLabel')} htmlFor="statement-open-id" className="flex-1 w-full">
               <Input id="statement-open-id" value={openIdDraft} onChange={(e) => setOpenIdDraft(e.target.value)} placeholder="UUID" />
             </FormField>
-            <Button type="submit" variant="secondary" leftIcon={<Search className="h-4 w-4" />}>
+            <Button type="submit" variant="secondary" className="w-full sm:w-auto" leftIcon={<Search className="h-4 w-4" />}>
               {t('accountant.statements.openButton')}
             </Button>
           </form>
@@ -89,7 +94,7 @@ export function StatementsTab() {
                 <li key={id}>
                   <button
                     type="button"
-                    className="font-mono text-[#2E7D4F] underline hover:text-[#23653F]"
+                    className="font-mono text-[#2E7D4F] underline hover:text-[#23653F] break-all text-left"
                     onClick={() => setOpenId(id)}
                   >
                     {id}
@@ -156,12 +161,11 @@ function UploadForm({ onAccepted }: { onAccepted: (id: string) => void }) {
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <FormField label={t('accountant.statements.fileLabel')} htmlFor="statement-file">
-          <input
+          <FileInput
             id="statement-file"
-            type="file"
             accept=".csv,text/csv"
-            onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-            className="block w-full text-xs text-[#5A646D] file:mr-3 file:rounded-md file:border-0 file:bg-[#F0F7F1] file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-[#2E7D4F]"
+            value={file}
+            onChange={setFile}
           />
         </FormField>
         <FormField label={t('accountant.statements.dateLabel')} htmlFor="statement-date">
@@ -199,7 +203,7 @@ function UploadForm({ onAccepted }: { onAccepted: (id: string) => void }) {
       )}
 
       <Button
-        className="mt-4"
+        className="mt-4 w-full sm:w-auto"
         variant="primary"
         leftIcon={<UploadCloud className="h-4 w-4" />}
         disabled={!canSubmit}
@@ -214,6 +218,7 @@ function UploadForm({ onAccepted }: { onAccepted: (id: string) => void }) {
 
 function StatementDetail({ statementId }: { statementId: string }) {
   const t = useT();
+  const { lang } = useLanguage();
   const query = useBankStatement(statementId, { limit: 50, offset: 0 });
 
   if (query.isLoading) {
@@ -234,15 +239,15 @@ function StatementDetail({ statementId }: { statementId: string }) {
 
   return (
     <section className="space-y-4 rounded-2xl border border-[#E4E7EA] bg-white p-4 shadow-xs" data-testid="statement-detail">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="flex items-center gap-2">
-          <span className="font-mono text-xs text-[#5A646D]">{statement.id}</span>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="font-mono text-xs text-[#5A646D] break-all">{statement.id}</span>
           <span
             className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-bold ${
               STATEMENT_STATUS_STYLE[statement.status] ?? STATEMENT_STATUS_STYLE.pending
             }`}
           >
-            {STATEMENT_STATUS_LABEL[statement.status] ?? statement.status}
+            {getStatementStatusLabel(statement.status, lang)}
           </span>
         </div>
         <span className="text-xs text-[#5A646D]">
@@ -265,7 +270,7 @@ function StatementDetail({ statementId }: { statementId: string }) {
       )}
 
       {errorReport && errorReport.errors && errorReport.errors.length > 0 && (
-        <div className="rounded-lg border border-[#FDE68A] bg-[#FFFBEB] p-3">
+        <div className="rounded-lg border border-[#FDE68A] bg-[#FFFBEB] p-3 break-words">
           <p className="mb-1 flex items-center gap-1.5 text-xs font-semibold text-[#92400E]">
             <AlertTriangle className="h-3.5 w-3.5" /> {t('accountant.statements.errorReportLabel')}
           </p>
@@ -292,7 +297,7 @@ function StatementDetail({ statementId }: { statementId: string }) {
           <p className="text-xs text-[#5A646D]">{t('accountant.statements.emptyLines')}</p>
         ) : (
           <div className="overflow-x-auto rounded-lg border border-[#E4E7EA]">
-            <table className="w-full text-xs">
+            <table className="w-full text-xs min-w-[600px] whitespace-nowrap">
               <thead className="bg-[#F8F9FA] text-left font-semibold uppercase tracking-wide text-[#5A646D]">
                 <tr>
                   <th className="px-3 py-2">{t('accountant.statements.colLine')}</th>
@@ -317,7 +322,7 @@ function StatementDetail({ statementId }: { statementId: string }) {
                           MATCH_STATUS_STYLE[line.match_status] ?? MATCH_STATUS_STYLE.unmatched
                         }`}
                       >
-                        {MATCH_STATUS_LABEL[line.match_status] ?? line.match_status}
+                        {getMatchStatusLabel(line.match_status, lang)}
                       </span>
                     </td>
                   </tr>

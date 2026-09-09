@@ -7,7 +7,8 @@ import { Alert } from '../../../components/ui/Feedback';
 import { Input, Select } from '../../../components/ui/FormControls';
 import { Pagination } from '../../../components/ui/Navigation';
 import { useApiErrorText } from '../../../i18n/useApiErrorText';
-import { pickName, formatDateTime } from '../format';
+import { useLanguage } from '../../../i18n/useT';
+import { pickName, pickLayerName, formatDateTime } from '../format';
 import type { ImportOut, PublishImportOut } from '../api';
 import {
   useApproveImport,
@@ -39,6 +40,7 @@ const STATUS_LABEL_KEYS: Record<string, string> = {
 };
 
 function UploadForm({ t, onCreated }: { t: (key: string) => string; onCreated: (id: string) => void }) {
+  const { lang } = useLanguage();
   const layersQuery = useLayers();
   const organizationsQuery = useOrganizations();
   const uploadFile = useUploadFile();
@@ -54,7 +56,7 @@ function UploadForm({ t, onCreated }: { t: (key: string) => string; onCreated: (
   const [areaField, setAreaField] = useState('');
   const [orgNameField, setOrgNameField] = useState('');
 
-  const orgOptions = (organizationsQuery.data ?? []).map((o) => ({ value: o.id, label: pickName(o.name) || o.code }));
+  const orgOptions = (organizationsQuery.data ?? []).map((o) => ({ value: o.id, label: pickName(o.name, lang) || o.code }));
 
   async function handleSubmit() {
     if (!file || !approvalFile || !organizationId) return;
@@ -84,7 +86,7 @@ function UploadForm({ t, onCreated }: { t: (key: string) => string; onCreated: (
         <Select
           value={layerCode}
           onChange={(e) => setLayerCode(e.target.value)}
-          options={(layersQuery.data ?? []).map((l) => ({ value: l.code, label: pickName(l.name) || l.code }))}
+          options={(layersQuery.data ?? []).map((l) => ({ value: l.code, label: pickLayerName(l, lang) }))}
         />
       </label>
       <label className="block space-y-1 text-xs">
@@ -323,6 +325,7 @@ function ImportDetail({ importId, t }: { importId: string; t: (key: string) => s
  * benefits from it) but is no longer the only door.
  */
 function ImportsListPanel({ t, onOpen }: { t: (key: string) => string; onOpen: (id: string) => void }) {
+  const { lang } = useLanguage();
   const errorText = useApiErrorText();
   const [status, setStatus] = useState('');
   const [page, setPage] = useState(1);
@@ -332,11 +335,11 @@ function ImportsListPanel({ t, onOpen }: { t: (key: string) => string; onOpen: (
 
   const layerLabel = (layerId: string) => {
     const layer = layersQuery.data?.find((l) => l.id === layerId);
-    return layer ? pickName(layer.name) || layer.code : layerId.slice(0, 8);
+    return layer ? pickLayerName(layer, lang) : layerId.slice(0, 8);
   };
   const organizationLabel = (organizationId: string) => {
     const org = organizationsQuery.data?.find((o) => o.id === organizationId);
-    return org ? pickName(org.name) || org.code : organizationId.slice(0, 8);
+    return org ? pickName(org.name, lang) || org.code : organizationId.slice(0, 8);
   };
 
   const totalPages = listQuery.data ? Math.max(1, Math.ceil(listQuery.data.total / IMPORTS_PAGE_SIZE)) : 1;

@@ -5,6 +5,8 @@ import { Button } from '../../../components/ui/button';
 import { Alert } from '../../../components/ui/Feedback';
 import { Input, Select } from '../../../components/ui/FormControls';
 import { useApiErrorText } from '../../../i18n/useApiErrorText';
+import { useLanguage } from '../../../i18n/useT';
+import { translateTerm } from '../../../i18n/terms';
 import { pickName, formatDecimal } from '../format';
 import { getContoursLayerId, type VersionIn } from '../api';
 import {
@@ -48,6 +50,7 @@ function VersionFieldsForm({
   isPending: boolean;
   t: (key: string) => string;
 }) {
+  const { lang } = useLanguage();
   const [source, setSource] = useState(initial?.source ?? 'survey');
   const [declaredAreaHa, setDeclaredAreaHa] = useState(initial?.declared_area_ha?.toString() ?? '');
   const [surveyDate, setSurveyDate] = useState(initial?.survey_date ?? '');
@@ -65,11 +68,11 @@ function VersionFieldsForm({
             value={source}
             onChange={(e) => setSource(e.target.value)}
             options={[
-              { value: 'cadastre', label: 'cadastre' },
-              { value: 'survey', label: 'survey' },
-              { value: 'aerial', label: 'aerial' },
-              { value: 'gps', label: 'gps' },
-              { value: 'import', label: 'import' },
+              { value: 'cadastre', label: translateTerm('cadastre', lang) },
+              { value: 'survey', label: translateTerm('survey', lang) },
+              { value: 'aerial', label: translateTerm('aerial', lang) },
+              { value: 'gps', label: translateTerm('gps', lang) },
+              { value: 'import', label: translateTerm('import', lang) },
             ]}
           />
         </label>
@@ -182,6 +185,7 @@ function NewContourForm({
  */
 export function ContoursTab({ t }: { t: (key: string) => string }) {
   const { me } = useAuth();
+  const { lang } = useLanguage();
   const errorText = useApiErrorText();
   const canManage = !!me?.permissions.includes(CONTOURS_MANAGE) || !!me?.is_superuser;
   const canApprove = !!me?.permissions.includes(CONTOURS_APPROVE) || !!me?.is_superuser;
@@ -221,8 +225,8 @@ export function ContoursTab({ t }: { t: (key: string) => string }) {
   const archivePublished = useArchiveVersion(selectedContourId ?? '');
 
   const orgOptions = useMemo(
-    () => (organizationsQuery.data ?? []).map((o) => ({ id: o.id, label: pickName(o.name) || o.code })),
-    [organizationsQuery.data],
+    () => (organizationsQuery.data ?? []).map((o) => ({ id: o.id, label: pickName(o.name, lang) || o.code })),
+    [organizationsQuery.data, lang],
   );
   const orgNameById = useMemo(() => {
     const map = new Map<string, string>();

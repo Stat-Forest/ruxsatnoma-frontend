@@ -6,6 +6,7 @@ import { Button } from '../../../components/ui/button';
 import { getContourCard, listContours, listOrganizations } from '../api';
 import { pickName } from '../format';
 import { ContourMapPreview } from './ContourMapPreview';
+import { useT } from '../../../i18n/useT';
 
 export interface PickedContour {
   id: string;
@@ -27,6 +28,7 @@ export interface PickedContour {
  * That is why it was the narrow column; it is the wide one now.
  */
 export function ContourPicker({ value, onChange }: { value: PickedContour | null; onChange: (c: PickedContour) => void }) {
+  const t = useT();
   const [search, setSearch] = useState('');
   const [highlightedId, setHighlightedId] = useState<string | null>(value?.id ?? null);
   const [page, setPage] = useState(1);
@@ -71,14 +73,14 @@ export function ContourPicker({ value, onChange }: { value: PickedContour | null
       <div className="bg-white border border-[#E4E7EA] rounded-2xl p-4 shadow-xs space-y-3">
         <Input
           leftIcon={<Search className="w-4 h-4" />}
-          placeholder="Kontur raqami boʻyicha qidirish..."
+          placeholder={t('wizard.step2.searchPlaceholder')}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
         <div className="max-h-80 overflow-y-auto divide-y divide-[#E4E7EA] border border-[#E4E7EA] rounded-xl">
-          {contoursQuery.isLoading && <p className="p-4 text-xs text-[#5A646D]">Yuklanmoqda...</p>}
+          {contoursQuery.isLoading && <p className="p-4 text-xs text-[#5A646D]">{t('wizard.step2.loading')}</p>}
           {!contoursQuery.isLoading && filtered.length === 0 && (
-            <p className="p-4 text-xs text-[#5A646D]">Konturlar topilmadi.</p>
+            <p className="p-4 text-xs text-[#5A646D]">{t('wizard.step2.notFound')}</p>
           )}
           {filtered.map((c) => {
             const isSelected = value?.id === c.id;
@@ -104,29 +106,28 @@ export function ContourPicker({ value, onChange }: { value: PickedContour | null
         </div>
         {hasMore && (
           <Button variant="outline" size="sm" onClick={() => setPage((p) => p + 1)} className="cursor-pointer">
-            Yana yuklash
+            {t('wizard.step2.loadMore')}
           </Button>
         )}
         {previewQuery.data && (
           <div className="bg-white border border-[#E4E7EA] rounded-2xl p-4 shadow-xs space-y-2 text-xs">
             <div className="font-mono text-lg font-bold text-[#1A1F24]">{previewQuery.data.number}</div>
             <dl className="grid grid-cols-2 gap-y-1">
-              <dt className="text-[#5A646D]">Umumiy maydon</dt>
+              <dt className="text-[#5A646D]">{t('wizard.step2.totalArea')}</dt>
               <dd className="text-right font-mono font-semibold">{previewQuery.data.area_ha ?? '—'} ga</dd>
-              <dt className="text-[#5A646D]">Band qism</dt>
+              <dt className="text-[#5A646D]">{t('wizard.step2.occupiedArea')}</dt>
               <dd className="text-right font-mono">{previewQuery.data.occupied_ha} ga</dd>
-              <dt className="text-[#5A646D]">Boʻsh qism</dt>
+              <dt className="text-[#5A646D]">{t('wizard.step2.freeArea')}</dt>
               <dd className="text-right font-mono font-semibold text-[#123522]">{previewQuery.data.s_available_ha ?? '—'} ga</dd>
             </dl>
             {previewQuery.data.over_allocated && (
               <p className="text-[11px] text-[#B91C1C] bg-[#FEF2F2] border border-[#FCA5A5] rounded p-2 font-semibold">
-                Diqqat: bu konturga umumiy maydonidan koʻproq ruxsatnoma berilgan — shuning uchun band qism umumiy
-                maydondan katta koʻrinadi. Boʻsh qism shu sababli 0 ga sifatida koʻrsatilgan, manfiy emas.
+                {t('wizard.step2.overAllocated')}
               </p>
             )}
             {previewQuery.data.occupancy_source !== 'measured' && (
               <p className="text-[11px] text-[#B45309] bg-[#FFFBEB] border border-[#FDE68A] rounded p-2">
-                Bandlik hozircha real oʻlchanmagan — mavjud ruxsatnomalar asosida taxminiy hisoblangan.
+                {t('wizard.step2.notMeasured')}
               </p>
             )}
             <Button
@@ -138,7 +139,7 @@ export function ContourPicker({ value, onChange }: { value: PickedContour | null
               }
               className="cursor-pointer font-bold"
             >
-              Ushbu konturni tanlash
+              {t('wizard.step2.selectThisContour')}
             </Button>
           </div>
         )}

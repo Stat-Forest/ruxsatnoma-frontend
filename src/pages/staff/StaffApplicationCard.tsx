@@ -1,6 +1,6 @@
 import { useParams, Link } from 'react-router';
 import { ArrowLeft, Loader2, PauseCircle } from 'lucide-react';
-import { useT } from '../../i18n/useT';
+import { useLanguage, useT } from '../../i18n/useT';
 import { ApiError } from '../../api/errors';
 import { useApiErrorText } from '../../i18n/useApiErrorText';
 import { useApplicationCard, useApplicationTimeline } from './queries';
@@ -14,6 +14,64 @@ import { HistoryPanel } from './components/HistoryPanel';
 import { DecisionPanel } from './components/DecisionPanel';
 import { ReviewActionsPanel } from './components/ReviewActionsPanel';
 
+const STAFF_CARD_I18N = {
+  uz_latn: {
+    backToList: 'Arizalar roʻyxatiga qaytish',
+    backToSearch: 'Qidiruvga qaytish',
+    cardTitle: 'Ariza kartochkasi',
+    noNumber: '(raqamsiz)',
+    loading: 'Yuklanmoqda...',
+    loadError: 'Ariza yuklanmadi.',
+    notFoundOrNoOrg: 'Ariza topilmadi yoki unga tashkilot biriktirilmagan.',
+    notFoundOrNoOrgDesc: 'Ushbu ariza qoralama holatida boʻlishi yoki masʼul tashkilotga yoʻnaltirilmagan boʻlishi mumkin.',
+    submittedAt: 'Topshirilgan:',
+  },
+  uz_cyrl: {
+    backToList: 'Аризалар рўйхатига қайтиш',
+    backToSearch: 'Қидирувга қайтиш',
+    cardTitle: 'Ариза карточкаси',
+    noNumber: '(рақамсиз)',
+    loading: 'Юкланмоқда...',
+    loadError: 'Ариза юкланмади.',
+    notFoundOrNoOrg: 'Ариза топилмади ёки унга ташкилот бириктирилмаган.',
+    notFoundOrNoOrgDesc: 'Ушбу ариза қоралама ҳолатида бўлиши ёки масъул ташкилотга йўналтирилмаган бўлиши мумкин.',
+    submittedAt: 'Топширилган:',
+  },
+  ru: {
+    backToList: 'Назад к списку заявлений',
+    backToSearch: 'Назад к поиску',
+    cardTitle: 'Карточка заявления',
+    noNumber: '(без номера)',
+    loading: 'Загрузка...',
+    loadError: 'Не удалось загрузить заявление.',
+    notFoundOrNoOrg: 'Заявление не найдено или к нему не привязана организация.',
+    notFoundOrNoOrgDesc: 'Данное заявление может находиться в статусе черновика или ещё не направлено в организацию.',
+    submittedAt: 'Подано:',
+  },
+  en: {
+    backToList: 'Back to applications list',
+    backToSearch: 'Back to search',
+    cardTitle: 'Application card',
+    noNumber: '(no number)',
+    loading: 'Loading...',
+    loadError: 'Failed to load application.',
+    notFoundOrNoOrg: 'Application not found or no organization assigned.',
+    notFoundOrNoOrgDesc: 'This application might be in draft status or not yet routed to an organization.',
+    submittedAt: 'Submitted:',
+  },
+  kaa: {
+    backToList: 'Arzalar dizimine qaytıw',
+    backToSearch: 'İzlewge qaytıw',
+    cardTitle: 'Arza kartochkası',
+    noNumber: '(nómersiz)',
+    loading: 'Júklenbekte...',
+    loadError: 'Arza júklenbedi.',
+    notFoundOrNoOrg: 'Arza tabılmadı yamasa oǵan shólkem biriktirilmegen.',
+    notFoundOrNoOrgDesc: 'Bul arza dáslepki nusqa jaǵdayında bolıwı yamasa juwapker shólkemge jiberilmegen bolıwı múmkin.',
+    submittedAt: 'Tapsırılǵan:',
+  },
+};
+
 /**
  * The staff application card (D2/E2, `docs/plans/06-frontend-screens.md`).
  * Reached from the worklist or, for `executor_head` (who holds
@@ -24,6 +82,8 @@ import { ReviewActionsPanel } from './components/ReviewActionsPanel';
 export function StaffApplicationCard() {
   const { id } = useParams<{ id: string }>();
   const t = useT();
+  const { lang } = useLanguage();
+  const tr = STAFF_CARD_I18N[lang] ?? STAFF_CARD_I18N.uz_latn;
   const errorText = useApiErrorText();
   const cardQuery = useApplicationCard(id ?? '');
   const timelineQuery = useApplicationTimeline(id ?? '');
@@ -33,16 +93,33 @@ export function StaffApplicationCard() {
   if (cardQuery.isLoading) {
     return (
       <div className="flex items-center justify-center py-24 text-[#5A646D]" data-testid="staff-card-loading">
-        <Loader2 className="w-6 h-6 animate-spin mr-2" /> Yuklanmoqda...
+        <Loader2 className="w-6 h-6 animate-spin mr-2" /> {tr.loading}
       </div>
     );
   }
 
   if (cardQuery.error) {
     const err = cardQuery.error;
+    const isNotFound = err instanceof ApiError && err.code === 'ERR-SYS-003';
     return (
-      <div className="p-6 bg-[#FEF2F2] border border-[#FCA5A5] rounded-2xl text-sm text-[#991B1B]" role="alert">
-        {err instanceof ApiError ? errorText(err) : "Ariza yuklanmadi."}
+      <div className="space-y-4" data-testid="staff-card-error">
+        <div className="flex items-center gap-2 text-xs text-[#5A646D] border-b border-[#E4E7EA] pb-3">
+          <Link to="/applications" className="inline-flex items-center gap-1.5 text-[#2E7D4F] font-bold hover:underline">
+            <ArrowLeft className="w-4 h-4" /> {tr.backToList}
+          </Link>
+          <span>/</span>
+          <Link to="/search" className="inline-flex items-center gap-1.5 text-[#2E7D4F] font-bold hover:underline">
+            {tr.backToSearch}
+          </Link>
+        </div>
+        <div className="p-6 bg-[#FEF2F2] border border-[#FCA5A5] rounded-2xl text-sm text-[#991B1B]" role="alert">
+          <p className="font-semibold">{isNotFound ? tr.notFoundOrNoOrg : (err instanceof ApiError ? errorText(err) : tr.loadError)}</p>
+          {isNotFound && (
+            <p className="text-xs text-[#7F1D1D] mt-1.5">
+              {tr.notFoundOrNoOrgDesc}
+            </p>
+          )}
+        </div>
       </div>
     );
   }
@@ -54,18 +131,18 @@ export function StaffApplicationCard() {
     <div className="space-y-6" data-testid="staff-application-card-page">
       <div className="flex items-center gap-2 text-xs text-[#5A646D] border-b border-[#E4E7EA] pb-3">
         <Link to="/applications" className="inline-flex items-center gap-1.5 text-[#2E7D4F] font-bold hover:underline">
-          <ArrowLeft className="w-4 h-4" /> Arizalar roʻyxatiga qaytish
+          <ArrowLeft className="w-4 h-4" /> {tr.backToList}
         </Link>
         <span>/</span>
-        <span className="font-semibold text-[#1A1F24]">Ariza kartochkasi ({card.number ?? card.id})</span>
+        <span className="font-semibold text-[#1A1F24]">{tr.cardTitle} ({card.number ?? card.id})</span>
       </div>
 
       <div className="bg-white border border-[#E4E7EA] rounded-2xl p-6 shadow-xs flex flex-wrap items-center gap-4">
         <h1 className="font-mono text-2xl font-extrabold text-[#1A1F24] tracking-tight">
-          {card.number ?? '(raqamsiz)'}
+          {card.number ?? tr.noNumber}
         </h1>
         <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-[#E0F2FE] text-[#0369A1] border border-[#BAE6FD]">
-          {statusLabel(card.status)}
+          {statusLabel(card.status, lang)}
         </span>
         {(() => {
           // `card.sla_overdue` is the AUTHORITATIVE, pause-aware answer
@@ -93,7 +170,7 @@ export function StaffApplicationCard() {
           );
         })()}
         {card.submitted_at && (
-          <span className="text-xs text-[#5A646D]">Topshirilgan: {formatDateTime(card.submitted_at)}</span>
+          <span className="text-xs text-[#5A646D]">{tr.submittedAt} {formatDateTime(card.submitted_at)}</span>
         )}
       </div>
 

@@ -63,7 +63,7 @@ export function ReportDetailPage() {
     : '…';
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6 font-sans pb-16">
+    <div className="max-w-4xl mx-auto space-y-6 font-sans pb-16 px-4 sm:px-0">
       <div className="border-b border-[#E4E7EA] pb-4 space-y-2">
         <Link
           to="/reports"
@@ -72,12 +72,12 @@ export function ReportDetailPage() {
           <ArrowLeft className="h-3.5 w-3.5" /> {t('reports.detail.backToList')}
         </Link>
 
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <h1 className="text-2xl font-extrabold text-[#1A1F24] tracking-tight">{formLabel}</h1>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+          <h1 className="text-xl sm:text-2xl font-extrabold text-[#1A1F24] tracking-tight break-words">{formLabel}</h1>
           <StatusBadge status="info" label={t(statusLabelKey(report.status))} size="sm" showIcon={false} />
         </div>
 
-        <p className="text-xs text-[#5A646D]">
+        <p className="text-xs text-[#5A646D] leading-relaxed break-words">
           {t('reports.detail.organizationLabel')}: {organizationName} · {t('reports.detail.periodLabel')}:{' '}
           {formatDate(report.period_start)} – {formatDate(report.period_end)} · {t('reports.detail.versionLabel')}:{' '}
           {report.version_no}
@@ -106,6 +106,35 @@ export function ReportDetailPage() {
       </div>
 
       <ReportDataPanel report={report} />
+
+      {/* History & Audit Log */}
+      <div className="bg-white border border-[#E4E7EA] rounded-2xl p-4 sm:p-6 shadow-xs font-sans space-y-3" data-testid="report-history">
+        <h2 className="text-base font-bold text-[#1A1F24] border-b border-[#E4E7EA] pb-3">
+          {t('reports.detail.historyTitle')}
+        </h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs text-[#5A646D]">
+          <div className="p-3 rounded-xl bg-[#F8F9FA] border border-[#E4E7EA] space-y-1">
+            <span className="font-semibold text-[#1A1F24] block">{t('reports.detail.historyCreated')}</span>
+            <span>{formatDate(report.created_at)}</span>
+          </div>
+          {report.submitted_at && (
+            <div className="p-3 rounded-xl bg-[#F8F9FA] border border-[#E4E7EA] space-y-1">
+              <span className="font-semibold text-[#1A1F24] block">{t('reports.detail.historySubmitted')}</span>
+              <span>{formatDate(report.submitted_at)}</span>
+            </div>
+          )}
+          {report.approved_at && (
+            <div className="p-3 rounded-xl bg-[#F8F9FA] border border-[#E4E7EA] space-y-1">
+              <span className="font-semibold text-[#1A1F24] block">{t('reports.detail.historyApproved')}</span>
+              <span>{formatDate(report.approved_at)}</span>
+            </div>
+          )}
+          <div className="p-3 rounded-xl bg-[#F8F9FA] border border-[#E4E7EA] space-y-1">
+            <span className="font-semibold text-[#1A1F24] block">{t('reports.detail.historyUpdated')}</span>
+            <span>{formatDate(report.updated_at)}</span>
+          </div>
+        </div>
+      </div>
 
       <ReportLifecyclePanel report={report} onRevised={(newId) => navigate(`/reports/${newId}`, { replace: true })} />
 

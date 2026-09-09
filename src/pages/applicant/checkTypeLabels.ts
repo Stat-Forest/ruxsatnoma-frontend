@@ -1,3 +1,5 @@
+import { useT } from '../../i18n/useT';
+
 /** Two vocabularies name the same checks, and neither is optional:
  *
  *   - `application_checks.check_type` (ruling 21, `applications/checks.py`)
@@ -40,6 +42,50 @@ export const CHECK_RESULT_LABELS: Record<string, string> = {
   warning: 'Ogohlantirish',
   skipped: "Oʻtkazib yuborildi",
 };
+
+export const CHECK_TYPE_I18N_KEYS: Record<string, string> = {
+  gis_validity: 'wizard.checks.gis_validity',
+  gis_within_fund: 'wizard.checks.gis_within_fund',
+  gis_overlap: 'wizard.checks.gis_overlap',
+  norm_available: 'wizard.checks.norm_available',
+  norm_season: 'wizard.checks.norm_season',
+  norm_rotation: 'wizard.checks.norm_rotation',
+  norm_fire_ban: 'wizard.checks.norm_fire_ban',
+  norm_restrictions: 'wizard.checks.norm_restrictions',
+  norm_limit: 'wizard.checks.norm_limit',
+  // The live preview's own, unmapped names (`norms/checks.py`'s `"check"` field):
+  norm: 'wizard.checks.norm_available',
+  season: 'wizard.checks.norm_season',
+  rotation: 'wizard.checks.norm_rotation',
+  fire_ban: 'wizard.checks.norm_fire_ban',
+  restrictions: 'wizard.checks.norm_restrictions',
+  limit: 'wizard.checks.norm_limit',
+};
+
+export const CHECK_RESULT_I18N_KEYS: Record<string, string> = {
+  pass: 'wizard.checks.pass',
+  fail: 'wizard.checks.fail',
+  warning: 'wizard.checks.warning',
+  skipped: 'wizard.checks.skipped',
+};
+
+export function getCheckTypeLabel(type: string, t: (key: string) => string): string {
+  const key = CHECK_TYPE_I18N_KEYS[type];
+  return key ? t(key) : (CHECK_TYPE_LABELS[type] ?? type);
+}
+
+export function getCheckResultLabel(result: string, t: (key: string) => string): string {
+  const key = CHECK_RESULT_I18N_KEYS[result];
+  return key ? t(key) : (CHECK_RESULT_LABELS[result] ?? result);
+}
+
+export function useCheckLabels() {
+  const t = useT();
+  return {
+    getCheckTypeLabel: (type: string) => getCheckTypeLabel(type, t),
+    getCheckResultLabel: (result: string) => getCheckResultLabel(result, t),
+  };
+}
 
 /** One check, in the shape `ChecksList` (a component file, and so — per
  * `react-refresh/only-export-components` — barred from also exporting plain

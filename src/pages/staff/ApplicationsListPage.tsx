@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Download, Loader2, RotateCcw } from 'lucide-react';
 import { useAuth } from '../../auth/useAuth';
 import { useLanguage, useT } from '../../i18n/useT';
@@ -12,18 +12,134 @@ import { apiError } from '../../api/errors';
 import { downloadCsv, fetchAllPages, toCsv } from '../../lib/csvExport';
 import { useActivityTypes, useApplicationsList, type ApplicationListFilters, type ApplicationOut } from './queries';
 import { formatAmount, formatDate, localizedName, STATUS_LABELS, statusLabel } from './format';
+import { translateTerm } from '../../i18n/terms';
 import { WorklistRow } from './components/WorklistRow';
 
 const REVIEW_PERMISSION = 'applications.review';
 const PAGE_SIZE = 20;
 
-const STATUS_OPTIONS: { value: ApplicationOut['status'] | ''; label: string }[] = [
-  { value: '', label: 'Barchasi' },
-  ...(Object.entries(STATUS_LABELS) as [ApplicationOut['status'], string][]).map(([value, label]) => ({
-    value,
-    label,
-  })),
-];
+const APPLICATIONS_LIST_I18N = {
+  uz_latn: {
+    title: 'Arizalar',
+    subtitle: 'Sizga koʻrish huquqi berilgan arizalar — oʻzingizniki yoki (xodim/rahbar boʻlsangiz) tashkilotingiz zonasi boʻyicha',
+    status: 'Status',
+    activityType: 'Faoliyat turi',
+    appNumber: 'Ariza raqami',
+    periodFrom: 'Davr — dan',
+    periodTo: 'Davr — gacha',
+    all: 'Barchasi',
+    reset: 'Tiklash',
+    apply: 'Qoʻllash',
+    exportCsv: 'CSV eksport',
+    exportTruncated: 'Eksport cheklovi: dastlabki 10 000 ta yozuv yuklandi.',
+    loading: 'Yuklanmoqda...',
+    loadError: 'Arizalar yuklanmadi.',
+    notFoundFiltered: 'Filtr boʻyicha ariza topilmadi.',
+    colNumber: 'Raqam',
+    colStatus: 'Status',
+    colContour: 'Kontur',
+    colPeriod: 'Davr',
+    colArea: 'Maydon, ga',
+    colSla: 'SLA muddati',
+    colAction: 'Amal',
+  },
+  uz_cyrl: {
+    title: 'Аризалар',
+    subtitle: 'Сизга кўриш ҳуқуқи берилган аризалар — ўзингизники ёки (ходим/раҳбар бўлсангиз) ташкилотингиз зонаси бўйича',
+    status: 'Статус',
+    activityType: 'Фаолият тури',
+    appNumber: 'Ариза рақами',
+    periodFrom: 'Давр — дан',
+    periodTo: 'Давр — гача',
+    all: 'Барчаси',
+    reset: 'Тиклаш',
+    apply: 'Қўллаш',
+    exportCsv: 'CSV экспорт',
+    exportTruncated: 'Экспорт чеклови: дастлабки 10 000 та ёзув юкланди.',
+    loading: 'Юкланмоқда...',
+    loadError: 'Аризалар юкланмади.',
+    notFoundFiltered: 'Фильтр бўйича ариза топилмади.',
+    colNumber: 'Рақам',
+    colStatus: 'Статус',
+    colContour: 'Контур',
+    colPeriod: 'Давр',
+    colArea: 'Майдон, га',
+    colSla: 'SLA муддати',
+    colAction: 'Амал',
+  },
+  ru: {
+    title: 'Заявки',
+    subtitle: 'Заявки, доступные вам для просмотра — ваши собственные или (для сотрудников/руководства) по зоне вашей организации',
+    status: 'Статус',
+    activityType: 'Вид деятельности',
+    appNumber: 'Номер заявки',
+    periodFrom: 'Период — с',
+    periodTo: 'Период — по',
+    all: 'Все',
+    reset: 'Сбросить',
+    apply: 'Применить',
+    exportCsv: 'Экспорт CSV',
+    exportTruncated: 'Ограничение экспорта: выгружены первые 10 000 записей.',
+    loading: 'Загрузка...',
+    loadError: 'Не удалось загрузить заявки.',
+    notFoundFiltered: 'По фильтру заявок не найдено.',
+    colNumber: 'Номер',
+    colStatus: 'Статус',
+    colContour: 'Контур',
+    colPeriod: 'Период',
+    colArea: 'Площадь, га',
+    colSla: 'Срок SLA',
+    colAction: 'Действие',
+  },
+  en: {
+    title: 'Applications',
+    subtitle: 'Applications available for you to view — your own or (for staff/head) within your organization zone',
+    status: 'Status',
+    activityType: 'Activity type',
+    appNumber: 'Application number',
+    periodFrom: 'Period — from',
+    periodTo: 'Period — to',
+    all: 'All',
+    reset: 'Reset',
+    apply: 'Apply',
+    exportCsv: 'Export CSV',
+    exportTruncated: 'Export truncated: first 10,000 records downloaded.',
+    loading: 'Loading...',
+    loadError: 'Failed to load applications.',
+    notFoundFiltered: 'No applications found matching the filters.',
+    colNumber: 'Number',
+    colStatus: 'Status',
+    colContour: 'Contour',
+    colPeriod: 'Period',
+    colArea: 'Area, ha',
+    colSla: 'SLA deadline',
+    colAction: 'Action',
+  },
+  kaa: {
+    title: 'Arzalar',
+    subtitle: 'Sizge kóriw huqıqı berilgen arzalar — ózińizdiki yamasa (xızmetker/basshı bolsańız) shólkemińiz zonası boyınsha',
+    status: 'Status',
+    activityType: 'Xızmet túri',
+    appNumber: 'Arza nómeri',
+    periodFrom: 'Dáwir — baslap',
+    periodTo: 'Dáwir — deyin',
+    all: 'Barlıǵı',
+    reset: 'Qayta tiklew',
+    apply: 'Qollaw',
+    exportCsv: 'CSV eksport',
+    exportTruncated: 'Eksport sheklewi: dáslepki 10 000 jazba júklendi.',
+    loading: 'Júklenbekte...',
+    loadError: 'Arzalar júklenbedi.',
+    notFoundFiltered: 'Filtr boyınsha arza tabılmadı.',
+    colNumber: 'Nómer',
+    colStatus: 'Status',
+    colContour: 'Kontur',
+    colPeriod: 'Dáwir',
+    colArea: 'Maydan, ga',
+    colSla: 'SLA múddeti',
+    colAction: 'Hreket',
+  },
+};
 
 interface FilterFormState {
   status: ApplicationOut['status'] | '';
@@ -41,28 +157,37 @@ const EMPTY_FILTERS: FilterFormState = {
   period_to: '',
 };
 
-/**
- * B6/D1's worklist (`docs/plans/06-frontend-screens.md`) — `GET
- * /applications` with exactly the filters that route accepts
- * (`status`, `activity_type_id`, `number`, `period_from`, `period_to`, plus
- * paging). `contour_id`/`applicant_id` are real query parameters too, but
- * dropped here: nothing resolves either to a name a staff member could
- * search by, and a raw-UUID text box is not a filter worth shipping. Region,
- * SLA-bucket and preset chips from `.reference`'s own `WorklistFiltersPanel`
- * are dropped for the same reason the task brief asks for — the API has no
- * such parameters, and zone scoping already narrows the list to this
- * caller's own organisation server-side.
- */
 export function ApplicationsListPage() {
   const { me } = useAuth();
   const t = useT();
   const { lang } = useLanguage();
+  const lt = APPLICATIONS_LIST_I18N[lang as keyof typeof APPLICATIONS_LIST_I18N] || APPLICATIONS_LIST_I18N.uz_latn;
   const errorText = useApiErrorText();
   const [filters, setFilters] = useState(EMPTY_FILTERS);
   const [appliedFilters, setAppliedFilters] = useState(EMPTY_FILTERS);
   const [page, setPage] = useState(1);
   const [exporting, setExporting] = useState(false);
   const [exportTruncated, setExportTruncated] = useState(false);
+
+  // Auto-apply text/date filters with debounce
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setAppliedFilters(filters);
+    }, 400);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filters.number, filters.period_from, filters.period_to]);
+
+  const statusOptions = useMemo(
+    () => [
+      { value: '' as ApplicationOut['status'] | '', label: lt.all },
+      ...(Object.keys(STATUS_LABELS) as ApplicationOut['status'][]).map((value) => ({
+        value,
+        label: statusLabel(value, lang),
+      })),
+    ],
+    [lt.all, lang],
+  );
 
   const queryFilters: ApplicationListFilters = {
     status: appliedFilters.status || undefined,
@@ -92,15 +217,6 @@ export function ApplicationsListPage() {
 
   const totalPages = list.data ? Math.max(1, Math.ceil(list.data.total / PAGE_SIZE)) : 1;
 
-  /**
-   * I1 — the read-only register's export half (`docs/plans/06-frontend-
-   * screens.md`). Client-side only: no export ROUTE exists for this list,
-   * so this re-fetches every page matching the CURRENTLY APPLIED filters
-   * (never the on-screen page alone) at the server's own 100-row ceiling,
-   * bounded at 2000 rows total (`fetchAllPages`'s own comment) — wide
-   * enough for today's registers, with a visible warning rather than a
-   * silent truncation if that bound is ever actually hit.
-   */
   async function exportCsv() {
     setExporting(true);
     setExportTruncated(false);
@@ -114,7 +230,7 @@ export function ApplicationsListPage() {
       });
       const csv = toCsv(rows, [
         { header: 'number', value: (r) => r.number ?? r.id },
-        { header: 'status', value: (r) => statusLabel(r.status) },
+        { header: 'status', value: (r) => statusLabel(r.status, lang) },
         { header: 'contour_id', value: (r) => r.contour_id ?? '' },
         { header: 'period_from', value: (r) => formatDate(r.period_from) },
         { header: 'period_to', value: (r) => formatDate(r.period_to) },
@@ -131,49 +247,75 @@ export function ApplicationsListPage() {
   return (
     <div className="space-y-6" data-testid="applications-page">
       <div>
-        <h1 className="text-lg md:text-xl font-bold text-[#1A1F24] tracking-tight">Arizalar</h1>
+        <h1 className="text-lg md:text-xl font-bold text-[#1A1F24] tracking-tight">{lt.title}</h1>
         <p className="text-xs md:text-sm text-[#5A646D] mt-1">
-          Sizga koʻrish huquqi berilgan arizalar — oʻzingizniki yoki (xodim/rahbar boʻlsangiz) tashkilotingiz zonasi
-          boʻyicha
+          {lt.subtitle}
         </p>
       </div>
 
-      <div className="bg-white border border-[#E4E7EA] rounded-2xl p-5 shadow-xs space-y-3">
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          applyFilters();
+        }}
+        className="bg-white border border-[#E4E7EA] rounded-2xl p-5 shadow-xs space-y-3"
+      >
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 items-end">
-          <FormField label="Status">
+          <FormField label={lt.status}>
             <Select
               value={filters.status}
-              onChange={(e) =>
-                setFilters((f) => ({ ...f, status: e.target.value as FilterFormState['status'] }))
-              }
-              options={STATUS_OPTIONS}
+              onChange={(e) => {
+                const newStatus = e.target.value as FilterFormState['status'];
+                setFilters((f) => ({ ...f, status: newStatus }));
+                setAppliedFilters((af) => ({ ...af, status: newStatus }));
+                setPage(1);
+              }}
+              options={statusOptions}
             />
           </FormField>
-          <FormField label="Faoliyat turi">
+          <FormField label={lt.activityType}>
             <Select
               value={filters.activity_type_id}
-              onChange={(e) => setFilters((f) => ({ ...f, activity_type_id: e.target.value }))}
+              onChange={(e) => {
+                const newId = e.target.value;
+                setFilters((f) => ({ ...f, activity_type_id: newId }));
+                setAppliedFilters((af) => ({ ...af, activity_type_id: newId }));
+                setPage(1);
+              }}
               options={[
-                { value: '', label: 'Barchasi' },
-                ...(activityTypes.data ?? []).map((a) => ({ value: a.id, label: localizedName(a.name, lang) || a.code })),
+                { value: '', label: lt.all },
+                ...(activityTypes.data ?? []).map((a) => {
+                  const rawName = localizedName(a.name, lang);
+                  const translated = translateTerm(rawName, lang);
+                  const byCode = translateTerm(a.code, lang);
+                  const label =
+                    (a.name && typeof a.name[lang] === 'string' && (a.name[lang] as string).trim())
+                      ? (a.name[lang] as string)
+                      : (translated && translated !== rawName)
+                      ? translated
+                      : (byCode && byCode !== a.code)
+                      ? byCode
+                      : rawName || a.code;
+                  return { value: a.id, label };
+                }),
               ]}
             />
           </FormField>
-          <FormField label="Ariza raqami">
+          <FormField label={lt.appNumber}>
             <Input
               value={filters.number}
               onChange={(e) => setFilters((f) => ({ ...f, number: e.target.value }))}
               placeholder="RX-2026-000123"
             />
           </FormField>
-          <FormField label="Davr — dan">
+          <FormField label={lt.periodFrom}>
             <Input
               type="date"
               value={filters.period_from}
               onChange={(e) => setFilters((f) => ({ ...f, period_from: e.target.value }))}
             />
           </FormField>
-          <FormField label="Davr — gacha">
+          <FormField label={lt.periodTo}>
             <Input
               type="date"
               value={filters.period_to}
@@ -183,6 +325,7 @@ export function ApplicationsListPage() {
         </div>
         <div className="flex justify-end gap-2">
           <Button
+            type="button"
             variant="outline"
             size="sm"
             leftIcon={<Download className="w-3.5 h-3.5" />}
@@ -191,14 +334,14 @@ export function ApplicationsListPage() {
           >
             {t('prosecutor.exportCsv')}
           </Button>
-          <Button variant="outline" size="sm" leftIcon={<RotateCcw className="w-3.5 h-3.5" />} onClick={resetFilters}>
-            Tiklash
+          <Button type="button" variant="outline" size="sm" leftIcon={<RotateCcw className="w-3.5 h-3.5" />} onClick={resetFilters}>
+            {lt.reset}
           </Button>
-          <Button variant="primary" size="sm" onClick={applyFilters}>
-            Qoʻllash
+          <Button type="submit" variant="primary" size="sm" onClick={applyFilters}>
+            {lt.apply}
           </Button>
         </div>
-      </div>
+      </form>
 
       {exportTruncated && (
         <div className="p-3 bg-[#FFFBEB] border border-[#FDE68A] rounded-xl text-xs text-[#92400E]" role="alert">
@@ -208,7 +351,7 @@ export function ApplicationsListPage() {
 
       {list.error && (
         <div className="p-4 bg-[#FEF2F2] border border-[#FCA5A5] rounded-2xl text-sm text-[#991B1B]" role="alert">
-          {list.error instanceof ApiError ? errorText(list.error) : 'Arizalar yuklanmadi.'}
+          {list.error instanceof ApiError ? errorText(list.error) : lt.loadError}
         </div>
       )}
 
@@ -217,26 +360,26 @@ export function ApplicationsListPage() {
           <table className="w-full text-left text-xs border-collapse min-w-[900px]">
             <thead>
               <tr className="bg-[#F8F9FA] border-b border-[#E4E7EA] text-[#5A646D] uppercase font-bold text-[11px]">
-                <th className="p-3">Raqam</th>
-                <th className="p-3">Status</th>
-                <th className="p-3">Kontur</th>
-                <th className="p-3">Davr</th>
-                <th className="p-3 text-right">Maydon, ga</th>
-                <th className="p-3">SLA muddati</th>
-                <th className="p-3 text-right">Amal</th>
+                <th className="p-3">{lt.colNumber}</th>
+                <th className="p-3">{lt.colStatus}</th>
+                <th className="p-3">{lt.colContour}</th>
+                <th className="p-3">{lt.colPeriod}</th>
+                <th className="p-3 text-right">{lt.colArea}</th>
+                <th className="p-3">{lt.colSla}</th>
+                <th className="p-3 text-right">{lt.colAction}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[#E4E7EA]">
               {list.isLoading ? (
                 <tr>
                   <td colSpan={7} className="py-12 text-center text-[#5A646D]">
-                    <Loader2 className="w-5 h-5 animate-spin inline-block mr-2" /> Yuklanmoqda...
+                    <Loader2 className="w-5 h-5 animate-spin inline-block mr-2" /> {lt.loading}
                   </td>
                 </tr>
               ) : (list.data?.items.length ?? 0) === 0 ? (
                 <tr>
                   <td colSpan={7} className="py-12 text-center text-[#5A646D]">
-                    Filtr boʻyicha ariza topilmadi.
+                    {lt.notFoundFiltered}
                   </td>
                 </tr>
               ) : (

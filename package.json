@@ -13,7 +13,7 @@
     "preview": "vite preview",
     "api:types": "bash scripts/gen-types.sh",
     "typecheck": "tsc -b",
-    "test": "NODE_OPTIONS=--no-experimental-webstorage vitest run",
+    "test": "node --no-experimental-webstorage ./node_modules/vitest/vitest.mjs run",
     "check": "npm run lint && npm run typecheck && npm run test",
     "check:bundle": "bash scripts/check-bundle.sh dist"
   },

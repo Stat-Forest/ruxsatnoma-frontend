@@ -7,7 +7,7 @@ import { FormField, Input } from '../../components/ui/FormControls';
 import { ApiError } from '../../api/errors';
 import { useApiErrorText } from '../../i18n/useApiErrorText';
 import { formatDate, formatDecimal, formatPermitNumber, shortId } from './format';
-import { PERMIT_STATUS_LABEL, PERMIT_STATUS_STYLE } from '../permits/statusMeta';
+import { PERMIT_STATUS_STYLE, getPermitStatusLabel } from '../permits/statusMeta';
 import { parseQrInput } from './qr';
 import {
   useActivityTypeName,
@@ -230,7 +230,7 @@ function AuthenticatedPermitResult({ permit, t }: { permit: PermitOut; t: (key: 
             PERMIT_STATUS_STYLE[permit.status] ?? PERMIT_STATUS_STYLE.pending_signatures
           }`}
         >
-          {PERMIT_STATUS_LABEL[permit.status] ?? permit.status}
+          {getPermitStatusLabel(permit.status, lang)}
         </span>
       </div>
       <dl>

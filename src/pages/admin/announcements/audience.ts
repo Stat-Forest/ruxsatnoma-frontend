@@ -22,7 +22,7 @@ export function describeAudience(
   audience: AnnouncementAdminOut['audience'],
   roles: RoleAdminOut[],
   regions: RegionOut[],
-  lang: 'uz_latn' | 'ru',
+  lang: string = 'uz_latn',
 ): AudienceSummary {
   const { roleCodes, regionIds } = readAudience(audience);
   // An unresolved code is shown raw rather than dropped: an audience the

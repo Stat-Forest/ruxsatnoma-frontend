@@ -55,7 +55,7 @@ function mockList(settings: unknown[] = SETTINGS) {
   server.use(http.get('*/api/v1/admin/settings', () => HttpResponse.json(settings)));
 }
 
-function renderPage(lang: 'uz_latn' | 'ru' = 'uz_latn') {
+function renderPage(lang: 'uz_latn' | 'uz_cyrl' | 'ru' | 'en' | 'kaa' = 'uz_latn') {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
   const i18n = { lang, backendLang: lang, t: (key: string) => key, setLanguage: async () => {} };
   return render(
@@ -250,7 +250,7 @@ test('a failed load says so instead of showing an empty list', async () => {
   expect(await screen.findByTestId('settings-error')).toBeInTheDocument();
 });
 
-test.each(['uz_latn', 'ru'] as const)('the copy is complete in %s', async (lang) => {
+test.each(['uz_latn', 'uz_cyrl', 'ru', 'en', 'kaa'] as const)('the copy is complete in %s', async (lang) => {
   mockList();
   renderPage(lang);
 
@@ -258,4 +258,6 @@ test.each(['uz_latn', 'ru'] as const)('the copy is complete in %s', async (lang)
   const expected = LABELS[lang];
   expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(expected.title);
   expect(screen.getByTestId(`setting-save-${BOOL_KEY}`)).toHaveTextContent(expected.save);
+  expect(within(await row(BOOL_KEY)).getByText(expected.overridden)).toBeInTheDocument();
+  expect(within(await row(STRING_KEY)).getByText(expected.atDefault)).toBeInTheDocument();
 });

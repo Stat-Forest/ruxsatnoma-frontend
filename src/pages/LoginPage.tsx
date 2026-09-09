@@ -171,6 +171,8 @@ export function LoginPage() {
               onClick={() => {
                 setMethod(m);
                 setErrorKind(null);
+                setStep('password');
+                setCode('');
                 // Also cleared here, not just on submit: a stale "PINFL must
                 // be 14 digits" alert must not survive a trip to another tab
                 // and back for a form that was never resubmitted.
@@ -336,6 +338,20 @@ export function LoginPage() {
               </FormField>
               <Button type="submit" variant="primary" fullWidth size="touch" isLoading={submitting}>
                 {t('login.submitCode')}
+              </Button>
+              <Button
+                type="button"
+                variant="secondary"
+                fullWidth
+                size="touch"
+                disabled={submitting}
+                onClick={() => {
+                  setStep('password');
+                  setCode('');
+                  setErrorKind(null);
+                }}
+              >
+                {t('login.back')}
               </Button>
             </form>
           ))}

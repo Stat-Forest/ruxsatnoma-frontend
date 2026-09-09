@@ -59,7 +59,7 @@ export function ChangePasswordForm({ onChanged }: { onChanged: () => void }) {
   };
 
   return (
-    <form onSubmit={submit} className="space-y-4" noValidate>
+    <form onSubmit={submit} className="space-y-4 w-full" noValidate>
       <FormField label={t.oldPassword} required>
         <Input
           data-testid="old-password"
@@ -95,7 +95,7 @@ export function ChangePasswordForm({ onChanged }: { onChanged: () => void }) {
           typing is one they do not have to discover by failing. */}
       <div className="rounded-xl bg-[#F8F9FA] border border-[#E4E7EA] px-4 py-3">
         <p className="text-xs font-semibold text-[#5A646D] mb-2">{t.requirements}</p>
-        <ul className="space-y-1">
+        <ul className="space-y-1.5 sm:space-y-1">
           {ALL_RULES.map((rule) => {
             const failed = failures.includes(rule);
             const show = submitted || newPassword.length > 0;
@@ -103,18 +103,22 @@ export function ChangePasswordForm({ onChanged }: { onChanged: () => void }) {
               <li
                 key={rule}
                 data-testid={failed && submitted ? `policy-${rule}` : undefined}
-                className={`flex items-center gap-2 text-xs ${
-                  !show ? 'text-[#767F87]' : failed ? 'text-[#B91C1C]' : 'text-[#15803D]'
+                className={`flex items-center gap-2 text-xs transition-colors ${
+                  !show
+                    ? 'text-[#767F87]'
+                    : failed
+                    ? 'text-[#B91C1C]'
+                    : 'text-[#15803D] font-medium'
                 }`}
               >
                 {show && !failed ? (
-                  <Check className="w-3.5 h-3.5 shrink-0" />
+                  <Check className="w-3.5 h-3.5 text-[#15803D] shrink-0" />
                 ) : show ? (
-                  <X className="w-3.5 h-3.5 shrink-0" />
+                  <X className="w-3.5 h-3.5 text-[#B91C1C] shrink-0" />
                 ) : (
-                  <span className="w-3.5 h-3.5 shrink-0" />
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#9AA2A9] shrink-0 mx-1" />
                 )}
-                {t[RULE_LABEL[rule]]}
+                <span>{t[RULE_LABEL[rule]]}</span>
               </li>
             );
           })}
@@ -133,7 +137,12 @@ export function ChangePasswordForm({ onChanged }: { onChanged: () => void }) {
         </div>
       ) : null}
 
-      <Button type="submit" data-testid="submit" disabled={mutation.isPending} className="w-full">
+      <Button
+        type="submit"
+        data-testid="submit"
+        disabled={mutation.isPending}
+        className="w-full h-11 sm:h-10 text-sm font-semibold cursor-pointer"
+      >
         {mutation.isPending ? t.saving : t.submit}
       </Button>
     </form>

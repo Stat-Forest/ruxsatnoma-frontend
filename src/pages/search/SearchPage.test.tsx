@@ -9,7 +9,7 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router';
 import { http, HttpResponse } from 'msw';
 import { setupServer } from 'msw/node';
-import { I18nContext } from '../../i18n/context';
+import { DICTIONARIES, I18nContext, type UiLanguage } from '../../i18n/context';
 import { SearchPage } from './SearchPage';
 import type { ExportJobOut, SavedFilterOut, SearchResultOut } from './api';
 
@@ -23,7 +23,7 @@ function applicationResult(overrides: Partial<SearchResultOut> = {}): SearchResu
     id: 'a1000000-0000-4000-8000-000000000001',
     number: 'APP-00000001',
     status: 'SUBMITTED',
-    organization_id: null,
+    organization_id: 'org-10000000-0000-4000-8000-000000000001',
     applicant_name: 'Тестов Тест',
     created_at: '2026-09-01T10:00:00+05:00',
     ...overrides,
@@ -81,9 +81,14 @@ beforeAll(() => server.listen({ onUnhandledRequest: 'error' }));
 afterEach(() => server.resetHandlers());
 afterAll(() => server.close());
 
-function renderSearchPage() {
+function renderSearchPage(lang: UiLanguage = 'uz_latn', useDict: boolean = false) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
-  const i18n = { lang: 'uz_latn' as const, backendLang: 'uz_latn' as const, t: (key: string) => key, setLanguage: async () => {} };
+  const i18n = {
+    lang,
+    backendLang: lang,
+    t: (key: string) => (useDict ? (DICTIONARIES[lang] as Record<string, string>)[key] ?? key : key),
+    setLanguage: async () => {},
+  };
   return render(
     <MemoryRouter>
       <QueryClientProvider client={client}>
@@ -111,6 +116,58 @@ test('renders application results with a link to the application card', async ()
 
   const link = await screen.findByText('APP-00000001');
   expect(link.closest('a')).toHaveAttribute('href', '/applications/a1000000-0000-4000-8000-000000000001');
+});
+
+test('a draft application without organization opens detail drawer instead of navigating', async () => {
+  server.use(
+    http.get('*/api/v1/search', () =>
+      HttpResponse.json(page([applicationResult({ status: 'DRAFT', organization_id: null })])),
+    ),
+    http.get('*/api/v1/search/profiles', () => HttpResponse.json([])),
+    http.get('*/api/v1/refs/organizations', () => HttpResponse.json(page([]))),
+    http.get('*/api/v1/refs/activity-types', () => HttpResponse.json([])),
+    http.get('*/api/v1/search/exports', () => HttpResponse.json([])),
+  );
+
+  const user = userEvent.setup();
+  renderSearchPage();
+
+  const button = await screen.findByText('APP-00000001');
+  expect(button.closest('a')).toBeNull();
+  await user.click(button);
+
+  expect(await screen.findByText('search.detail.title')).toBeInTheDocument();
+  expect(screen.getByText('search.detail.noOrgDraftNotice')).toBeInTheDocument();
+  expect(screen.getByText('search.detail.noOrg')).toBeInTheDocument();
+  expect(screen.queryByText('search.detail.openCard')).not.toBeInTheDocument();
+
+  await user.click(screen.getByText('search.detail.close'));
+  await waitFor(() => expect(screen.queryByTestId('search-detail-drawer')).not.toBeInTheDocument());
+});
+
+test('opening a non-draft application with no organization opens drawer without 404 or errors', async () => {
+  server.use(
+    http.get('*/api/v1/search', () =>
+      HttpResponse.json(page([applicationResult({ status: 'SUBMITTED', organization_id: null })])),
+    ),
+    http.get('*/api/v1/search/profiles', () => HttpResponse.json([])),
+    http.get('*/api/v1/refs/organizations', () => HttpResponse.json(page([]))),
+    http.get('*/api/v1/refs/activity-types', () => HttpResponse.json([])),
+    http.get('*/api/v1/search/exports', () => HttpResponse.json([])),
+  );
+
+  const user = userEvent.setup();
+  renderSearchPage();
+
+  const button = await screen.findByText('APP-00000001');
+  expect(button.closest('a')).toBeNull();
+  await user.click(button);
+
+  expect(await screen.findByText('search.detail.title')).toBeInTheDocument();
+  const drawer = screen.getByTestId('search-detail-drawer');
+  expect(within(drawer).getByText('search.detail.noOrgDraftNotice')).toBeInTheDocument();
+  expect(within(drawer).getByText('search.detail.noOrg')).toBeInTheDocument();
+  expect(within(drawer).getByText('Тестов Тест')).toBeInTheDocument();
 });
 
 test('a permit result shows the printed number exactly as the backend sends it, unreformatted', async () => {
@@ -314,3 +371,41 @@ test('re-downloading a past export fetches the stored file again, not a fresh re
 
   await waitFor(() => expect(fetchedFileFor).toBe(exportJob().id));
 });
+
+test('all 5 languages have complete search translations in DICTIONARIES', () => {
+  const languages: UiLanguage[] = ['uz_latn', 'ru', 'uz_cyrl', 'en', 'kaa'];
+  const searchKeys = Object.keys(DICTIONARIES.uz_latn).filter((k) => k.startsWith('search.'));
+  expect(searchKeys.length).toBeGreaterThanOrEqual(35);
+
+  for (const lang of languages) {
+    const dict = DICTIONARIES[lang] as Record<string, string>;
+    for (const key of searchKeys) {
+      expect(dict[key], `Missing ${key} in ${lang}`).toBeDefined();
+      expect(dict[key].length, `Empty ${key} in ${lang}`).toBeGreaterThan(0);
+    }
+  }
+});
+
+test.each([
+  'uz_latn',
+  'ru',
+  'uz_cyrl',
+  'en',
+  'kaa',
+] as const)('renders search page in %s with localized tabs and headers', async (lang) => {
+  server.use(
+    http.get('*/api/v1/search', () => HttpResponse.json(page([]))),
+    http.get('*/api/v1/search/profiles', () => HttpResponse.json([])),
+    http.get('*/api/v1/refs/organizations', () => HttpResponse.json(page([]))),
+    http.get('*/api/v1/refs/activity-types', () => HttpResponse.json([])),
+    http.get('*/api/v1/search/exports', () => HttpResponse.json([])),
+  );
+
+  renderSearchPage(lang, true);
+
+  const dict = DICTIONARIES[lang] as Record<string, string>;
+  expect(await screen.findByRole('heading', { level: 1, name: dict['search.title'] })).toBeInTheDocument();
+  expect(screen.getByTestId('search-kind-applications')).toHaveTextContent(dict['search.kindApplications']);
+  expect(screen.getByTestId('search-kind-permits')).toHaveTextContent(dict['search.kindPermits']);
+});
+

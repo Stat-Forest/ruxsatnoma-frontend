@@ -105,7 +105,7 @@ function OrganizationRow({ node, collapsed, labels, lang, onToggle, onEdit, onAr
         <div className="mt-0.5 flex flex-wrap items-center gap-x-2 text-[11px] text-[#5A646D]">
           <span className="font-mono">{org.code}</span>
           <span aria-hidden="true">·</span>
-          <span>{org.stir ? `STIR ${org.stir}` : labels['tree.noStir']}</span>
+          <span>{org.stir ? `${labels['form.stir']} ${org.stir}` : labels['tree.noStir']}</span>
         </div>
       </div>
 

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Download, Loader2, RotateCcw } from 'lucide-react';
 import { Button } from '../../components/ui/button';
 import { FormField, Input, Select } from '../../components/ui/FormControls';
@@ -12,16 +12,134 @@ import { downloadCsv, fetchAllPages, toCsv } from '../../lib/csvExport';
 import { toPermitsQuery, usePermitsList, type PermitListFilters, type PermitOut, type PermitStatus } from './queries';
 import { useLeshozOrganizations } from './useRefsLookup';
 import { formatDate, formatMoney, formatPermitNumber, pickLocalizedName } from './format';
-import { PERMIT_STATUS_LABEL } from './statusMeta';
+import { PERMIT_STATUS_LABEL, getPermitStatusLabel } from './statusMeta';
 import { PermitRow } from './components/PermitRow';
 import { PermitCard } from './components/PermitCard';
 
 const PAGE_SIZE = 20;
 
-const STATUS_OPTIONS: { value: PermitStatus | ''; label: string }[] = [
-  { value: '', label: 'Barchasi' },
-  ...(Object.entries(PERMIT_STATUS_LABEL) as [PermitStatus, string][]).map(([value, label]) => ({ value, label })),
-];
+const PERMITS_LIST_I18N = {
+  uz_latn: {
+    staffTitle: 'Ruxsatnomalar reyestri',
+    applicantTitle: 'Mening ruxsatnomalarim',
+    staffSubtitle: 'Sizga koʻrish huquqi berilgan zonada berilgan barcha elektron ruxsatnomalar',
+    applicantSubtitle: 'Sizga berilgan elektron ruxsatnomalar roʻyxati',
+    status: 'Status',
+    series: 'Seriya',
+    number: 'Raqami',
+    organization: 'Oʻrmon xoʻjaligi',
+    all: 'Barchasi',
+    reset: 'Tiklash',
+    apply: 'Qoʻllash',
+    loading: 'Yuklanmoqda...',
+    loadError: 'Ruxsatnomalar yuklanmadi.',
+    notFoundFiltered: 'Filtr boʻyicha ruxsatnoma topilmadi.',
+    noPermitsApplicant: 'Hozircha ruxsatnomalar yoʻq.',
+    colPermitNo: 'Ruxsatnoma №',
+    colStatus: 'Holati',
+    colActivity: 'Faoliyat turi',
+    colOrg: 'Oʻrmon xoʻjaligi',
+    colPeriod: 'Davr',
+    colArea: 'Maydon, ga',
+    colAction: 'Amal',
+  },
+  uz_cyrl: {
+    staffTitle: 'Рухсатномалар реестри',
+    applicantTitle: 'Менинг рухсатномаларим',
+    staffSubtitle: 'Сизга кўриш ҳуқуқи берилган зонада берилган барча электрон рухсатномалар',
+    applicantSubtitle: 'Сизга берилган электрон рухсатномалар рўйхати',
+    status: 'Статус',
+    series: 'Серия',
+    number: 'Рақами',
+    organization: 'Ўрмон хўжалиги',
+    all: 'Барчаси',
+    reset: 'Тиклаш',
+    apply: 'Қўллаш',
+    loading: 'Юкланмоқда...',
+    loadError: 'Рухсатномалар юкланмади.',
+    notFoundFiltered: 'Фильтр бўйича рухсатнома топилмади.',
+    noPermitsApplicant: 'Ҳозирча рухсатномалар йўқ.',
+    colPermitNo: 'Рухсатнома №',
+    colStatus: 'Ҳолати',
+    colActivity: 'Фаолият тури',
+    colOrg: 'Ўрмон хўжалиги',
+    colPeriod: 'Давр',
+    colArea: 'Майдон, га',
+    colAction: 'Амал',
+  },
+  ru: {
+    staffTitle: 'Реестр разрешений',
+    applicantTitle: 'Мои разрешения',
+    staffSubtitle: 'Все электронные разрешения, выданные в доступной вам зоне',
+    applicantSubtitle: 'Список выданных вам электронных разрешений',
+    status: 'Статус',
+    series: 'Серия',
+    number: 'Номер',
+    organization: 'Лесхоз',
+    all: 'Все',
+    reset: 'Сбросить',
+    apply: 'Применить',
+    loading: 'Загрузка...',
+    loadError: 'Не удалось загрузить разрешения.',
+    notFoundFiltered: 'По фильтру разрешений не найдено.',
+    noPermitsApplicant: 'Разрешений пока нет.',
+    colPermitNo: 'Разрешение №',
+    colStatus: 'Статус',
+    colActivity: 'Вид деятельности',
+    colOrg: 'Лесхоз',
+    colPeriod: 'Период',
+    colArea: 'Площадь, га',
+    colAction: 'Действие',
+  },
+  en: {
+    staffTitle: 'Permits registry',
+    applicantTitle: 'My permits',
+    staffSubtitle: 'All electronic permits issued in your authorized zone',
+    applicantSubtitle: 'List of electronic permits issued to you',
+    status: 'Status',
+    series: 'Series',
+    number: 'Number',
+    organization: 'Forestry',
+    all: 'All',
+    reset: 'Reset',
+    apply: 'Apply',
+    loading: 'Loading...',
+    loadError: 'Failed to load permits.',
+    notFoundFiltered: 'No permits found matching the filters.',
+    noPermitsApplicant: 'No permits yet.',
+    colPermitNo: 'Permit №',
+    colStatus: 'Status',
+    colActivity: 'Activity type',
+    colOrg: 'Forestry',
+    colPeriod: 'Period',
+    colArea: 'Area, ha',
+    colAction: 'Action',
+  },
+  kaa: {
+    staffTitle: 'Ruxsatnamalar reyestri',
+    applicantTitle: 'Meniń ruxsatnamalarım',
+    staffSubtitle: 'Sizge kóriw huqıqı berilgen zonada berilgen barlıq elektron ruxsatnamalar',
+    applicantSubtitle: 'Sizge berilgen elektron ruxsatnamalar dizimi',
+    status: 'Status',
+    series: 'Seriya',
+    number: 'Nómeri',
+    organization: 'Tokaý xojalıǵı',
+    all: 'Barlıǵı',
+    reset: 'Qayta tiklew',
+    apply: 'Qollaw',
+    loading: 'Júklenbekte...',
+    loadError: 'Ruxsatnamalar júklenbedi.',
+    notFoundFiltered: 'Filtr boyınsha ruxsatnama tabılmadı.',
+    noPermitsApplicant: 'Házirshe ruxsatnamalar joq.',
+    colPermitNo: 'Ruxsatnama №',
+    colStatus: 'Jaǵdayı',
+    colActivity: 'Xızmet túri',
+    colOrg: 'Tokaý xojalıǵı',
+    colPeriod: 'Dáwir',
+    colArea: 'Maydan, ga',
+    colAction: 'Hreket',
+  },
+};
 
 interface FilterFormState {
   status: PermitStatus | '';
@@ -41,15 +159,11 @@ const EMPTY_FILTERS: FilterFormState = { status: '', series: '', number: '', org
  * hard-coded mock rows. `MyPermitsPage`/`PermitsPage` are thin wrappers
  * around this one component so the two tracks never re-implement the same
  * list twice.
- *
- * No `organization_id` filter for the applicant: `list_permits` already
- * scopes their view to their own permits server-side
- * (`auth_service.own_applicant_ids`), so a leshoz picker there would filter
- * a list that is already theirs alone.
  */
 export function PermitsListPage({ variant }: { variant: 'staff' | 'applicant' }) {
   const { lang } = useLanguage();
   const t = useT();
+  const lt = PERMITS_LIST_I18N[lang as keyof typeof PERMITS_LIST_I18N] || PERMITS_LIST_I18N.uz_latn;
   const errorText = useApiErrorText();
   const isStaff = variant === 'staff';
   const [filters, setFilters] = useState(EMPTY_FILTERS);
@@ -57,6 +171,26 @@ export function PermitsListPage({ variant }: { variant: 'staff' | 'applicant' })
   const [page, setPage] = useState(1);
   const [exporting, setExporting] = useState(false);
   const [exportTruncated, setExportTruncated] = useState(false);
+
+  // Auto-apply text filters with debounce so typing immediately filters
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setAppliedFilters(filters);
+    }, 400);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filters.series, filters.number]);
+
+  const statusOptions = useMemo(
+    () => [
+      { value: '' as PermitStatus | '', label: lt.all },
+      ...(Object.keys(PERMIT_STATUS_LABEL) as PermitStatus[]).map((value) => ({
+        value,
+        label: getPermitStatusLabel(value, lang),
+      })),
+    ],
+    [lt.all, lang],
+  );
 
   const queryFilters: PermitListFilters = {
     status: appliedFilters.status || undefined,
@@ -81,10 +215,6 @@ export function PermitsListPage({ variant }: { variant: 'staff' | 'applicant' })
     setPage(1);
   }
 
-  /** I1's export half — see `ApplicationsListPage.tsx::exportCsv`'s own
-   *  comment for the shared reasoning (client-side, bounded, warns on
-   *  truncation rather than truncating silently). Staff registry only: the
-   *  applicant's own "My permits" is not a register anyone exports. */
   async function exportCsv() {
     setExporting(true);
     setExportTruncated(false);
@@ -98,7 +228,7 @@ export function PermitsListPage({ variant }: { variant: 'staff' | 'applicant' })
       });
       const csv = toCsv(rows, [
         { header: 'number', value: (r) => formatPermitNumber(r.series, r.number) },
-        { header: 'status', value: (r) => PERMIT_STATUS_LABEL[r.status] ?? r.status },
+        { header: 'status', value: (r) => getPermitStatusLabel(r.status, lang) },
         { header: 'organization_id', value: (r) => r.organization_id },
         { header: 'period_from', value: (r) => formatDate(r.period_from) },
         { header: 'period_to', value: (r) => formatDate(r.period_to) },
@@ -118,25 +248,34 @@ export function PermitsListPage({ variant }: { variant: 'staff' | 'applicant' })
     <div className="space-y-6 font-sans pb-16" data-testid={isStaff ? 'permits-page' : 'my-permits-page'}>
       <div className="border-b border-[#E4E7EA] pb-4">
         <h1 className="text-lg md:text-xl font-bold text-[#1A1F24] tracking-tight">
-          {isStaff ? 'Ruxsatnomalar reyestri' : 'Mening ruxsatnomalarim'}
+          {isStaff ? lt.staffTitle : lt.applicantTitle}
         </h1>
         <p className="text-xs md:text-sm text-[#5A646D] mt-1">
-          {isStaff
-            ? 'Sizga koʻrish huquqi berilgan zonada berilgan barcha elektron ruxsatnomalar'
-            : 'Sizga berilgan elektron ruxsatnomalar roʻyxati'}
+          {isStaff ? lt.staffSubtitle : lt.applicantSubtitle}
         </p>
       </div>
 
-      <div className="bg-white border border-[#E4E7EA] rounded-2xl p-5 shadow-xs space-y-3">
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          applyFilters();
+        }}
+        className="bg-white border border-[#E4E7EA] rounded-2xl p-5 shadow-xs space-y-3"
+      >
         <div className={`grid grid-cols-1 sm:grid-cols-2 gap-3 items-end ${isStaff ? 'lg:grid-cols-4' : 'lg:grid-cols-3'}`}>
-          <FormField label="Status">
+          <FormField label={lt.status}>
             <Select
               value={filters.status}
-              onChange={(e) => setFilters((f) => ({ ...f, status: e.target.value as FilterFormState['status'] }))}
-              options={STATUS_OPTIONS}
+              onChange={(e) => {
+                const newStatus = e.target.value as FilterFormState['status'];
+                setFilters((f) => ({ ...f, status: newStatus }));
+                setAppliedFilters((af) => ({ ...af, status: newStatus }));
+                setPage(1);
+              }}
+              options={statusOptions}
             />
           </FormField>
-          <FormField label="Seriya">
+          <FormField label={lt.series}>
             <Input
               value={filters.series}
               onChange={(e) => setFilters((f) => ({ ...f, series: e.target.value }))}
@@ -144,7 +283,7 @@ export function PermitsListPage({ variant }: { variant: 'staff' | 'applicant' })
               maxLength={8}
             />
           </FormField>
-          <FormField label="Raqami">
+          <FormField label={lt.number}>
             <Input
               value={filters.number}
               onChange={(e) => setFilters((f) => ({ ...f, number: e.target.value.replace(/\D/g, '') }))}
@@ -153,12 +292,17 @@ export function PermitsListPage({ variant }: { variant: 'staff' | 'applicant' })
             />
           </FormField>
           {isStaff && (
-            <FormField label="Oʻrmon xoʻjaligi">
+            <FormField label={lt.organization}>
               <Select
                 value={filters.organization_id}
-                onChange={(e) => setFilters((f) => ({ ...f, organization_id: e.target.value }))}
+                onChange={(e) => {
+                  const newOrg = e.target.value;
+                  setFilters((f) => ({ ...f, organization_id: newOrg }));
+                  setAppliedFilters((af) => ({ ...af, organization_id: newOrg }));
+                  setPage(1);
+                }}
                 options={[
-                  { value: '', label: 'Barchasi' },
+                  { value: '', label: lt.all },
                   ...(organizations.data?.items ?? []).map((o) => ({
                     value: o.id,
                     label: pickLocalizedName(o.name, lang) || o.code,
@@ -171,6 +315,7 @@ export function PermitsListPage({ variant }: { variant: 'staff' | 'applicant' })
         <div className="flex justify-end gap-2">
           {isStaff && (
             <Button
+              type="button"
               variant="outline"
               size="sm"
               leftIcon={<Download className="w-3.5 h-3.5" />}
@@ -180,14 +325,14 @@ export function PermitsListPage({ variant }: { variant: 'staff' | 'applicant' })
               {t('prosecutor.exportCsv')}
             </Button>
           )}
-          <Button variant="outline" size="sm" leftIcon={<RotateCcw className="w-3.5 h-3.5" />} onClick={resetFilters}>
-            Tiklash
+          <Button type="button" variant="outline" size="sm" leftIcon={<RotateCcw className="w-3.5 h-3.5" />} onClick={resetFilters}>
+            {lt.reset}
           </Button>
-          <Button variant="primary" size="sm" onClick={applyFilters}>
-            Qoʻllash
+          <Button type="submit" variant="primary" size="sm" onClick={applyFilters}>
+            {lt.apply}
           </Button>
         </div>
-      </div>
+      </form>
 
       {isStaff && exportTruncated && (
         <div className="p-3 bg-[#FFFBEB] border border-[#FDE68A] rounded-xl text-xs text-[#92400E]" role="alert">
@@ -197,7 +342,7 @@ export function PermitsListPage({ variant }: { variant: 'staff' | 'applicant' })
 
       {list.error && (
         <div className="p-4 bg-[#FEF2F2] border border-[#FCA5A5] rounded-2xl text-sm text-[#991B1B]" role="alert">
-          {list.error instanceof ApiError ? errorText(list.error) : 'Ruxsatnomalar yuklanmadi.'}
+          {list.error instanceof ApiError ? errorText(list.error) : lt.loadError}
         </div>
       )}
 
@@ -207,26 +352,26 @@ export function PermitsListPage({ variant }: { variant: 'staff' | 'applicant' })
             <table className="w-full text-left text-xs border-collapse min-w-[900px]">
               <thead>
                 <tr className="bg-[#F8F9FA] border-b border-[#E4E7EA] text-[#5A646D] uppercase font-bold text-[11px]">
-                  <th className="p-3">Ruxsatnoma №</th>
-                  <th className="p-3">Holati</th>
-                  <th className="p-3">Faoliyat turi</th>
-                  <th className="p-3">Oʻrmon xoʻjaligi</th>
-                  <th className="p-3">Davr</th>
-                  <th className="p-3 text-right">Maydon, ga</th>
-                  <th className="p-3 text-right">Amal</th>
+                  <th className="p-3">{lt.colPermitNo}</th>
+                  <th className="p-3">{lt.colStatus}</th>
+                  <th className="p-3">{lt.colActivity}</th>
+                  <th className="p-3">{lt.colOrg}</th>
+                  <th className="p-3">{lt.colPeriod}</th>
+                  <th className="p-3 text-right">{lt.colArea}</th>
+                  <th className="p-3 text-right">{lt.colAction}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#E4E7EA]">
                 {list.isLoading ? (
                   <tr>
                     <td colSpan={7} className="py-12 text-center text-[#5A646D]">
-                      <Loader2 className="w-5 h-5 animate-spin inline-block mr-2" /> Yuklanmoqda...
+                      <Loader2 className="w-5 h-5 animate-spin inline-block mr-2" /> {lt.loading}
                     </td>
                   </tr>
                 ) : (list.data?.items.length ?? 0) === 0 ? (
                   <tr>
                     <td colSpan={7} className="py-12 text-center text-[#5A646D]">
-                      Filtr boʻyicha ruxsatnoma topilmadi.
+                      {lt.notFoundFiltered}
                     </td>
                   </tr>
                 ) : (
@@ -244,19 +389,21 @@ export function PermitsListPage({ variant }: { variant: 'staff' | 'applicant' })
         </div>
       ) : list.isLoading ? (
         <div className="py-16 text-center text-sm text-[#5A646D]">
-          <Loader2 className="w-5 h-5 animate-spin inline-block mr-2" /> Yuklanmoqda...
+          <Loader2 className="w-5 h-5 animate-spin inline-block mr-2" /> {lt.loading}
         </div>
       ) : (list.data?.items.length ?? 0) === 0 ? (
-        <div className="py-16 text-center text-sm text-[#5A646D]">Hozircha ruxsatnomalar yoʻq.</div>
+        <div className="py-16 text-center text-sm text-[#5A646D]">{lt.noPermitsApplicant}</div>
       ) : (
         <>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
             {list.data!.items.map((permit) => (
               <PermitCard key={permit.id} permit={permit} />
             ))}
           </div>
           {list.data && list.data.total > 0 && (
-            <Pagination currentPage={page} totalPages={totalPages} onPageChange={setPage} totalRecords={list.data.total} />
+            <div className="mt-4 bg-white border border-[#E4E7EA] rounded-2xl px-4 py-2">
+              <Pagination currentPage={page} totalPages={totalPages} onPageChange={setPage} totalRecords={list.data.total} />
+            </div>
           )}
         </>
       )}

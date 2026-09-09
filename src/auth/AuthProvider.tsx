@@ -1,8 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { api, setCsrfToken, setSessionGoneHandler } from '../api/client';
-import { apiError, SESSION_GONE } from '../api/errors';
-import type { ApiError } from '../api/errors';
+import { ApiError, apiError, SESSION_GONE } from '../api/errors';
 import type { components } from '../api/schema';
 import { buildMockSignedChallenge } from '../lib/eimzoMock';
 import { navigation } from '../lib/navigation';
@@ -43,23 +42,37 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let cancelled = false;
     void (async () => {
-      const { data, error } = await api.GET('/api/v1/auth/me', {});
-      if (cancelled) return;
-      if (error) {
-        const err = apiError(error);
-        // ERR-AUTH-002 (no session) is the logged-out state, not an error to
-        // surface — a page load with no cookie looks exactly like this.
-        // Anything else (a 500, a transient outage, a CORS misconfiguration)
-        // is NOT the same as logged-out and must stay visibly distinct, or a
-        // still-logged-in user gets silently bounced with no explanation.
+      try {
+        const { data, error } = await api.GET('/api/v1/auth/me', {});
+        if (cancelled) return;
+        if (error) {
+          const err = apiError(error);
+          // ERR-AUTH-002 (no session) is the logged-out state, not an error to
+          // surface — a page load with no cookie looks exactly like this.
+          // Anything else (a 500, a transient outage, a CORS misconfiguration)
+          // is NOT the same as logged-out and must stay visibly distinct, or a
+          // still-logged-in user gets silently bounced with no explanation.
+          setMe(null);
+          setAuthError(err.code === SESSION_GONE ? null : err);
+        } else {
+          setCsrfToken(data.csrf_token);
+          setMe(data);
+          setAuthError(null);
+        }
+      } catch (err) {
+        if (cancelled) return;
         setMe(null);
-        setAuthError(err.code === SESSION_GONE ? null : err);
-      } else {
-        setCsrfToken(data.csrf_token);
-        setMe(data);
-        setAuthError(null);
+        setAuthError(
+          new ApiError(
+            'NETWORK_ERROR',
+            err instanceof Error ? err.message : 'Tarmoq xatosi',
+          ),
+        );
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
       }
-      setLoading(false);
     })();
     return () => {
       cancelled = true;

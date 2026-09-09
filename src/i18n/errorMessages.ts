@@ -218,7 +218,13 @@ const uz_latn: Record<string, ErrorCopy> = {
   'ERR-SYS-000': 'Kutilmagan xatolik yuz berdi. Qaytadan urining.',
 };
 
-const MESSAGES: Record<UiLanguage, Record<string, ErrorCopy>> = { ru, uz_latn };
+const MESSAGES: Record<UiLanguage, Record<string, ErrorCopy>> = {
+  ru,
+  uz_latn,
+  uz_cyrl: uz_latn,
+  kaa: uz_latn,
+  en: ru,
+};
 
 /** Every code this map knows about, for tests that enumerate coverage
  *  against the backend's own `ERRORS` dict. Both language maps carry the
@@ -230,6 +236,9 @@ export const KNOWN_ERROR_CODES: readonly string[] = Object.keys(ru);
 const GENERIC_MESSAGE: Record<UiLanguage, string> = {
   ru: 'Произошла непредвиденная ошибка. Повторите попытку.',
   uz_latn: 'Kutilmagan xatolik yuz berdi. Qaytadan urining.',
+  uz_cyrl: 'Кутилмаган хатолик юз берди. Қайтадан урининг.',
+  kaa: 'Kútilmegen qátelik júz berdi. Qaytadan urınıp kóriń.',
+  en: 'An unexpected error occurred. Please try again.',
 };
 
 /** Duck-typed rather than `instanceof ApiError`: a handful of call sites

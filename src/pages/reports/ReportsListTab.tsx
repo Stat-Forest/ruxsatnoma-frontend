@@ -142,7 +142,7 @@ export function ReportsListTab({ active }: { active: boolean }) {
 
   return (
     <div data-testid="reports-tab-list" className="space-y-4">
-      <div className="space-y-3 rounded-2xl border border-[#E4E7EA] bg-white p-6 shadow-xs">
+      <div className="space-y-3 rounded-2xl border border-[#E4E7EA] bg-white p-4 sm:p-6 shadow-xs">
         <div className="grid grid-cols-1 items-end gap-3 sm:grid-cols-3">
           <FormField label={t('reports.list.filter.organization')}>
             <Select
@@ -184,11 +184,11 @@ export function ReportsListTab({ active }: { active: boolean }) {
             />
           </FormField>
         </div>
-        <div className="flex justify-end gap-2">
-          <Button variant="outline" size="sm" onClick={resetFilters}>
+        <div className="flex flex-col-reverse sm:flex-row justify-end gap-2">
+          <Button variant="outline" size="sm" className="w-full sm:w-auto" onClick={resetFilters}>
             {t('reports.list.filter.reset')}
           </Button>
-          <Button variant="primary" size="sm" onClick={applyFilters}>
+          <Button variant="primary" size="sm" className="w-full sm:w-auto" onClick={applyFilters}>
             {t('reports.list.filter.apply')}
           </Button>
         </div>
@@ -207,6 +207,7 @@ export function ReportsListTab({ active }: { active: boolean }) {
           <Button
             variant="primary"
             size="sm"
+            className="w-full sm:w-auto"
             data-testid="reports-create"
             leftIcon={<Plus className="h-3.5 w-3.5" />}
             onClick={() => setCreateOpen(true)}
@@ -216,7 +217,7 @@ export function ReportsListTab({ active }: { active: boolean }) {
         </div>
       )}
 
-      <div data-testid="reports-table">
+      <div data-testid="reports-table" className="w-full overflow-x-auto">
         <DataTable<ReportOut>
           columns={columns}
           data={rows}

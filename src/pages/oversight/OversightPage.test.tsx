@@ -114,7 +114,7 @@ test('switching to the Events tab requests /oversight/events and renders its own
   await user.click(screen.getByText('Voqealar'));
 
   const eventRow = await screen.findByTestId(`event-row-${EVENT_ROW_ID}`);
-  expect(within(eventRow).getByText('permit.issued')).toBeInTheDocument();
+  expect(within(eventRow).getByText('Ruxsatnoma berildi')).toBeInTheDocument();
   expect(riskCalls).toBe(1);
 });
 
@@ -143,11 +143,210 @@ test('CSV export on the risk indicators tab downloads a real file', async () => 
   expect(clickSpy).toHaveBeenCalled();
 });
 
+test('applying a filter (code: RI-01) properly filters out items with other codes (e.g. RI-04)', async () => {
+  const rowRi01 = riskIndicatorFixture({
+    id: 'ri000000-0000-4000-8000-000000000001',
+    code: 'RI-01',
+    description: 'Manual-PAID aniqlandi',
+  });
+  const rowRi04 = riskIndicatorFixture({
+    id: 'ri000000-0000-4000-8000-000000000004',
+    code: 'RI-04',
+    description: 'Retroactive tariff oʻzgarishi',
+  });
+
+  server.use(
+    http.get('*/api/v1/oversight/risk-indicators', () =>
+      HttpResponse.json(page([rowRi01, rowRi04])),
+    ),
+  );
+
+  render(
+    <Providers>
+      <OversightPage />
+    </Providers>,
+  );
+
+  // Both rows initially appear
+  expect(await screen.findByTestId('risk-row-ri000000-0000-4000-8000-000000000001')).toBeInTheDocument();
+  expect(screen.getByTestId('risk-row-ri000000-0000-4000-8000-000000000004')).toBeInTheDocument();
+
+  const user = userEvent.setup();
+  // Select code: RI-01 and click apply
+  await user.selectOptions(screen.getByLabelText('Kod'), 'RI-01');
+  await user.click(screen.getByRole('button', { name: /qo.*llash/i }));
+
+  // RI-01 remains displayed, while RI-04 is filtered out
+  await waitFor(() => {
+    expect(screen.getByTestId('risk-row-ri000000-0000-4000-8000-000000000001')).toBeInTheDocument();
+    expect(screen.queryByTestId('risk-row-ri000000-0000-4000-8000-000000000004')).not.toBeInTheDocument();
+  });
+});
+
+test('selecting a dropdown option (e.g. code: RI-01) immediately filters the table without needing to click Apply', async () => {
+  const rowRi01 = riskIndicatorFixture({
+    id: 'ri000000-0000-4000-8000-000000000001',
+    code: 'RI-01',
+  });
+  const rowRi04 = riskIndicatorFixture({
+    id: 'ri000000-0000-4000-8000-000000000004',
+    code: 'RI-04',
+  });
+
+  server.use(
+    http.get('*/api/v1/oversight/risk-indicators', () =>
+      HttpResponse.json(page([rowRi01, rowRi04])),
+    ),
+  );
+
+  render(
+    <Providers>
+      <OversightPage />
+    </Providers>,
+  );
+
+  expect(await screen.findByTestId('risk-row-ri000000-0000-4000-8000-000000000001')).toBeInTheDocument();
+  expect(screen.getByTestId('risk-row-ri000000-0000-4000-8000-000000000004')).toBeInTheDocument();
+
+  const user = userEvent.setup();
+  // Select code: RI-01 directly - NO click on Apply!
+  await user.selectOptions(screen.getByLabelText('Kod'), 'RI-01');
+
+  // Should immediately filter out RI-04 without clicking Apply
+  await waitFor(() => {
+    expect(screen.getByTestId('risk-row-ri000000-0000-4000-8000-000000000001')).toBeInTheDocument();
+    expect(screen.queryByTestId('risk-row-ri000000-0000-4000-8000-000000000004')).not.toBeInTheDocument();
+  });
+});
+
+test('when all risk indicator rows are filtered out, empty message is displayed and pagination is hidden', async () => {
+  const rowRi04 = riskIndicatorFixture({
+    id: 'ri000000-0000-4000-8000-000000000004',
+    code: 'RI-04',
+  });
+
+  server.use(
+    http.get('*/api/v1/oversight/risk-indicators', () =>
+      HttpResponse.json(page([rowRi04])),
+    ),
+  );
+
+  render(
+    <Providers>
+      <OversightPage />
+    </Providers>,
+  );
+
+  expect(await screen.findByTestId('risk-row-ri000000-0000-4000-8000-000000000004')).toBeInTheDocument();
+
+  const user = userEvent.setup();
+  await user.selectOptions(screen.getByLabelText('Kod'), 'RI-01');
+  await user.click(screen.getByRole('button', { name: /qo.*llash/i }));
+
+  await waitFor(() => {
+    expect(screen.queryByTestId('risk-row-ri000000-0000-4000-8000-000000000004')).not.toBeInTheDocument();
+    expect(screen.getByText((DICTIONARIES['uz_latn'] as Record<string, string>)['leadership.oversight.empty'])).toBeInTheDocument();
+    expect(screen.queryByText(/ta yozuv/)).not.toBeInTheDocument();
+  });
+});
+
+test('Events tab filters by event_type client-side', async () => {
+  const evIssued = eventFixture({
+    id: 'ev000000-0000-4000-8000-000000000001',
+    event_type: 'permit.issued',
+  });
+  const evRevoked = eventFixture({
+    id: 'ev000000-0000-4000-8000-000000000002',
+    event_type: 'permit.revoked',
+  });
+
+  server.use(
+    http.get('*/api/v1/oversight/risk-indicators', () => HttpResponse.json(page([]))),
+    http.get('*/api/v1/oversight/events', () => HttpResponse.json(page([evIssued, evRevoked]))),
+  );
+
+  render(
+    <Providers>
+      <OversightPage />
+    </Providers>,
+  );
+
+  const user = userEvent.setup();
+  await user.click(screen.getByText('Voqealar'));
+
+  expect(await screen.findByTestId('event-row-ev000000-0000-4000-8000-000000000001')).toBeInTheDocument();
+  expect(screen.getByTestId('event-row-ev000000-0000-4000-8000-000000000002')).toBeInTheDocument();
+
+  await user.type(screen.getByLabelText('Voqea turi'), 'revoked');
+  await user.click(screen.getByRole('button', { name: /qo.*llash/i }));
+
+  await waitFor(() => {
+    expect(screen.queryByTestId('event-row-ev000000-0000-4000-8000-000000000001')).not.toBeInTheDocument();
+    expect(screen.getByTestId('event-row-ev000000-0000-4000-8000-000000000002')).toBeInTheDocument();
+  });
+});
+
+test('CSV export respects active filters and only exports matching rows', async () => {
+  const rowRi01 = riskIndicatorFixture({
+    id: 'ri000000-0000-4000-8000-000000000001',
+    code: 'RI-01',
+    description: 'Manual-PAID aniqlandi',
+  });
+  const rowRi04 = riskIndicatorFixture({
+    id: 'ri000000-0000-4000-8000-000000000004',
+    code: 'RI-04',
+    description: 'Retroactive tariff oʻzgarishi',
+  });
+
+  server.use(
+    http.get('*/api/v1/oversight/risk-indicators', () =>
+      HttpResponse.json(page([rowRi01, rowRi04])),
+    ),
+  );
+
+  let exportedCsvContent = '';
+  const createObjectURL = vi.fn().mockImplementation((blob: Blob) => {
+    blob.text().then((text) => {
+      exportedCsvContent = text;
+    });
+    return 'blob:mock';
+  });
+  const revokeObjectURL = vi.fn();
+  URL.createObjectURL = createObjectURL;
+  URL.revokeObjectURL = revokeObjectURL;
+  vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+
+  render(
+    <Providers>
+      <OversightPage />
+    </Providers>,
+  );
+
+  expect(await screen.findByTestId('risk-row-ri000000-0000-4000-8000-000000000001')).toBeInTheDocument();
+
+  const user = userEvent.setup();
+  await user.selectOptions(screen.getByLabelText('Kod'), 'RI-01');
+  await user.click(screen.getByRole('button', { name: /qo.*llash/i }));
+
+  await waitFor(() => {
+    expect(screen.queryByTestId('risk-row-ri000000-0000-4000-8000-000000000004')).not.toBeInTheDocument();
+  });
+
+  await user.click(screen.getByText('CSV eksport'));
+  await waitFor(() => expect(createObjectURL).toHaveBeenCalled());
+  await waitFor(() => {
+    expect(exportedCsvContent).toContain('RI-01');
+    expect(exportedCsvContent).not.toContain('RI-04');
+  });
+});
+
+
+
 // Compile-time parity (`Record<TranslationKey, string>` in `i18n/context.ts`)
 // guarantees the two dictionaries hold the SAME keys — it cannot know whether
 // this screen asks for a key that exists in neither, which `t` renders as the
 // bare key and a reader sees in the middle of the page.
-test.each(['uz_latn', 'ru'] as const)('no untranslated leadership.oversight.* key reaches the screen in %s', async (lang) => {
+test.each(['uz_latn', 'uz_cyrl', 'ru', 'en', 'kaa'] as const)('no untranslated leadership.oversight.* key reaches the screen in %s', async (lang) => {
   server.use(
     http.get('*/api/v1/oversight/risk-indicators', () => HttpResponse.json(page([riskIndicatorFixture()]))),
     http.get('*/api/v1/oversight/events', () => HttpResponse.json(page([eventFixture()]))),

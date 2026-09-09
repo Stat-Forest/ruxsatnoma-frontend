@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { api } from '../api/client';
 import { apiError } from '../api/errors';
@@ -22,15 +22,21 @@ export function I18nProvider({ children }: { children: ReactNode }) {
   // during render (not in an effect) when an id we track changes is the
   // pattern React itself recommends for this — it avoids the extra
   // effect-then-setState render pass.
-  const seenUserId = useRef(me?.user.id);
-  if (seenUserId.current !== me?.user.id) {
-    seenUserId.current = me?.user.id;
+  const seenUserId = useRef(me?.user?.id);
+  if (seenUserId.current !== me?.user?.id) {
+    seenUserId.current = me?.user?.id;
     if (override !== null) setOverride(null);
   }
 
-  const backendLang = override ?? normalizeBackendLanguage(me?.user.language);
+  const backendLang = override ?? normalizeBackendLanguage(me?.user?.language);
   const lang = resolveLanguage(backendLang);
   const dict = DICTIONARIES[lang];
+
+  useEffect(() => {
+    if (typeof document !== 'undefined') {
+      document.documentElement.lang = lang;
+    }
+  }, [lang]);
 
   // `NavItem.labelKey` (and any future caller) is a plain `string`, not the
   // literal union that gates `DICTIONARIES` itself — a key missing from

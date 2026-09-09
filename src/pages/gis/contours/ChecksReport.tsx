@@ -1,4 +1,6 @@
 import { AlertTriangle, CheckCircle2, XCircle } from 'lucide-react';
+import { useLanguage } from '../../../i18n/useT';
+import { translateTerm } from '../../../i18n/terms';
 import type { CheckResultOut } from '../api';
 import { BLOCKING_CHECKS, CHECK_LABEL_KEYS } from './checksLogic';
 
@@ -8,6 +10,7 @@ import { BLOCKING_CHECKS, CHECK_LABEL_KEYS } from './checksLogic';
  * defect, or block a legitimate grazing permit on something only the norm
  * module is meant to price. */
 export function ChecksReport({ checks, t }: { checks: CheckResultOut[]; t: (key: string) => string }) {
+  const { lang } = useLanguage();
   if (checks.length === 0) return null;
   return (
     <ul className="space-y-2" data-testid="checks-report">
@@ -59,7 +62,7 @@ export function ChecksReport({ checks, t }: { checks: CheckResultOut[]; t: (key:
               <ul className="mt-1.5 space-y-0.5 pl-6">
                 {items.map((item, i) => (
                   <li key={i}>
-                    {item.name ?? '—'}
+                    {translateTerm(item.name, lang) || '—'}
                     {typeof item.area_m2 === 'number' ? ` — ${Math.round(item.area_m2)} m²` : ''}
                   </li>
                 ))}

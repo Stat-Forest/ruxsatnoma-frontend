@@ -136,14 +136,14 @@ export function ReportFormCreateModal({ onClose, onSaved }: { onClose: () => voi
       title={t('reports.forms.create.title')}
       maxWidth="2xl"
       footer={
-        <>
-          <Button type="button" variant="secondary" onClick={onClose} disabled={create.isPending}>
+        <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 w-full">
+          <Button type="button" variant="secondary" className="w-full sm:w-auto" onClick={onClose} disabled={create.isPending}>
             {t('reports.forms.create.cancel')}
           </Button>
-          <Button type="button" variant="primary" isLoading={create.isPending} onClick={handleSubmit}>
+          <Button type="button" variant="primary" className="w-full sm:w-auto" isLoading={create.isPending} onClick={handleSubmit}>
             {t('reports.forms.create.submit')}
           </Button>
-        </>
+        </div>
       }
     >
       <div className="space-y-4">

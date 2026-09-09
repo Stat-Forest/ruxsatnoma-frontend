@@ -1,5 +1,6 @@
 import { AlertTriangle, CheckCircle2, MinusCircle, XCircle } from 'lucide-react';
-import { CHECK_TYPE_LABELS, type NormalizedCheck } from '../checkTypeLabels';
+import { useT } from '../../../i18n/useT';
+import { getCheckResultLabel, getCheckTypeLabel, type NormalizedCheck } from '../checkTypeLabels';
 
 const ICON_BY_RESULT: Record<string, typeof CheckCircle2> = {
   pass: CheckCircle2,
@@ -33,17 +34,17 @@ function trimSbNumber(value: string | number): string {
  *  this function does not recognise is left unsaid rather than dumped as
  *  JSON — the check's own icon, label and result already state the verdict,
  *  and an unreadable technical aside is worse than no aside at all. */
-function detailNote(check: NormalizedCheck): string | null {
+function detailNote(check: NormalizedCheck, t: (key: string) => string): string | null {
   const { type, details } = check;
   if (typeof details === 'string') return details;
   if (typeof details !== 'object' || details === null) return null;
   const d = details as Record<string, unknown>;
 
   if ((type === 'gis_within_fund') && d.reason === 'layer_empty') {
-    return "Oʻrmon fondi chegaralari qatlami hali toʻliq kiritilmagan — bu tekshiruv shu sababli oʻtkazib yuborildi, xatolik emas.";
+    return t('wizard.checks.layerEmpty');
   }
   if ((type === 'norm_season' || type === 'season') && d.reason === 'no_season_defined') {
-    return 'Bu faoliyat turi uchun mavsumiy cheklov belgilanmagan — bu tekshiruv talab etilmaydi.';
+    return t('wizard.checks.noSeason');
   }
   if ((type === 'norm_limit' || type === 'limit') && (d.max_sb !== undefined || d.used_sb !== undefined)) {
     const used = d.used_sb !== undefined && d.used_sb !== null ? trimSbNumber(d.used_sb as string | number) : null;
@@ -52,8 +53,13 @@ function detailNote(check: NormalizedCheck): string | null {
       d.remaining_sb !== undefined && d.remaining_sb !== null ? trimSbNumber(d.remaining_sb as string | number) : null;
     if (used !== null && max !== null) {
       return remaining !== null
-        ? `Joriy yuklama — ${used} shartli bosh, ruxsat etilgan chegara — ${max} shartli bosh (boʻsh qoldiq — ${remaining} shartli bosh).`
-        : `Joriy yuklama — ${used} shartli bosh, ruxsat etilgan chegara — ${max} shartli bosh.`;
+        ? t('wizard.checks.loadDetails')
+            .replace('{used}', used)
+            .replace('{max}', max)
+            .replace('{remaining}', remaining)
+        : t('wizard.checks.loadDetailsNoRemaining')
+            .replace('{used}', used)
+            .replace('{max}', max);
     }
   }
   return null;
@@ -67,20 +73,27 @@ function detailNote(check: NormalizedCheck): string | null {
  * re-exported above from `checkTypeLabels.ts` (see its own comment for why
  * the two endpoints cannot share one shape). */
 export function ChecksList({ checks }: { checks: NormalizedCheck[] }) {
+  const t = useT();
   if (checks.length === 0) return null;
   return (
     <ul className="space-y-1.5">
       {checks.map((check) => {
         const Icon = ICON_BY_RESULT[check.result] ?? MinusCircle;
-        const note = detailNote(check);
+        const note = detailNote(check, t);
+        const typeLabel = getCheckTypeLabel(check.type, t);
+        const resultLabel = getCheckResultLabel(check.result, t);
         return (
           <li
             key={check.key}
             className={`flex items-start gap-2 text-xs p-2 rounded-lg border ${COLOR_BY_RESULT[check.result] ?? COLOR_BY_RESULT.skipped}`}
+            title={resultLabel}
           >
-            <Icon className="w-4 h-4 shrink-0 mt-0.5" />
-            <div>
-              <span className="font-bold">{CHECK_TYPE_LABELS[check.type] ?? check.type}</span>
+            <Icon className="w-4 h-4 shrink-0 mt-0.5" aria-label={resultLabel} />
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center justify-between gap-2">
+                <span className="font-bold">{typeLabel}</span>
+                <span className="text-[10px] font-bold opacity-75">{resultLabel}</span>
+              </div>
               {note && <span className="block text-[11px] opacity-80 mt-0.5">{note}</span>}
             </div>
           </li>

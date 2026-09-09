@@ -52,19 +52,20 @@ export function formatPermitNumber(series: string, number: number): string {
   return `${series} № ${String(number).padStart(6, '0')}`;
 }
 
+const LANG_FALLBACKS = ['uz_latn', 'uz_cyrl', 'ru', 'en', 'kaa'];
+
 /** A `LocalizedName`-shaped map (`{uz_latn, uz_cyrl, ru, ...}`) picked for
- *  the two UI languages this stage ships. F14 (`docs/plans/07.3-findings.md`):
- *  this used to hard-code `uz_cyrl` for the `uz_latn` UI — true only before
- *  decision #90, when `uz_latn` was optional and often absent from the
- *  seed. #90 made `uz_latn` the REQUIRED field (backfilled first), so a
- *  `uz_latn` reader is now owed their own field, not the Cyrillic one —
- *  which is exactly why the permit document used to print
- *  `Vakolatli organ: Бурчмулла ДЎХ` on an otherwise-Latin page. */
-export function pickLocalizedName(name: Record<string, unknown> | null | undefined, uiLang: 'uz_latn' | 'ru'): string {
+ *  the desired UI language with term translation fallback. */
+export function pickLocalizedName(name: Record<string, unknown> | null | undefined, uiLang: string = 'uz_latn'): string {
   if (!name) return '';
-  const preferred = uiLang === 'ru' ? name.ru : name.uz_latn;
-  const candidate = preferred ?? name.uz_latn ?? name.uz_cyrl ?? name.ru ?? Object.values(name)[0];
-  return typeof candidate === 'string' ? candidate : '';
+  const direct = name[uiLang];
+  if (typeof direct === 'string' && direct) return direct;
+  for (const key of LANG_FALLBACKS) {
+    const value = name[key];
+    if (typeof value === 'string' && value) return value;
+  }
+  const first = Object.values(name).find((v) => typeof v === 'string' && v);
+  return typeof first === 'string' ? first : '';
 }
 
 /** A UUID, shortened for display where the full value only adds noise —

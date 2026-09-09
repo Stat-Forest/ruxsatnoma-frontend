@@ -287,7 +287,7 @@ function BreakdownCard({
   title: string;
   emptyText: string;
   rows: RatingsBreakdownRow[];
-  lang: 'uz_latn' | 'ru';
+  lang: string;
 }) {
   return (
     <div className="rounded-2xl border border-[#E4E7EA] bg-white p-5 shadow-xs">

@@ -18,24 +18,82 @@ export function shortId(id: string | null): string {
   return id ? id.slice(-8) : '—';
 }
 
+export const OBJECT_TYPE_LABEL_KEYS: Record<string, string> = {
+  application: 'leadership.oversight.object.application',
+  permit: 'leadership.oversight.object.permit',
+  invoice: 'leadership.oversight.object.invoice',
+  report: 'leadership.oversight.object.report',
+  inspection_act: 'leadership.oversight.object.act',
+  act: 'leadership.oversight.object.act',
+};
+
 /** `object_type` + a shortened `object_id` — `"—"` when either is missing,
  *  never one half of a pair with the other silently dropped. */
-export function formatObject(objectType: string | null, objectId: string | null): string {
+export function formatObject(
+  objectType: string | null,
+  objectId: string | null,
+  t?: (key: string) => string,
+): string {
   if (!objectType || !objectId) return '—';
-  return `${objectType} · ${shortId(objectId)}`;
+  let typeLabel = objectType;
+  const key = OBJECT_TYPE_LABEL_KEYS[objectType];
+  if (key && t) {
+    const translated = t(key);
+    if (translated && translated !== key) typeLabel = translated;
+  } else if (t) {
+    if (objectType === 'application') typeLabel = t('archive.typeApplication');
+    else if (objectType === 'permit') typeLabel = t('archive.typePermit');
+  }
+  return `${typeLabel} · ${shortId(objectId)}`;
+}
+
+export const EVENT_TYPE_LABEL_KEYS: Record<string, string> = {
+  application_submitted: 'leadership.oversight.event.application_submitted',
+  'application.submitted': 'leadership.oversight.event.application_submitted',
+  application_approved: 'leadership.oversight.event.application_approved',
+  'application.approved': 'leadership.oversight.event.application_approved',
+  application_rejected: 'leadership.oversight.event.application_rejected',
+  'application.rejected': 'leadership.oversight.event.application_rejected',
+  application_cancelled: 'leadership.oversight.event.application_cancelled',
+  'application.cancelled': 'leadership.oversight.event.application_cancelled',
+  payment_confirmed: 'leadership.oversight.event.payment_confirmed',
+  'payment.confirmed': 'leadership.oversight.event.payment_confirmed',
+  permit_issued: 'leadership.oversight.event.permit_issued',
+  'permit.issued': 'leadership.oversight.event.permit_issued',
+  permit_revoked: 'leadership.oversight.event.permit_revoked',
+  'permit.revoked': 'leadership.oversight.event.permit_revoked',
+  permit_suspended: 'leadership.oversight.event.permit_suspended',
+  'permit.suspended': 'leadership.oversight.event.permit_suspended',
+  report_submitted: 'leadership.oversight.event.report_submitted',
+  'report.submitted': 'leadership.oversight.event.report_submitted',
+  report_approved: 'leadership.oversight.event.report_approved',
+  'report.approved': 'leadership.oversight.event.report_approved',
+  inspection_act_created: 'leadership.oversight.event.inspection_act_created',
+  'inspection.act_created': 'leadership.oversight.event.inspection_act_created',
+};
+
+export function formatEventType(
+  eventType: string | null | undefined,
+  t?: (key: string) => string,
+): string {
+  if (!eventType) return '—';
+  const key = EVENT_TYPE_LABEL_KEYS[eventType];
+  if (key && t) {
+    const translated = t(key);
+    if (translated && translated !== key) return translated;
+  }
+  return eventType;
 }
 
 export function formatDateTime(value: string | null | undefined): string {
   if (!value) return '—';
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
-  return date.toLocaleString('ru-RU', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return (
+    `${pad(date.getDate())}.${pad(date.getMonth() + 1)}.${date.getFullYear()}, ` +
+    `${pad(date.getHours())}:${pad(date.getMinutes())}`
+  );
 }
 
 /**

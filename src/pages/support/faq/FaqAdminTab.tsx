@@ -58,7 +58,7 @@ export function FaqAdminTab() {
           <h2 className="text-base font-bold text-[#1A1F24]">{t('support.faq.admin.title')}</h2>
           <p className="mt-1 text-xs text-[#5A646D]">{t('support.faq.admin.subtitle')}</p>
         </div>
-        <Button variant="primary" size="sm" leftIcon={<Plus className="h-3.5 w-3.5" />} onClick={() => setEditing({ faq: null })}>
+        <Button variant="primary" size="sm" leftIcon={<Plus className="h-3.5 w-3.5" />} onClick={() => setEditing({ faq: null })} className="w-full sm:w-auto">
           {t('support.faq.admin.create')}
         </Button>
       </div>
