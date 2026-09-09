@@ -11,6 +11,7 @@ import { DICTIONARIES, I18nContext } from '../../i18n/context';
 const INVOICE_ID = 'in000000-0000-4000-8000-000000000001';
 const APPLICATION_ID = 'a0000000-0000-4000-8000-000000000001';
 const BUDGET_RECIPIENT_ID = 'b0000000-0000-4000-8000-000000000001';
+const AGENCY_RECIPIENT_ID = 'b0000000-0000-4000-8000-000000000002';
 
 function invoice(overrides: Partial<Record<string, unknown>> = {}) {
   return {
@@ -101,6 +102,105 @@ test('shows how the invoice divides, one row per InvoiceOut.recipients entry', a
   expect(section).toHaveTextContent('99999');
   expect(section).toHaveTextContent('Burchmulla oʻrmon xoʻjaligi');
   expect(section).toHaveTextContent('250 000');
+});
+
+test('the ledger names each configured receiver by its own recipient_name, not a shared "receiver" label', async () => {
+  server.use(
+    http.get('*/api/v1/invoices/:id', () => HttpResponse.json(invoice())),
+    http.get('*/api/v1/payments/allocations', () =>
+      HttpResponse.json({
+        items: [
+          {
+            id: 'al-1',
+            invoice_id: INVOICE_ID,
+            transaction_id: 'tx-1',
+            refund_id: null,
+            recipient_id: BUDGET_RECIPIENT_ID,
+            recipient_name: { uz_latn: 'Davlat byudjeti' },
+            entry_type: 'payment',
+            target: 'receiver',
+            account: null,
+            amount: '250000.00',
+            occurred_at: '2026-08-05T10:00:00Z',
+            note: null,
+          },
+          {
+            id: 'al-2',
+            invoice_id: INVOICE_ID,
+            transaction_id: 'tx-1',
+            refund_id: null,
+            recipient_id: AGENCY_RECIPIENT_ID,
+            recipient_name: { uz_latn: 'Agentlik' },
+            entry_type: 'payment',
+            target: 'receiver',
+            account: null,
+            amount: '50000.00',
+            occurred_at: '2026-08-05T10:00:00Z',
+            note: null,
+          },
+          {
+            id: 'al-3',
+            invoice_id: INVOICE_ID,
+            transaction_id: 'tx-1',
+            refund_id: null,
+            recipient_id: null,
+            recipient_name: null,
+            entry_type: 'payment',
+            target: 'recipient',
+            account: '12345',
+            amount: '200000.00',
+            occurred_at: '2026-08-05T10:00:00Z',
+            note: null,
+          },
+        ],
+        total: 3,
+        page: 1,
+        page_size: 200,
+      }),
+    ),
+  );
+  renderDrawer();
+
+  await screen.findByText('F-000123');
+  // three receivers, three distinguishable rows — never three identical
+  // "receiver" rows (the bug this test would have caught)
+  expect(screen.getByText('Davlat byudjeti')).toBeInTheDocument();
+  expect(screen.getByText('Agentlik')).toBeInTheDocument();
+  expect(screen.getByText('Ijrochi (leshoz)')).toBeInTheDocument();
+  expect(screen.queryByText('receiver')).not.toBeInTheDocument();
+});
+
+test('a receiver row with no recipient_name falls back to the generic label instead of an empty cell', async () => {
+  server.use(
+    http.get('*/api/v1/invoices/:id', () => HttpResponse.json(invoice())),
+    http.get('*/api/v1/payments/allocations', () =>
+      HttpResponse.json({
+        items: [
+          {
+            id: 'al-1',
+            invoice_id: INVOICE_ID,
+            transaction_id: 'tx-1',
+            refund_id: null,
+            recipient_id: BUDGET_RECIPIENT_ID,
+            recipient_name: null,
+            entry_type: 'payment',
+            target: 'receiver',
+            account: null,
+            amount: '250000.00',
+            occurred_at: '2026-08-05T10:00:00Z',
+            note: null,
+          },
+        ],
+        total: 1,
+        page: 1,
+        page_size: 200,
+      }),
+    ),
+  );
+  renderDrawer();
+
+  await screen.findByText('F-000123');
+  expect(screen.getByText('Qabul qiluvchi')).toBeInTheDocument();
 });
 
 test('renders nothing for the split when the invoice carries no recipients (an applicant-scoped response)', async () => {

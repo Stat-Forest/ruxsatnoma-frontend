@@ -10,6 +10,7 @@ import type { PaymentRecipientOut } from './api';
 
 const BUDGET = 'b0000000-0000-4000-8000-000000000001';
 const AGENCY = 'b0000000-0000-4000-8000-000000000002';
+const INSURANCE = 'b0000000-0000-4000-8000-000000000003';
 
 function recipient(overrides: Partial<PaymentRecipientOut> & Pick<PaymentRecipientOut, 'id'>): PaymentRecipientOut {
   return {
@@ -76,6 +77,61 @@ test('lists receivers with their rule and shows what the leshoz gets', async () 
   expect(screen.getByText('50%')).toBeInTheDocument();
   expect(screen.getByText('10%')).toBeInTheDocument();
   expect(screen.getByTestId('leshoz-remainder')).toHaveTextContent('40%');
+});
+
+test('the leshoz row shows only the plain percentage when no fixed receiver is active', async () => {
+  mockList(TWO_ROWS); // 50% + 10%, no fixed-kind row at all
+  renderPage();
+
+  const remainderRow = await screen.findByTestId('leshoz-remainder');
+  expect(remainderRow).toHaveTextContent('40%');
+  expect(screen.queryByTestId('leshoz-fixed-note')).not.toBeInTheDocument();
+});
+
+test('an active fixed-kind receiver makes the leshoz row spell out the deduction with a worked example', async () => {
+  mockList([
+    ...TWO_ROWS, // 50% + 10% => remainder 40%, unaffected by the fixed row below
+    recipient({
+      id: INSURANCE,
+      name: { uz_latn: 'Sugʻurta toʻlovi' },
+      kind: 'fixed',
+      percent: null,
+      fixed_amount: '15000.00',
+      payme_account_id: '55555',
+      sort_order: 30,
+    }),
+  ]);
+  renderPage();
+
+  const remainderRow = await screen.findByTestId('leshoz-remainder');
+  // the plain percentage is still shown — it is not wrong, only incomplete
+  expect(remainderRow).toHaveTextContent('40%');
+  // the fixed total taken off the top, stated explicitly
+  expect(remainderRow).toHaveTextContent('15 000');
+  // the worked example: at a payment of 1 000 000, 40% is 400 000, minus
+  // the 15 000 fixed deduction = 385 000 — never a bare, misleading percentage
+  expect(remainderRow).toHaveTextContent('1 000 000');
+  expect(remainderRow).toHaveTextContent('385 000');
+});
+
+test('an inactive fixed-kind receiver does not trigger the deduction note', async () => {
+  mockList([
+    ...TWO_ROWS,
+    recipient({
+      id: INSURANCE,
+      name: { uz_latn: 'Sugʻurta toʻlovi' },
+      kind: 'fixed',
+      percent: null,
+      fixed_amount: '15000.00',
+      payme_account_id: '55555',
+      active: false,
+      sort_order: 30,
+    }),
+  ]);
+  renderPage();
+
+  await screen.findByTestId('leshoz-remainder');
+  expect(screen.queryByTestId('leshoz-fixed-note')).not.toBeInTheDocument();
 });
 
 test('warns about a receiver with no Payme id, naming it', async () => {

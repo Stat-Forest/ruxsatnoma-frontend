@@ -95,10 +95,17 @@ export const ENTRY_TYPE_LABEL: Record<string, string> = {
   correction: 'Tuzatish (bekor qilish)',
 };
 
-/** `allocations.target` (`ALLOCATION_TARGETS`) — the 50/50 split's own two
- *  named halves, plus `other` for a refund's third bucket. */
+/** `allocations.target` (`ALLOCATION_TARGETS`, now `recipient`/`other`/
+ *  `receiver` — the old hard-coded 50/50 `budget` half is retired, and the
+ *  migration that removed it rewrote every historical row that carried it,
+ *  so it can never appear again). `recipient` is the leshoz's own remainder
+ *  row; `receiver` is a configured `payment_recipients` row — this generic
+ *  label is only the FALLBACK for one, `InvoiceDetailDrawer.tsx`'s
+ *  `LedgerSection` prefers that row's own `recipient_name` so three
+ *  different receivers render as three distinguishable rows, not three
+ *  identical "receiver" ones; `other` is a refund's third bucket. */
 export const ALLOCATION_TARGET_LABEL: Record<string, string> = {
   recipient: 'Ijrochi (leshoz)',
-  budget: 'Davlat byudjeti',
+  receiver: 'Qabul qiluvchi',
   other: 'Boshqa',
 };

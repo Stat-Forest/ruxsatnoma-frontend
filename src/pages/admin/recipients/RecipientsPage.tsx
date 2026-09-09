@@ -49,6 +49,33 @@ function activePercentTotal(rows: PaymentRecipientOut[], excludeId?: string): nu
     .reduce((sum, row) => sum + Number(row.percent ?? 0), 0);
 }
 
+/** The sum of `fixed_amount` across every ACTIVE `kind: "fixed"` row —
+ *  `ledger.py::split_payment` takes every fixed amount off the top BEFORE
+ *  the leshoz's remainder is what is left, on every payment regardless of
+ *  its size. */
+function activeFixedTotal(rows: PaymentRecipientOut[]): number {
+  return rows
+    .filter((row) => row.active && row.kind === 'fixed')
+    .reduce((sum, row) => sum + Number(row.fixed_amount ?? 0), 0);
+}
+
+/**
+ * A percentage alone cannot express what a fixed amount takes: percent is
+ * always a share of the FULL payment (`split_payment`, never of "what is
+ * left after fixed deductions"), so the leshoz's true share of money is
+ * `remainderPercent% of the payment, minus every active fixed amount` — a
+ * figure that depends on the payment's size, not a single number this
+ * table could show in the percent column. `EXAMPLE_PAYMENT` is a round,
+ * illustrative amount picked only to make that concrete for whoever is
+ * reading this screen — never a real invoice, and large enough that a
+ * realistic fixed configuration does not make the example go negative.
+ */
+const EXAMPLE_PAYMENT = 1_000_000;
+
+function exampleLeshozShare(remainderPercent: number, fixedTotal: number): number {
+  return (EXAMPLE_PAYMENT * remainderPercent) / 100 - fixedTotal;
+}
+
 export function RecipientsPage() {
   const L = useLabels();
   const { lang } = useLanguage();
@@ -62,6 +89,7 @@ export function RecipientsPage() {
 
   const percentTotal = activePercentTotal(items);
   const remainderPercent = 100 - percentTotal;
+  const fixedTotal = activeFixedTotal(items);
   const missingPayme = items.filter((row) => row.active && !row.payme_account_id);
 
   return (
@@ -155,7 +183,19 @@ export function RecipientsPage() {
                   {L.leshozRow}
                   <p className="text-xs font-normal text-[#9AA3AB]">{L.leshozRowHint}</p>
                 </td>
-                <td className="px-4 py-3 font-mono text-[#5A646D]">{formatPercent(remainderPercent)}</td>
+                <td className="px-4 py-3 font-mono text-[#5A646D]">
+                  {formatPercent(remainderPercent)}
+                  {fixedTotal > 0 && (
+                    <p
+                      className="mt-1 max-w-xs whitespace-normal font-sans text-xs font-normal normal-case text-[#B45309]"
+                      data-testid="leshoz-fixed-note"
+                    >
+                      {L.leshozFixedNotePrefix} {formatMoney(fixedTotal.toFixed(2))} {L.leshozFixedNoteSuffix}{' '}
+                      {L.leshozExamplePrefix} {formatMoney(String(EXAMPLE_PAYMENT))} {L.leshozExampleMiddle}{' '}
+                      {formatMoney(exampleLeshozShare(remainderPercent, fixedTotal).toFixed(2))} {L.leshozExampleSuffix}
+                    </p>
+                  )}
+                </td>
                 <td className="px-4 py-3" />
                 <td className="px-4 py-3" />
                 <td className="px-4 py-3" />

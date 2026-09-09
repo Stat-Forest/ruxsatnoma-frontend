@@ -183,6 +183,7 @@ function LedgerSection({
   isLoading: boolean;
 }) {
   const t = useT();
+  const { lang } = useLanguage();
   return (
     <section>
       <h3 className="mb-2 text-sm font-bold text-[#1A1F24]">{t('accountant.invoices.ledgerTitle')}</h3>
@@ -203,19 +204,33 @@ function LedgerSection({
               </tr>
             </thead>
             <tbody>
-              {allocations.map((row) => (
-                <tr key={row.id} className="border-t border-[#E4E7EA]">
-                  <td className="px-3 py-2">{ENTRY_TYPE_LABEL[row.entry_type] ?? row.entry_type}</td>
-                  <td className="px-3 py-2">{ALLOCATION_TARGET_LABEL[row.target] ?? row.target}</td>
-                  <td className="px-3 py-2">
-                    {row.account ?? (
-                      <span className="italic text-[#9AA3AB]">{t('accountant.invoices.ledgerAccountSettledExternally')}</span>
-                    )}
-                  </td>
-                  <td className="px-3 py-2 text-right font-mono">{formatMoney(row.amount)}</td>
-                  <td className="px-3 py-2 font-mono">{formatDateTime(row.occurred_at)}</td>
-                </tr>
-              ))}
+              {allocations.map((row) => {
+                // A `target="receiver"` row names WHICH configured receiver it
+                // belongs to via `recipient_name` (stage 7.9 task 8/9) — prefer
+                // that over the generic "Qabul qiluvchi" label so three
+                // different receivers render as three distinguishable rows,
+                // not three identical ones. `recipient_name` is absent/empty
+                // only for a receiver whose own name is somehow blank, which
+                // still falls back to the generic label rather than an empty
+                // cell.
+                const targetLabel =
+                  row.target === 'receiver'
+                    ? pickName(row.recipient_name, lang) || ALLOCATION_TARGET_LABEL.receiver
+                    : ALLOCATION_TARGET_LABEL[row.target] ?? row.target;
+                return (
+                  <tr key={row.id} className="border-t border-[#E4E7EA]">
+                    <td className="px-3 py-2">{ENTRY_TYPE_LABEL[row.entry_type] ?? row.entry_type}</td>
+                    <td className="px-3 py-2">{targetLabel}</td>
+                    <td className="px-3 py-2">
+                      {row.account ?? (
+                        <span className="italic text-[#9AA3AB]">{t('accountant.invoices.ledgerAccountSettledExternally')}</span>
+                      )}
+                    </td>
+                    <td className="px-3 py-2 text-right font-mono">{formatMoney(row.amount)}</td>
+                    <td className="px-3 py-2 font-mono">{formatDateTime(row.occurred_at)}</td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>

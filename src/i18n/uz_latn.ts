@@ -308,7 +308,7 @@ export const uz_latn = {
   'accountant.invoices.recipientsColAmount': 'Summa',
   'accountant.invoices.recipientsRemainder': "Qolgan qism (oʻrmon xoʻjaligi)",
   'accountant.invoices.recipientsNoPaymeId': "Koʻrsatilmagan",
-  'accountant.invoices.ledgerTitle': "Toʻlovlar reestri (50/50 boʻlinma)",
+  'accountant.invoices.ledgerTitle': "Toʻlovlar reestri",
   'accountant.invoices.ledgerEmpty': "Hozircha yozuvlar yoʻq.",
   'accountant.invoices.ledgerColType': 'Turi',
   'accountant.invoices.ledgerColTarget': 'Yoʻnalishi',

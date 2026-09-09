@@ -299,7 +299,7 @@ export const ru = {
   'accountant.invoices.recipientsColAmount': 'Сумма',
   'accountant.invoices.recipientsRemainder': 'Остаток (лесхоз)',
   'accountant.invoices.recipientsNoPaymeId': 'Не указан',
-  'accountant.invoices.ledgerTitle': 'Реестр платежей (разбивка 50/50)',
+  'accountant.invoices.ledgerTitle': 'Реестр платежей',
   'accountant.invoices.ledgerEmpty': 'Записей пока нет.',
   'accountant.invoices.ledgerColType': 'Тип',
   'accountant.invoices.ledgerColTarget': 'Назначение',

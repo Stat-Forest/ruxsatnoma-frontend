@@ -33,6 +33,12 @@ export const uz_latn = {
 
   leshozRow: "Kontur tegishli oʻrmon xoʻjaligi",
   leshozRowHint: "Sozlanmaydi — qolgan barcha qabul qiluvchilardan keyingi ulush avtomatik hisoblanadi",
+  leshozFixedNotePrefix: "Bundan tashqari, qatʼiy summali qabul qiluvchilar toʻlov hajmidan qatʼi nazar avval jami",
+  leshozFixedNoteSuffix:
+    "soʻm olib qoladi — shuning uchun yuqoridagi foiz oʻrmon xoʻjaligining haqiqiy ulushini toʻliq bildirmaydi.",
+  leshozExamplePrefix: "Masalan, toʻlov",
+  leshozExampleMiddle: "soʻm boʻlsa, oʻrmon xoʻjaligi",
+  leshozExampleSuffix: "soʻm oladi.",
 
   paymeNotSet: "Koʻrsatilmagan",
 
@@ -92,6 +98,12 @@ export const ru: RecipientLabels = {
   leshozRow: 'Лесхоз, которому принадлежит контур',
   leshozRowHint:
     'Не настраивается — получает остаток после всех остальных получателей, рассчитывается автоматически',
+  leshozFixedNotePrefix: 'Кроме того, получатели с фиксированной суммой забирают в сумме',
+  leshozFixedNoteSuffix:
+    'сум независимо от размера платежа — поэтому процент выше не отражает полностью настоящую долю лесхоза.',
+  leshozExamplePrefix: 'Например, при платеже',
+  leshozExampleMiddle: 'сум лесхоз получит',
+  leshozExampleSuffix: 'сум.',
 
   paymeNotSet: 'Не указан',
 
