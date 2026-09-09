@@ -1,7 +1,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter } from 'react-router';
+import { createMemoryRouter, RouterProvider } from 'react-router';
 import { http, HttpResponse } from 'msw';
 import { setupServer } from 'msw/node';
 import { vi } from 'vitest';
@@ -118,6 +118,13 @@ beforeAll(() => server.listen({ onUnhandledRequest: 'error' }));
 afterEach(() => server.resetHandlers());
 afterAll(() => server.close());
 
+// A real data router (`createMemoryRouter`), not a plain `<MemoryRouter>`:
+// T1's leave-guard uses `useBlocker`, which throws outside a data router's
+// context. Same pattern `ReportDetailPage.test.tsx` already uses for its
+// own real-navigation assertions. Two extra routes stand in for the pages
+// the wizard actually navigates to — "back to list" and a successful
+// submit's redirect — so a proceeded navigation has somewhere to land
+// instead of rendering react-router's own "no route matched" error.
 function renderWizard(auth: AuthContextValue = AUTH_VALUE, lang: UiLanguage = 'uz_latn') {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
   const dict = DICTIONARIES[lang] ?? DICTIONARIES.uz_latn;
@@ -127,25 +134,34 @@ function renderWizard(auth: AuthContextValue = AUTH_VALUE, lang: UiLanguage = 'u
     t: (key: string) => dict[key as keyof typeof dict] ?? key,
     setLanguage: async () => {},
   };
-  return render(
+  const router = createMemoryRouter(
+    [
+      { path: '/my/applications/new', element: <ApplicationWizardPage /> },
+      { path: '/my/applications', element: <div>applications-list</div> },
+      { path: '/my/applications/:id', element: <div>application-card</div> },
+    ],
+    { initialEntries: ['/my/applications/new'] },
+  );
+  const utils = render(
     <QueryClientProvider client={client}>
       <I18nContext.Provider value={i18n}>
         <AuthContext.Provider value={auth}>
-          <MemoryRouter initialEntries={['/my/applications/new']}>
-            <ApplicationWizardPage />
-          </MemoryRouter>
+          <RouterProvider router={router} />
         </AuthContext.Provider>
       </I18nContext.Provider>
     </QueryClientProvider>,
   );
+  return { router, ...utils };
 }
 
 // Drives the wizard through steps 1–4 (activity, contour + period, quantity,
 // documents) to step 5, where precheck fires automatically.
 async function driveToStep5(lang: UiLanguage = 'uz_latn') {
   const dict = DICTIONARIES[lang] ?? DICTIONARIES.uz_latn;
+  // T1: choosing the activity type advances to step 2 by itself — no
+  // separate "Next" click needed here any more. `findByText('pick-contour')`
+  // polls until that advance (an async draft-create + patch) lands.
   await userEvent.click(await screen.findByText('Pichanchilik'));
-  await userEvent.click(screen.getByRole('button', { name: new RegExp(dict['wizard.nav.next']) }));
 
   await userEvent.click(await screen.findByText('pick-contour'));
   fireEvent.change(screen.getByLabelText(new RegExp(dict['wizard.step2.periodFrom'])), { target: { value: '2026-01-01' } });
@@ -400,3 +416,179 @@ test.each(['uz_latn', 'uz_cyrl', 'ru', 'en', 'kaa'] as const)(
     expect(screen.getByText(dict['wizard.step1.heading'])).toBeInTheDocument();
   },
 );
+
+// ─── T1 (`docs/plans/09-odilxon-demo-fixes.md`) ───────────────────────────
+// Date validation, the stepper, the leave-guard, and activity auto-advance.
+
+const UZ = DICTIONARIES.uz_latn;
+
+test('choosing the activity type advances to step 2 by itself, and the Next button stays in place', async () => {
+  renderWizard();
+
+  await userEvent.click(await screen.findByText('Pichanchilik'));
+
+  expect(await screen.findByText(UZ['wizard.step2.heading'])).toBeInTheDocument();
+  // Not removed (Oybek: "not removed, merely no longer the only way
+  // forward") — it now governs step 2's own advance.
+  expect(screen.getByRole('button', { name: new RegExp(UZ['wizard.nav.next']) })).toBeInTheDocument();
+});
+
+test('a reversed period is named in the field and blocks Next before any request leaves the browser', async () => {
+  let patchCount = 0;
+  server.use(
+    http.patch('*/api/v1/applications/:id', () => {
+      patchCount += 1;
+      return HttpResponse.json({ id: APPLICATION_ID });
+    }),
+  );
+  renderWizard();
+
+  await userEvent.click(await screen.findByText('Pichanchilik'));
+  await userEvent.click(await screen.findByText('pick-contour'));
+  // The activity-type PATCH already landed by the time step 2 renders —
+  // count from here, not from zero.
+  await waitFor(() => expect(patchCount).toBeGreaterThan(0));
+  const countBeforeDates = patchCount;
+
+  fireEvent.change(screen.getByLabelText(new RegExp(UZ['wizard.step2.periodFrom'])), { target: { value: '2026-06-01' } });
+  fireEvent.change(screen.getByLabelText(new RegExp(UZ['wizard.step2.periodTo'])), { target: { value: '2026-01-01' } });
+
+  expect(await screen.findByText(/Tugash sanasi boshlanish sanasidan oldin/)).toBeInTheDocument();
+  const nextButton = screen.getByRole('button', { name: new RegExp(UZ['wizard.nav.next']) });
+  expect(nextButton).toBeDisabled();
+
+  await userEvent.click(nextButton);
+  expect(patchCount).toBe(countBeforeDates);
+});
+
+test('a period longer than 5×366 days is named in the field and blocks Next', async () => {
+  renderWizard();
+
+  await userEvent.click(await screen.findByText('Pichanchilik'));
+  await userEvent.click(await screen.findByText('pick-contour'));
+
+  fireEvent.change(screen.getByLabelText(new RegExp(UZ['wizard.step2.periodFrom'])), { target: { value: '2020-01-01' } });
+  fireEvent.change(screen.getByLabelText(new RegExp(UZ['wizard.step2.periodTo'])), { target: { value: '2026-01-01' } });
+
+  expect(await screen.findByText(/1830 kundan/)).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: new RegExp(UZ['wizard.nav.next']) })).toBeDisabled();
+});
+
+test('each date input constrains the other via native min/max', async () => {
+  renderWizard();
+
+  await userEvent.click(await screen.findByText('Pichanchilik'));
+  await userEvent.click(await screen.findByText('pick-contour'));
+
+  fireEvent.change(screen.getByLabelText(new RegExp(UZ['wizard.step2.periodFrom'])), { target: { value: '2026-01-01' } });
+  const toInput = screen.getByLabelText(new RegExp(UZ['wizard.step2.periodTo'])) as HTMLInputElement;
+  expect(toInput.min).toBe('2026-01-01');
+  expect(toInput.max).toBe('2031-01-05'); // 2026-01-01 + 5×366 days
+
+  fireEvent.change(toInput, { target: { value: '2026-06-01' } });
+  const fromInput = screen.getByLabelText(new RegExp(UZ['wizard.step2.periodFrom'])) as HTMLInputElement;
+  expect(fromInput.max).toBe('2026-06-01');
+  expect(fromInput.min).toBe('2021-05-28'); // 2026-06-01 − 5×366 days
+});
+
+test('the stepper returns to a COMPLETED step reached earlier', async () => {
+  renderWizard();
+  await driveToStep5();
+
+  const step1Buttons = screen.getAllByLabelText(/^1:/);
+  await userEvent.click(step1Buttons[0]);
+
+  expect(await screen.findByText(UZ['wizard.step1.heading'])).toBeInTheDocument();
+});
+
+test('a step ahead of the furthest one reached stays inert', async () => {
+  renderWizard();
+  await userEvent.click(await screen.findByText('Pichanchilik'));
+  await screen.findByText('pick-contour'); // now on step 2, furthest reached is 2
+
+  const step4Buttons = screen.getAllByLabelText(/^4:/);
+  expect(step4Buttons[0]).toBeDisabled();
+  await userEvent.click(step4Buttons[0]);
+  expect(screen.getByText(UZ['wizard.step2.heading'])).toBeInTheDocument();
+});
+
+test('a step already reached stays clickable even after going further back than that step', async () => {
+  renderWizard();
+  await driveToStep5(); // furthest reached is 5, currently on step 5
+
+  const step1Buttons = screen.getAllByLabelText(/^1:/);
+  await userEvent.click(step1Buttons[0]); // back to step 1 — furthest reached still 5
+
+  const step4Buttons = screen.getAllByLabelText(/^4:/);
+  expect(step4Buttons[0]).not.toBeDisabled();
+  await userEvent.click(step4Buttons[0]);
+  expect(await screen.findByText(UZ['wizard.step4.heading'])).toBeInTheDocument();
+});
+
+test('leaving mid-draft via in-app navigation asks first, and the draft is kept if cancelled', async () => {
+  const { router } = renderWizard();
+  await userEvent.click(await screen.findByText('Pichanchilik')); // draft now exists
+  await screen.findByText('pick-contour');
+
+  await userEvent.click(screen.getByRole('button', { name: new RegExp(UZ['wizard.backToList']) }));
+
+  expect(await screen.findByText(/Vizarddan chiqasizmi/)).toBeInTheDocument();
+  // Blocked, not navigated yet.
+  expect(router.state.location.pathname).toBe('/my/applications/new');
+
+  await userEvent.click(screen.getByRole('button', { name: 'Davom etish' }));
+  expect(screen.queryByText(/Vizarddan chiqasizmi/)).not.toBeInTheDocument();
+  expect(router.state.location.pathname).toBe('/my/applications/new');
+  // Still on the wizard, the contour picker included — nothing was reset.
+  expect(screen.getByText('pick-contour')).toBeInTheDocument();
+});
+
+test('leaving mid-draft via in-app navigation proceeds once confirmed', async () => {
+  const { router } = renderWizard();
+  await userEvent.click(await screen.findByText('Pichanchilik'));
+  await screen.findByText('pick-contour');
+
+  await userEvent.click(screen.getByRole('button', { name: new RegExp(UZ['wizard.backToList']) }));
+  await userEvent.click(await screen.findByRole('button', { name: 'Chiqish' }));
+
+  await waitFor(() => expect(router.state.location.pathname).toBe('/my/applications'));
+});
+
+test('no leave-confirmation is asked before any draft exists (step 1, nothing chosen yet)', async () => {
+  const { router } = renderWizard();
+  await screen.findByText('Pichanchilik'); // step 1, no activity picked yet
+
+  await userEvent.click(screen.getByRole('button', { name: new RegExp(UZ['wizard.backToList']) }));
+
+  // Nothing to lose yet — navigates straight through, no modal.
+  await waitFor(() => expect(router.state.location.pathname).toBe('/my/applications'));
+});
+
+test('a successful submit navigates straight through, without asking to leave', async () => {
+  const { router } = renderWizard();
+  await driveToStep5();
+
+  const signButton = await screen.findByRole('button', { name: /ERI bilan imzolash va yuborish/ });
+  await waitFor(() => expect(signButton).toBeEnabled());
+  await userEvent.click(signButton);
+
+  await waitFor(() => expect(router.state.location.pathname).toBe(`/my/applications/${APPLICATION_ID}`));
+  expect(screen.queryByText(/Vizarddan chiqasizmi/)).not.toBeInTheDocument();
+});
+
+test('beforeunload is prevented while a draft exists, and not before one does', async () => {
+  renderWizard();
+  await screen.findByText('Pichanchilik');
+
+  // Step 1, nothing chosen yet — no draft, nothing to warn about.
+  const before = new Event('beforeunload', { cancelable: true });
+  window.dispatchEvent(before);
+  expect(before.defaultPrevented).toBe(false);
+
+  await userEvent.click(screen.getByText('Pichanchilik'));
+  await screen.findByText('pick-contour'); // draft now exists
+
+  const after = new Event('beforeunload', { cancelable: true });
+  window.dispatchEvent(after);
+  expect(after.defaultPrevented).toBe(true);
+});
