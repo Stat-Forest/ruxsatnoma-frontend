@@ -118,6 +118,22 @@ test('I1 — the prosecutor reaches /applications through view_any, the same as 
   expect(prosecutor.map((i) => i.to)).toContain('/permits');
 });
 
+// Stage 9, T3, item 1 (Odilxon's remark 1, demo of 2026-09-10) — every staff
+// role used to see "My applications" and its "New application" button, which
+// then failed with a 403 on the wizard's first call. Filing is the
+// applicant's own action (`applications.create`, held by role `applicant`
+// alone — `RolesPage.test.tsx`), not something ownership-scoping narrows for
+// a role that files nothing.
+test('a staff role without applications.create does not see "My applications"', () => {
+  const reviewer = visibleNav({ permissions: ['applications.review', 'applications.decide'], is_superuser: false });
+  expect(reviewer.map((i) => i.to)).not.toContain('/my/applications');
+});
+
+test('the applicant sees "My applications" through applications.create', () => {
+  const applicant = visibleNav({ permissions: ['applications.create'], is_superuser: false });
+  expect(applicant.map((i) => i.to)).toContain('/my/applications');
+});
+
 test('an array permission means ANY of them, never all', () => {
   const holdsOne = satisfies(['applications.review', 'applications.decide'], {
     permissions: ['applications.decide'],

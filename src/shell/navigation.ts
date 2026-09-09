@@ -63,17 +63,26 @@ export function satisfies(
  * truth). A code that does not exist hides its menu entry from everyone, silently
  * and forever, because `visibleNav` simply never matches it and nothing throws.
  *
- * `/my/applications` and `/my/permits` carry no permission code, deliberately:
- * they are scoped by ownership (the backend narrows the list to the caller), not
- * by a code, so a citizen always sees their own documents. `/applications` and
- * `/permits` are the staff equivalents — seeing *everyone's* is a different
- * right from seeing *one's own*, and merging the two pairs is a real defect in
- * either direction. `/applications` lists BOTH staff codes because the reviewer
- * and the approver are different people holding different rights.
+ * `/my/permits` carries no permission code, deliberately: it is scoped by
+ * ownership (the backend narrows the list to the caller), not by a code, so a
+ * citizen always sees their own documents. `/applications` and `/permits` are
+ * the staff equivalents — seeing *everyone's* is a different right from
+ * seeing *one's own*, and merging the two pairs is a real defect in either
+ * direction. `/applications` lists BOTH staff codes because the reviewer and
+ * the approver are different people holding different rights.
+ *
+ * `/my/applications` DOES carry a code, `applications.create` — the demo of
+ * 2026-09-10 (Odilxon's remark 1) found every staff role could open this
+ * screen and its «New application» button, which then failed on the first
+ * call the wizard makes with a 403: filing is the applicant's own action, not
+ * something ownership-scoping narrows for a role that files nothing. The
+ * card behind an existing application (`my/applications/:id`, `routes.tsx`)
+ * stays ungated — a representative or a role reading a specific record by id
+ * is a different question from seeing the whole list and its create button.
  */
 export const NAVIGATION: NavItem[] = [
   { to: '/', labelKey: 'nav.dashboard', icon: Home },
-  { to: '/my/applications', labelKey: 'nav.myApplications', icon: FileText },
+  { to: '/my/applications', labelKey: 'nav.myApplications', permission: 'applications.create', icon: FileText },
   { to: '/my/permits', labelKey: 'nav.myPermits', icon: Award },
   {
     to: '/applications',

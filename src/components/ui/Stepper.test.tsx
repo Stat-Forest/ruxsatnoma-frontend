@@ -48,4 +48,31 @@ describe('Stepper', () => {
     await userEvent.click(step4Buttons[0]);
     expect(handleClick).not.toHaveBeenCalled();
   });
+
+  // T1's stepper contract: "a step ahead of the furthest one reached stays
+  // inert" — furthest reached, not merely "ahead of where I am right now".
+  it('keeps a step already reached clickable even after going back further, via maxStepReached', async () => {
+    const handleClick = vi.fn();
+    // Furthest reached is 4, but currently viewing step 2 — the shape a
+    // click on the stepper's own step 1 produces in the real wizard.
+    render(<Stepper steps={STEPS} currentStep={2} maxStepReached={4} onStepClick={handleClick} />);
+
+    const step4Buttons = screen.getAllByLabelText('4: Hujjatlar');
+    expect(step4Buttons[0]).not.toBeDisabled();
+    await userEvent.click(step4Buttons[0]);
+    expect(handleClick).toHaveBeenCalledWith(4);
+  });
+
+  it('still disables a step beyond maxStepReached, even when it is behind currentStep would otherwise imply', async () => {
+    const handleClick = vi.fn();
+    render(<Stepper steps={STEPS} currentStep={2} maxStepReached={2} onStepClick={handleClick} />);
+
+    const step2Buttons = screen.getAllByLabelText('2: Maydon');
+    // currentStep itself stays enabled (it always was, id <= reachable).
+    expect(step2Buttons[0]).not.toBeDisabled();
+    const step3Buttons = screen.getAllByLabelText('3: Parametrlar');
+    expect(step3Buttons[0]).toBeDisabled();
+    await userEvent.click(step3Buttons[0]);
+    expect(handleClick).not.toHaveBeenCalled();
+  });
 });

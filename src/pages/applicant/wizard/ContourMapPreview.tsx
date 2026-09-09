@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type RefObject } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
   FullscreenControl,
@@ -33,6 +33,17 @@ import { listContourFeatures } from '../api';
 import { useLanguage, useT } from '../../../i18n/useT';
 
 setWorkerUrl(workerUrl);
+
+/** What picking a contour — on the map or in the list — reports back. Kept
+ * here rather than in `ContourPicker.tsx` so this file has no dependency on
+ * its own consumer; `ContourPicker.tsx` re-exports it under the same name,
+ * so `ApplicationWizardPage.tsx`'s `import { type PickedContour } from
+ * './ContourPicker'` keeps working unchanged. */
+export interface PickedContour {
+  id: string;
+  number: string;
+  areaHa: string | null;
+}
 
 /** Two basemaps, one shown at a time (Oybek, 2026-09-05 — decision #60.1 had
  * left the basemap open as a hosting/licensing question, not a library one).
@@ -177,10 +188,31 @@ export function ContourMapPreview({
   geometry,
   selectedId,
   onPick,
+  organizationId,
+  fullscreenTarget,
+  onFullscreenChange,
 }: {
   geometry: Record<string, unknown> | null;
   selectedId?: string | null;
-  onPick?: (contourId: string | null) => void;
+  onPick?: (contour: PickedContour | null) => void;
+  /** Narrows the browsable layer the same way it narrows the list — sent as
+   * `organization_id` to `GET /gis/contours/features`, the same filter the
+   * paged list already accepts. `null`/`undefined` means every leshoz. */
+  organizationId?: string | null;
+  /** The DOM node that should expand to fill the screen when this map's own
+   * fullscreen button is pressed. Defaults to this component's own shell (the
+   * map alone) when not given — a bare preview still works standalone. The
+   * applicant picker passes its OWN outer wrapper here instead, so entering
+   * full screen carries the leshoz filter, the search box and the list along
+   * with the map: T2's "full screen is not a degraded map". The button
+   * itself still renders on the map's own top-right corner regardless —
+   * `container` only decides what expands, not where MapLibre draws the
+   * control. */
+  fullscreenTarget?: RefObject<HTMLDivElement | null>;
+  /** Fired whenever pseudo-fullscreen starts or ends, so a parent that
+   * supplied `fullscreenTarget` can grow its own layout (the list panel, its
+   * scroll area) to match — this component only knows about its own shell. */
+  onFullscreenChange?: (isFullscreen: boolean) => void;
 }) {
   const t = useT();
   const { lang } = useLanguage();
@@ -196,6 +228,13 @@ export function ContourMapPreview({
   // be drawn at all.
   const [mapReady, setMapReady] = useState(false);
   const [basemap, setBasemap] = useState<BasemapId>('osm');
+  /** Mirrors the fullscreen control's own `fullscreenstart`/`fullscreenend`
+   * events — drives this component's OWN shell between its normal height and
+   * `h-full` (which only matters, in practice, when `fullscreenTarget` is an
+   * ANCESTOR of this shell: the ancestor gets forced to 100% height by
+   * MapLibre's own stylesheet, `!important`, but that does not cascade down
+   * to this shell's own Tailwind height classes on its own). */
+  const [isFullscreen, setIsFullscreen] = useState(false);
   /** The viewport of the last settled move, as the API's `bbox` string. Set
    * from `moveend`, which is its own debounce: it fires once the pan or zoom
    * stops, not on every frame of it. */
@@ -207,13 +246,15 @@ export function ContourMapPreview({
    * click is picking a parcel or clearing the one already picked. */
   const selectedIdRef = useRef<string | null>(selectedId ?? null);
   const onPickRef = useRef(onPick);
+  const onFullscreenChangeRef = useRef(onFullscreenChange);
   // Kept current in an effect, not during render: writing a ref while
   // rendering is what `react-hooks/refs` forbids, and the click handler only
   // ever reads these after a commit anyway.
   useEffect(() => {
     selectedIdRef.current = selectedId ?? null;
     onPickRef.current = onPick;
-  }, [selectedId, onPick]);
+    onFullscreenChangeRef.current = onFullscreenChange;
+  }, [selectedId, onPick, onFullscreenChange]);
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -227,9 +268,14 @@ export function ContourMapPreview({
       attributionControl: { compact: true },
     });
     mapRef.current = map;
-    // Expands the SHELL, not the canvas: the basemap switch, the parcel count
-    // and the attribution are siblings of the map div, and expanding the map
-    // alone would leave all three behind on the page underneath.
+    // Subscriptions from the fullscreen listeners below, torn down on
+    // unmount alongside everything else this effect owns.
+    const fullscreenSubscriptions: { unsubscribe: () => void }[] = [];
+    // Expands the TARGET the caller asked for (`fullscreenTarget`), not
+    // necessarily this component's own shell — the applicant picker points
+    // it at its whole layout (list + filters + map) so none of it is left
+    // behind on the page underneath. Falls back to this shell so the
+    // component still works with no target supplied.
     //
     // `pseudo` — CSS expansion to the viewport — rather than the native
     // Fullscreen API, which is refused outright ("Permissions check failed")
@@ -238,10 +284,19 @@ export function ContourMapPreview({
     // nothing happens. Pseudo mode needs no permission and cannot fail that
     // way; what it gives up is hiding the browser's own chrome, which in a
     // cabinet people navigate with is arguably the better trade anyway.
-    if (shellRef.current) {
-      map.addControl(
-        new FullscreenControl({ container: shellRef.current, pseudo: true }),
-        'top-right',
+    const fullscreenContainer = fullscreenTarget?.current ?? shellRef.current;
+    if (fullscreenContainer) {
+      const fullscreenControl = new FullscreenControl({ container: fullscreenContainer, pseudo: true });
+      map.addControl(fullscreenControl, 'top-right');
+      fullscreenSubscriptions.push(
+        fullscreenControl.on('fullscreenstart', () => {
+          setIsFullscreen(true);
+          onFullscreenChangeRef.current?.(true);
+        }),
+        fullscreenControl.on('fullscreenend', () => {
+          setIsFullscreen(false);
+          onFullscreenChangeRef.current?.(false);
+        }),
       );
     }
 
@@ -261,11 +316,27 @@ export function ContourMapPreview({
     };
 
     const pick = (event: { features?: { properties?: Record<string, unknown> }[] }) => {
-      const id = event.features?.[0]?.properties?.contour_id;
+      const props = event.features?.[0]?.properties;
+      const id = props?.contour_id;
       if (typeof id !== 'string') return;
       // The toggle the whole interaction is built on: clicking the parcel that
       // is already selected clears the selection rather than re-selecting it.
-      onPickRef.current?.(selectedIdRef.current === id ? null : id);
+      if (selectedIdRef.current === id) {
+        onPickRef.current?.(null);
+        return;
+      }
+      // Built straight from the feature's own properties — `listContourFeatures`
+      // (`GET /gis/contours/features`) already carries `number`/`area_ha`
+      // alongside the id, so a click commits immediately without waiting on a
+      // round trip to `getContourCard`. That card is still fetched (by the
+      // caller, keyed off `selectedId`) for the DETAILS shown below the pick —
+      // occupied/available area, over-allocation — it just no longer gates
+      // the pick itself.
+      onPickRef.current?.({
+        id,
+        number: typeof props?.number === 'string' ? props.number : '',
+        areaHa: typeof props?.area_ha === 'string' ? props.area_ha : null,
+      });
     };
     const clearOnSelected = () => onPickRef.current?.(null);
 
@@ -304,15 +375,16 @@ export function ContourMapPreview({
     map.on('moveend', readViewport);
 
     return () => {
+      for (const subscription of fullscreenSubscriptions) subscription.unsubscribe();
       map.remove();
       mapRef.current = null;
       setMapReady(false);
     };
-  }, []);
+  }, [fullscreenTarget]);
 
   const featuresQuery = useQuery({
-    queryKey: ['contour-features', bbox],
-    queryFn: () => listContourFeatures(bbox!),
+    queryKey: ['contour-features', bbox, organizationId],
+    queryFn: () => listContourFeatures(bbox!, organizationId ?? undefined),
     // Only while nothing is picked: a selected parcel hides this layer, and
     // fetching a viewport nobody can see is bandwidth spent on nothing.
     enabled: !!bbox && !selectedId,
@@ -410,7 +482,7 @@ export function ContourMapPreview({
   return (
     <div
       ref={shellRef}
-      className="map-shell relative w-full h-80 lg:h-[560px] rounded-xl border border-[#E4E7EA] overflow-hidden"
+      className={`map-shell relative w-full ${isFullscreen ? 'h-full' : 'h-80 lg:h-[560px]'} rounded-xl border border-[#E4E7EA] overflow-hidden`}
     >
       {/* `h-full`, NOT `absolute inset-0`: maplibre-gl.css declares
           `.maplibregl-map { position: relative }` and adds that class to this
