@@ -12,6 +12,9 @@ import type { AuthContextValue } from '../../auth/AuthContext';
 vi.mock('./ApplicantDashboardPage', () => ({
   ApplicantDashboardPage: () => <div data-testid="applicant-dashboard" />,
 }));
+vi.mock('./ChiefForesterDashboardPage', () => ({
+  ChiefForesterDashboardPage: () => <div data-testid="chief-forester-dashboard" />,
+}));
 vi.mock('./LeadershipDashboardPage', () => ({
   LeadershipDashboardPage: () => <div data-testid="leadership-dashboard" />,
 }));
@@ -56,6 +59,12 @@ test('a leadership user lands on the KPI dashboard', () => {
   renderAs('leadership');
 
   expect(screen.getByTestId('leadership-dashboard')).toBeInTheDocument();
+});
+
+test('a chief forester lands on the chief forester dashboard', () => {
+  renderAs('chief_forester');
+
+  expect(screen.getByTestId('chief-forester-dashboard')).toBeInTheDocument();
 });
 
 test('F19 — any staff role holding dashboard.view lands on the real staff dashboard, not the placeholder', () => {
