@@ -10,15 +10,7 @@ import { Button } from '../../../components/ui/button';
 import { Modal } from '../../../components/ui/Overlay';
 import { FormField, Input, Select, Textarea } from '../../../components/ui/FormControls';
 import { ApiError } from '../../../api/errors';
-import {
-  buildMockSignature,
-  EimzoError,
-  eimzoErrorMessageKey,
-  isEimzoMock,
-  isProviderUnreachable,
-  PINFL_PATTERN,
-  signDocument,
-} from '../../../lib/eimzo';
+import { buildMockSignature, eimzoErrorMessageKey, isEimzoMock, PINFL_PATTERN, signDocument } from '../../../lib/eimzo';
 import { PERMITS_MANAGE } from '../permissions';
 import {
   EXPLANATION_REQUIRED_CODE,
@@ -166,9 +158,15 @@ function LifecycleDecisionModal({
       try {
         pkcs7 = await signDocument(new Uint8Array(documentBytes));
       } catch (err) {
-        if (err instanceof EimzoError || isProviderUnreachable(err)) {
-          setEimzoErrorKey(eimzoErrorMessageKey(err));
-        }
+        // Important 3 (review of stage 5.2): this used to render a message
+        // only for `EimzoError`/`isProviderUnreachable` and otherwise
+        // `return` bare — the timestamp route's own rate limit
+        // (ERR-SYS-006), ERR-AUTH-002, a `TypeError: Failed to fetch` on a
+        // network blip, all vanished with the button simply stopping its
+        // spinner and nothing appearing at all. `eimzoErrorMessageKey`
+        // already falls back to a generic key for anything it does not
+        // recognize, so the guard bought nothing but a silent failure mode.
+        setEimzoErrorKey(eimzoErrorMessageKey(err));
         return;
       } finally {
         setSigning(false);

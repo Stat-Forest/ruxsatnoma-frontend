@@ -299,3 +299,30 @@ test('a real-mode signing failure shows a distinct message and never reaches the
   expect(await screen.findByText(eimzo.EIMZO_ERROR_MESSAGE_KEYS.wrong_password)).toBeInTheDocument();
   expect(called).toBe(false);
 });
+
+// Important 3 (review of stage 5.2): a signing failure that was neither an
+// `EimzoError` nor `isProviderUnreachable` used to hit a bare `return` — the
+// spinner stopped and NOTHING appeared at all. A network blip mid-signing
+// (`TypeError: Failed to fetch`) is exactly such a failure.
+test('a signing failure that is neither an EimzoError nor provider-unreachable still shows a message, not silence', async () => {
+  vi.spyOn(eimzo, 'isEimzoMock').mockReturnValue(false);
+  vi.spyOn(eimzo, 'signDocument').mockRejectedValue(new TypeError('Failed to fetch'));
+  let called = false;
+  server.use(
+    http.post('*/api/v1/permits/:id/resume', () => {
+      called = true;
+      return HttpResponse.json(permit({ status: 'active' }));
+    }),
+  );
+
+  const user = userEvent.setup();
+  renderPanel(['permits.manage'], { status: 'suspended' });
+  await user.click(screen.getByText('permits.lifecycle.resumeButton'));
+
+  const reasonSelect = await screen.findByDisplayValue('permits.lifecycle.selectPlaceholder');
+  await user.selectOptions(reasonSelect, 'Sabab bartaraf etildi');
+  await user.click(screen.getByText('permits.lifecycle.confirmResume'));
+
+  expect(await screen.findByText(eimzo.EIMZO_ERROR_MESSAGE_KEYS.unknown)).toBeInTheDocument();
+  expect(called).toBe(false);
+});

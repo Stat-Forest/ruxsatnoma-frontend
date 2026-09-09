@@ -18,15 +18,7 @@ import { Button } from '../../../components/ui/button';
 import { FormField, Input, Select } from '../../../components/ui/FormControls';
 import { ApiError } from '../../../api/errors';
 import { useApiErrorText } from '../../../i18n/useApiErrorText';
-import {
-  buildMockSignature,
-  EimzoError,
-  eimzoErrorMessageKey,
-  isEimzoMock,
-  isProviderUnreachable,
-  PINFL_PATTERN,
-  signDocument,
-} from '../../../lib/eimzo';
+import { buildMockSignature, eimzoErrorMessageKey, isEimzoMock, PINFL_PATTERN, signDocument } from '../../../lib/eimzo';
 import { pickLocalizedName } from '../format';
 import { actPackageBytes } from '../actPackage';
 import { useSignAct, useViolationTypes, type ActCardOut, type ActOut } from '../queries';
@@ -96,9 +88,14 @@ export function ActSignCard({ act, onSigned }: ActSignCardProps) {
       try {
         pkcs7 = await signDocument(new Uint8Array(documentBytes));
       } catch (err) {
-        if (err instanceof EimzoError || isProviderUnreachable(err)) {
-          setEimzoErrorKey(eimzoErrorMessageKey(err));
-        }
+        // Important 3 (review of stage 5.2): this used to render a message
+        // only for `EimzoError`/`isProviderUnreachable` and otherwise
+        // `return` bare, so anything else (the timestamp route's own rate
+        // limit, ERR-AUTH-002, a network blip) vanished — the button
+        // stopped spinning and nothing appeared. `eimzoErrorMessageKey`
+        // already has a generic fallback for anything it does not
+        // recognize, so the guard bought nothing but a silent failure.
+        setEimzoErrorKey(eimzoErrorMessageKey(err));
         return;
       } finally {
         setSigning(false);

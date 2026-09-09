@@ -380,6 +380,32 @@ test('a real-mode signing failure shows a distinct message and never reaches the
   expect(called).toBe(false);
 });
 
+// Important 3 (review of stage 5.2): a signing failure that was neither an
+// `EimzoError` nor `isProviderUnreachable` used to hit a bare `return` — the
+// spinner stopped and NOTHING appeared. A network blip mid-signing
+// (`TypeError: Failed to fetch`) is exactly such a failure.
+test('a signing failure that is neither an EimzoError nor provider-unreachable still shows a message, not silence', async () => {
+  vi.spyOn(eimzo, 'isEimzoMock').mockReturnValue(false);
+  vi.spyOn(eimzo, 'signDocument').mockRejectedValue(new TypeError('Failed to fetch'));
+  let called = false;
+  server.use(
+    http.get('*/api/v1/inspections/acts/:act_id', () => HttpResponse.json(act({ status: 'draft' }))),
+    http.post('*/api/v1/inspections/acts/:act_id/sign', () => {
+      called = true;
+      return HttpResponse.json(act({ status: 'signed' }));
+    }),
+  );
+
+  const user = userEvent.setup();
+  renderAt(`/inspections/acts/${ACT_ID}`);
+
+  await screen.findByText('inspector.actForm.sign.signButton');
+  await user.click(screen.getByText('inspector.actForm.sign.signButton'));
+
+  expect(await screen.findByText(eimzo.EIMZO_ERROR_MESSAGE_KEYS.unknown)).toBeInTheDocument();
+  expect(called).toBe(false);
+});
+
 test('a photo attach calls POST /files then POST .../acts/:id/files, in that order', async () => {
   const callOrder: string[] = [];
   server.use(
