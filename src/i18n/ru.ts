@@ -58,7 +58,8 @@ export const ru = {
   'login.eimzoNameLabel': 'Ф.И.О.',
   'login.eimzoButton': 'Войти с ключом E-IMZO',
   'login.eimzoBadPinfl': 'ПИНФЛ должен состоять из 14 цифр.',
-  'login.eimzoMockNotice': 'Тестовый режим: ключ не проверяется. Настоящий E-IMZO — этап 5.2.',
+  'login.eimzoMockNotice':
+    'Тестовый режим: ключ не проверяется. Настоящий E-IMZO включится, когда НИЦ выдаст VPN-ключ.',
   'login.eimzoRealHint': 'Войдите через подключённый ключ E-IMZO. Пароль ключа спросит само приложение E-IMZO.',
   // Task 11 — see the matching comment in `uz_latn.ts`. `chromeBlocked` (fix
   // wave, finding 6) names both possible causes and words the flag as a

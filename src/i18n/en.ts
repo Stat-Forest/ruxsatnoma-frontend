@@ -54,7 +54,8 @@ export const en = {
   'login.eimzoNameLabel': 'Full Name',
   'login.eimzoButton': 'Sign in with E-IMZO key',
   'login.eimzoBadPinfl': 'PINFL must be 14 digits.',
-  'login.eimzoMockNotice': 'Test mode: actual E-IMZO app is not required.',
+  'login.eimzoMockNotice':
+    'Test mode: the key is not verified. Real E-IMZO switches on once NIC issues the VPN key.',
   'login.eimzoUnavailable': 'E-IMZO service is unavailable. Make sure the E-IMZO app is running.',
   'login.eimzoRealHint': 'Sign in using your connected E-IMZO key. The E-IMZO application itself will ask for the key password.',
   'eimzo.errors.notInstalled':
