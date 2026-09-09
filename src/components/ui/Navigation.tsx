@@ -209,6 +209,15 @@ export interface StepItem {
 export interface StepperProps {
   steps: StepItem[];
   currentStep: number;
+  /** The furthest step id ever reached — a step is clickable up to THIS,
+   *  not up to `currentStep`. Without it, going back to step 2 after
+   *  reaching step 4 would re-lock steps 3 and 4, even though both were
+   *  already completed (T1, `docs/plans/09-odilxon-demo-fixes.md`: "the
+   *  stepper navigates back to COMPLETED steps only", not merely to steps
+   *  behind wherever the applicant currently stands). Defaults to
+   *  `currentStep`, the old behaviour, when omitted.
+   */
+  maxStepReached?: number;
   onStepClick?: (stepId: number) => void;
   className?: string;
 }
@@ -216,9 +225,11 @@ export interface StepperProps {
 export const Stepper: React.FC<StepperProps> = ({
   steps,
   currentStep,
+  maxStepReached,
   onStepClick,
   className = '',
 }) => {
+  const reachable = maxStepReached ?? currentStep;
   const activePercent = steps.length > 1 ? ((currentStep - 1) / (steps.length - 1)) * 100 : 0;
   const currentStepObj = steps.find((s) => s.id === currentStep) ?? steps[0];
 
@@ -243,9 +254,9 @@ export const Stepper: React.FC<StepperProps> = ({
             return (
               <div
                 key={step.id}
-                onClick={() => onStepClick && step.id <= currentStep && onStepClick(step.id)}
+                onClick={() => onStepClick && step.id <= reachable && onStepClick(step.id)}
                 className={`relative z-10 flex flex-col items-center group ${
-                  onStepClick && step.id <= currentStep ? 'cursor-pointer' : 'cursor-default'
+                  onStepClick && step.id <= reachable ? 'cursor-pointer' : 'cursor-default'
                 }`}
                 style={{ width: `${100 / steps.length}%` }}
               >
@@ -308,7 +319,7 @@ export const Stepper: React.FC<StepperProps> = ({
                 key={step.id}
                 type="button"
                 onClick={() => onStepClick?.(step.id)}
-                disabled={!onStepClick || step.id > currentStep}
+                disabled={!onStepClick || step.id > reachable}
                 aria-label={`${step.id}: ${step.title}`}
                 className={`relative z-10 w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs transition-all duration-200 ${
                   isCompleted
@@ -316,7 +327,7 @@ export const Stepper: React.FC<StepperProps> = ({
                     : isActive
                     ? 'bg-white border-2 border-[#2E7D4F] text-[#2E7D4F] ring-2 ring-[#F0F7F1] scale-110 shadow-xs'
                     : 'bg-[#F8F9FA] border border-[#E4E7EA] text-[#5A646D]'
-                } ${onStepClick && step.id <= currentStep ? 'cursor-pointer' : 'cursor-default'}`}
+                } ${onStepClick && step.id <= reachable ? 'cursor-pointer' : 'cursor-default'}`}
               >
                 {isCompleted ? <Check className="w-4 h-4 stroke-[2.5]" /> : step.id}
               </button>
