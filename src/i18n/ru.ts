@@ -57,16 +57,23 @@ export const ru = {
   'login.eimzoBadPinfl': 'ПИНФЛ должен состоять из 14 цифр.',
   'login.eimzoMockNotice': 'Тестовый режим: ключ не проверяется. Настоящий E-IMZO — этап 5.2.',
   'login.eimzoRealHint': 'Войдите через подключённый ключ E-IMZO. Пароль ключа спросит само приложение E-IMZO.',
-  // Task 11 — see the matching comment in `uz_latn.ts`.
+  // Task 11 — see the matching comment in `uz_latn.ts`. `chromeBlocked` (fix
+  // wave, finding 6) names both possible causes and words the flag as a
+  // Chromium fallback, not a Chrome-only fact.
   'eimzo.errors.notInstalled':
     'Приложение E-IMZO не найдено или не запущено. Установите или запустите его: e-imzo.uz',
   'eimzo.errors.outdatedVersion': 'Установленная версия E-IMZO устарела. Обновите её: e-imzo.uz',
   'eimzo.errors.chromeBlocked':
-    'Ваш браузер (Chrome 147 и новее) проверяет подключение к E-IMZO — нажмите «Разрешить» во всплывающем запросе. Если запрос не появился, откройте chrome://flags/#local-network-access-check и отключите эту проверку (Disabled).',
+    'Не удалось подключиться к E-IMZO. Сначала убедитесь, что программа E-IMZO установлена и запущена. Затем, если браузер запросит разрешение на доступ к локальной сети — нажмите «Разрешить». Если запрос не появился и вы используете Chrome или браузер на его основе (Edge, Brave, Opera, Яндекс Браузер), откройте chrome://flags/#local-network-access-check и переключите в состояние «Disabled» — эта страница есть не в каждом браузере.',
   'eimzo.errors.wrongPassword': 'Неверный пароль ключа. Попробуйте ещё раз.',
   'eimzo.errors.providerUnreachable':
     'Это не ошибка нашего сервиса — провайдер E-IMZO или его VPN-канал временно недоступен. Повторите попытку чуть позже.',
   'eimzo.errors.unknown': 'При работе с E-IMZO произошла непредвиденная ошибка. Попробуйте ещё раз.',
+  // Fix wave, finding 5 — see the matching comment in `uz_latn.ts`.
+  'eimzo.errors.noValidKey':
+    'В подключённом E-IMZO не найден действующий (не просроченный) сертификат. Получите новый сертификат или обновите просроченный ключ.',
+  'eimzo.errors.multipleValidKeys':
+    'Обнаружено несколько действующих сертификатов E-IMZO — неясно, каким подписывать. Оставьте подключённым только нужный сертификат/ключ и повторите попытку.',
   'dash.error': 'Не удалось загрузить данные. Обновите страницу.',
   'dash.loading': 'Загрузка…',
   'dash.activePermits.label': 'Действующие разрешения',

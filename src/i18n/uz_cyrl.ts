@@ -1,7 +1,8 @@
 /**
- * Uzbek (Cyrillic) copy for the six E-IMZO messages `src/lib/eimzo/errors.ts`
- * names (task 11; decision #90 — `uz_latn` is the required language,
- * `uz_cyrl` optional).
+ * Uzbek (Cyrillic) copy for the E-IMZO messages `src/lib/eimzo/errors.ts`
+ * names (task 11, plus `noValidKey`/`multipleValidKeys` from the fix wave's
+ * finding 5; decision #90 — `uz_latn` is the required language, `uz_cyrl`
+ * optional).
  *
  * Deliberately NOT a full `uz_latn.ts`/`ru.ts`-shaped dictionary, and NOT
  * wired into `UiLanguage`/`DICTIONARIES` (`src/i18n/context.ts`): that type
@@ -19,17 +20,21 @@
  *
  * Keys mirror `EIMZO_ERROR_MESSAGE_KEYS` in `src/lib/eimzo/errors.ts`
  * exactly (duplicated as string literals, not imported, to avoid a
- * dependency from `src/i18n/` back into `src/lib/eimzo/` for six strings) —
- * `errors.test.ts` asserts the two lists match.
+ * dependency from `src/i18n/` back into `src/lib/eimzo/` for these
+ * strings) — `errors.test.ts` asserts the two lists match.
  */
 export const uz_cyrl_eimzo_errors: Record<string, string> = {
   'eimzo.errors.notInstalled':
     'E-IMZO дастури топилмаган ёки ишга туширилмаган. Дастурни ўрнатинг ёки ишга туширинг: e-imzo.uz',
   'eimzo.errors.outdatedVersion': 'Ўрнатилган E-IMZO версияси эскирган. Уни янгиланг: e-imzo.uz',
   'eimzo.errors.chromeBlocked':
-    'Браузерингиз (Chrome 147 ва ундан кейинги версиялар) E-IMZO уланишини текширмоқда — чиққан сўровда «Рухсат бериш»ни танланг. Сўров чиқмаса, манзил қаторига киритинг: chrome://flags/#local-network-access-check ва уни «Disabled» ҳолатига ўтказинг.',
+    'E-IMZO билан алоқа ўрнатилмади. Аввал E-IMZO дастури ўрнатилган ва ишга туширилганини текширинг. Сўнгра, браузерингиз маҳаллий тармоққа уланишга рухсат сўраса — «Рухсат бериш»ни танланг. Сўров чиқмаса ва Chrome ёки унга ўхшаш браузердан (Edge, Brave, Opera, Yandex Browser) фойдаланаётган бўлсангиз, манзил қаторига киритинг: chrome://flags/#local-network-access-check ва уни «Disabled» ҳолатига ўтказинг — бу саҳифа ҳар бир браузерда ҳам мавжуд бўлавермайди.',
   'eimzo.errors.wrongPassword': "Калит пароли нотўғри киритилди. Қайтадан уриниб кўринг.",
   'eimzo.errors.providerUnreachable':
     'Бу бизнинг хизматимиздаги хато эмас — E-IMZO провайдери ёки унинг VPN алоқаси вақтинча ишламаяпти. Бироздан сўнг қайта уринг.',
   'eimzo.errors.unknown': 'E-IMZO орқали амални бажаришда кутилмаган хатолик юз берди. Қайтадан уриниб кўринг.',
+  'eimzo.errors.noValidKey':
+    'Уланган E-IMZO’да амалдаги (муддати ўтмаган) сертификат топилмади. Янги сертификат олинг ёки муддати ўтган калитни янгиланг.',
+  'eimzo.errors.multipleValidKeys':
+    'Бир нечта амалдаги E-IMZO сертификати аниқланди — қайси бири билан имзолаш ноаниқ. Фақат керакли сертификат/калитни улаб қолдиринг ва қайтадан уринг.',
 };

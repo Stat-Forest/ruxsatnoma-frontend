@@ -1,12 +1,14 @@
 import { ApiError } from '../../api/errors';
 
 /**
- * The five conditions a citizen actually hits with the real E-IMZO client
- * (task-11-brief.md), plus `unknown` for anything `client.ts` cannot place
- * more precisely. Kept as a closed set on purpose — a `switch` over this
- * type without a `default` is a compile error the moment a sixth kind is
- * added, so a new failure mode cannot silently fall back to `unknown`
- * without someone deciding that on purpose.
+ * The conditions a citizen actually hits with the real E-IMZO client — the
+ * four named by task-11-brief.md (`not_installed`, `chrome_blocked`,
+ * `outdated_version`, `wrong_password`) plus `no_valid_key`/
+ * `multiple_valid_keys` (fix wave, finding 5), and `unknown` for anything
+ * `client.ts` cannot place more precisely. Kept as a closed set on
+ * purpose — a `switch` over this type without a `default` is a compile
+ * error the moment a new kind is added, so a new failure mode cannot
+ * silently fall back to `unknown` without someone deciding that on purpose.
  *
  * `provider_unreachable` (condition 5, `ERR-INT-001`/`ERR-INT-002`) is
  * deliberately NOT a member here — that condition is not something
@@ -23,6 +25,8 @@ export type EimzoErrorKind =
   | 'chrome_blocked'
   | 'outdated_version'
   | 'wrong_password'
+  | 'no_valid_key'
+  | 'multiple_valid_keys'
   | 'unknown';
 
 /** i18n keys — see `src/i18n/uz_latn.ts`/`ru.ts` for the required two, and
@@ -35,6 +39,8 @@ export const EIMZO_ERROR_MESSAGE_KEYS = {
   chrome_blocked: 'eimzo.errors.chromeBlocked',
   outdated_version: 'eimzo.errors.outdatedVersion',
   wrong_password: 'eimzo.errors.wrongPassword',
+  no_valid_key: 'eimzo.errors.noValidKey',
+  multiple_valid_keys: 'eimzo.errors.multipleValidKeys',
   provider_unreachable: 'eimzo.errors.providerUnreachable',
   unknown: 'eimzo.errors.unknown',
 } as const satisfies Record<EimzoErrorKind | 'provider_unreachable', string>;
@@ -113,6 +119,42 @@ export class EimzoPasswordError extends EimzoError {
   constructor(cause?: unknown) {
     super('wrong_password', 'The E-IMZO key password was rejected', cause);
     this.name = 'EimzoPasswordError';
+  }
+}
+
+/**
+ * Fix wave, finding 5 — `listKeys()` answered, but every certificate it
+ * returned has already expired (`validTo` in the past). Deliberately
+ * DISTINCT from `EimzoNotInstalledError`: E-IMZO is running and did answer,
+ * so telling the signer to install it (the minor finding this fixes) sends
+ * them chasing the wrong problem — the actionable thing is a certificate,
+ * not the program.
+ */
+export class EimzoNoValidKeyError extends EimzoError {
+  constructor(cause?: unknown) {
+    super('no_valid_key', 'No unexpired E-IMZO certificate is available', cause);
+    this.name = 'EimzoNoValidKeyError';
+  }
+}
+
+/**
+ * Fix wave, finding 5 — more than one unexpired certificate came back from
+ * `listKeys()`. `client.ts` builds no picker UI (out of scope for this fix
+ * wave, noted in the report): signing with an arbitrary one is unsafe — an
+ * organisation certificate that was never meant for this flow sorts first
+ * as easily as the right one, and the backend then refuses with
+ * `certificate_pinfl_mismatch` with no way for a retry to pick differently.
+ * Raised instead of guessing; `client.ts` logs the specific certificates
+ * (common name, serial) to the console so whoever is signing can tell which
+ * one to disconnect.
+ */
+export class EimzoMultipleKeysError extends EimzoError {
+  readonly count: number;
+
+  constructor(count: number, cause?: unknown) {
+    super('multiple_valid_keys', `${count} unexpired E-IMZO certificates found — refusing to guess which to sign with`, cause);
+    this.name = 'EimzoMultipleKeysError';
+    this.count = count;
   }
 }
 

@@ -12,6 +12,8 @@ import { createPkcs7, listKeys, loadKey, signAttached, signDocument } from './cl
 import {
   EimzoChromeBlockedError,
   EimzoError,
+  EimzoMultipleKeysError,
+  EimzoNoValidKeyError,
   EimzoNotInstalledError,
   EimzoOutdatedVersionError,
   EimzoPasswordError,
@@ -45,6 +47,13 @@ function vendorKeyVo(overrides: Record<string, unknown> = {}) {
     ...overrides,
   };
 }
+
+// Minor finding (fix wave): this used to be dropped on the floor by the
+// stub's own signature (`createPkcs7: (_id, _data, _timestamper, success,
+// fail)` — five params, ignoring the vendor's real sixth/seventh), so no
+// test could ever have caught `signDocument`/`signAttached` swapping
+// DETACHED and ATTACHED. Reset in `afterEach` below.
+let lastCreatePkcs7Detached: boolean | undefined;
 
 /** Installs `window.EIMZOClient` shaped exactly like the vendored
  *  `public/e-imzo-client.js` — same method names, same callback-pair shape —
@@ -87,7 +96,8 @@ function installVendorStub(options: VendorStubOptions = {}) {
       }
       (success as (keyId: string) => void)('vendor-key-id-1');
     },
-    createPkcs7: (_id: string, _data: string, _timestamper: null, success: SuccessFn, fail: FailFn) => {
+    createPkcs7: (_id: string, _data: string, _timestamper: null, success: SuccessFn, fail: FailFn, detached: boolean) => {
+      lastCreatePkcs7Detached = detached;
       if (options.createPkcs7Fail === 'connection') {
         fail(new Event('close'), null);
         return;
@@ -114,6 +124,8 @@ beforeAll(() => server.listen({ onUnhandledRequest: 'error' }));
 afterEach(() => {
   server.resetHandlers();
   delete (window as { EIMZOClient?: unknown }).EIMZOClient;
+  document.querySelectorAll('script[data-eimzo-vendor]').forEach((el) => el.remove());
+  lastCreatePkcs7Detached = undefined;
   vi.restoreAllMocks();
 });
 afterAll(() => server.close());
@@ -180,6 +192,19 @@ describe('createPkcs7', () => {
       'RAW-PKCS7',
     );
   });
+
+  // Minor finding (fix wave): the stub used to ignore this argument
+  // entirely, so nothing could tell a detached call from an attached one —
+  // the exact mistake that produces a server refusal with no clue why.
+  it.each([
+    [true, true],
+    [false, false],
+  ])('passes options.detached=%s through to the vendor call as-is', async (detached, expected) => {
+    stubUserAgent(CHROME_OLD);
+    installVendorStub();
+    await createPkcs7('vendor-key-id-1', new TextEncoder().encode('hello'), { detached });
+    expect(lastCreatePkcs7Detached).toBe(expected);
+  });
 });
 
 describe('signDocument', () => {
@@ -196,6 +221,9 @@ describe('signDocument', () => {
     const result = await signDocument(new TextEncoder().encode('document bytes'));
     expect(sawBody?.pkcs7).toBe('RAW-PKCS7');
     expect(result).toBe('TIMESTAMPED-PKCS7');
+    // Minor finding (fix wave): pinned so a future change cannot silently
+    // swap DETACHED for ATTACHED here without a test noticing.
+    expect(lastCreatePkcs7Detached).toBe(true);
   });
 
   it('propagates a not-installed failure without ever reaching the timestamp route', async () => {
@@ -227,6 +255,72 @@ describe('signAttached', () => {
     const result = await signAttached(new TextEncoder().encode('challenge-or-nonce'));
     expect(result).toBe('RAW-PKCS7');
     expect(called).toBe(false);
+    // Minor finding (fix wave): pinned so a future change cannot silently
+    // swap ATTACHED for DETACHED here without a test noticing.
+    expect(lastCreatePkcs7Detached).toBe(false);
+  });
+});
+
+describe('key selection (fix wave, finding 5)', () => {
+  it('filters out an expired key and signs with the remaining valid one', async () => {
+    stubUserAgent(CHROME_OLD);
+    installVendorStub({
+      keys: [
+        vendorKeyVo({ serialNumber: 'SN-EXPIRED', validTo: new Date('2020-01-01T00:00:00Z') }),
+        vendorKeyVo({ serialNumber: 'SN-VALID', validTo: new Date('2099-01-01T00:00:00Z') }),
+      ],
+    });
+    await expect(signAttached(new TextEncoder().encode('nonce'))).resolves.toBe('RAW-PKCS7');
+  });
+
+  it('every key expired reports EimzoNoValidKeyError, never "not installed"', async () => {
+    stubUserAgent(CHROME_OLD);
+    installVendorStub({ keys: [vendorKeyVo({ validTo: new Date('2020-01-01T00:00:00Z') })] });
+    const err = await signAttached(new TextEncoder().encode('nonce')).catch((e: unknown) => e);
+    expect(err).toBeInstanceOf(EimzoNoValidKeyError);
+    expect(err).not.toBeInstanceOf(EimzoNotInstalledError);
+  });
+
+  // Minor finding (fix wave): an empty key list (E-IMZO running, no key
+  // present) used to report `EimzoNotInstalledError` — "install E-IMZO" is
+  // the wrong instruction when the program answered with an empty list.
+  it('an empty key list reports EimzoNoValidKeyError, never "not installed"', async () => {
+    stubUserAgent(CHROME_OLD);
+    installVendorStub({ keys: [] });
+    const err = await signAttached(new TextEncoder().encode('nonce')).catch((e: unknown) => e);
+    expect(err).toBeInstanceOf(EimzoNoValidKeyError);
+    expect(err).not.toBeInstanceOf(EimzoNotInstalledError);
+  });
+
+  it('more than one valid key refuses to guess, naming the count and logging the candidates', async () => {
+    stubUserAgent(CHROME_OLD);
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    installVendorStub({
+      keys: [
+        vendorKeyVo({ commonName: 'PERSONAL CERT', serialNumber: 'SN-A' }),
+        vendorKeyVo({ commonName: 'ORG CERT', serialNumber: 'SN-B' }),
+      ],
+    });
+    const err = await signAttached(new TextEncoder().encode('nonce')).catch((e: unknown) => e);
+    expect(err).toBeInstanceOf(EimzoMultipleKeysError);
+    expect((err as InstanceType<typeof EimzoMultipleKeysError>).count).toBe(2);
+    // The specific certificates are named to the console, not guessed past.
+    expect(warn.mock.calls.some((call) => call.some((arg) => String(arg).includes('SN-A')))).toBe(true);
+    expect(warn.mock.calls.some((call) => call.some((arg) => String(arg).includes('SN-B')))).toBe(true);
+  });
+
+  it('retrying after a multiple-keys refusal with only one certificate left succeeds', async () => {
+    // Deterministic-but-wrong was the whole bug: retrying used to reach the
+    // exact same guess every time. Proves a retry CAN now succeed once the
+    // set of connected certificates actually narrows to one.
+    stubUserAgent(CHROME_OLD);
+    installVendorStub({
+      keys: [vendorKeyVo({ serialNumber: 'SN-A' }), vendorKeyVo({ serialNumber: 'SN-B' })],
+    });
+    await expect(signAttached(new TextEncoder().encode('nonce'))).rejects.toBeInstanceOf(EimzoMultipleKeysError);
+
+    installVendorStub({ keys: [vendorKeyVo({ serialNumber: 'SN-A' })] });
+    await expect(signAttached(new TextEncoder().encode('nonce'))).resolves.toBe('RAW-PKCS7');
   });
 });
 
@@ -242,5 +336,52 @@ describe('generic vendor failures', () => {
     expect(err).not.toBeInstanceOf(EimzoChromeBlockedError);
     expect(err).not.toBeInstanceOf(EimzoPasswordError);
     expect(err).not.toBeInstanceOf(EimzoOutdatedVersionError);
+  });
+});
+
+describe('vendor script loading (minor finding, fix wave)', () => {
+  // `window.EIMZOClient` is never installed in this suite — these tests
+  // exercise the real `ensureVendorLoaded()`/`loadScript()` DOM path on
+  // purpose, the one thing every other test in this file avoids.
+  it('a failed script load does not poison later calls once it can succeed', async () => {
+    stubUserAgent(CHROME_OLD);
+    const originalCreateElement = document.createElement.bind(document);
+    let attempt = 0;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    vi.spyOn(document, 'createElement').mockImplementation((tag: any) => {
+      const el = originalCreateElement(tag);
+      if (tag === 'script') {
+        queueMicrotask(() => {
+          attempt += 1;
+          if (attempt === 1) {
+            // The vendor's own script load fails the first time — a network
+            // blip, not proof E-IMZO is uninstalled.
+            (el as HTMLScriptElement).onerror?.(new Event('error'));
+          } else {
+            if (attempt === 2) {
+              // Once a script actually executes, it is what would define
+              // the vendor global for real — reproduced here by installing
+              // the stub right as the (retried) load "succeeds".
+              installVendorStub();
+            }
+            (el as HTMLScriptElement).onload?.(new Event('load'));
+          }
+        });
+      }
+      return el;
+    });
+
+    // The script-load failure itself surfaces as the plain `Error`
+    // `loadScript` throws (classification into an `EimzoError` kind is
+    // `requireClient()`'s job, one level up, for when the vendor script DID
+    // load but never defined the global) — what this test pins is that the
+    // failure does not poison every later call.
+    await expect(listKeys()).rejects.toThrow('failed to load');
+    // The failed tag must not be left behind to short-circuit a real retry
+    // (`loadScript`'s own `querySelector` guard would otherwise "succeed"
+    // immediately over a global that was never actually defined).
+    expect(document.querySelectorAll('script[data-eimzo-vendor]')).toHaveLength(0);
+
+    await expect(listKeys()).resolves.toHaveLength(1);
   });
 });

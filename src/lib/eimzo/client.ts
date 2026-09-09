@@ -41,6 +41,8 @@ import { apiError } from '../../api/errors';
 import {
   EimzoChromeBlockedError,
   EimzoError,
+  EimzoMultipleKeysError,
+  EimzoNoValidKeyError,
   EimzoNotInstalledError,
   EimzoOutdatedVersionError,
   EimzoPasswordError,
@@ -121,7 +123,8 @@ let vendorLoadPromise: Promise<void> | null = null;
 
 function loadScript(src: string): Promise<void> {
   return new Promise((resolve, reject) => {
-    if (document.querySelector(`script[data-eimzo-vendor="${src}"]`)) {
+    const existing = document.querySelector(`script[data-eimzo-vendor="${src}"]`);
+    if (existing) {
       resolve();
       return;
     }
@@ -129,7 +132,14 @@ function loadScript(src: string): Promise<void> {
     script.src = src;
     script.dataset.eimzoVendor = src;
     script.onload = () => resolve();
-    script.onerror = () => reject(new Error(`eimzo: failed to load ${src}`));
+    script.onerror = () => {
+      // Minor finding (fix wave): remove the failed tag so the NEXT
+      // `ensureVendorLoaded()` call actually re-fetches instead of finding
+      // this dead `<script>` via the `querySelector` above and resolving
+      // immediately over a global that was never defined.
+      script.remove();
+      reject(new Error(`eimzo: failed to load ${src}`));
+    };
     document.head.appendChild(script);
   });
 }
@@ -140,12 +150,22 @@ function loadScript(src: string): Promise<void> {
  * relies on: stub the global directly (`vi.stubGlobal('EIMZOClient', ...)`)
  * and this function never touches the DOM, never opens a WebSocket, and
  * needs no running dev server.
+ *
+ * Minor finding (fix wave): `vendorLoadPromise ??=` used to cache a
+ * REJECTED promise forever — one failed load of `/e-imzo.js` (a network
+ * blip, not necessarily "E-IMZO is not installed") poisoned every later
+ * call in the same tab, even after the network recovered, since `??=`
+ * never re-assigns once the slot is non-null. The `.catch` below clears the
+ * slot back to `null` on failure so the NEXT call starts a fresh attempt.
  */
 async function ensureVendorLoaded(): Promise<void> {
   if (typeof window !== 'undefined' && window.EIMZOClient) return;
   vendorLoadPromise ??= (async () => {
     for (const src of VENDOR_SCRIPTS) await loadScript(src);
-  })();
+  })().catch((err: unknown) => {
+    vendorLoadPromise = null;
+    throw err;
+  });
   return vendorLoadPromise;
 }
 
@@ -290,8 +310,15 @@ export async function listKeys(): Promise<EimzoKeyInfo[]> {
  *  `verify_password` since this always asks with `verifyPassword: true`)
  *  and resolves to the vendor's own `keyId` — the id `createPkcs7` below
  *  takes, NOT the same as `EimzoKeyInfo.id` (that one is this module's own
- *  registry key). */
+ *  registry key).
+ *
+ *  Minor finding (fix wave): `ensureVendorLoaded()` first, same as
+ *  `listKeys()` — a direct call (bypassing `listKeys()`/`signDocument()`)
+ *  used to report a false `EimzoNotInstalledError` from `requireClient()`
+ *  below whenever the vendor scripts simply had not been injected yet,
+ *  rather than the vendor genuinely being absent. */
 export async function loadKey(key: EimzoKeyInfo): Promise<string> {
+  await ensureVendorLoaded();
   const vo = keyRegistry.get(key.id);
   if (!vo) throw new Error(`eimzo: loadKey called with an id listKeys() did not just produce (${key.id})`);
   const client = requireClient();
@@ -324,8 +351,13 @@ function toBase64(bytes: Uint8Array): string {
  * isDataBase64Encoded)` — `data` is always pre-encoded here (see `toBase64`
  * above), and `timestamper` is always `null` (see this module's own
  * docstring for why: the vendored build never calls it).
+ *
+ * Minor finding (fix wave): `ensureVendorLoaded()` first, same reasoning as
+ * `loadKey` above — a direct call must not report a false "not installed"
+ * for a vendor that simply has not been loaded into this page yet.
  */
 export async function createPkcs7(keyId: string, bytes: Uint8Array, options: { detached: boolean }): Promise<string> {
+  await ensureVendorLoaded();
   const client = requireClient();
   return new Promise((resolve, reject) => {
     client.createPkcs7(
@@ -341,22 +373,61 @@ export async function createPkcs7(keyId: string, bytes: Uint8Array, options: { d
 }
 
 /**
- * Picks which certificate to sign with when `listKeys()` returns more than
- * one. This stage builds no picker UI — task 9-11's scope is the client and
- * the five call sites, not a certificate chooser — so the first key E-IMZO
- * reports is used, deterministically (the vendor's own enumeration order is
- * stable within a session). Flagged in the task report as a real, known gap
- * for whoever picks up a multi-certificate signer next.
+ * Fix wave, finding 5 — `listKeys()` may return an expired certificate
+ * (`EimzoKeyInfo.validTo` in the past, e.g. renewed elsewhere but not yet
+ * removed from this machine). The vendor filters nothing of the sort, and
+ * signing with one is deterministic in the WRONG direction: retrying picks
+ * the exact same expired key again, and the backend's `build_verdict`
+ * refuses it every time with `certificate_expired`/
+ * `certificate_invalid_at_signing` while writing an RI-05 risk indicator
+ * into the audit log on every attempt.
  */
-async function signWithFirstKey(bytes: Uint8Array, options: { detached: boolean }): Promise<string> {
+function isKeyExpired(key: EimzoKeyInfo, now: Date): boolean {
+  return key.validTo.getTime() < now.getTime();
+}
+
+/**
+ * Picks the ONE certificate to sign with, after filtering out expired ones.
+ *
+ * Fix wave, finding 5: the previous version took `keys[0]` unconditionally
+ * and logged a warning — deterministic, but deterministically wrong in two
+ * concrete ways: an expired key sorting first meant every attempt failed
+ * the same way (see `isKeyExpired` above), and an organisation certificate
+ * sorting first ahead of a personal one meant the backend refused with
+ * `certificate_pinfl_mismatch`, again with no way for a retry to recover.
+ *
+ * A full certificate-picker UI is out of scope for this fix wave (noted in
+ * the fix report); with more than one unexpired certificate left, this
+ * raises an explicit, actionable error instead of guessing — the specific
+ * certificates (common name, serial) go to the console for whoever is
+ * signing to tell apart, since the localized message itself names a count,
+ * not each certificate's identity (three languages, no per-key
+ * interpolation machinery elsewhere in this app to reuse).
+ */
+async function pickSigningKey(): Promise<EimzoKeyInfo> {
   const keys = await listKeys();
-  if (keys.length === 0) throw new EimzoNotInstalledError(null);
-  if (keys.length > 1) {
-    console.warn(
-      `eimzo: ${keys.length} certificates found, signing with the first (${keys[0].serialNumber}) — no picker UI yet`,
-    );
+  const now = new Date();
+  const validKeys = keys.filter((key) => !isKeyExpired(key, now));
+  if (validKeys.length === 0) {
+    // Distinct from "not installed": E-IMZO answered, possibly with keys —
+    // just none of them still valid (or the list was empty to begin with,
+    // the minor finding this also fixes: an empty list is not evidence
+    // E-IMZO itself is missing).
+    throw new EimzoNoValidKeyError(null);
   }
-  const keyId = await loadKey(keys[0]);
+  if (validKeys.length > 1) {
+    console.warn(
+      `eimzo: ${validKeys.length} unexpired certificates found, refusing to guess which to sign with — `,
+      validKeys.map((key) => `${key.commonName} (serial ${key.serialNumber})`).join('; '),
+    );
+    throw new EimzoMultipleKeysError(validKeys.length);
+  }
+  return validKeys[0];
+}
+
+async function signWithSelectedKey(bytes: Uint8Array, options: { detached: boolean }): Promise<string> {
+  const key = await pickSigningKey();
+  const keyId = await loadKey(key);
   return createPkcs7(keyId, bytes, options);
 }
 
@@ -373,26 +444,29 @@ async function timestamp(pkcs7: string): Promise<string> {
  * The whole DETACHED document-signing flow: pick a key, load it (the
  * native password dialog), sign, then hand the result to our own `POST
  * /eimzo/timestamp` (ruling R5 — a signature with no timestamp is refused
- * server-side, `timestamp_missing`) and return ITS pkcs7. Used by the three
- * document-signing call sites (`PermitSignaturesPanel`,
- * `PermitLifecyclePanel`, `ActSignCard`) — never for a login challenge or a
- * certificate registration, which are ATTACHED and never timestamped; see
- * `signAttached` below and the task report for why the split.
+ * server-side, `timestamp_missing`) and return ITS pkcs7. Used by every
+ * document-signing call site (`PermitSignaturesPanel`,
+ * `PermitLifecyclePanel`, `ActSignCard`, `ApplicationWizardPage`,
+ * `SignDecisionModal`, `ReportLifecyclePanel`) — never for a login
+ * challenge or a certificate registration, which are ATTACHED and never
+ * timestamped; see `signAttached` below and the task report for why the
+ * split.
  */
 export async function signDocument(bytes: Uint8Array): Promise<string> {
-  const pkcs7 = await signWithFirstKey(bytes, { detached: true });
+  const pkcs7 = await signWithSelectedKey(bytes, { detached: true });
   return timestamp(pkcs7);
 }
 
 /**
  * The ATTACHED flow, with NO timestamp step — `register_certificate`
- * (`CertificatesSection`) and `login_via_eimzo` (`AuthProvider`) both
- * verify attached PKCS7 (`verify_attached`), and neither goes through
- * `signatures.service.sign()`, the one flow ruling R5's mandatory timestamp
- * actually gates (`build_verdict`/`timestamp_missing`). A timestamp on a
- * 120-second login challenge, or on a proof-of-possession nonce with no
- * document of its own, would assert something neither call needs.
+ * (`CertificatesSection`), `login_via_eimzo` (`AuthProvider`) and the
+ * org-ERI challenge (`RepresentationSection`) all verify attached PKCS7
+ * (`verify_attached`), and none of them go through `signatures.service.
+ * sign()`, the one flow ruling R5's mandatory timestamp actually gates
+ * (`build_verdict`/`timestamp_missing`). A timestamp on a short-lived login
+ * challenge, or on a proof-of-possession nonce with no document of its own,
+ * would assert something none of these calls need.
  */
 export async function signAttached(bytes: Uint8Array): Promise<string> {
-  return signWithFirstKey(bytes, { detached: false });
+  return signWithSelectedKey(bytes, { detached: false });
 }

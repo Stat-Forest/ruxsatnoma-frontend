@@ -12,6 +12,8 @@ import { uz_latn } from '../../i18n/uz_latn';
 import {
   EIMZO_ERROR_MESSAGE_KEYS,
   EimzoChromeBlockedError,
+  EimzoMultipleKeysError,
+  EimzoNoValidKeyError,
   EimzoNotInstalledError,
   EimzoOutdatedVersionError,
   EimzoPasswordError,
@@ -22,12 +24,14 @@ import {
 const ALL_KEYS = Object.values(EIMZO_ERROR_MESSAGE_KEYS);
 
 describe('eimzoErrorMessageKey', () => {
-  it('maps each of the four EimzoError kinds to its own key', () => {
+  it('maps each of the six EimzoError kinds to its own key', () => {
     const keys = [
       eimzoErrorMessageKey(new EimzoNotInstalledError()),
       eimzoErrorMessageKey(new EimzoChromeBlockedError()),
       eimzoErrorMessageKey(new EimzoOutdatedVersionError('3.10')),
       eimzoErrorMessageKey(new EimzoPasswordError()),
+      eimzoErrorMessageKey(new EimzoNoValidKeyError()),
+      eimzoErrorMessageKey(new EimzoMultipleKeysError(2)),
     ];
     expect(new Set(keys).size).toBe(keys.length);
   });
@@ -63,7 +67,7 @@ describe.each([
   ['ru', ru as Record<string, string>],
   ['uz_cyrl (task 11, not yet a first-class UiLanguage — see uz_cyrl.ts)', uz_cyrl_eimzo_errors],
 ])('%s', (_label, dict) => {
-  it('defines non-empty text for every one of the six message keys', () => {
+  it('defines non-empty text for every one of the message keys', () => {
     for (const key of ALL_KEYS) {
       expect(dict[key], `missing or empty: ${key}`).toBeTruthy();
     }
