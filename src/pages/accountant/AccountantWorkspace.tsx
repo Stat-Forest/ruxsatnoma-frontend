@@ -28,23 +28,25 @@ export function AccountantWorkspace() {
 
   return (
     <div className="space-y-5 pb-16 font-sans" data-testid="accountant-workspace">
-      <header className="border-b border-[#E4E7EA] pb-4">
+      <header className="border-b border-[#E4E7EA] pb-3 sm:pb-4">
         <h1 className="text-lg font-bold text-[#1A1F24] md:text-xl">{t('accountant.workspace.title')}</h1>
         <p className="mt-1 text-xs text-[#5A646D] md:text-sm">{t('accountant.workspace.subtitle')}</p>
       </header>
 
       <ZoneBanner />
 
-      <Tabs
-        tabs={[
-          { id: 'invoices', label: t('accountant.tabs.invoices') },
-          { id: 'statements', label: t('accountant.tabs.statements') },
-          { id: 'discrepancies', label: t('accountant.tabs.discrepancies') },
-          { id: 'refunds', label: t('accountant.tabs.refunds') },
-        ]}
-        activeTabId={tab}
-        onChange={(id) => setTab(id as TabId)}
-      />
+      <div className="overflow-x-auto -mx-3 px-3 sm:mx-0 sm:px-0">
+        <Tabs
+          tabs={[
+            { id: 'invoices', label: t('accountant.tabs.invoices') },
+            { id: 'statements', label: t('accountant.tabs.statements') },
+            { id: 'discrepancies', label: t('accountant.tabs.discrepancies') },
+            { id: 'refunds', label: t('accountant.tabs.refunds') },
+          ]}
+          activeTabId={tab}
+          onChange={(id) => setTab(id as TabId)}
+        />
+      </div>
 
       <div>
         {tab === 'invoices' && <InvoicesTab />}

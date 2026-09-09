@@ -1,5 +1,5 @@
-import { useRef, useState } from 'react';
-import { AlertTriangle, Ban, PauseCircle, PlayCircle, Upload } from 'lucide-react';
+import { useState } from 'react';
+import { AlertTriangle, Ban, PauseCircle, PlayCircle } from 'lucide-react';
 import { useMutation } from '@tanstack/react-query';
 import { useAuth } from '../../../auth/useAuth';
 import { apiErrorMessage } from '../../../i18n/errorMessages';
@@ -8,7 +8,7 @@ import { useApiErrorText } from '../../../i18n/useApiErrorText';
 import { useLanguage, useT } from '../../../i18n/useT';
 import { Button } from '../../../components/ui/button';
 import { Modal } from '../../../components/ui/Overlay';
-import { FormField, Input, Select, Textarea } from '../../../components/ui/FormControls';
+import { FileInput, FormField, Input, Select, Textarea } from '../../../components/ui/FormControls';
 import { ApiError } from '../../../api/errors';
 import { buildMockSignature, eimzoErrorMessageKey, isEimzoMock, PINFL_PATTERN, signDocument } from '../../../lib/eimzo';
 import { PERMITS_MANAGE } from '../permissions';
@@ -83,7 +83,6 @@ function LifecycleDecisionModal({
   const t = useT();
   const { lang } = useLanguage();
   const errorText = useApiErrorText();
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const [reasonItemId, setReasonItemId] = useState('');
   const [legalBasis, setLegalBasis] = useState('');
   const [pinfl, setPinfl] = useState('');
@@ -229,29 +228,16 @@ function LifecycleDecisionModal({
 
         {requiresDoc && (
           <FormField label={t('permits.lifecycle.docLabel')} required helperText={t('permits.lifecycle.docRequiredHint')}>
-            <div className="flex items-center gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                leftIcon={<Upload className="w-3.5 h-3.5" />}
-                isLoading={uploadMutation.isPending}
-                onClick={() => fileInputRef.current?.click()}
-              >
-                {t('permits.lifecycle.docChooseButton')}
-              </Button>
-              {docFile && <span className="text-xs text-[#1A1F24] font-semibold truncate">{docFile.name}</span>}
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="application/pdf"
-                className="hidden"
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (file) void handleFileChange(file);
-                }}
-              />
-            </div>
+            <FileInput
+              accept="application/pdf"
+              value={docFile ? { name: docFile.name } : null}
+              disabled={uploadMutation.isPending}
+              isLoading={uploadMutation.isPending}
+              onChange={(file) => {
+                if (file) void handleFileChange(file);
+                else setDocFile(null);
+              }}
+            />
             {uploadError && <p className="text-xs text-[#B91C1C] mt-1">{uploadError}</p>}
           </FormField>
         )}

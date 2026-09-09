@@ -156,18 +156,19 @@ export function ReportLifecyclePanel({
   const reviseErr = asApiError(revise.error);
 
   return (
-    <div className="bg-white border border-[#E4E7EA] rounded-2xl p-6 shadow-xs font-sans space-y-4">
+    <div className="bg-white border border-[#E4E7EA] rounded-2xl p-4 sm:p-6 shadow-xs font-sans space-y-4">
       <h2 className="text-base font-bold text-[#1A1F24] border-b border-[#E4E7EA] pb-3">
         {t('reports.lifecycle.panelTitle')}
       </h2>
 
       {actionable.length > 0 && (
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-col sm:flex-row flex-wrap gap-2">
           {actionable.map((spec) => (
             <Button
               key={spec.action}
               variant={spec.action === 'return' ? 'outline' : 'primary'}
               leftIcon={ACTION_ICON[spec.action]}
+              className="w-full sm:w-auto"
               data-testid={`report-action-${spec.action}`}
               onClick={() => setOpen(spec.action)}
             >
@@ -213,7 +214,7 @@ export function ReportLifecyclePanel({
               <ul className="list-disc pl-5 text-xs text-[#991B1B]">
                 {reportViolations(submitErr).map((violation, index) => (
                   <li key={index}>
-                    Row {violation.row_index + 1}: {t(violationMessageKey(violation.code))}
+                    {t('reports.lifecycle.violationRow')} {violation.row_index + 1}: {t(violationMessageKey(violation.code))}
                   </li>
                 ))}
               </ul>

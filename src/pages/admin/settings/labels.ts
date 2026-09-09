@@ -59,4 +59,80 @@ export const ru: Record<keyof typeof uz_latn, string> = {
   saveFailed: 'Не удалось сохранить',
 };
 
-export const LABELS = { uz_latn, ru };
+export const uz_cyrl: Record<keyof typeof uz_latn, string> = {
+  title: 'Тизим созламалари',
+  subtitle: 'Тизим параметрлари, уларнинг жорий ва стандарт қийматлари',
+  loading: 'Юкланмоқда...',
+  loadFailed: 'Созламалар юкланмади.',
+  empty: 'Созламалар топилмади.',
+  overridden: 'Ўзгартирилган',
+  atDefault: 'Стандарт қийматда',
+  overriddenCount: 'та созлама ўзгартирилган',
+  currentValue: 'Жорий қиймат',
+  defaultValue: 'Стандарт қиймат',
+  resetHint: 'Алоҳида «тиклаш» тугмаси йўқ: стандарт қийматга қайтариш учун уни қўлда киритинг.',
+  save: 'Сақлаш',
+  saved: 'Сақланди',
+  enabled: 'Ёқилган',
+  disabled: 'Ўчирилган',
+  jsonHint: 'JSON кўринишида киритинг',
+  invalidJson: 'JSON нотўғри',
+  invalidNumber: 'Рақам киритинг',
+  saveFailed: 'Сақланмади',
+};
+
+export const en: Record<keyof typeof uz_latn, string> = {
+  title: 'System Settings',
+  subtitle: 'System parameters, their current values and defaults',
+  loading: 'Loading...',
+  loadFailed: 'Failed to load settings.',
+  empty: 'No settings found.',
+  overridden: 'Overridden',
+  atDefault: 'At default',
+  overriddenCount: 'settings overridden',
+  currentValue: 'Current value',
+  defaultValue: 'Default value',
+  resetHint: 'There is no separate reset button: enter the default value manually to restore it.',
+  save: 'Save',
+  saved: 'Saved',
+  enabled: 'Enabled',
+  disabled: 'Disabled',
+  jsonHint: 'Enter value as JSON',
+  invalidJson: 'Invalid JSON',
+  invalidNumber: 'Enter a number',
+  saveFailed: 'Failed to save',
+};
+
+export const kaa: Record<keyof typeof uz_latn, string> = {
+  title: 'Sistema sazlawları',
+  subtitle: 'Sistema parametrleri, olardıń házirgi hám standart mánisleri',
+  loading: 'Júklenbekte...',
+  loadFailed: 'Sazlawlar júklenbedi.',
+  empty: 'Sazlawlar tabılmadı.',
+  overridden: 'Ózgertilgen',
+  atDefault: 'Standart mániste',
+  overriddenCount: 'sazlaw ózgertilgen',
+  currentValue: 'Házirgi mánis',
+  defaultValue: 'Standart mánis',
+  resetHint: 'Bólak «qayta tiklew» túymesi joq: standart mániske qaytarıw ushın onı qolda kiritiń.',
+  save: 'Saqlaw',
+  saved: 'Saqlandı',
+  enabled: 'Qosılǵan',
+  disabled: 'Óshirilgen',
+  jsonHint: 'JSON kórinisinde kiritiń',
+  invalidJson: 'JSON nadurıs',
+  invalidNumber: 'San kiritiń',
+  saveFailed: 'Saqlanbadı',
+};
+
+import type { UiLanguage } from '../../../i18n/context';
+
+export type SettingsLabels = Record<keyof typeof uz_latn, string>;
+
+export const LABELS: Record<UiLanguage, SettingsLabels> = {
+  uz_latn,
+  ru,
+  uz_cyrl,
+  kaa,
+  en,
+};

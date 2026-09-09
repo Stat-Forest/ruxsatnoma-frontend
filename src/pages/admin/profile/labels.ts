@@ -42,5 +42,63 @@ const ru: Record<keyof typeof uz_latn, string> = {
   logout: 'Выйти',
 };
 
-export const LABELS = { uz_latn, ru };
+const uz_cyrl: Record<keyof typeof uz_latn, string> = {
+  title: 'Паролни алмаштириш',
+  forced: 'Давом этиш учун паролни алмаштиринг. Администратор берган вақтинчалик пароль бир марталик.',
+  oldPassword: 'Жорий пароль',
+  newPassword: 'Янги пароль',
+  confirmPassword: 'Янги паролни такрорланг',
+  submit: 'Сақлаш',
+  saving: 'Сақланмоқда…',
+  mismatch: 'Пароллар мос келмади.',
+  serverError: 'Паролни алмаштириб бўлмади. Жорий паролни текширинг ва қайта уриниб кўринг.',
+  requirements: 'Пароль талаблари:',
+  ruleLength: 'камида 8 та белги',
+  ruleUppercase: 'бош ҳарф',
+  ruleLowercase: 'кичик ҳарф',
+  ruleDigit: 'рақам',
+  ruleSpecial: 'махсус белги',
+  logout: 'Чиқиш',
+};
+
+const en: Record<keyof typeof uz_latn, string> = {
+  title: 'Change password',
+  forced: 'To continue, please change your password. The temporary password from the administrator is single-use.',
+  oldPassword: 'Current password',
+  newPassword: 'New password',
+  confirmPassword: 'Confirm new password',
+  submit: 'Save',
+  saving: 'Saving…',
+  mismatch: 'Passwords do not match.',
+  serverError: 'Failed to change password. Check your current password and try again.',
+  requirements: 'Password requirements:',
+  ruleLength: 'at least 8 characters',
+  ruleUppercase: 'uppercase letter',
+  ruleLowercase: 'lowercase letter',
+  ruleDigit: 'number',
+  ruleSpecial: 'special character',
+  logout: 'Log out',
+};
+
+const kaa: Record<keyof typeof uz_latn, string> = {
+  title: 'Paroldi ózgertiw',
+  forced: 'Dawam etiw ushın paroldi ózgertiń. Administratordan berilgen waqtınshalıq parol bir martalıq.',
+  oldPassword: 'Házirgi parol',
+  newPassword: 'Jańa parol',
+  confirmPassword: 'Jańa paroldi tákirarlań',
+  submit: 'Saqlaw',
+  saving: 'Saqlanbaqta…',
+  mismatch: 'Parollar sáykes kelmedi.',
+  serverError: 'Paroldi ózgertiw múmkin bolmadı. Házirgi paroldi tekserip qaytadan urınıń.',
+  requirements: 'Parol talapları:',
+  ruleLength: 'keminde 8 belgi',
+  ruleUppercase: 'bas hárip',
+  ruleLowercase: 'kishi hárip',
+  ruleDigit: 'san',
+  ruleSpecial: 'arnawlı belgi',
+  logout: 'Shıǵıw',
+};
+
+export const LABELS: Record<string, ProfileLabels> = { uz_latn, uz_cyrl, ru, kaa, en };
 export type ProfileLabels = typeof uz_latn;
+

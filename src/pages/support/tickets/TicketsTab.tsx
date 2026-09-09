@@ -81,7 +81,7 @@ export function TicketsTab() {
           <h2 className="text-base font-bold text-[#1A1F24]">{t('support.tickets.title')}</h2>
           <p className="mt-1 text-xs text-[#5A646D]">{t('support.tickets.subtitle')}</p>
         </div>
-        <Button variant="primary" size="sm" leftIcon={<Plus className="h-3.5 w-3.5" />} onClick={() => setCreating(true)}>
+        <Button variant="primary" size="sm" leftIcon={<Plus className="h-3.5 w-3.5" />} onClick={() => setCreating(true)} className="w-full sm:w-auto">
           {t('support.tickets.newTicket')}
         </Button>
       </div>
@@ -114,6 +114,7 @@ export function TicketsTab() {
         columns={columns}
         data={list.data?.items ?? []}
         isLoading={list.isLoading}
+        loadingText={t('support.common.loading')}
         emptyTitle={t('support.tickets.empty')}
         emptyDescription=""
         pagination={{ currentPage: page, totalPages, onPageChange: setPage, totalRecords: total }}

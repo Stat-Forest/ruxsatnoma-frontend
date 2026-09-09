@@ -181,9 +181,9 @@ test('submit refused with ERR-REP-002 renders every row violation', async () => 
   await user.click(await screen.findByTestId('confirm-dialog-confirm'));
 
   const violations = await screen.findByTestId('submit-violations');
-  expect(violations).toHaveTextContent('Row 1');
+  expect(violations).toHaveTextContent('Qator 1');
   expect(violations).toHaveTextContent('Toʻlangan summa hisoblangan summadan koʻp');
-  expect(violations).toHaveTextContent('Row 2');
+  expect(violations).toHaveTextContent('Qator 2');
   expect(violations).toHaveTextContent('Davr tugashi boshlanishidan oldin');
 });
 

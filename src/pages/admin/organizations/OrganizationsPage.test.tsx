@@ -13,8 +13,8 @@ import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { setupServer } from 'msw/node';
 import { OrganizationsPage } from './OrganizationsPage';
-import { DICTIONARIES, I18nContext } from '../../../i18n/context';
-import { ru, uz_latn } from './labels';
+import { DICTIONARIES, I18nContext, type UiLanguage } from '../../../i18n/context';
+import { ru, uz_latn, uz_cyrl, en, kaa } from './labels';
 
 const AGENCY = '00000000-0000-4000-8000-000000000001';
 const TERRITORIAL = '00000000-0000-4000-8000-000000000002';
@@ -68,7 +68,13 @@ const ORGS: OrgRow[] = [
     parent_id: TERRITORIAL,
     kind: 'leshoz',
     code: 'burchmulla',
-    name: { uz_cyrl: 'Бурчмулла ўрмон хўжалиги', uz_latn: 'Burchmulla oʻrmon xoʻjaligi', ru: 'Бурчмуллинский лесхоз' },
+    name: {
+      uz_cyrl: 'Бурчмулла ўрмон хўжалиги',
+      uz_latn: 'Burchmulla oʻrmon xoʻjaligi',
+      ru: 'Бурчмуллинский лесхоз',
+      en: 'Burchmulla Forestry Enterprise',
+      kaa: 'Burchmulla toǵay xojalıǵı',
+    },
     stir: '301234567',
     region_id: REGION_TASHKENT,
     district_id: DISTRICT_BOSTANLIQ,
@@ -171,7 +177,7 @@ function adminHandlers() {
   ];
 }
 
-function renderPage(lang: 'uz_latn' | 'ru' = 'uz_latn') {
+function renderPage(lang: UiLanguage = 'uz_latn') {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
   const i18n = {
     lang,
@@ -490,16 +496,36 @@ test('a failed load says so instead of showing an empty hierarchy', async () => 
   expect(await screen.findByTestId('org-tree-error')).toBeInTheDocument();
 });
 
-test('the two label dictionaries carry identical keys', () => {
-  expect(Object.keys(ru).sort()).toEqual(Object.keys(uz_latn).sort());
-  expect(Object.values(ru).every((v) => v.length > 0)).toBe(true);
+test('all five label dictionaries carry identical keys and non-empty values', () => {
+  const baseKeys = Object.keys(uz_latn).sort();
+  expect(baseKeys.length).toBeGreaterThan(0);
+
+  const dicts: Record<UiLanguage, Record<string, string>> = {
+    uz_latn,
+    ru,
+    uz_cyrl,
+    en,
+    kaa,
+  };
+
+  for (const [lang, dict] of Object.entries(dicts)) {
+    expect(Object.keys(dict).sort(), `Keys mismatch in ${lang}`).toEqual(baseKeys);
+    expect(Object.values(dict).every((v) => typeof v === 'string' && v.length > 0), `Empty string in ${lang}`).toBe(true);
+  }
 });
 
-test('the screen speaks Russian when the account does', async () => {
+test.each([
+  ['uz_latn', uz_latn, 'Burchmulla oʻrmon xoʻjaligi'],
+  ['ru', ru, 'Бурчмуллинский лесхоз'],
+  ['uz_cyrl', uz_cyrl, 'Бурчмулла ўрмон хўжалиги'],
+  ['en', en, 'Burchmulla Forestry Enterprise'],
+  ['kaa', kaa, 'Burchmulla toǵay xojalıǵı'],
+] as const)('the screen speaks %s when selected', async (lang, labels, expectedName) => {
   server.use(...refsHandlers(), ...adminHandlers());
-  renderPage('ru');
+  renderPage(lang);
 
   const leshoz = await screen.findByTestId(`org-row-${LESHOZ_A}`);
-  expect(within(leshoz).getByTestId('org-kind')).toHaveTextContent(ru['kind.leshoz']);
-  expect(leshoz).toHaveTextContent('Бурчмуллинский лесхоз');
+  expect(within(leshoz).getByTestId('org-kind')).toHaveTextContent(labels['kind.leshoz']);
+  expect(leshoz).toHaveTextContent(expectedName);
+  expect(screen.getByRole('heading', { level: 1, name: labels['page.title'] })).toBeInTheDocument();
 });

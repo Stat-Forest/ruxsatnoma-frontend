@@ -8,7 +8,8 @@ import { Button } from '../components/ui/button';
 import { Alert } from '../components/ui/Feedback';
 import { toApiError } from './permits/apiErrorHelpers';
 import { formatDateTime, formatMoney } from './permits/format';
-import { INVOICE_STATUS_LABEL, INVOICE_STATUS_STYLE } from './permits/statusMeta';
+import { INVOICE_STATUS_STYLE, getInvoiceStatusLabel } from './permits/statusMeta';
+import { useLanguage } from '../i18n/useT';
 
 /** B9 — invoice and payment through Payme.
  *
@@ -26,6 +27,7 @@ import { INVOICE_STATUS_LABEL, INVOICE_STATUS_STYLE } from './permits/statusMeta
  * never optimistically in the UI."
  */
 export function MyInvoicePage() {
+  const { lang } = useLanguage();
   const { id } = useParams<{ id: string }>();
   const idempotencyKeyRef = useRef<string>(crypto.randomUUID());
 
@@ -114,7 +116,7 @@ export function MyInvoicePage() {
               INVOICE_STATUS_STYLE[invoice.status] ?? INVOICE_STATUS_STYLE.pending
             }`}
           >
-            {INVOICE_STATUS_LABEL[invoice.status] ?? invoice.status}
+            {getInvoiceStatusLabel(invoice.status, lang)}
           </span>
         </div>
 

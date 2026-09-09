@@ -276,7 +276,7 @@ function SettingRow({ setting, copy }: { setting: SettingOut; copy: Copy }) {
 export function SettingsPage() {
   const { lang } = useLanguage();
   const errorText = useApiErrorText();
-  const copy: Copy = LABELS[lang];
+  const copy: Copy = LABELS[lang] ?? LABELS.uz_latn;
   const settings = useSettings();
 
   const rows = settings.data ?? [];

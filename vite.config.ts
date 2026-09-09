@@ -5,6 +5,19 @@ import { defineConfig } from 'vitest/config'
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react(), tailwindcss()],
+  server: {
+    proxy: {
+      '/api': {
+        target: 'https://dev-api.ruxsatnoma-urmon.uz',
+        changeOrigin: true,
+        secure: false,
+        headers: {
+          Origin: 'https://dev-api.ruxsatnoma-urmon.uz',
+          Referer: 'https://dev-api.ruxsatnoma-urmon.uz/',
+        },
+      },
+    },
+  },
   test: {
     globals: true,
     environment: 'jsdom',
@@ -29,7 +42,7 @@ export default defineConfig({
     // that needs the other branch (the one every real build shows, since the
     // flag defaults off) overrides it locally with `vi.stubEnv`; `unstubEnvs`
     // below is what makes that override local to that one test.
-    env: { TZ: 'Asia/Tashkent', VITE_EIMZO_MOCK: 'true' },
+    env: { TZ: 'Asia/Tashkent', VITE_EIMZO_MOCK: 'true', VITE_API_BASE: 'http://localhost:8000' },
     // Per-session git worktrees live under `.claude/worktrees/` (the root
     // CLAUDE.md gives each parallel session its own), and each is a FULL
     // checkout of this repository — so vitest's default include pattern walks

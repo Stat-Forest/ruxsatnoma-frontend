@@ -280,6 +280,27 @@ test('a failed initial session check does not lock a user out who then logs in s
   expect(screen.queryByTestId('session-check-failed')).not.toBeInTheDocument();
 });
 
+it('allows going back from MFA code step to re-enter login and password', async () => {
+  server.use(
+    http.post('*/auth/login', () => HttpResponse.json({ mfa_required: true, mfa_token: 'mfa-1' })),
+  );
+  await renderAt('/login');
+  await userEvent.click(await screen.findByRole('tab', { name: 'Login/Parol' }));
+  await userEvent.type(screen.getByLabelText(/login/i), 'oldlogin');
+  await userEvent.type(screen.getByLabelText(/parol/i), 'oldpassword');
+  await userEvent.click(screen.getByRole('button', { name: /kirish/i }));
+
+  expect(await screen.findByLabelText(/kod/i)).toBeInTheDocument();
+  const backBtn = screen.getByRole('button', { name: /orqaga/i });
+  expect(backBtn).toBeInTheDocument();
+
+  await userEvent.click(backBtn);
+
+  expect(screen.queryByLabelText(/kod/i)).not.toBeInTheDocument();
+  expect(screen.getByLabelText(/login/i)).toBeInTheDocument();
+  expect(screen.getByLabelText(/parol/i)).toBeInTheDocument();
+});
+
 it('loginViaEimzo signs the challenge and lands a session', async () => {
   const seen: { signed?: string } = {};
   server.use(

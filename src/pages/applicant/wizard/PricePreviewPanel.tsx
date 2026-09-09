@@ -2,6 +2,8 @@ import { useQuery } from '@tanstack/react-query';
 import { Loader2 } from 'lucide-react';
 import { Alert } from '../../../components/ui/Feedback';
 import { ApiError } from '../../../api/errors';
+import { useT } from '../../../i18n/useT';
+import { useApiErrorText } from '../../../i18n/useApiErrorText';
 import { previewCalculation, type CalculationIn } from '../api';
 import { formatMoney } from '../format';
 import { fromPreviewChecks } from '../checkTypeLabels';
@@ -21,6 +23,8 @@ import { ChecksList } from './ChecksList';
  *     NEVER papered over with an invented number.
  */
 export function PricePreviewPanel({ request }: { request: CalculationIn | null }) {
+  const t = useT();
+  const errorText = useApiErrorText();
   const query = useQuery({
     queryKey: ['calc-preview', request],
     queryFn: () => previewCalculation(request!),
@@ -29,12 +33,12 @@ export function PricePreviewPanel({ request }: { request: CalculationIn | null }
   });
 
   if (!request) {
-    return <p className="text-xs text-[#5A646D]">Narxni koʻrish uchun avval maydon, davr va miqdorni toʻldiring.</p>;
+    return <p className="text-xs text-[#5A646D]">{t('wizard.step3.pricePrompt')}</p>;
   }
   if (query.isLoading) {
     return (
       <p className="text-xs text-[#5A646D] flex items-center gap-2">
-        <Loader2 className="w-4 h-4 animate-spin" /> Hisoblanmoqda...
+        <Loader2 className="w-4 h-4 animate-spin" /> {t('wizard.step3.calculating')}
       </p>
     );
   }
@@ -43,16 +47,14 @@ export function PricePreviewPanel({ request }: { request: CalculationIn | null }
     const code = err instanceof ApiError ? err.code : 'ERR-SYS-000';
     if (code === 'ERR-NORM-004') {
       return (
-        <Alert variant="warning" title="Narx hozircha hisoblab boʻlmaydi">
-          Kerakli meʼyoriy koeffitsiyent hali eʼlon qilinmagan (masalan, VMQ 689-son qarorining 5-ilovasidagi{' '}
-          <code className="bg-white px-1 rounded border border-[#FDE68A]">coef_sb</code> qiymatlari loyiha holatida).
-          Bu — tizim xatosi emas: raqam rasman tasdiqlangach, narx avtomatik hisoblanadi.
+        <Alert variant="warning" title={t('wizard.step3.priceUnavailableTitle')}>
+          {t('wizard.step3.priceUnavailableDesc')}
         </Alert>
       );
     }
     return (
-      <Alert variant="danger" title="Hisoblab boʻlmadi">
-        {err instanceof ApiError ? err.message : "Kutilmagan xatolik yuz berdi."}
+      <Alert variant="danger" title={t('wizard.step3.calcFailedTitle')}>
+        {errorText(err, t('wizard.step3.calcFailedTitle'))}
       </Alert>
     );
   }
@@ -65,10 +67,10 @@ export function PricePreviewPanel({ request }: { request: CalculationIn | null }
           {formatMoney(data.amount)}
         </div>
         <div className="text-xs text-[#1A1F24]">
-          <strong>soʻm</strong> — joriy tariflar boʻyicha taxminiy narx.
+          <strong>{t('wizard.step3.currency')}</strong> — {t('wizard.step3.priceTariffNote')}
           {data.max_sb !== null && (
             <span className="block text-[#5A646D] mt-0.5">
-              Yuklama: {data.used_sb}/{data.max_sb} shartli bosh
+              {t('wizard.step3.loadRatio')} {data.used_sb}/{data.max_sb} {t('wizard.step3.conditionalHead')}
             </span>
           )}
         </div>

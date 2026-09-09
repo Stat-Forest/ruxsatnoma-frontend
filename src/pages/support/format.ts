@@ -8,20 +8,32 @@
 /** A `dict[str, Any]` name coming straight off the backend (activity types,
  * organizations, classifier items) — never a typed `LocalizedName` in every
  * response, so this reads it defensively. */
+import { translateTerm } from '../../i18n/terms';
+
 export type LocalizedNameLike = Record<string, unknown> | null | undefined;
 
 const LANG_FALLBACKS = ['uz_latn', 'uz_cyrl', 'ru', 'en', 'kaa'];
 
-export function pickName(name: LocalizedNameLike, lang: 'uz_latn' | 'ru' = 'uz_latn'): string {
+export function pickName(name: LocalizedNameLike, lang: string = 'uz_latn'): string {
   if (!name) return '';
   const direct = name[lang];
-  if (typeof direct === 'string' && direct) return direct;
-  for (const key of LANG_FALLBACKS) {
-    const value = name[key];
-    if (typeof value === 'string' && value) return value;
+  let raw = '';
+  if (typeof direct === 'string' && direct) {
+    raw = direct;
+  } else {
+    for (const key of LANG_FALLBACKS) {
+      const value = name[key];
+      if (typeof value === 'string' && value) {
+        raw = value;
+        break;
+      }
+    }
+    if (!raw) {
+      const first = Object.values(name).find((v) => typeof v === 'string' && v);
+      raw = typeof first === 'string' ? first : '';
+    }
   }
-  const first = Object.values(name).find((v) => typeof v === 'string' && v);
-  return typeof first === 'string' ? first : '';
+  return translateTerm(raw, lang);
 }
 
 /** `date` column (`YYYY-MM-DD`) as `DD.MM.YYYY` — never re-parsed through

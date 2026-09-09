@@ -81,7 +81,7 @@ function TicketDetail({ ticket, canManage }: { ticket: TicketWithMessagesOut; ca
   return (
     <div className="space-y-5" data-testid={`ticket-detail-${ticket.id}`}>
       <div>
-        <p className="text-sm font-semibold text-[#1A1F24]">{ticket.subject}</p>
+        <p className="break-words text-sm font-semibold text-[#1A1F24]">{ticket.subject}</p>
         <p className="mt-1 text-xs text-[#5A646D]">{t(STATUS_LABEL_KEY[status] ?? status)}</p>
       </div>
 
@@ -91,24 +91,25 @@ function TicketDetail({ ticket, canManage }: { ticket: TicketWithMessagesOut; ca
         </Alert>
       )}
 
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
         {canManage && status !== 'closed' && (
           <Button
             variant="secondary"
             size="sm"
             isLoading={assign.isPending}
             onClick={() => me && assign.mutate(me.user.id)}
+            className="w-full sm:w-auto"
           >
             {t('support.tickets.actionAssignMe')}
           </Button>
         )}
         {canManage && status === 'in_progress' && (
-          <Button variant="primary" size="sm" isLoading={resolve.isPending} onClick={() => resolve.mutate()}>
+          <Button variant="primary" size="sm" isLoading={resolve.isPending} onClick={() => resolve.mutate()} className="w-full sm:w-auto">
             {t('support.tickets.actionResolve')}
           </Button>
         )}
         {status !== 'closed' && (
-          <Button variant="danger" size="sm" isLoading={close.isPending} onClick={() => close.mutate()}>
+          <Button variant="danger" size="sm" isLoading={close.isPending} onClick={() => close.mutate()} className="w-full sm:w-auto">
             {t('support.tickets.actionClose')}
           </Button>
         )}
@@ -132,7 +133,7 @@ function TicketDetail({ ticket, canManage }: { ticket: TicketWithMessagesOut; ca
             onChange={(e) => setReply(e.target.value)}
             maxLength={5000}
           />
-          <Button variant="primary" size="sm" isLoading={addMessage.isPending} onClick={submitReply}>
+          <Button variant="primary" size="sm" isLoading={addMessage.isPending} onClick={submitReply} className="w-full sm:w-auto">
             {t('support.tickets.replySubmit')}
           </Button>
         </div>
@@ -166,7 +167,7 @@ function MessageRow({
         </span>
         <span>{formatDateTime(message.created_at)}</span>
       </div>
-      <p className="whitespace-pre-wrap text-[#1A1F24]">{message.body}</p>
+      <p className="break-words whitespace-pre-wrap text-[#1A1F24]">{message.body}</p>
     </div>
   );
 }

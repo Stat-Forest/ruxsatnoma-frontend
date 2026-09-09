@@ -141,5 +141,6 @@ export const LABELS: Record<'uz_latn' | 'ru', RecipientLabels> = { uz_latn, ru }
 
 export function useLabels(): RecipientLabels {
   const { lang } = useLanguage();
-  return LABELS[lang];
+  if (lang === 'ru') return LABELS.ru;
+  return (LABELS as Record<string, RecipientLabels>)[lang] ?? LABELS.uz_latn;
 }

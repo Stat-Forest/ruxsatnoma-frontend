@@ -2,7 +2,7 @@
  *  (`pages/norms/refs.ts`'s file header, `pages/staff/format.ts`'s own
  *  comment): each track keeps its own copy rather than importing across
  *  page folders. */
-export function pickLocalizedName(name: Record<string, unknown> | null | undefined, lang: 'uz_latn' | 'ru'): string {
+export function pickLocalizedName(name: Record<string, unknown> | null | undefined, lang: string = 'uz_latn'): string {
   if (!name) return '';
   const direct = name[lang];
   if (typeof direct === 'string' && direct) return direct;

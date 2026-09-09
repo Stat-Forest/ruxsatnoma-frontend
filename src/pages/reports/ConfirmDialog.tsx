@@ -54,13 +54,14 @@ export function ConfirmDialog({
       subtitle={subtitle}
       maxWidth={maxWidth}
       footer={
-        <>
-          <Button type="button" variant="secondary" onClick={onClose} disabled={isPending} data-testid="confirm-dialog-cancel">
+        <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 w-full">
+          <Button type="button" variant="secondary" className="w-full sm:w-auto" onClick={onClose} disabled={isPending} data-testid="confirm-dialog-cancel">
             {cancelLabel}
           </Button>
           <Button
             type="button"
             variant={confirmVariant}
+            className="w-full sm:w-auto"
             isLoading={isPending}
             disabled={confirmDisabled}
             onClick={onConfirm}
@@ -68,7 +69,7 @@ export function ConfirmDialog({
           >
             {confirmLabel}
           </Button>
-        </>
+        </div>
       }
     >
       <div data-testid="confirm-dialog" className="space-y-3">

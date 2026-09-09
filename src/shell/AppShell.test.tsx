@@ -172,9 +172,8 @@ test('the switcher offers all five backend languages, and one without a string m
   expect(stored).toBe('kaa');
   // The menu closes on a pick — it is a header control, not a panel.
   expect(screen.queryByTestId('language-menu')).toBeNull();
-  // `kaa` has no dictionary yet, so the copy stays Latin Uzbek rather than
-  // rendering raw keys — the fallback, not a missing translation.
-  expect(screen.getByRole('button', { name: 'Chiqish' })).toBeInTheDocument();
+  // `kaa` dictionary renders translated Karakalpak copy
+  expect(screen.getByRole('button', { name: 'Shıǵıw' })).toBeInTheDocument();
 });
 
 // F14 (`docs/plans/07.3-findings.md`): the shell used to render the role
@@ -193,4 +192,12 @@ test('the role name renders in the account\'s own uz_latn field, never uz_cyrl',
   await renderShell();
   expect(await screen.findByText('Executor head')).toBeInTheDocument();
   expect(screen.queryByText("Ijrochi boshlig'i")).not.toBeInTheDocument();
+});
+
+test('clicking the user profile in the header navigates to /profile', async () => {
+  await renderShell();
+  const profileLink = await screen.findByTestId('header-profile-link');
+  expect(profileLink).toHaveAttribute('href', '/profile');
+  await userEvent.click(profileLink);
+  expect(await screen.findByTestId('profile-page')).toBeInTheDocument();
 });

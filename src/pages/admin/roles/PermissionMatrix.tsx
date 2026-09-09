@@ -5,9 +5,8 @@ import { Checkbox } from '../../../components/ui/FormControls';
 import { Alert } from '../../../components/ui/Feedback';
 import { ApiError } from '../../../api/errors';
 import { useApiErrorText } from '../../../i18n/useApiErrorText';
-import { pickName } from '../../applicant/format';
 import type { PermissionOut, RoleAdminOut } from '../api';
-import { GROUP_ORDER, groupTitle, labels } from './labels';
+import { GROUP_ORDER, groupTitle, labels, permissionHint, pickRoleName } from './labels';
 import { useSetRolePermissions } from './queries';
 
 /** The public applicant role is the one role `PUT /admin/roles/{id}/permissions`
@@ -42,10 +41,12 @@ function groupPermissions(permissions: PermissionOut[]): PermissionGroup[] {
     .sort((a, b) => rank(a.prefix) - rank(b.prefix) || a.prefix.localeCompare(b.prefix));
 }
 
+import type { UiLanguage } from '../../../i18n/context';
+
 interface PermissionMatrixProps {
   role: RoleAdminOut;
   permissions: PermissionOut[];
-  lang: 'uz_latn' | 'ru';
+  lang: UiLanguage;
 }
 
 /**
@@ -103,7 +104,7 @@ export function PermissionMatrix({ role, permissions, lang }: PermissionMatrixPr
     >
       <header className="space-y-2">
         <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
-          <h2 className="text-base font-bold text-[#1A1F24]">{pickName(role.name, lang) || role.code}</h2>
+          <h2 className="text-base font-bold text-[#1A1F24]">{pickRoleName(role, lang)}</h2>
           <span className="text-xs font-mono text-[#5A646D]">{role.code}</span>
         </div>
         <p className="text-xs text-[#5A646D]">
@@ -166,7 +167,7 @@ export function PermissionMatrix({ role, permissions, lang }: PermissionMatrixPr
                     <Checkbox
                       key={permission.code}
                       label={permission.code}
-                      hint={permission.description}
+                      hint={permissionHint(permission, lang)}
                       checked={checked.has(permission.code)}
                       disabled={readOnly}
                       onChange={() => toggle(permission.code)}

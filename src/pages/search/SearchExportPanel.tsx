@@ -129,8 +129,9 @@ export function SearchExportPanel({ kind, filters }: { kind: SearchKind; filters
           {exports.data!.slice(0, 5).map((job) => (
             <li key={job.id} className="flex items-center justify-between gap-2 py-2">
               <span className="text-[#5A646D]">
-                {new Date(job.created_at).toLocaleString()} — {job.kind} · .{job.format} —{' '}
-                {job.row_count}
+                {new Date(job.created_at).toLocaleString()} —{' '}
+                {job.kind === 'applications' ? t('search.kindApplications') : t('search.kindPermits')} · .
+                {job.format} — {job.row_count}
                 {job.total_matched !== null && job.total_matched !== job.row_count
                   ? ` / ${job.total_matched}`
                   : ''}

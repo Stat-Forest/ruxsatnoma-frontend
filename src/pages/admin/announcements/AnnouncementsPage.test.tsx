@@ -4,7 +4,8 @@ import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { setupServer } from 'msw/node';
 import { AnnouncementsPage } from './AnnouncementsPage';
-import { DICTIONARIES, I18nContext } from '../../../i18n/context';
+import { DICTIONARIES, I18nContext, type UiLanguage } from '../../../i18n/context';
+import { LABELS } from './labels';
 import type { AnnouncementAdminOut } from './api';
 import type { RegionOut, RoleAdminOut } from '../api';
 
@@ -99,7 +100,7 @@ function mockBackend(items: AnnouncementAdminOut[] = LIST) {
   );
 }
 
-function renderPage(lang: 'uz_latn' | 'ru' = 'uz_latn') {
+function renderPage(lang: UiLanguage = 'uz_latn') {
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   });
@@ -443,3 +444,59 @@ test('the screen speaks Russian when the shell does', async () => {
   expect(draftRow).toHaveTextContent('Исполнитель');
   expect(screen.getByRole('button', { name: 'Новое объявление' })).toBeInTheDocument();
 });
+
+test.each(['uz_latn', 'uz_cyrl', 'ru', 'en', 'kaa'] as const)(
+  'ensures 100%% 5-language localization in AnnouncementsPage for %s',
+  async (lang) => {
+    mockBackend();
+    const L = LABELS[lang];
+    const user = userEvent.setup();
+    const { unmount } = renderPage(lang);
+
+    // Page Title, Subtitle, Create button
+    expect(await screen.findByRole('heading', { level: 1 })).toHaveTextContent(L.pageTitle);
+    expect(screen.getByText(L.pageSubtitle)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: L.create })).toBeInTheDocument();
+
+    // Filter label
+    expect(screen.getByLabelText(L.filterStatus)).toBeInTheDocument();
+
+    // Table Column Headers
+    expect(screen.getByRole('columnheader', { name: L.colTitle })).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', { name: L.colAudience })).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', { name: L.colStatus })).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', { name: L.colPeriod })).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', { name: L.colCreated })).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', { name: L.colActions })).toBeInTheDocument();
+
+    // Status Badges on Rows (wait for data to load)
+    const draftRow = await screen.findByTestId(`announcement-row-${DRAFT}`);
+    const publishedRow = screen.getByTestId(`announcement-row-${PUBLISHED}`);
+    const archivedRow = screen.getByTestId(`announcement-row-${ARCHIVED}`);
+    expect(within(draftRow).getByTestId('announcement-status')).toHaveTextContent(L.statusDraft);
+    expect(within(publishedRow).getByTestId('announcement-status')).toHaveTextContent(L.statusPublished);
+    expect(within(archivedRow).getByTestId('announcement-status')).toHaveTextContent(L.statusArchived);
+
+    // Row Action Buttons
+    expect(within(draftRow).getByRole('button', { name: L.actionEdit })).toBeInTheDocument();
+    expect(within(draftRow).getByRole('button', { name: L.actionPublish })).toBeInTheDocument();
+    expect(within(draftRow).getByRole('button', { name: L.actionArchive })).toBeInTheDocument();
+
+    // Modal localization
+    await user.click(screen.getByRole('button', { name: L.create }));
+    expect(await screen.findByRole('heading', { name: L.formCreateTitle })).toBeInTheDocument();
+    expect(screen.getByText(L.formLanguagesHint)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: L.cancel })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: L.save })).toBeInTheDocument();
+
+    // Close modal
+    await user.click(screen.getByRole('button', { name: L.cancel }));
+    unmount();
+
+    // Verify empty state localization
+    mockBackend([]);
+    renderPage(lang);
+    expect(await screen.findByText(L.empty)).toBeInTheDocument();
+  },
+);
+

@@ -37,6 +37,7 @@ export {
   RECIPIENT_PURPOSE,
   SIGNATURE_ORDER,
   PURPOSE_LABEL,
+  getPurposeLabel,
   canAttemptPurpose,
   buildMockPkcs7,
   isPlausiblePinflOrStir,

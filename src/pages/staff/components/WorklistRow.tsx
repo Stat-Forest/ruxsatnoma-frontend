@@ -1,30 +1,44 @@
 import { Link } from 'react-router';
 import { FileText, Inbox, PauseCircle } from 'lucide-react';
-import { useT } from '../../../i18n/useT';
+import { useLanguage, useT } from '../../../i18n/useT';
 import { Button } from '../../../components/ui/button';
 import { useContour, useStartReviewRow, type ApplicationOut } from '../queries';
 import { formatAmount, formatDate, formatDateTime, slaStatus, statusLabel } from '../format';
 
 const STATUS_BADGE_CLASS: Record<string, string> = {
+  DRAFT: 'bg-[#F8F9FA] text-[#5A646D] border-[#E4E7EA]',
   SUBMITTED: 'bg-[#E0F2FE] text-[#0369A1] border-[#BAE6FD]',
   IN_REVIEW: 'bg-[#FFFBEB] text-[#B45309] border-[#FDE68A]',
   PENDING_INFO: 'bg-[#E0F2FE] text-[#0369A1] border-[#BAE6FD]',
   RETURNED: 'bg-[#FFFBEB] text-[#B45309] border-[#FDE68A]',
+  APPROVED: 'bg-[#DCFCE7] text-[#15803D] border-[#86EFAC]',
   INVOICED: 'bg-[#F0F7F1] text-[#123522] border-[#D9EBDC]',
   PAID: 'bg-[#F0F7F1] text-[#123522] border-[#D9EBDC]',
   PERMIT_ISSUED: 'bg-[#F0F7F1] text-[#123522] border-[#D9EBDC]',
   REJECTED: 'bg-[#FEF2F2] text-[#991B1B] border-[#FCA5A5]',
   CANCELLED: 'bg-[#F8F9FA] text-[#5A646D] border-[#E4E7EA]',
+  EXPIRED_UNPAID: 'bg-[#FEF2F2] text-[#991B1B] border-[#FCA5A5]',
+  CLOSED: 'bg-[#F8F9FA] text-[#5A646D] border-[#E4E7EA]',
+  ARCHIVED: 'bg-[#F8F9FA] text-[#5A646D] border-[#E4E7EA]',
 };
 
-/** One worklist row — a real `ApplicationOut` (no name is resolved here that
- * the API does not itself supply: applicants have no display-name route
- * reachable by staff, so `applicant_id` is shown as-is, truncated). */
+const WORKLIST_ROW_I18N = {
+  uz_latn: { takeReview: 'Ishga olish' },
+  uz_cyrl: { takeReview: 'Ишга олиш' },
+  ru: { takeReview: 'Взять в работу' },
+  en: { takeReview: 'Take for review' },
+  kaa: { takeReview: 'Iske alıw' },
+};
+
+/** One worklist row — a real `ApplicationOut` */
 export function WorklistRow({ row, canReview }: { row: ApplicationOut; canReview: boolean }) {
   const t = useT();
+  const { lang } = useLanguage();
+  const lt = WORKLIST_ROW_I18N[lang as keyof typeof WORKLIST_ROW_I18N] || WORKLIST_ROW_I18N.uz_latn;
   const contour = useContour(row.contour_id);
   const startReview = useStartReviewRow();
   const sla = slaStatus(row.status, row.sla_deadline_at);
+  const areaUnit = lang === 'en' ? 'ha' : lang === 'ru' || lang === 'uz_cyrl' ? 'га' : 'ga';
 
   return (
     <tr className="hover:bg-[#F8F9FA] transition-colors">
@@ -43,7 +57,7 @@ export function WorklistRow({ row, canReview }: { row: ApplicationOut; canReview
             STATUS_BADGE_CLASS[row.status] ?? 'bg-[#F8F9FA] text-[#5A646D] border-[#E4E7EA]'
           }`}
         >
-          {statusLabel(row.status)}
+          {statusLabel(row.status, lang)}
         </span>
       </td>
       <td className="p-3 font-mono text-xs">
@@ -53,7 +67,7 @@ export function WorklistRow({ row, canReview }: { row: ApplicationOut; canReview
         {row.period_from && row.period_to ? `${formatDate(row.period_from)} — ${formatDate(row.period_to)}` : '—'}
       </td>
       <td className="p-3 text-right font-mono text-xs">
-        {row.requested_area_ha ? `${formatAmount(row.requested_area_ha)} ga` : '—'}
+        {row.requested_area_ha ? `${formatAmount(row.requested_area_ha)} ${areaUnit}` : '—'}
       </td>
       <td className="p-3 text-xs">
         {sla === 'paused' ? (
@@ -86,7 +100,7 @@ export function WorklistRow({ row, canReview }: { row: ApplicationOut; canReview
             onClick={() => startReview.mutate(row.id)}
             className="whitespace-nowrap"
           >
-            Ishga olish
+            {lt.takeReview}
           </Button>
         )}
       </td>

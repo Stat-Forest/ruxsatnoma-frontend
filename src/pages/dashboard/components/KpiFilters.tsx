@@ -57,7 +57,7 @@ export function KpiFilters({
   initial: KpiParams;
   onApply: (filters: KpiParams) => void;
   t: (key: string) => string;
-  lang: 'uz_latn' | 'ru';
+  lang: string;
 }) {
   const [draft, setDraft] = useState<DraftState>(() => toDraft(initial));
 
@@ -96,7 +96,7 @@ export function KpiFilters({
   }
 
   return (
-    <div className="bg-white border border-[#E4E7EA] rounded-2xl p-5 shadow-xs space-y-3" data-testid="kpi-filters">
+    <div className="bg-white border border-[#E4E7EA] rounded-2xl p-4 sm:p-5 shadow-xs space-y-3" data-testid="kpi-filters">
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7 gap-3 items-end">
         <FormField label={t('leadership.dash.filters.periodFrom')}>
           <Input
@@ -163,17 +163,30 @@ export function KpiFilters({
             ]}
           />
         </FormField>
-        <Checkbox
-          label={t('leadership.dash.filters.comparePrevious')}
-          checked={draft.compare_previous}
-          onChange={(e) => setDraft((d) => ({ ...d, compare_previous: e.target.checked }))}
-        />
+        <div className="flex items-center min-h-[40px] sm:col-span-2 lg:col-span-4 xl:col-span-1 py-1 sm:py-0">
+          <Checkbox
+            label={t('leadership.dash.filters.comparePrevious')}
+            checked={draft.compare_previous}
+            onChange={(e) => setDraft((d) => ({ ...d, compare_previous: e.target.checked }))}
+          />
+        </div>
       </div>
-      <div className="flex justify-end gap-2">
-        <Button variant="outline" size="sm" leftIcon={<RotateCcw className="w-3.5 h-3.5" />} onClick={resetFilters}>
+      <div className="flex flex-col sm:flex-row justify-end gap-2 pt-1 sm:pt-0">
+        <Button
+          variant="outline"
+          size="sm"
+          className="w-full sm:w-auto h-9 sm:h-8 justify-center"
+          leftIcon={<RotateCcw className="w-3.5 h-3.5" />}
+          onClick={resetFilters}
+        >
           {t('leadership.dash.filters.reset')}
         </Button>
-        <Button variant="primary" size="sm" onClick={applyFilters}>
+        <Button
+          variant="primary"
+          size="sm"
+          className="w-full sm:w-auto h-9 sm:h-8 justify-center"
+          onClick={applyFilters}
+        >
           {t('leadership.dash.filters.apply')}
         </Button>
       </div>

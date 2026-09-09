@@ -67,7 +67,7 @@ export function RiskIndicatorsCard({
       icon={ShieldAlert}
       badge={
         canOpenRegister ? (
-          <Link to="/oversight" className="text-xs font-semibold text-[#2E7D4F] hover:underline">
+          <Link to="/oversight" className="text-xs font-semibold text-[#2E7D4F] hover:underline shrink-0">
             {t('leadership.oversight.openRegister')}
           </Link>
         ) : undefined
@@ -77,25 +77,25 @@ export function RiskIndicatorsCard({
         <EmptyPanel testId="risk-empty">{t('leadership.dash.risk.empty')}</EmptyPanel>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <ul data-testid="risk-by-code" className="space-y-1.5">
+          <ul data-testid="risk-by-code" className="space-y-1.5 min-w-0">
             {codeRows.map(([code, count]) => (
-              <li key={code} className="flex items-center justify-between text-sm text-[#1A1F24]">
-                <span className="font-mono text-xs text-[#5A646D]">{code}</span>
-                <span className="font-mono font-bold tabular-nums">{count}</span>
+              <li key={code} className="flex items-center justify-between gap-2 text-sm text-[#1A1F24]">
+                <span className="font-mono text-xs text-[#5A646D] truncate">{code}</span>
+                <span className="font-mono font-bold tabular-nums shrink-0">{count}</span>
               </li>
             ))}
           </ul>
-          <ul data-testid="risk-by-level" className="space-y-1.5">
+          <ul data-testid="risk-by-level" className="space-y-1.5 min-w-0">
             {[...levelRows, ...extraLevelRows].map(([level, count]) => (
               <li key={level} className="flex items-center justify-between gap-2">
                 <span
-                  className={`px-2 py-0.5 rounded-full border text-xs font-semibold ${
+                  className={`px-2 py-0.5 rounded-full border text-xs font-semibold truncate ${
                     RISK_LEVEL_BADGE_CLASS[level] ?? RISK_LEVEL_BADGE_CLASS.low
                   }`}
                 >
                   {LEVEL_LABEL_KEY[level] ? t(LEVEL_LABEL_KEY[level]) : level}
                 </span>
-                <span className="font-mono font-bold tabular-nums text-sm">{count}</span>
+                <span className="font-mono font-bold tabular-nums text-sm shrink-0">{count}</span>
               </li>
             ))}
           </ul>

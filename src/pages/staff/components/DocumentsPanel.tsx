@@ -3,6 +3,49 @@ import { useLanguage } from '../../../i18n/useT';
 import { fileUrl, useDocTypes, type ApplicationCardOut } from '../queries';
 import { formatDateTime, localizedName } from '../format';
 
+const DOCUMENTS_PANEL_I18N = {
+  uz_latn: {
+    title: 'Ilova qilingan hujjatlar',
+    fileCount: (n: number) => `${n} ta fayl`,
+    noDocuments: 'Hujjat biriktirilmagan.',
+    fallbackDocName: 'Hujjat',
+    uploadedAt: 'Yuklangan:',
+    download: 'Yuklab olish',
+  },
+  uz_cyrl: {
+    title: 'Илова қилинган ҳужжатлар',
+    fileCount: (n: number) => `${n} та файл`,
+    noDocuments: 'Ҳужжат бириктирилмаган.',
+    fallbackDocName: 'Ҳужжат',
+    uploadedAt: 'Юкланган:',
+    download: 'Юклаб олиш',
+  },
+  ru: {
+    title: 'Прикрепленные документы',
+    fileCount: (n: number) => `${n} файлов`,
+    noDocuments: 'Документы не прикреплены.',
+    fallbackDocName: 'Документ',
+    uploadedAt: 'Загружено:',
+    download: 'Скачать',
+  },
+  en: {
+    title: 'Attached documents',
+    fileCount: (n: number) => `${n} files`,
+    noDocuments: 'No documents attached.',
+    fallbackDocName: 'Document',
+    uploadedAt: 'Uploaded:',
+    download: 'Download',
+  },
+  kaa: {
+    title: 'Qosımsha etilgen hújjetler',
+    fileCount: (n: number) => `${n} fayl`,
+    noDocuments: 'Hújjet biriktirilmegen.',
+    fallbackDocName: 'Hújjet',
+    uploadedAt: 'Júklengen:',
+    download: 'Júklep alıw',
+  },
+};
+
 /** Attachments as `GET /applications/{id}` actually lists them
  * (`ApplicationDocumentOut`: `doc_type_item_id`, `file_id`, `note`,
  * `created_at` — no filename or size; `media_files` carries those but no
@@ -11,22 +54,23 @@ import { formatDateTime, localizedName } from '../format';
  * (`POST/DELETE /applications/{id}/documents`), not staff's. */
 export function DocumentsPanel({ card }: { card: ApplicationCardOut }) {
   const { lang } = useLanguage();
+  const tr = DOCUMENTS_PANEL_I18N[lang] ?? DOCUMENTS_PANEL_I18N.uz_latn;
   const docTypes = useDocTypes();
 
   return (
     <section className="bg-white border border-[#E4E7EA] rounded-2xl shadow-xs font-sans overflow-hidden">
       <div className="p-6 border-b border-[#E4E7EA]">
         <div className="flex items-center gap-2">
-          <h2 className="text-lg font-bold text-[#1A1F24]">Ilova qilingan hujjatlar</h2>
+          <h2 className="text-lg font-bold text-[#1A1F24]">{tr.title}</h2>
           <span className="text-xs font-semibold text-[#2E7D4F] bg-[#F0F7F1] px-2.5 py-0.5 rounded-full border border-[#D9EBDC]">
-            {card.documents.length} ta fayl
+            {tr.fileCount(card.documents.length)}
           </span>
         </div>
       </div>
 
       <div className="p-6 space-y-3">
         {card.documents.length === 0 && (
-          <p className="text-xs text-[#5A646D]">Hujjat biriktirilmagan.</p>
+          <p className="text-xs text-[#5A646D]">{tr.noDocuments}</p>
         )}
         {card.documents.map((doc) => (
           <div
@@ -37,11 +81,11 @@ export function DocumentsPanel({ card }: { card: ApplicationCardOut }) {
               <FileText className="w-8 h-8 text-[#5A646D] shrink-0" />
               <div className="min-w-0">
                 <span className="text-sm font-bold text-[#1A1F24] block">
-                  {localizedName(docTypes.data?.find((d) => d.id === doc.doc_type_item_id)?.name, lang) || 'Hujjat'}
+                  {localizedName(docTypes.data?.find((d) => d.id === doc.doc_type_item_id)?.name, lang) || tr.fallbackDocName}
                 </span>
                 {doc.note && <span className="text-xs text-[#5A646D] block">{doc.note}</span>}
                 <span className="text-[11px] text-[#767F87] font-mono">
-                  Yuklangan: {formatDateTime(doc.created_at)}
+                  {tr.uploadedAt} {formatDateTime(doc.created_at)}
                 </span>
               </div>
             </div>
@@ -51,7 +95,7 @@ export function DocumentsPanel({ card }: { card: ApplicationCardOut }) {
               rel="noreferrer"
               className="inline-flex items-center gap-1.5 h-9 px-3 text-xs font-semibold rounded-md border border-[#767F87] text-[#1A1F24] hover:bg-[#F8F9FA] shrink-0"
             >
-              <Download className="w-4 h-4" /> Yuklab olish
+              <Download className="w-4 h-4" /> {tr.download}
             </a>
           </div>
         ))}

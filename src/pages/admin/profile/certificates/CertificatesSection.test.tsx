@@ -74,6 +74,21 @@ test('a bound certificate lists its serial, subject and status', async () => {
   expect(screen.getByText(t('cabinet.certificates.statusActive'))).toBeInTheDocument();
 });
 
+test('displays active, expired, and revoked certificate badges correctly', async () => {
+  const expiredCert = { ...CERT, id: 'cert-2', serial_number: 'MOCK-EXP', status: 'expired' };
+  const revokedCert = { ...CERT, id: 'cert-3', serial_number: 'MOCK-REV', status: 'revoked' };
+  server.use(
+    http.get('*/certificates', () =>
+      HttpResponse.json({ items: [CERT, expiredCert, revokedCert], total: 3, page: 1, page_size: 100 }),
+    ),
+  );
+  renderSection();
+  expect(await screen.findByText('MOCK-123')).toBeInTheDocument();
+  expect(screen.getByText(t('cabinet.certificates.statusActive'))).toBeInTheDocument();
+  expect(screen.getByText(t('cabinet.certificates.statusExpired'))).toBeInTheDocument();
+  expect(screen.getByText(t('cabinet.certificates.statusRevoked'))).toBeInTheDocument();
+});
+
 test('binding sends an ATTACHED envelope (document_b64 present) and refreshes the list', async () => {
   let seenPkcs7 = '';
   server.use(

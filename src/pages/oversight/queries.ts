@@ -52,12 +52,23 @@ export interface RiskIndicatorFilters {
   page_size: number;
 }
 
+function cleanFilters<T extends Record<string, unknown>>(params: T): T {
+  const result: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(params)) {
+    if (v !== undefined && v !== '') {
+      result[k] = v;
+    }
+  }
+  return result as T;
+}
+
 export function useRiskIndicators(filters: RiskIndicatorFilters) {
+  const cleanParams = cleanFilters(filters as unknown as Record<string, unknown>) as unknown as RiskIndicatorFilters;
   return useQuery({
-    queryKey: ['oversight', 'risk-indicators', filters],
+    queryKey: ['oversight', 'risk-indicators', cleanParams],
     queryFn: async () => {
       const { data, error } = await api.GET('/api/v1/oversight/risk-indicators', {
-        params: { query: filters },
+        params: { query: cleanParams },
       });
       if (error) throw apiError(error);
       return data;
@@ -76,11 +87,12 @@ export interface EventFilters {
 }
 
 export function useEvents(filters: EventFilters) {
+  const cleanParams = cleanFilters(filters as unknown as Record<string, unknown>) as unknown as EventFilters;
   return useQuery({
-    queryKey: ['oversight', 'events', filters],
+    queryKey: ['oversight', 'events', cleanParams],
     queryFn: async () => {
       const { data, error } = await api.GET('/api/v1/oversight/events', {
-        params: { query: filters },
+        params: { query: cleanParams },
       });
       if (error) throw apiError(error);
       return data;
@@ -88,3 +100,4 @@ export function useEvents(filters: EventFilters) {
     placeholderData: (previous) => previous,
   });
 }
+

@@ -2,15 +2,20 @@ import { useRef, useState } from 'react';
 import { AlertTriangle, CheckCircle2, Copy, Loader2 } from 'lucide-react';
 import { Drawer } from '../../components/ui/Overlay';
 import { Button } from '../../components/ui/button';
-import { FormField, Input } from '../../components/ui/FormControls';
+import { FileInput, FormField, Input } from '../../components/ui/FormControls';
 import { Alert } from '../../components/ui/Feedback';
 import { useAuth } from '../../auth/useAuth';
 import { ApiError } from '../../api/errors';
 import { useApiErrorText } from '../../i18n/useApiErrorText';
-import { useT, useLanguage } from '../../i18n/useT';
+import { useLanguage, useT } from '../../i18n/useT';
 import { formatDateTime, formatMoney } from '../permits/format';
 import { pickName } from '../applicant/format';
-import { INVOICE_STATUS_LABEL, INVOICE_STATUS_STYLE, ALLOCATION_TARGET_LABEL, ENTRY_TYPE_LABEL } from './statusMeta';
+import {
+  INVOICE_STATUS_STYLE,
+  getInvoiceStatusLabel,
+  getEntryTypeLabel,
+  getAllocationTargetLabel,
+} from './statusMeta';
 import { uploadFile } from './api';
 import type { InvoiceRecipientOut } from './api';
 import { useAllocationsForInvoice, useFileManualConfirmation, useInvoice } from './queries';
@@ -34,7 +39,7 @@ export function InvoiceDetailDrawer({ invoiceId, onClose }: { invoiceId: string;
   const allocationsQuery = useAllocationsForInvoice(invoiceId);
 
   return (
-    <Drawer isOpen onClose={onClose} title={t('accountant.invoices.detailTitle')}>
+    <Drawer isOpen onClose={onClose} title={t('accountant.invoices.detailTitle')} className="w-full sm:max-w-lg md:max-w-xl">
       {invoiceQuery.isLoading ? (
         <p className="text-sm text-[#5A646D]">{t('accountant.common.loading')}</p>
       ) : invoiceQuery.isError ? (
@@ -59,11 +64,12 @@ export function InvoiceDetailDrawer({ invoiceId, onClose }: { invoiceId: string;
 
 function InvoiceHeader({ invoice }: { invoice: import('./api').InvoiceOut }) {
   const t = useT();
+  const { lang } = useLanguage();
   return (
     <dl className="grid grid-cols-1 gap-3 text-xs sm:grid-cols-2">
       <div>
         <dt className="font-semibold text-[#5A646D]">{t('accountant.invoices.detailNumber')}</dt>
-        <dd className="font-mono font-bold text-[#1A1F24]">{invoice.number}</dd>
+        <dd className="font-mono font-bold text-[#1A1F24] break-all">{invoice.number}</dd>
       </div>
       <div>
         <dt className="font-semibold text-[#5A646D]">{t('accountant.invoices.detailStatus')}</dt>
@@ -73,7 +79,7 @@ function InvoiceHeader({ invoice }: { invoice: import('./api').InvoiceOut }) {
               INVOICE_STATUS_STYLE[invoice.status] ?? INVOICE_STATUS_STYLE.pending
             }`}
           >
-            {INVOICE_STATUS_LABEL[invoice.status] ?? invoice.status}
+            {getInvoiceStatusLabel(invoice.status, lang)}
           </span>
         </dd>
       </div>
@@ -83,7 +89,7 @@ function InvoiceHeader({ invoice }: { invoice: import('./api').InvoiceOut }) {
       </div>
       <div>
         <dt className="font-semibold text-[#5A646D]">{t('accountant.invoices.detailApplication')}</dt>
-        <dd className="font-mono text-[#1A1F24]" title={invoice.application_id}>
+        <dd className="font-mono text-[#1A1F24] break-all" title={invoice.application_id}>
           {invoice.application_id.slice(0, 8)}
         </dd>
       </div>
@@ -193,7 +199,7 @@ function LedgerSection({
         <p className="text-xs text-[#5A646D]">{t('accountant.invoices.ledgerEmpty')}</p>
       ) : (
         <div className="overflow-x-auto rounded-lg border border-[#E4E7EA]">
-          <table className="w-full text-xs">
+          <table className="w-full text-xs min-w-[500px] whitespace-nowrap">
             <thead className="bg-[#F8F9FA] text-left font-semibold uppercase tracking-wide text-[#5A646D]">
               <tr>
                 <th className="px-3 py-2">{t('accountant.invoices.ledgerColType')}</th>
@@ -215,11 +221,11 @@ function LedgerSection({
                 // cell.
                 const targetLabel =
                   row.target === 'receiver'
-                    ? pickName(row.recipient_name, lang) || ALLOCATION_TARGET_LABEL.receiver
-                    : ALLOCATION_TARGET_LABEL[row.target] ?? row.target;
+                    ? pickName(row.recipient_name, lang) || getAllocationTargetLabel('receiver', lang)
+                    : getAllocationTargetLabel(row.target, lang);
                 return (
                   <tr key={row.id} className="border-t border-[#E4E7EA]">
-                    <td className="px-3 py-2">{ENTRY_TYPE_LABEL[row.entry_type] ?? row.entry_type}</td>
+                    <td className="px-3 py-2">{getEntryTypeLabel(row.entry_type, lang)}</td>
                     <td className="px-3 py-2">{targetLabel}</td>
                     <td className="px-3 py-2">
                       {row.account ?? (
@@ -291,11 +297,12 @@ function ManualPaidFilingForm({ invoiceId }: { invoiceId: string }) {
           </Alert>
           <div className="rounded-lg border border-[#E4E7EA] bg-white p-3">
             <p className="text-xs font-semibold text-[#5A646D]">{t('accountant.invoices.manualPaidIdLabel')}</p>
-            <div className="mt-1 flex items-center gap-2">
-              <code className="flex-1 truncate rounded bg-[#F8F9FA] px-2 py-1 text-xs">{filed.id}</code>
+            <div className="mt-1 flex flex-col sm:flex-row sm:items-center gap-2">
+              <code className="flex-1 truncate rounded bg-[#F8F9FA] px-2 py-1 text-xs break-all">{filed.id}</code>
               <Button
                 variant="outline"
                 size="sm"
+                className="w-full sm:w-auto shrink-0"
                 leftIcon={<Copy className="h-3.5 w-3.5" />}
                 onClick={() => {
                   void navigator.clipboard?.writeText(filed.id);
@@ -320,6 +327,7 @@ function ManualPaidFilingForm({ invoiceId }: { invoiceId: string }) {
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
               placeholder="0.00"
+              className="w-full"
             />
           </FormField>
           <FormField label={t('accountant.invoices.manualPaidPaidAtLabel')} htmlFor="manual-paid-paid-at">
@@ -328,15 +336,15 @@ function ManualPaidFilingForm({ invoiceId }: { invoiceId: string }) {
               type="datetime-local"
               value={paidAt}
               onChange={(e) => setPaidAt(e.target.value)}
+              className="w-full"
             />
           </FormField>
           <FormField label={t('accountant.invoices.manualPaidDocLabel')} htmlFor="manual-paid-doc">
-            <input
+            <FileInput
               ref={fileInputRef}
               id="manual-paid-doc"
-              type="file"
-              onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-              className="block w-full text-xs text-[#5A646D] file:mr-3 file:rounded-md file:border-0 file:bg-[#F0F7F1] file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-[#2E7D4F]"
+              value={file}
+              onChange={setFile}
             />
           </FormField>
           {uploadError && <Alert variant="danger">{uploadError}</Alert>}
