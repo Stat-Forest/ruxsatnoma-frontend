@@ -2011,6 +2011,14 @@ export const uz_latn = {
   'wizard.checks.noSeason': "Ushbu faoliyat turi uchun mavsumiy cheklov belgilanmagan — tekshiruv talab etilmaydi.",
   'wizard.checks.loadDetails': "Joriy yuklama — {used} shartli bosh, ruxsat etilgan meʼyor — {max} shartli bosh (boʻsh qoldiq — {remaining} shartli bosh).",
   'wizard.checks.loadDetailsNoRemaining': "Joriy yuklama — {used} shartli bosh, ruxsat etilgan meʼyor — {max} shartli bosh.",
+  'wizard.checks.loadDetailsFail': "So'ralgan yuklama — {used} shartli bosh — ruxsat etilgan {max} shartli boshlik chegaradan oshib ketmoqda (erkin qoldiq — {remaining} shartli bosh).",
+  'wizard.checks.loadDetailsFailNoRemaining': "So'ralgan yuklama — {used} shartli bosh — ruxsat etilgan {max} shartli boshlik chegaradan oshib ketmoqda.",
+  'wizard.checks.capacityDetails': "So'ralgan — {requested}, ruxsat etilgan chegara — {capacity} (erkin qoldiq — {remaining}).",
+  'wizard.checks.capacityDetailsNoRemaining': "So'ralgan — {requested}, ruxsat etilgan chegara — {capacity}.",
+  'wizard.checks.capacityDetailsFail': "So'ralgan — {requested} — ruxsat etilgan {capacity} chegaradan oshib ketmoqda (erkin qoldiq — {remaining}).",
+  'wizard.checks.capacityDetailsFailNoRemaining': "So'ralgan — {requested} — ruxsat etilgan {capacity} chegaradan oshib ketmoqda.",
+  'wizard.checks.exclusiveOccupied': "Kontur {date} sanasigacha band. Yangi ruxsatnoma faqat shu sanadan keyin mumkin.",
+  'wizard.checks.exclusiveOccupiedUnknown': "Kontur so'ralgan davr uchun band.",
 
   // --- Stage 7.7 (H-services): activity types catalog, `pages/admin/activities/` ---
   // Rulings #138/#139/#139a: `PATCH` only, no add/delete; archiving closes the

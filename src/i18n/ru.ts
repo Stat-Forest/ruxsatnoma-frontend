@@ -1983,6 +1983,14 @@ export const ru = {
   'wizard.checks.noSeason': 'Для этого вида деятельности сезонных ограничений не установлено — проверка не требуется.',
   'wizard.checks.loadDetails': 'Текущая нагрузка — {used} усл. голов, допустимый предел — {max} усл. голов (свободный остаток — {remaining} усл. голов).',
   'wizard.checks.loadDetailsNoRemaining': 'Текущая нагрузка — {used} усл. голов, допустимый предел — {max} усл. голов.',
+  'wizard.checks.loadDetailsFail': 'Запрошенная нагрузка — {used} усл. голов — превышает допустимый предел в {max} усл. голов (свободный остаток — {remaining} усл. голов).',
+  'wizard.checks.loadDetailsFailNoRemaining': 'Запрошенная нагрузка — {used} усл. голов — превышает допустимый предел в {max} усл. голов.',
+  'wizard.checks.capacityDetails': 'Запрошено — {requested}, доступный лимит — {capacity} (свободный остаток — {remaining}).',
+  'wizard.checks.capacityDetailsNoRemaining': 'Запрошено — {requested}, доступный лимит — {capacity}.',
+  'wizard.checks.capacityDetailsFail': 'Запрошено — {requested} — превышает доступный лимит {capacity} (свободный остаток — {remaining}).',
+  'wizard.checks.capacityDetailsFailNoRemaining': 'Запрошено — {requested} — превышает доступный лимит {capacity}.',
+  'wizard.checks.exclusiveOccupied': 'Контур занят до {date}. Новое разрешение возможно только после этой даты.',
+  'wizard.checks.exclusiveOccupiedUnknown': 'Контур занят на весь запрошенный период.',
 
   // --- Stage 7.7 (H-services): activity types catalog, `pages/admin/activities/` ---
   'activityTypes.title': 'Каталог услуг',
