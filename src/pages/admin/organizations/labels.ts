@@ -64,6 +64,9 @@ export const uz_latn = {
   'form.district': 'Tuman',
   'form.districtLocked': 'Avval viloyatni tanlang',
   'form.notSelected': 'Tanlanmagan',
+  'form.paymeAccountId': 'Payme hisob raqami',
+  'form.paymeAccountIdHint':
+    "Oʻrmon xoʻjaligi bank hisobidan tashqari — toʻlovning qolgan ulushi shu Payme hisobiga oʻtkaziladi. Koʻrsatilmasa, Payme toʻlovni boʻla olmaydi.",
   'form.submit': 'Saqlash',
   'form.cancel': 'Bekor qilish',
   'form.loading': 'Yuklanmoqda...',
@@ -143,6 +146,9 @@ export const ru: Labels = {
   'form.district': 'Район',
   'form.districtLocked': 'Сначала выберите область',
   'form.notSelected': 'Не выбрано',
+  'form.paymeAccountId': 'Счёт Payme',
+  'form.paymeAccountIdHint':
+    'Отдельно от банковского счёта лесхоза — остаток платежа переводится на этот счёт Payme. Если не указан, Payme не может разделить платёж.',
   'form.submit': 'Сохранить',
   'form.cancel': 'Отмена',
   'form.loading': 'Загрузка...',
@@ -219,6 +225,9 @@ export const uz_cyrl: Labels = {
   'form.district': 'Туман',
   'form.districtLocked': 'Аввал вилоятни танланг',
   'form.notSelected': 'Танланмаган',
+  'form.paymeAccountId': 'Payme ҳисоб рақами',
+  'form.paymeAccountIdHint':
+    'Ўрмон хўжалиги банк ҳисобидан ташқари — тўловнинг қолган улуши шу Payme ҳисобига ўтказилади. Кўрсатилмаса, Payme тўловни бўла олмайди.',
   'form.submit': 'Сақлаш',
   'form.cancel': 'Бекор қилиш',
   'form.loading': 'Юкланмоқда...',
@@ -295,6 +304,9 @@ export const en: Labels = {
   'form.district': 'District',
   'form.districtLocked': 'Select region first',
   'form.notSelected': 'Not selected',
+  'form.paymeAccountId': 'Payme account ID',
+  'form.paymeAccountIdHint':
+    'Apart from the forestry bank account — the remainder of the payment is routed to this Payme account. If not specified, Payme cannot split the payment.',
   'form.submit': 'Save',
   'form.cancel': 'Cancel',
   'form.loading': 'Loading...',
@@ -371,6 +383,9 @@ export const kaa: Labels = {
   'form.district': 'Rayon',
   'form.districtLocked': 'Dáslep wálayattı saylań',
   'form.notSelected': 'Saylanbaǵan',
+  'form.paymeAccountId': 'Payme esap beti',
+  'form.paymeAccountIdHint':
+    'Toǵay xojalıǵı bank esap betinen tısqarı — tólemniń qalǵan úlesi usı Payme esap betine ótkeriledi. Kórsetilmese, Payme tólemdi bóle almaydı.',
   'form.submit': 'Saqlaw',
   'form.cancel': 'Biykar etiw',
   'form.loading': 'Júklenbekte...',

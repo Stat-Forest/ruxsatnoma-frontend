@@ -8,6 +8,7 @@ import { Button } from '../components/ui/button';
 import { toApiError } from './permits/apiErrorHelpers';
 import { formatPermitNumber } from './permits/format';
 import { PermitPdfPanel } from './permits/PermitPdfPanel';
+import { PermitRatingPanel } from './permits/PermitRatingPanel';
 import { PermitRequisitesPanel } from './permits/PermitRequisitesPanel';
 import { PermitSignaturesPanel } from './permits/PermitSignaturesPanel';
 import { useAuth } from '../auth/useAuth';
@@ -169,6 +170,8 @@ export function MyPermitPage() {
         permit={permit}
         onSigned={() => void queryClient.invalidateQueries({ queryKey: ['permit', id] })}
       />
+
+      <PermitRatingPanel permitId={permit.id} rating={permit.rating ?? null} status={permit.status} />
     </div>
   );
 }

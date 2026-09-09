@@ -4,6 +4,9 @@ import type { components } from '../api/schema';
 
 type MeOut = components['schemas']['MeOut'];
 
+/** What `submitPassword` produced — see its doc comment. */
+export type PasswordStepOutcome = 'mfa-required' | 'signed-in';
+
 export interface AuthContextValue {
   me: MeOut | null;
   loading: boolean;
@@ -16,7 +19,15 @@ export interface AuthContextValue {
    * no visible reason.
    */
   authError: ApiError | null;
-  requestMfa: (login: string, password: string) => Promise<void>;
+  /**
+   * The password step. Its RESULT decides what happens next, and a caller may
+   * not assume: with the second factor required it returns `'mfa-required'`
+   * and only remembers the handoff token; with the server's `mfa_enabled`
+   * switch off the session is already open on that same response, `me` is
+   * already set here, and the caller must navigate rather than ask for a code
+   * nobody will check.
+   */
+  submitPassword: (login: string, password: string) => Promise<PasswordStepOutcome>;
   verifyMfa: (code: string) => Promise<void>;
   /**
    * Sends the browser to OneID, remembering `next` in sessionStorage first —

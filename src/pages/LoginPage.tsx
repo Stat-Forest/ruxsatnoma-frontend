@@ -11,13 +11,22 @@ import { peekStoredNext } from './oneIdReturnCache';
 
 type ErrorKind = 'credentials' | 'blocked' | 'rate-limited' | 'connection' | 'oneid' | null;
 
-// ERR-AUTH-001 (wrong credentials), ERR-AUTH-003 (blocked account) and
+// ERR-AUTH-001 (wrong credentials), ERR-AUTH-003 (locked out) and
 // ERR-SYS-006 (rate limited) get three different messages on purpose — the
 // brief's whole reason is that "wrong password" for a locked-out account
 // sends the user in circles. Anything that is not even an ApiError (the
 // backend never answered — a dropped connection, a CORS failure) is its own
 // fourth case: telling someone their password is wrong when their
 // connection dropped is that same defect in a different costume.
+//
+// `ERR-AUTH-003` is a TEMPORARY lockout — `login_max_attempts` failures put
+// `locked_until` `login_lockout_minutes` into the future and it clears
+// itself, so the copy must not send anyone to an administrator (it said
+// exactly that until 2026-09-09, and the wait is 15 minutes by default). An
+// account an administrator really did block (`users.status != 'active'`)
+// never reaches this branch at all: `auth.service.login_password` answers it
+// with `ERR-AUTH-001`, deliberately indistinguishable from a wrong password
+// so the response is not a user-existence oracle.
 function classify(err: unknown): Exclude<ErrorKind, null | 'oneid'> {
   if (!(err instanceof ApiError)) return 'connection';
   if (err.code === RATE_LIMITED) return 'rate-limited';
@@ -49,7 +58,7 @@ function storedMethod(): Method {
 }
 
 export function LoginPage() {
-  const { requestMfa, verifyMfa, startOneId, loginViaEimzo } = useAuth();
+  const { submitPassword, verifyMfa, startOneId, loginViaEimzo } = useAuth();
   const t = useT();
   const navigate = useNavigate();
   const location = useLocation();
@@ -86,7 +95,14 @@ export function LoginPage() {
     setErrorKind(null);
     setSubmitting(true);
     try {
-      await requestMfa(loginId, password);
+      // Only the server knows whether a second factor is still in force
+      // (`mfa_enabled`). When it is off the session already exists by the time
+      // this resolves, so showing the code screen would strand a signed-in user
+      // in front of a field nothing checks.
+      if ((await submitPassword(loginId, password)) === 'signed-in') {
+        navigate(next, { replace: true });
+        return;
+      }
       setStep('code');
     } catch (err) {
       setErrorKind(classify(err));

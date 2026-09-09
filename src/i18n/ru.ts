@@ -13,15 +13,19 @@ export const ru = {
   'nav.search': 'Поиск',
   'nav.archive': 'Архивный реестр',
   'nav.reports': 'Отчёты',
+  'nav.ratings': 'Оценки',
   'nav.inspections': 'Проверки',
   'nav.users': 'Пользователи',
   'nav.roles': 'Роли и права',
   'nav.organizations': 'Организации',
   'nav.classifiers': 'Классификаторы',
+  'nav.activityTypes': 'Каталог услуг',
   'nav.settings': 'Системные настройки',
   'nav.announcements': 'Объявления',
+  'nav.legalDocuments': 'Нормативные документы',
   'nav.templates': 'Шаблоны уведомлений',
   'nav.integrations': 'Интеграции',
+  'nav.paymentRecipients': 'Получатели платежей',
   'nav.notifications': 'Уведомления',
   'nav.profile': 'Профиль',
   'nav.support': 'Поддержка',
@@ -39,7 +43,8 @@ export const ru = {
   'login.submitCode': 'Подтвердить',
   'login.back': 'Назад',
   'login.badCredentials': 'Неверный логин или пароль.',
-  'login.blockedAccount': 'Аккаунт заблокирован. Обратитесь к администратору.',
+  'login.blockedAccount':
+    'Слишком много неверных попыток. Вход временно заблокирован — повторите через несколько минут.',
   'login.rateLimited': 'Слишком много попыток. Повторите позже.',
   'login.connectionError': 'Ошибка соединения. Проверьте интернет и повторите попытку.',
   'login.tabOneId': 'OneID',
@@ -354,7 +359,14 @@ export const ru = {
   'accountant.invoices.detailIssuedAt': 'Дата выставления',
   'accountant.invoices.detailDueAt': 'Срок оплаты',
   'accountant.invoices.detailPaidAt': 'Дата оплаты',
-  'accountant.invoices.ledgerTitle': 'Реестр платежей (разбивка 50/50)',
+  'accountant.invoices.recipientsTitle': 'Как разделён счёт',
+  'accountant.invoices.recipientsColName': 'Получатель',
+  'accountant.invoices.recipientsColRule': 'Правило',
+  'accountant.invoices.recipientsColPaymeId': 'Счёт Payme',
+  'accountant.invoices.recipientsColAmount': 'Сумма',
+  'accountant.invoices.recipientsRemainder': 'Остаток (лесхоз)',
+  'accountant.invoices.recipientsNoPaymeId': 'Не указан',
+  'accountant.invoices.ledgerTitle': 'Реестр платежей',
   'accountant.invoices.ledgerEmpty': 'Записей пока нет.',
   'accountant.invoices.ledgerColType': 'Тип',
   'accountant.invoices.ledgerColTarget': 'Назначение',
@@ -481,9 +493,9 @@ export const ru = {
   'accountant.refunds.basisOverpayment': 'Переплата',
   'accountant.refunds.basisBenefit': 'Подтверждённая категория льготы',
   'accountant.refunds.finalAmountLabel': 'Итоговая сумма',
-  'accountant.refunds.budgetAmountLabel': 'Доля бюджета',
-  'accountant.refunds.recipientAmountLabel': 'Доля исполнителя',
-  'accountant.refunds.otherAmountLabel': 'Прочее',
+  'accountant.refunds.noSources': 'Нет данных о разделении счёта.',
+  'accountant.refunds.componentsTotalLabel': 'Итого',
+  'accountant.refunds.componentsMismatchHint': 'Сумма по источникам должна равняться итоговой сумме.',
   'accountant.refunds.decisionCommentLabel': 'Комментарий',
   'accountant.refunds.decisionSubmit': 'Отправить',
   'accountant.refunds.decisionFailed': 'Ошибка отправки.',
@@ -832,6 +844,9 @@ export const ru = {
   'gis.page.tabImports': 'Импорт',
   'gis.page.tabLayers': 'Слои',
 
+  'gis.map.basemapScheme': 'Схема',
+  'gis.map.basemapSatellite': 'Спутник',
+
   'gis.versions.checks.title': 'Топологические проверки',
   'gis.versions.checks.run': 'Проверить',
   'gis.versions.checks.failed': 'Не удалось выполнить проверку',
@@ -1113,6 +1128,10 @@ export const ru = {
   'leadership.dash.tile.payments.paidOfInvoiced': 'оплачено от выставленного',
   'leadership.dash.tile.sla.label': 'Заявки в работе (SLA)',
   'leadership.dash.tile.sla.hint': 'Просрочено',
+  // Stage 7.7, task 9 (ruling #143): `KpiOut.satisfaction`, obeying the same
+  // period/zone filters every other tile on this row already does.
+  'leadership.dash.tile.satisfaction.label': 'Удовлетворённость услугой',
+  'leadership.dash.tile.satisfaction.hint': 'Количество оценок',
   'leadership.dash.occupancy.title': 'Средняя занятость контуров',
   'leadership.dash.occupancy.subtitle': 'По контурам:',
   'leadership.dash.sbLoad.title': 'Нагрузка (условные головы)',
@@ -1562,6 +1581,13 @@ export const ru = {
   'inspector.taskDetail.startButton': 'Начать задание',
   'inspector.taskDetail.cancelButton': 'Отменить задание',
   'inspector.taskDetail.startActButton': 'Начать акт проверки',
+  'inspector.taskDetail.assignedToLabel': 'Исполнитель:',
+
+  // --- Stage 7.6 (ruling R6/#138): the handover dialog --------------------
+  'inspector.taskDetail.handoverTitle': 'Передать задание другому инспектору',
+  'inspector.taskDetail.handoverPlaceholder': 'Выберите инспектора...',
+  'inspector.taskDetail.handoverButton': 'Передать',
+  'inspector.taskDetail.handoverCandidatesError': 'Не удалось загрузить список инспекторов.',
 
   // --- J1 (stage 6.7): act form (draft creation/editing) ------------------
   'inspector.actForm.newTitle': 'Новый акт проверки',
@@ -1638,6 +1664,8 @@ export const ru = {
   'inspector.cases.loadError': 'Не удалось загрузить список дел.',
   'inspector.cases.loading': 'Загрузка...',
   'inspector.cases.empty': 'Дел пока нет.',
+  'inspector.cases.filteredByApplicant': 'Показаны дела только этого нарушителя.',
+  'inspector.cases.clearApplicantFilter': 'Показать все дела',
 
   // --- J1 (stage 6.7): Case detail page (task 7) --------------------------
   'inspector.caseDetail.title': 'Дело о нарушении',
@@ -1645,6 +1673,7 @@ export const ru = {
   'inspector.caseDetail.notFound': 'Дело не найдено.',
   'inspector.caseDetail.numberLabel': 'Номер дела',
   'inspector.caseDetail.violationTypeLabel': 'Тип нарушения',
+  'inspector.caseDetail.priorCasesLabel': 'Предыдущие дела этого нарушителя',
   'inspector.caseDetail.decisionLabel': 'Решение',
   'inspector.caseDetail.decision.warning': 'Предупреждение',
   'inspector.caseDetail.decision.suspend': 'Приостановка разрешения',
@@ -1917,4 +1946,90 @@ export const ru = {
   'wizard.checks.noSeason': 'Для этого вида деятельности сезонных ограничений не установлено — проверка не требуется.',
   'wizard.checks.loadDetails': 'Текущая нагрузка — {used} усл. голов, допустимый предел — {max} усл. голов (свободный остаток — {remaining} усл. голов).',
   'wizard.checks.loadDetailsNoRemaining': 'Текущая нагрузка — {used} усл. голов, допустимый предел — {max} усл. голов.',
+
+  // --- Stage 7.7 (H-services): activity types catalog, `pages/admin/activities/` ---
+  'activityTypes.title': 'Каталог услуг',
+  'activityTypes.subtitle':
+    'Шесть видов пользования лесным фондом закреплены законом — их нельзя добавить или удалить: можно только изменить название, описание и срок либо полностью отключить услугу.',
+  'activityTypes.loading': 'Загрузка…',
+  'activityTypes.loadError': 'Не удалось загрузить список.',
+  'activityTypes.termLabel': 'Срок',
+  'activityTypes.termDays': 'дней',
+  'activityTypes.descriptionEmpty': 'Описание не заполнено',
+  'activityTypes.actionEdit': 'Редактировать',
+  'activityTypes.editTitle': 'Редактирование услуги',
+  'activityTypes.fieldNameUz': 'Название (uz)',
+  'activityTypes.fieldNameRu': 'Название (ru)',
+  'activityTypes.fieldDescriptionUz': 'Описание (uz)',
+  'activityTypes.fieldDescriptionRu': 'Описание (ru)',
+  'activityTypes.fieldProcessingDays': 'Срок (дней)',
+  'activityTypes.save': 'Сохранить',
+  'activityTypes.cancel': 'Отмена',
+  'activityTypes.errNameRequiresUzLatn':
+    'Название: язык uz_latn (узбекский, латиница) не может быть пустым.',
+  'activityTypes.errDescriptionRequiresUzLatn':
+    'Описание: язык uz_latn (узбекский, латиница) не может быть пустым.',
+  'activityTypes.errProcessingDays': 'Срок должен быть положительным целым числом.',
+  'activityTypes.saveError': 'Не удалось сохранить.',
+  'activityTypes.archiveTitle': 'Отключить услугу',
+  'activityTypes.archiveBody':
+    'Эта услуга исчезнет с главной страницы, из калькулятора цены и из формы заявки — новые заявки по ней тоже перестанут приниматься.',
+  'activityTypes.archiveConfirm': 'Подтвердить',
+  'activityTypes.archiveCancel': 'Отмена',
+  'activityTypes.archiveError': 'Не удалось отключить услугу.',
+
+  // Permit rating panel (B10 cabinet, task 8 of 07.7-services-catalog-and-ratings).
+  // Option copy for 5-2 is the old landing form's own wording, carried over
+  // unchanged (`ruxsatnoma-landing` history, commit before 04ff511 removed
+  // the dead form); "1" never existed there and is written fresh here.
+  'permitRating.title': 'Оцените качество услуги',
+  'permitRating.subtitle':
+    'Ваша оценка поможет в дальнейшем совершенствовании государственных электронных услуг.',
+  'permitRating.option5Title': '5 - Отлично',
+  'permitRating.option5Desc': 'Очень удобно, быстро и понятно',
+  'permitRating.option4Title': '4 - Хорошо',
+  'permitRating.option4Desc': 'Хорошо, но есть некоторые предложения',
+  'permitRating.option3Title': '3 - Удовлетворительно',
+  'permitRating.option3Desc': 'Средне, немного сложнее для понимания',
+  'permitRating.option2Title': '2 - Неудовлетворительно',
+  'permitRating.option2Desc': 'Есть недостатки',
+  'permitRating.option1Title': '1 - Плохо',
+  'permitRating.option1Desc': 'Очень неудобно, были серьёзные проблемы',
+  'permitRating.commentLabel': 'Комментарий (необязательно)',
+  'permitRating.submitButton': 'Отправить оценку',
+  'permitRating.submitError': 'Не удалось отправить оценку.',
+  'permitRating.ratedTitle': 'Ваша оценка успешно принята!',
+  'permitRating.thankYou':
+    'Благодарим вас за оценку качества услуг портала и оставленный отзыв.',
+  'permitRating.resultLabel': 'Выставленная оценка:',
+  'permitRating.resultUnit': 'балл',
+
+  // The Agency's ratings screen (rulings #140-#143, stage 7.7, task 9).
+  // `GET /admin/ratings/summary` + `GET /admin/ratings`, both zone-scoped
+  // server-side — this screen filters nothing beyond the period itself.
+  'ratings.title': 'Оценки качества услуг',
+  'ratings.subtitle':
+    'Граждане оценивают качество услуги после получения разрешения. Здесь показаны средний балл, количество оценок за выбранный период и разбивка по организациям и видам услуг.',
+  'ratings.loading': 'Загрузка…',
+  'ratings.loadError': 'Не удалось загрузить данные.',
+  'ratings.filters.periodFrom': 'Период — с',
+  'ratings.filters.periodTo': 'Период — по',
+  'ratings.filters.apply': 'Применить',
+  'ratings.filters.reset': 'Сбросить',
+  'ratings.tile.avgScoreLabel': 'Средний балл',
+  'ratings.tile.countLabel': 'Количество оценок',
+  'ratings.byOrganization.title': 'По организациям',
+  'ratings.byOrganization.empty': 'Нет данных за этот период.',
+  'ratings.byActivityType.title': 'По видам услуг',
+  'ratings.byActivityType.empty': 'Нет данных за этот период.',
+  // Ruling #141: the feed below is the anonymous comment stream — date,
+  // service, leshoz, score, text, and NOTHING that identifies who left it.
+  // No column here may ever name an applicant or a permit.
+  'ratings.feed.title': 'Комментарии',
+  'ratings.feed.empty': 'За этот период комментариев нет.',
+  'ratings.feed.colDate': 'Дата',
+  'ratings.feed.colOrganization': 'Организация',
+  'ratings.feed.colActivityType': 'Вид услуги',
+  'ratings.feed.colScore': 'Оценка',
+  'ratings.feed.colComment': 'Комментарий',
 };

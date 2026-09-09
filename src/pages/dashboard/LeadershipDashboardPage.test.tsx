@@ -55,6 +55,7 @@ function kpiFixture(overrides: Partial<KpiOut> = {}): KpiOut {
     inspections: { inspections_count: 0, violations_count: 0 },
     rejections: [],
     risk_indicators: { by_code: {}, by_level: {} },
+    satisfaction: { avg_score: null, count: 0 },
     omitted: [],
     ...overrides,
   };
@@ -128,6 +129,24 @@ test('the tiles carry the figures the backend actually computed', async () => {
   expect(screen.getByTestId('occupancy-value')).toHaveTextContent('42.5%');
   expect(screen.getByTestId('tile-sla')).toHaveTextContent('8');
   expect(screen.getByTestId('tile-sla')).toHaveTextContent('2');
+});
+
+test('the satisfaction tile renders KpiOut.satisfaction — average and count', async () => {
+  mockBackend({ kpi: { satisfaction: { avg_score: '4.20', count: 15 } } });
+  renderDashboard();
+
+  const tile = await screen.findByTestId('tile-satisfaction');
+  expect(tile).toHaveTextContent('4.20');
+  expect(tile).toHaveTextContent('15');
+});
+
+test('a period with no ratings renders an em dash on the satisfaction tile, never "0"', async () => {
+  mockBackend({ kpi: { satisfaction: { avg_score: null, count: 0 } } });
+  renderDashboard();
+
+  const tile = await screen.findByTestId('tile-satisfaction');
+  expect(tile).toHaveTextContent('—');
+  expect(tile.textContent).not.toMatch(/\b0\.00\b/);
 });
 
 test('the inspections tile renders KpiOut.inspections — real data now that the module has shipped', async () => {

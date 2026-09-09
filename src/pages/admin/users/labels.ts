@@ -85,6 +85,11 @@ export const uz_latn = {
   actionResetMfa: 'MFA ni tiklash',
   actionsTitle: 'Amallar',
 
+  // — stage 7.6 (ruling R3/#138, finding F4): the refusal names what is held
+  openWorkTitle: 'Foydalanuvchida tugallanmagan ish bor — avval uni boshqasiga topshiring:',
+  openWorkKindApplications: 'Arizalar',
+  openWorkKindInspectionTasks: 'Tekshiruv topshiriqlari',
+
   // — create / edit form
   createTitle: 'Yangi foydalanuvchi',
   createSubtitle: 'Xodim hisobi. Fuqarolar bu yerda yaratilmaydi.',
@@ -254,6 +259,10 @@ export const ru: UsersLabels = {
   actionResetMfa: 'Сбросить MFA',
   actionsTitle: 'Действия',
 
+  openWorkTitle: 'У пользователя есть незавершённая работа — сначала передайте её другому исполнителю:',
+  openWorkKindApplications: 'Заявки',
+  openWorkKindInspectionTasks: 'Задания по проверке',
+
   createTitle: 'Новый пользователь',
   createSubtitle: 'Учётная запись сотрудника. Граждане здесь не создаются.',
   editTitle: 'Редактирование пользователя',
@@ -414,6 +423,10 @@ export const uz_cyrl: UsersLabels = {
   actionResetPassword: 'Паролни тиклаш',
   actionResetMfa: 'MFA ни тиклаш',
   actionsTitle: 'Амаллар',
+
+  openWorkTitle: 'Фойдаланувчида тугалланмаган иш бор — аввал уни бошқасига топширинг:',
+  openWorkKindApplications: 'Аризалар',
+  openWorkKindInspectionTasks: 'Текширув топшириқлари',
 
   createTitle: 'Янги фойдаланувчи',
   createSubtitle: 'Ходим ҳисоби. Фуқаролар бу ерда яратилмайди.',
@@ -576,6 +589,10 @@ export const en: UsersLabels = {
   actionResetMfa: 'Reset MFA',
   actionsTitle: 'Actions',
 
+  openWorkTitle: 'User has open work — reassign it to another user first:',
+  openWorkKindApplications: 'Applications',
+  openWorkKindInspectionTasks: 'Inspection tasks',
+
   createTitle: 'New User',
   createSubtitle: 'Staff account. Citizens are not created here.',
   editTitle: 'Edit User',
@@ -736,6 +753,10 @@ export const kaa: UsersLabels = {
   actionResetPassword: 'Paroldi tiklew',
   actionResetMfa: 'MFA ni tiklew',
   actionsTitle: 'Ámeller',
+
+  openWorkTitle: 'Paydalanıwshıda tamamlanbaǵan jumıs bar — aldın onı basqasına tapsırıń:',
+  openWorkKindApplications: 'Arzalar',
+  openWorkKindInspectionTasks: 'Tekseriw tapsırmaları',
 
   createTitle: 'Jańa paydalanıwshı',
   createSubtitle: 'Xızmetker esabı. Puqaralar bul jerde jaratılmaydı.',

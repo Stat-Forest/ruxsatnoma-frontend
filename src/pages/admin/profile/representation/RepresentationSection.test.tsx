@@ -28,7 +28,7 @@ function renderSection(representations: unknown[] = [], refreshMe: () => Promise
     },
     loading: false,
     authError: null,
-    requestMfa: async () => {},
+    submitPassword: async () => 'mfa-required',
     verifyMfa: async () => {},
     startOneId: async () => {},
     loginViaEimzo: async () => {},

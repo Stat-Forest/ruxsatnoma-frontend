@@ -33,6 +33,14 @@ export const uz_latn = {
   audienceRegions: 'Hududlar',
   audienceHint: 'Hech narsa tanlanmasa — eʼlon barcha foydalanuvchilarga koʻrinadi.',
 
+  publicSection: 'Ommaviy saytda chop etish',
+  publicToggle: 'Eʼlonni ruxsatnoma-urmon.uz saytida koʻrsatish',
+  publicHint:
+    'Sayt tashrifchilari tizimga kirmasdan oʻqiydi. Faqat auditoriyasi tanlanmagan eʼlon uchun.',
+  publicBlockedByAudience: 'Auditoriya tanlangan eʼlon saytda chop etilmaydi — avval rol va hududlarni olib tashlang.',
+  audienceBlockedByPublic: 'Eʼlon saytda chop etilmoqda, shuning uchun auditoriya tanlab boʻlmaydi.',
+  publicBadge: 'Saytda',
+
   loading: 'Yuklanmoqda...',
   empty: 'Eʼlon topilmadi.',
   loadFailed: 'Eʼlonlar roʻyxati yuklanmadi.',
@@ -97,6 +105,14 @@ export const ru: AnnouncementLabels = {
   audienceRegions: 'Регионы',
   audienceHint: 'Если ничего не выбрано — объявление увидят все пользователи.',
 
+  publicSection: 'Публикация на сайте',
+  publicToggle: 'Показывать объявление на сайте ruxsatnoma-urmon.uz',
+  publicHint:
+    'Посетители сайта читают его без входа в систему. Только для объявления без выбранной аудитории.',
+  publicBlockedByAudience: 'Объявление с выбранной аудиторией нельзя показать на сайте — сначала снимите роли и регионы.',
+  audienceBlockedByPublic: 'Объявление публикуется на сайте, поэтому аудиторию выбрать нельзя.',
+  publicBadge: 'На сайте',
+
   loading: 'Загрузка...',
   empty: 'Объявления не найдены.',
   loadFailed: 'Не удалось загрузить список объявлений.',
@@ -158,6 +174,14 @@ export const uz_cyrl: AnnouncementLabels = {
   audienceRoles: 'Роллар',
   audienceRegions: 'Ҳудудлар',
   audienceHint: 'Ҳеч нарса танланмаса — эълон барча фойдаланувчиларга кўринади.',
+
+  publicSection: 'Оммавий сайтда чоп этиш',
+  publicToggle: 'Эълонни ruxsatnoma-urmon.uz сайтида кўрсатиш',
+  publicHint:
+    'Сайт ташрифчилари тизимга кирмасдан ўқийди. Фақат аудиторияси танланмаган эълон учун.',
+  publicBlockedByAudience: 'Аудитория танланган эълон сайтда чоп этилмайди — аввал рол ва ҳудудларни олиб ташланг.',
+  audienceBlockedByPublic: 'Эълон сайтда чоп этилмоқда, шунинг учун аудитория танлаб бўлмайди.',
+  publicBadge: 'Сайтда',
 
   loading: 'Юкланмоқда...',
   empty: 'Эълон топилмади.',
@@ -221,6 +245,14 @@ export const en: AnnouncementLabels = {
   audienceRegions: 'Regions',
   audienceHint: 'If nothing is selected — announcement is visible to all users.',
 
+  publicSection: 'Publish on public website',
+  publicToggle: 'Display announcement on ruxsatnoma-urmon.uz website',
+  publicHint:
+    'Site visitors read it without signing in. Only for announcements with no audience selected.',
+  publicBlockedByAudience: 'Cannot publish on site with audience selected — remove roles and regions first.',
+  audienceBlockedByPublic: 'Announcement is published on site, so audience cannot be chosen.',
+  publicBadge: 'On site',
+
   loading: 'Loading...',
   empty: 'No announcements found.',
   loadFailed: 'Failed to load announcements list.',
@@ -282,6 +314,14 @@ export const kaa: AnnouncementLabels = {
   audienceRoles: 'Rollar',
   audienceRegions: 'Aymaqlar',
   audienceHint: 'Hesh nárse saylanbasa — xabarlandırıw barlıq paydalanıwshılarǵa kórinedi.',
+
+  publicSection: 'Ǵalaba saytta járiyalaw',
+  publicToggle: 'Xabarlandırıwdı ruxsatnoma-urmon.uz saytında kórsetiw',
+  publicHint:
+    'Saytqa kiriwshiler sistemaǵa kirmey oqıydı. Tek auditoriyası saylanbaǵan xabarlandırıw ushın.',
+  publicBlockedByAudience: 'Auditoriya saylanǵan xabarlandırıw saytta járiyalanbaydı — aldın rol hám aymaqlardı alıp taslań.',
+  audienceBlockedByPublic: 'Xabarlandırıw saytta járiyalanbaqta, sonlıqtan auditoriya saylap bolmaydı.',
+  publicBadge: 'Saytta',
 
   loading: 'Júklenbekte...',
   empty: 'Xabarlandırıw tabılmadı.',

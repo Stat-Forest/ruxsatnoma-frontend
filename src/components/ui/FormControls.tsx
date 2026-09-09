@@ -489,23 +489,37 @@ export interface SwitchProps {
   label?: string;
   disabled?: boolean;
   className?: string;
+  'data-testid'?: string;
 }
 
+/**
+ * `role="switch"` on `input[type=checkbox]` is an explicitly ALLOWED ARIA
+ * override (WAI-ARIA "Allowed Roles" for the checkbox input state), not a
+ * hack: it keeps the native checked/toggle behaviour and click target while
+ * giving assistive tech and `getByRole('switch', ...)` queries the semantics
+ * this control actually has (an on/off setting, not a form checkbox).
+ * `aria-checked` is set explicitly alongside the native `checked` prop so the
+ * state is never ambiguous under the overridden role.
+ */
 export const Switch: React.FC<SwitchProps> = ({
   checked,
   onChange,
   label,
   disabled = false,
   className = '',
+  'data-testid': dataTestId,
 }) => {
   return (
     <label className={`inline-flex items-center gap-3 cursor-pointer ${disabled ? 'opacity-50 cursor-not-allowed' : ''} ${className}`}>
       <div className="relative">
         <input
           type="checkbox"
+          role="switch"
+          aria-checked={checked}
           checked={checked}
           disabled={disabled}
           onChange={(e) => onChange(e.target.checked)}
+          data-testid={dataTestId}
           className="sr-only"
         />
         <div

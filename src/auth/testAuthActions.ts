@@ -8,7 +8,7 @@ import type { AuthContextValue } from './AuthContext';
  */
 export function stubAuthActions(): Omit<AuthContextValue, 'me' | 'loading' | 'authError'> {
   return {
-    requestMfa: async () => {},
+    submitPassword: async () => 'mfa-required',
     verifyMfa: async () => {},
     startOneId: async () => {},
     loginViaEimzo: async () => {},

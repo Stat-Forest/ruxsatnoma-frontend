@@ -8,13 +8,17 @@ import { LoginPage } from './pages/LoginPage';
 import { OneIdReturnPage } from './pages/OneIdReturnPage';
 import { UsersPage } from './pages/UsersPage';
 import { AnnouncementsPage } from './pages/admin/announcements/AnnouncementsPage';
+import { LegalDocumentsPage } from './pages/admin/legalDocuments/LegalDocumentsPage';
+import { ActivityTypesPage } from './pages/admin/activities/ActivityTypesPage';
 import { ClassifiersPage } from './pages/admin/classifiers/ClassifiersPage';
 import { IntegrationsPage } from './pages/admin/integrations/IntegrationsPage';
 import { OrganizationsPage } from './pages/admin/organizations/OrganizationsPage';
+import { RecipientsPage } from './pages/admin/recipients/RecipientsPage';
 import { RolesPage } from './pages/admin/roles/RolesPage';
 import { SettingsPage } from './pages/admin/settings/SettingsPage';
 import { TemplatesPage } from './pages/admin/templates/TemplatesPage';
 import { OversightPage } from './pages/oversight/OversightPage';
+import { RatingsPage } from './pages/ratings/RatingsPage';
 import { SearchPage } from './pages/search/SearchPage';
 import { ArchivePage } from './pages/archive/ArchivePage';
 import { SupportPage } from './pages/support/SupportPage';
@@ -66,15 +70,19 @@ const CHILD_PAGES: Record<string, ReactNode> = {
   '/search': <SearchPage />,
   '/archive': <ArchivePage />,
   '/reports': <ReportsPage />,
+  '/ratings': <RatingsPage />,
   '/inspections': <InspectionsPage />,
   '/admin/users': <UsersPage />,
   '/admin/roles': <RolesPage />,
   '/admin/organizations': <OrganizationsPage />,
   '/admin/classifiers': <ClassifiersPage />,
+  '/admin/activities': <ActivityTypesPage />,
   '/admin/settings': <SettingsPage />,
   '/admin/announcements': <AnnouncementsPage />,
+  '/admin/legal-documents': <LegalDocumentsPage />,
   '/admin/notification-templates': <TemplatesPage />,
   '/admin/integrations': <IntegrationsPage />,
+  '/admin/payment-recipients': <RecipientsPage />,
   '/notifications': <NotificationsPage />,
   '/profile': <ProfilePage />,
   '/support': <SupportPage />,

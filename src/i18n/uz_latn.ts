@@ -17,15 +17,19 @@ export const uz_latn = {
   'nav.search': 'Qidiruv',
   'nav.archive': 'Arxiv reyestri',
   'nav.reports': 'Hisobotlar',
+  'nav.ratings': 'Baholashlar',
   'nav.inspections': 'Tekshiruvlar',
   'nav.users': 'Foydalanuvchilar',
   'nav.roles': 'Rollar va huquqlar',
   'nav.organizations': 'Tashkilotlar',
   'nav.classifiers': 'Klassifikatorlar',
+  'nav.activityTypes': 'Xizmatlar katalogi',
   'nav.settings': 'Tizim sozlamalari',
   'nav.announcements': "E'lonlar",
+  'nav.legalDocuments': 'Normativ hujjatlar',
   'nav.templates': 'Bildirishnoma shablonlari',
   'nav.integrations': 'Integratsiyalar',
+  'nav.paymentRecipients': "Toʻlov qabul qiluvchilari",
   'nav.notifications': 'Bildirishnomalar',
   'nav.profile': 'Profil',
   'nav.support': 'Yordam',
@@ -43,7 +47,8 @@ export const uz_latn = {
   'login.submitCode': 'Tasdiqlash',
   'login.back': 'Orqaga',
   'login.badCredentials': "Login yoki parol noto'g'ri.",
-  'login.blockedAccount': "Hisob bloklangan. Administrator bilan bog'laning.",
+  'login.blockedAccount':
+    'Notoʻgʻri urinishlar koʻp boʻldi. Kirish vaqtincha bloklandi — bir necha daqiqadan soʻng qayta urinib koʻring.',
   'login.rateLimited': "Urinishlar soni ko'p. Birozdan so'ng qayta urinib ko'ring.",
   'login.connectionError': "Ulanishda xatolik yuz berdi. Internetni tekshirib, qayta urinib ko'ring.",
   'login.tabOneId': 'OneID',
@@ -363,7 +368,14 @@ export const uz_latn = {
   'accountant.invoices.detailIssuedAt': 'Chiqarilgan sana',
   'accountant.invoices.detailDueAt': "Toʻlov muddati",
   'accountant.invoices.detailPaidAt': "Toʻlangan sana",
-  'accountant.invoices.ledgerTitle': "Toʻlovlar reestri (50/50 boʻlinma)",
+  'accountant.invoices.recipientsTitle': "Hisob-faktura qanday boʻlingan",
+  'accountant.invoices.recipientsColName': 'Qabul qiluvchi',
+  'accountant.invoices.recipientsColRule': 'Qoidasi',
+  'accountant.invoices.recipientsColPaymeId': 'Payme hisobi',
+  'accountant.invoices.recipientsColAmount': 'Summa',
+  'accountant.invoices.recipientsRemainder': "Qolgan qism (oʻrmon xoʻjaligi)",
+  'accountant.invoices.recipientsNoPaymeId': "Koʻrsatilmagan",
+  'accountant.invoices.ledgerTitle': "Toʻlovlar reestri",
   'accountant.invoices.ledgerEmpty': "Hozircha yozuvlar yoʻq.",
   'accountant.invoices.ledgerColType': 'Turi',
   'accountant.invoices.ledgerColTarget': 'Yoʻnalishi',
@@ -490,9 +502,10 @@ export const uz_latn = {
   'accountant.refunds.basisOverpayment': "Ortiqcha toʻlov",
   'accountant.refunds.basisBenefit': "Tasdiqlangan imtiyoz toifasi",
   'accountant.refunds.finalAmountLabel': "Yakuniy summa",
-  'accountant.refunds.budgetAmountLabel': "Byudjet ulushi",
-  'accountant.refunds.recipientAmountLabel': "Ijrochi ulushi",
-  'accountant.refunds.otherAmountLabel': "Boshqa",
+  'accountant.refunds.noSources': "Hisob-faktura boʻlinishi haqida maʼlumot yoʻq.",
+  'accountant.refunds.componentsTotalLabel': 'Jami',
+  'accountant.refunds.componentsMismatchHint':
+    "Manbalar boʻyicha summalar yigʻindisi yakuniy summaga teng boʻlishi kerak.",
   'accountant.refunds.decisionCommentLabel': 'Izoh',
   'accountant.refunds.decisionSubmit': 'Yuborish',
   'accountant.refunds.decisionFailed': "Yuborishda xatolik yuz berdi.",
@@ -839,6 +852,9 @@ export const uz_latn = {
   'gis.page.tabImports': 'Import',
   'gis.page.tabLayers': 'Qatlamlar',
 
+  'gis.map.basemapScheme': 'Xarita',
+  'gis.map.basemapSatellite': 'Sputnik',
+
   'gis.versions.checks.title': 'Topologik tekshiruvlar',
   'gis.versions.checks.run': 'Tekshirish',
   'gis.versions.checks.failed': "Tekshiruvni bajarib bo'lmadi",
@@ -1120,6 +1136,10 @@ export const uz_latn = {
   'leadership.dash.tile.payments.paidOfInvoiced': "hisob-fakturadan toʻlangan",
   'leadership.dash.tile.sla.label': "Ishdagi arizalar (SLA)",
   'leadership.dash.tile.sla.hint': "Muddati oʻtgan",
+  // Stage 7.7, task 9 (ruling #143): `KpiOut.satisfaction`, obeying the same
+  // period/zone filters every other tile on this row already does.
+  'leadership.dash.tile.satisfaction.label': "Xizmatdan mamnunlik",
+  'leadership.dash.tile.satisfaction.hint': "Baholar soni",
   'leadership.dash.occupancy.title': "Konturlarning oʻrtacha bandligi",
   'leadership.dash.occupancy.subtitle': "Konturlar boʻyicha:",
   'leadership.dash.sbLoad.title': "Yuklama (shartli boshlar)",
@@ -1569,6 +1589,13 @@ export const uz_latn = {
   'inspector.taskDetail.startButton': "Topshiriqni boshlash",
   'inspector.taskDetail.cancelButton': "Topshiriqni bekor qilish",
   'inspector.taskDetail.startActButton': "Tekshiruv aktini boshlash",
+  'inspector.taskDetail.assignedToLabel': 'Ijrochi:',
+
+  // --- Stage 7.6 (ruling R6/#138): the handover dialog --------------------
+  'inspector.taskDetail.handoverTitle': "Topshiriqni boshqa inspektorga topshirish",
+  'inspector.taskDetail.handoverPlaceholder': "Inspektorni tanlang...",
+  'inspector.taskDetail.handoverButton': 'Topshirish',
+  'inspector.taskDetail.handoverCandidatesError': "Inspektorlar roʻyxati yuklanmadi.",
 
   // --- J1 (stage 6.7): act form (draft creation/editing) ------------------
   'inspector.actForm.newTitle': "Yangi tekshiruv akti",
@@ -1645,6 +1672,8 @@ export const uz_latn = {
   'inspector.cases.loadError': "Ishlar roʻyxati yuklanmadi.",
   'inspector.cases.loading': "Yuklanmoqda...",
   'inspector.cases.empty': "Hozircha ishlar yoʻq.",
+  'inspector.cases.filteredByApplicant': "Faqat shu buzuvchining ishlari koʻrsatilmoqda.",
+  'inspector.cases.clearApplicantFilter': "Barcha ishlarni koʻrsatish",
 
   // --- J1 (stage 6.7): Case detail page (task 7) --------------------------
   'inspector.caseDetail.title': "Buzilish ishi",
@@ -1652,6 +1681,7 @@ export const uz_latn = {
   'inspector.caseDetail.notFound': "Ish topilmadi.",
   'inspector.caseDetail.numberLabel': "Ish raqami",
   'inspector.caseDetail.violationTypeLabel': "Buzilish turi",
+  'inspector.caseDetail.priorCasesLabel': "Ushbu buzuvchining oldingi ishlari",
   'inspector.caseDetail.decisionLabel': "Qaror",
   'inspector.caseDetail.decision.warning': "Ogohlantirish",
   'inspector.caseDetail.decision.suspend': "Ruxsatnomani toʻxtatish",
@@ -1924,4 +1954,93 @@ export const uz_latn = {
   'wizard.checks.noSeason': "Ushbu faoliyat turi uchun mavsumiy cheklov belgilanmagan — tekshiruv talab etilmaydi.",
   'wizard.checks.loadDetails': "Joriy yuklama — {used} shartli bosh, ruxsat etilgan meʼyor — {max} shartli bosh (boʻsh qoldiq — {remaining} shartli bosh).",
   'wizard.checks.loadDetailsNoRemaining': "Joriy yuklama — {used} shartli bosh, ruxsat etilgan meʼyor — {max} shartli bosh.",
+
+  // --- Stage 7.7 (H-services): activity types catalog, `pages/admin/activities/` ---
+  // Rulings #138/#139/#139a: `PATCH` only, no add/delete; archiving closes the
+  // service everywhere the same `status = 'active'` filter feeds (the landing,
+  // the price calculator, the application wizard).
+  'activityTypes.title': 'Xizmatlar katalogi',
+  'activityTypes.subtitle':
+    "Oʻrmon fondidan foydalanishning oltita turi qonun bilan belgilangan — bu yerda ular qoʻshilmaydi yoki oʻchirib tashlanmaydi: faqat nomi, tavsifi va muddati tahrirlanadi, yoki xizmat butunlay yopiladi.",
+  'activityTypes.loading': 'Yuklanmoqda…',
+  'activityTypes.loadError': "Roʻyxatni yuklab boʻlmadi.",
+  'activityTypes.termLabel': 'Muddat',
+  'activityTypes.termDays': 'kun',
+  'activityTypes.descriptionEmpty': 'Tavsif kiritilmagan',
+  'activityTypes.actionEdit': 'Tahrirlash',
+  'activityTypes.editTitle': 'Xizmatni tahrirlash',
+  'activityTypes.fieldNameUz': 'Nomi (uz)',
+  'activityTypes.fieldNameRu': 'Nomi (ru)',
+  'activityTypes.fieldDescriptionUz': 'Tavsif (uz)',
+  'activityTypes.fieldDescriptionRu': 'Tavsif (ru)',
+  'activityTypes.fieldProcessingDays': 'Muddat (kun)',
+  'activityTypes.save': 'Saqlash',
+  'activityTypes.cancel': 'Bekor qilish',
+  'activityTypes.errNameRequiresUzLatn':
+    "Nomi: uz_latn (oʻzbekcha lotin) tili boʻsh boʻlishi mumkin emas.",
+  'activityTypes.errDescriptionRequiresUzLatn':
+    "Tavsif: uz_latn (oʻzbekcha lotin) tili boʻsh boʻlishi mumkin emas.",
+  'activityTypes.errProcessingDays': "Muddat musbat butun son boʻlishi kerak.",
+  'activityTypes.saveError': "Saqlab boʻlmadi.",
+  'activityTypes.archiveTitle': "Xizmatni oʻchirish",
+  'activityTypes.archiveBody':
+    "Bu xizmat bosh sahifada, narx kalkulyatorida va ariza shaklida koʻrinmay qoladi — bu xizmat boʻyicha yangi ariza berish ham yopiladi.",
+  'activityTypes.archiveConfirm': 'Tasdiqlash',
+  'activityTypes.archiveCancel': 'Bekor qilish',
+  'activityTypes.archiveError': "Xizmatni oʻchirib boʻlmadi.",
+
+  // Permit rating panel (B10 cabinet, task 8 of 07.7-services-catalog-and-ratings).
+  // Option copy for 5-2 is the old landing form's own wording, carried over
+  // unchanged (`ruxsatnoma-landing` history, commit before 04ff511 removed
+  // the dead form); "1" never existed there and is written fresh here.
+  'permitRating.title': 'Xizmat sifatini baholang',
+  'permitRating.subtitle':
+    'Sizning bahoingiz davlat elektron xizmatlarini yanada takomillashtirishga xizmat qiladi.',
+  'permitRating.option5Title': '5 - Aʼlo',
+  'permitRating.option5Desc': 'Juda qulay, tez va tushunarli',
+  'permitRating.option4Title': '4 - Yaxshi',
+  'permitRating.option4Desc': 'Yaxshi, lekin ayrim takliflarim bor',
+  'permitRating.option3Title': '3 - Qoniqarli',
+  'permitRating.option3Desc': "Oʻrtacha, tushunish qiyinroq",
+  'permitRating.option2Title': '2 - Qoniqarsiz',
+  'permitRating.option2Desc': 'Kamchiliklar mavjud',
+  'permitRating.option1Title': '1 - Yomon',
+  'permitRating.option1Desc': 'Juda noqulay, jiddiy muammolar boʻldi',
+  'permitRating.commentLabel': 'Izoh (ixtiyoriy)',
+  'permitRating.submitButton': 'Baho yuborish',
+  'permitRating.submitError': "Bahoni yuborib boʻlmadi.",
+  'permitRating.ratedTitle': 'Bahoingiz muvaffaqiyatli qabul qilindi!',
+  'permitRating.thankYou':
+    'Portal xizmati sifatini baholaganingiz va fikr-mulohazangiz uchun tashakkur bildiramiz.',
+  'permitRating.resultLabel': 'Berilgan baho:',
+  'permitRating.resultUnit': 'ball',
+
+  // The Agency's ratings screen (rulings #140-#143, stage 7.7, task 9).
+  // `GET /admin/ratings/summary` + `GET /admin/ratings`, both zone-scoped
+  // server-side — this screen filters nothing beyond the period itself.
+  'ratings.title': 'Xizmatlarni baholash',
+  'ratings.subtitle':
+    "Fuqarolar ruxsatnoma olingandan keyin xizmat sifatini shu yerda baholaydi — oʻrtacha baho, baholar soni va tashkilot/xizmat turi boʻyicha taqsimot tanlangan davr uchun koʻrsatiladi.",
+  'ratings.loading': 'Yuklanmoqda…',
+  'ratings.loadError': "Maʼlumotlarni yuklab boʻlmadi.",
+  'ratings.filters.periodFrom': 'Davr — dan',
+  'ratings.filters.periodTo': 'Davr — gacha',
+  'ratings.filters.apply': 'Qoʻllash',
+  'ratings.filters.reset': 'Tiklash',
+  'ratings.tile.avgScoreLabel': "Oʻrtacha baho",
+  'ratings.tile.countLabel': 'Baholar soni',
+  'ratings.byOrganization.title': 'Tashkilotlar boʻyicha',
+  'ratings.byOrganization.empty': 'Bu davr uchun maʼlumot yoʻq.',
+  'ratings.byActivityType.title': 'Xizmat turlari boʻyicha',
+  'ratings.byActivityType.empty': 'Bu davr uchun maʼlumot yoʻq.',
+  // Ruling #141: the feed below is the anonymous comment stream — date,
+  // service, leshoz, score, text, and NOTHING that identifies who left it.
+  // No column here may ever name an applicant or a permit.
+  'ratings.feed.title': 'Fikr-mulohazalar',
+  'ratings.feed.empty': 'Bu davr uchun fikr-mulohaza yoʻq.',
+  'ratings.feed.colDate': 'Sana',
+  'ratings.feed.colOrganization': 'Tashkilot',
+  'ratings.feed.colActivityType': 'Xizmat turi',
+  'ratings.feed.colScore': 'Baho',
+  'ratings.feed.colComment': 'Izoh',
 };

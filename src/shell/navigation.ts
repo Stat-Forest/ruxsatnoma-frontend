@@ -21,6 +21,8 @@ import {
   ShieldAlert,
   ShieldCheck,
   Stamp,
+  Star,
+  Trees,
   User,
   Users,
   Wallet,
@@ -142,6 +144,14 @@ export const NAVIGATION: NavItem[] = [
   // leadership) — there is no role with `reports.manage`/`.sign`/`.accept`/
   // `.forms.manage` that lacks `reports.view`.
   { to: '/reports', labelKey: 'nav.reports', permission: 'reports.view', icon: ClipboardList },
+  // Stage 7.7, task 9 (rulings #140-#143) — the aggregate read over what
+  // citizens leave on their own issued permits (`PermitRatingPanel.tsx`,
+  // task 8). `ratings.view` is zone-scoped exactly like `dashboard.view`
+  // (ruling #142) and held by `central_admin`, `leadership`, `executor_head`
+  // and `prosecutor` — the same four roles `nav.oversight` above reaches,
+  // for the same reason: a leshoz sees its own ratings, the Agency sees
+  // all, the backend does the narrowing.
+  { to: '/ratings', labelKey: 'nav.ratings', permission: 'ratings.view', icon: Star },
   // Five codes, any ONE of them (`NavItem.permission` semantics): the
   // inspector's own `inspections.acts.write` (checklists, acts, ERI
   // signing), `inspections.tasks.manage` for the executor_staff/
@@ -169,10 +179,23 @@ export const NAVIGATION: NavItem[] = [
   { to: '/admin/roles', labelKey: 'nav.roles', permission: 'auth.users.manage', icon: ShieldCheck },
   { to: '/admin/organizations', labelKey: 'nav.organizations', permission: 'admin.organizations.manage', icon: Building2 },
   { to: '/admin/classifiers', labelKey: 'nav.classifiers', permission: 'admin.classifiers.manage', icon: BookMarked },
+  // Ruling #139 (stage 7.7): the six `activity_types` rows are fixed by law —
+  // this screen edits copy and switches one off, never adds or removes one.
+  // Same permission as `/admin/classifiers` above: `PATCH
+  // /refs/activity-types/{id}` is gated on `admin.classifiers.manage`
+  // (`refs_router.py`), not a permission of its own.
+  { to: '/admin/activities', labelKey: 'nav.activityTypes', permission: 'admin.classifiers.manage', icon: Trees },
   { to: '/admin/settings', labelKey: 'nav.settings', permission: 'admin.settings.manage', icon: Settings },
   { to: '/admin/announcements', labelKey: 'nav.announcements', permission: 'admin.announcements.manage', icon: Megaphone },
+  { to: '/admin/legal-documents', labelKey: 'nav.legalDocuments', permission: 'admin.legal_documents.manage', icon: Scale },
   { to: '/admin/notification-templates', labelKey: 'nav.templates', permission: 'notifications.templates.manage', icon: MailPlus },
   { to: '/admin/integrations', labelKey: 'nav.integrations', permission: 'admin.integrations.view', icon: Radio },
+  // Stage 7.9, task 9 (decisions #154-#160): the configurable payment-split
+  // directory. `payments.recipients.manage` is granted to no role today
+  // (superuser only) — deliberately the WRITE code, not `payments.view`, so
+  // an accountant who can only read the split sees it through the invoice
+  // instead (`InvoiceDetailDrawer.tsx`), never this directory.
+  { to: '/admin/payment-recipients', labelKey: 'nav.paymentRecipients', permission: 'payments.recipients.manage', icon: Wallet },
   { to: '/notifications', labelKey: 'nav.notifications', icon: Bell },
   { to: '/support', labelKey: 'nav.support', icon: LifeBuoy },
   { to: '/profile', labelKey: 'nav.profile', icon: User },

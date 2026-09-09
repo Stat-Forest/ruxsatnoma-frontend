@@ -80,6 +80,27 @@ test('login is two steps: password, then the TOTP code', async () => {
   expect(await screen.findByTestId('app-shell')).toBeInTheDocument();
 });
 
+test('with MFA switched off the password alone signs in, with no code step', async () => {
+  // The server's `mfa_enabled` switch is off: /auth/login answers with the
+  // profile and sets the session cookies itself. The code field must never
+  // appear — nothing would verify what was typed into it.
+  let verifyCalls = 0;
+  server.use(
+    http.post('*/auth/login', () =>
+      HttpResponse.json({ mfa_required: false, mfa_token: null, me: ME }),
+    ),
+    http.post('*/auth/mfa/verify', () => {
+      verifyCalls += 1;
+      return HttpResponse.json(ME);
+    }),
+  );
+  render(<App />);
+  await fillAndSubmitPassword('30491823410019', 'Head123!');
+  expect(await screen.findByTestId('app-shell')).toBeInTheDocument();
+  expect(screen.queryByLabelText(/kod/i)).not.toBeInTheDocument();
+  expect(verifyCalls).toBe(0);
+});
+
 test('a wrong password says so and does not advance to the code step', async () => {
   server.use(
     http.post('*/auth/login', () =>
@@ -103,6 +124,24 @@ test('a blocked account says so distinctly, not "wrong password"', async () => {
   await fillAndSubmitPassword('30491823410019', 'Head123!');
   expect(await screen.findByTestId('account-blocked')).toBeInTheDocument();
   expect(screen.queryByTestId('login-error')).not.toBeInTheDocument();
+});
+
+// The copy itself, not only which branch renders: `ERR-AUTH-003` is a
+// self-clearing lockout (`login_lockout_minutes`, 15 by default), and this
+// screen told the user to contact an administrator until 2026-09-09 — advice
+// that is wrong for this code and belongs to no code at all, since an
+// administrator-blocked account answers `ERR-AUTH-001` instead.
+test('the lockout message says it is temporary and does not send anyone to an administrator', async () => {
+  server.use(
+    http.post('*/auth/login', () =>
+      HttpResponse.json({ error: { code: 'ERR-AUTH-003', message: 'account blocked' } }, { status: 429 }),
+    ),
+  );
+  render(<App />);
+  await fillAndSubmitPassword('30491823410019', 'Head123!');
+  const message = (await screen.findByTestId('account-blocked')).textContent ?? '';
+  expect(message.toLowerCase()).toContain('vaqtincha');
+  expect(message.toLowerCase()).not.toContain('administrator');
 });
 
 test('too many attempts is a distinct message, not "wrong password"', async () => {
