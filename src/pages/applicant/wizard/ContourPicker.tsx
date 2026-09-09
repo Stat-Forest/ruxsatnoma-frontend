@@ -4,9 +4,9 @@ import { CheckCircle2, Search } from 'lucide-react';
 import { Input } from '../../../components/ui/FormControls';
 import { Button } from '../../../components/ui/button';
 import { getContourCard, listContours, listOrganizations } from '../api';
-import { pickName } from '../format';
+import { formatUnit, pickName } from '../format';
 import { ContourMapPreview } from './ContourMapPreview';
-import { useT } from '../../../i18n/useT';
+import { useLanguage, useT } from '../../../i18n/useT';
 
 export interface PickedContour {
   id: string;
@@ -29,6 +29,7 @@ export interface PickedContour {
  */
 export function ContourPicker({ value, onChange }: { value: PickedContour | null; onChange: (c: PickedContour) => void }) {
   const t = useT();
+  const { lang } = useLanguage();
   const [search, setSearch] = useState('');
   const [highlightedId, setHighlightedId] = useState<string | null>(value?.id ?? null);
   const [page, setPage] = useState(1);
@@ -36,9 +37,9 @@ export function ContourPicker({ value, onChange }: { value: PickedContour | null
   const organizationsQuery = useQuery({ queryKey: ['organizations'], queryFn: listOrganizations });
   const orgNameById = useMemo(() => {
     const map = new Map<string, string>();
-    for (const org of organizationsQuery.data ?? []) map.set(org.id, pickName(org.name) || org.code);
+    for (const org of organizationsQuery.data ?? []) map.set(org.id, pickName(org.name, lang) || org.code);
     return map;
-  }, [organizationsQuery.data]);
+  }, [organizationsQuery.data, lang]);
 
   const contoursQuery = useQuery({
     queryKey: ['contours', page],
@@ -97,7 +98,7 @@ export function ContourPicker({ value, onChange }: { value: PickedContour | null
                   <span className="text-[11px] text-[#5A646D]">{orgNameById.get(c.organization_id) ?? c.organization_id}</span>
                 </div>
                 <div className="text-right text-xs">
-                  <span className="font-mono font-semibold text-[#1A1F24] block">{c.area_ha ?? '—'} ga</span>
+                  <span className="font-mono font-semibold text-[#1A1F24] block">{c.area_ha ?? '—'} {formatUnit('ha', t, lang)}</span>
                   {isSelected && <CheckCircle2 className="w-4 h-4 text-[#2E7D4F] inline-block mt-1" />}
                 </div>
               </button>
@@ -114,11 +115,11 @@ export function ContourPicker({ value, onChange }: { value: PickedContour | null
             <div className="font-mono text-lg font-bold text-[#1A1F24]">{previewQuery.data.number}</div>
             <dl className="grid grid-cols-2 gap-y-1">
               <dt className="text-[#5A646D]">{t('wizard.step2.totalArea')}</dt>
-              <dd className="text-right font-mono font-semibold">{previewQuery.data.area_ha ?? '—'} ga</dd>
+              <dd className="text-right font-mono font-semibold">{previewQuery.data.area_ha ?? '—'} {formatUnit('ha', t, lang)}</dd>
               <dt className="text-[#5A646D]">{t('wizard.step2.occupiedArea')}</dt>
-              <dd className="text-right font-mono">{previewQuery.data.occupied_ha} ga</dd>
+              <dd className="text-right font-mono">{previewQuery.data.occupied_ha} {formatUnit('ha', t, lang)}</dd>
               <dt className="text-[#5A646D]">{t('wizard.step2.freeArea')}</dt>
-              <dd className="text-right font-mono font-semibold text-[#123522]">{previewQuery.data.s_available_ha ?? '—'} ga</dd>
+              <dd className="text-right font-mono font-semibold text-[#123522]">{previewQuery.data.s_available_ha ?? '—'} {formatUnit('ha', t, lang)}</dd>
             </dl>
             {previewQuery.data.over_allocated && (
               <p className="text-[11px] text-[#B91C1C] bg-[#FEF2F2] border border-[#FCA5A5] rounded p-2 font-semibold">

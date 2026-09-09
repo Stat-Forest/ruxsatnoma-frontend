@@ -220,67 +220,124 @@ export const Stepper: React.FC<StepperProps> = ({
   className = '',
 }) => {
   const activePercent = steps.length > 1 ? ((currentStep - 1) / (steps.length - 1)) * 100 : 0;
+  const currentStepObj = steps.find((s) => s.id === currentStep) ?? steps[0];
 
   return (
     <div className={`w-full py-2 px-1 font-sans ${className}`}>
-      <div className="relative flex items-start justify-between w-full min-w-[640px]">
-        {/* Background Connecting Line */}
-        <div className="absolute top-5 left-8 right-8 h-1 bg-[#E4E7EA] rounded-full z-0 transform -translate-y-1/2">
-          <div
-            className="h-full bg-[#2E7D4F] rounded-full transition-all duration-300"
-            style={{ width: `${Math.min(100, Math.max(0, activePercent))}%` }}
-          />
-        </div>
-
-        {/* Steps Nodes */}
-        {steps.map((step) => {
-          const isCompleted = step.id < currentStep;
-          const isActive = step.id === currentStep;
-
-          return (
+      {/* Desktop / Tablet view: md and up */}
+      <div className="hidden md:block">
+        <div className="relative flex items-start justify-between w-full">
+          {/* Background Connecting Line */}
+          <div className="absolute top-5 left-8 right-8 h-1 bg-[#E4E7EA] rounded-full z-0 transform -translate-y-1/2">
             <div
-              key={step.id}
-              onClick={() => onStepClick?.(step.id)}
-              className={`relative z-10 flex flex-col items-center group ${
-                onStepClick && step.id <= currentStep ? 'cursor-pointer' : 'cursor-default'
-              }`}
-              style={{ width: `${100 / steps.length}%` }}
-            >
-              {/* Step Circle Badge */}
-              <div
-                className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm transition-all duration-200 shadow-2xs ${
-                  isCompleted
-                    ? 'bg-[#2E7D4F] text-white ring-4 ring-white'
-                    : isActive
-                    ? 'bg-white border-2 border-[#2E7D4F] text-[#2E7D4F] ring-4 ring-[#F0F7F1] scale-110 shadow-md'
-                    : 'bg-[#F8F9FA] border-2 border-[#E4E7EA] text-[#5A646D]'
-                }`}
-              >
-                {isCompleted ? <Check className="w-5 h-5 stroke-[2.5]" /> : step.id}
-              </div>
+              className="h-full bg-[#2E7D4F] rounded-full transition-all duration-300"
+              style={{ width: `${Math.min(100, Math.max(0, activePercent))}%` }}
+            />
+          </div>
 
-              {/* Title and Description below Circle Node */}
-              <div className="mt-2.5 text-center px-1">
-                <span
-                  className={`block text-xs font-bold leading-snug transition-colors ${
-                    isActive
-                      ? 'text-[#2E7D4F]'
-                      : isCompleted
-                      ? 'text-[#1A1F24]'
-                      : 'text-[#767F87]'
+          {/* Steps Nodes */}
+          {steps.map((step) => {
+            const isCompleted = step.id < currentStep;
+            const isActive = step.id === currentStep;
+
+            return (
+              <div
+                key={step.id}
+                onClick={() => onStepClick && step.id <= currentStep && onStepClick(step.id)}
+                className={`relative z-10 flex flex-col items-center group ${
+                  onStepClick && step.id <= currentStep ? 'cursor-pointer' : 'cursor-default'
+                }`}
+                style={{ width: `${100 / steps.length}%` }}
+              >
+                {/* Step Circle Badge */}
+                <div
+                  className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm transition-all duration-200 shadow-2xs ${
+                    isCompleted
+                      ? 'bg-[#2E7D4F] text-white ring-4 ring-white'
+                      : isActive
+                      ? 'bg-white border-2 border-[#2E7D4F] text-[#2E7D4F] ring-4 ring-[#F0F7F1] scale-110 shadow-md'
+                      : 'bg-[#F8F9FA] border-2 border-[#E4E7EA] text-[#5A646D]'
                   }`}
                 >
-                  {step.title}
-                </span>
-                {step.description && (
-                  <span className="block text-[11px] text-[#5A646D] leading-snug mt-0.5 font-normal">
-                    {step.description}
+                  {isCompleted ? <Check className="w-5 h-5 stroke-[2.5]" /> : step.id}
+                </div>
+
+                {/* Title and Description below Circle Node */}
+                <div className="mt-2.5 text-center px-1">
+                  <span
+                    className={`block text-xs font-bold leading-snug transition-colors ${
+                      isActive
+                        ? 'text-[#2E7D4F]'
+                        : isCompleted
+                        ? 'text-[#1A1F24]'
+                        : 'text-[#767F87]'
+                    }`}
+                  >
+                    {step.title}
                   </span>
-                )}
+                  {step.description && (
+                    <span className="block text-[11px] text-[#5A646D] leading-snug mt-0.5 font-normal">
+                      {step.description}
+                    </span>
+                  )}
+                </div>
               </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Mobile view: below md */}
+      <div className="block md:hidden space-y-3">
+        {/* Step Circles Row */}
+        <div className="relative flex items-center justify-between w-full px-2">
+          {/* Background Connecting Line */}
+          <div className="absolute top-1/2 left-6 right-6 h-1 bg-[#E4E7EA] rounded-full z-0 -translate-y-1/2">
+            <div
+              className="h-full bg-[#2E7D4F] rounded-full transition-all duration-300"
+              style={{ width: `${Math.min(100, Math.max(0, activePercent))}%` }}
+            />
+          </div>
+
+          {steps.map((step) => {
+            const isCompleted = step.id < currentStep;
+            const isActive = step.id === currentStep;
+
+            return (
+              <button
+                key={step.id}
+                type="button"
+                onClick={() => onStepClick?.(step.id)}
+                disabled={!onStepClick || step.id > currentStep}
+                aria-label={`${step.id}: ${step.title}`}
+                className={`relative z-10 w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs transition-all duration-200 ${
+                  isCompleted
+                    ? 'bg-[#2E7D4F] text-white ring-2 ring-white cursor-pointer'
+                    : isActive
+                    ? 'bg-white border-2 border-[#2E7D4F] text-[#2E7D4F] ring-2 ring-[#F0F7F1] scale-110 shadow-xs'
+                    : 'bg-[#F8F9FA] border border-[#E4E7EA] text-[#5A646D]'
+                } ${onStepClick && step.id <= currentStep ? 'cursor-pointer' : 'cursor-default'}`}
+              >
+                {isCompleted ? <Check className="w-4 h-4 stroke-[2.5]" /> : step.id}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Current Active Step Details */}
+        {currentStepObj && (
+          <div className="bg-[#F8F9FA] border border-[#E4E7EA] rounded-xl px-3.5 py-2 text-center">
+            <div className="flex items-center justify-center gap-2">
+              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-[#DCFCE7] text-[#15803D]">
+                {currentStep} / {steps.length}
+              </span>
+              <span className="text-xs font-bold text-[#1A1F24]">{currentStepObj.title}</span>
             </div>
-          );
-        })}
+            {currentStepObj.description && (
+              <p className="text-[11px] text-[#5A646D] mt-0.5">{currentStepObj.description}</p>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

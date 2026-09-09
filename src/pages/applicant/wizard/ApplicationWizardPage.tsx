@@ -10,7 +10,7 @@ import { ApiError } from '../../../api/errors';
 import { saveApplicantAddress } from '../../../api/address';
 import { useAuth } from '../../../auth/useAuth';
 import { useApiErrorText } from '../../../i18n/useApiErrorText';
-import { useT } from '../../../i18n/useT';
+import { useLanguage, useT } from '../../../i18n/useT';
 import {
   addApplicationDocument,
   createApplicationDraft,
@@ -28,7 +28,7 @@ import {
   type CalculationIn,
   type PrecheckOut,
 } from '../api';
-import { formatMoney, pickName } from '../format';
+import { formatMoney, formatUnit, pickName } from '../format';
 import { fromApplicationChecks } from '../checkTypeLabels';
 import { ChecksList } from './ChecksList';
 import { ContourPicker, type PickedContour } from './ContourPicker';
@@ -54,6 +54,7 @@ interface LivestockRow {
  */
 export function ApplicationWizardPage() {
   const t = useT();
+  const { lang } = useLanguage();
   const { me, refreshMe } = useAuth();
   const errorText = useApiErrorText();
   const navigate = useNavigate();
@@ -367,8 +368,8 @@ export function ApplicationWizardPage() {
                     : 'border-[#E4E7EA] hover:border-[#2E7D4F]'
                 }`}
               >
-                <span className="font-bold text-sm text-[#1A1F24] block">{pickName(a.name)}</span>
-                <span className="text-[11px] text-[#5A646D]">{t('wizard.step1.unit')} {a.quantity_unit}</span>
+                <span className="font-bold text-sm text-[#1A1F24] block">{pickName(a.name, lang)}</span>
+                <span className="text-[11px] text-[#5A646D]">{t('wizard.step1.unit')} {formatUnit(a.quantity_unit, t, lang)}</span>
               </button>
             ))}
           </div>
@@ -383,7 +384,7 @@ export function ApplicationWizardPage() {
             <ContourPicker value={contour} onChange={setContour} />
             {contour && (
               <Alert variant="success">
-                {t('wizard.step2.selectedContour')} <strong className="font-mono">{contour.number}</strong> ({contour.areaHa ?? '—'} ga)
+                {t('wizard.step2.selectedContour')} <strong className="font-mono">{contour.number}</strong> ({contour.areaHa ?? '—'} {formatUnit('ha', t, lang)})
               </Alert>
             )}
           </div>
@@ -417,7 +418,7 @@ export function ApplicationWizardPage() {
                         }}
                         options={[
                           { value: '', label: t('wizard.step3.selectPrompt') },
-                          ...(livestockTypesQuery.data ?? []).map((l) => ({ value: l.id, label: pickName(l.name) })),
+                          ...(livestockTypesQuery.data ?? []).map((l) => ({ value: l.id, label: pickName(l.name, lang) })),
                         ]}
                       />
                     </FormField>
@@ -449,7 +450,7 @@ export function ApplicationWizardPage() {
                 </Button>
               </div>
             ) : (
-              <FormField label={quantityUnit ? `${t('wizard.step3.quantity')} (${quantityUnit})` : t('wizard.step3.quantity')} required htmlFor="quantity">
+              <FormField label={quantityUnit ? `${t('wizard.step3.quantity')} (${formatUnit(quantityUnit, t, lang)})` : t('wizard.step3.quantity')} required htmlFor="quantity">
                 <Input id="quantity" type="number" min={0} step="0.0001" value={quantity} onChange={(e) => setQuantity(e.target.value)} />
               </FormField>
             )}
@@ -462,7 +463,7 @@ export function ApplicationWizardPage() {
                   onChange={(e) => setBenefitCategoryItemId(e.target.value)}
                   options={[
                     { value: '', label: t('wizard.step3.noBenefit') },
-                    ...benefitCategoriesQuery.data.map((b) => ({ value: b.id, label: pickName(b.name) })),
+                    ...benefitCategoriesQuery.data.map((b) => ({ value: b.id, label: pickName(b.name, lang) })),
                   ]}
                 />
               </FormField>
@@ -620,6 +621,7 @@ function DocumentsStep({
   onRemove: (documentId: string) => void;
 }) {
   const t = useT();
+  const { lang } = useLanguage();
   const [docTypeItemId, setDocTypeItemId] = useState('');
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -653,7 +655,7 @@ function DocumentsStep({
           <Select
             value={docTypeItemId}
             onChange={(e) => setDocTypeItemId(e.target.value)}
-            options={[{ value: '', label: t('wizard.step4.selectDocType') }, ...docTypes.map((d) => ({ value: d.id, label: pickName(d.name) }))]}
+            options={[{ value: '', label: t('wizard.step4.selectDocType') }, ...docTypes.map((d) => ({ value: d.id, label: pickName(d.name, lang) }))]}
           />
         </FormField>
         <Button
@@ -680,7 +682,7 @@ function DocumentsStep({
         <ul className="space-y-2">
           {documents.map((doc) => (
             <li key={doc.id} className="flex items-center justify-between p-3 border border-[#E4E7EA] rounded-xl text-xs">
-              <span className="font-semibold">{pickName(docTypes.find((d) => d.id === doc.doc_type_item_id)?.name) || t('wizard.step4.defaultDocName')}</span>
+              <span className="font-semibold">{pickName(docTypes.find((d) => d.id === doc.doc_type_item_id)?.name, lang) || t('wizard.step4.defaultDocName')}</span>
               <button onClick={() => onRemove(doc.id)} className="text-[#B91C1C] font-bold hover:underline cursor-pointer">
                 {t('wizard.step4.deleteDoc')}
               </button>

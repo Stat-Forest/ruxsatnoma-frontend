@@ -30,6 +30,7 @@ import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url';
 // works regardless of that `types` list.
 import type { Feature, FeatureCollection, Geometry } from 'geojson';
 import { listContourFeatures } from '../api';
+import { useLanguage, useT } from '../../../i18n/useT';
 
 setWorkerUrl(workerUrl);
 
@@ -181,6 +182,8 @@ export function ContourMapPreview({
   selectedId?: string | null;
   onPick?: (contourId: string | null) => void;
 }) {
+  const t = useT();
+  const { lang } = useLanguage();
   const containerRef = useRef<HTMLDivElement>(null);
   const shellRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<MaplibreMap | null>(null);
@@ -429,29 +432,58 @@ export function ContourMapPreview({
               viewport to have read, so the count is not zero — it is not yet
               known, and printing "0 ta uchastka" there says the ground is
               empty when nothing has been asked yet. */}
-          {!mapReady
-            ? 'Yuklanmoqda...'
+          {!mapReady || featuresQuery.isFetching
+            ? t('wizard.step2.loading')
             : zoomedOut
-              ? 'Uchastkalarni koʻrish uchun kattalashtiring'
-              : featuresQuery.isFetching
-                ? 'Yuklanmoqda...'
-                : `${featuresQuery.data?.features.length ?? 0} ta uchastka`}
+              ? lang === 'uz_cyrl'
+                ? 'Участкаларни кўриш учун катталаштиринг'
+                : lang === 'ru'
+                  ? 'Увеличьте масштаб для просмотра участков'
+                  : lang === 'en'
+                    ? 'Zoom in to view plots'
+                    : lang === 'kaa'
+                      ? 'Uchastkalardı kóriw ushın úlkeytiń'
+                      : 'Uchastkalarni koʻrish uchun kattalashtiring'
+              : (() => {
+                  const count = featuresQuery.data?.features.length ?? 0;
+                  switch (lang) {
+                    case 'uz_cyrl':
+                      return `${count} та участка`;
+                    case 'ru':
+                      return `${count} участков`;
+                    case 'en':
+                      return `${count} ${count === 1 ? 'plot' : 'plots'}`;
+                    case 'kaa':
+                      return `${count} uchastka`;
+                    case 'uz_latn':
+                    default:
+                      return `${count} ta uchastka`;
+                  }
+                })()}
         </div>
       )}
       <div className="absolute top-2 left-2 z-10 flex rounded-lg overflow-hidden border border-[#E4E7EA] shadow-xs bg-white">
-        {BASEMAPS.map(({ id, label }) => (
-          <button
-            key={id}
-            type="button"
-            aria-pressed={basemap === id}
-            onClick={() => setBasemap(id)}
-            className={`px-3 py-1 text-[11px] font-semibold cursor-pointer transition-colors ${
-              basemap === id ? 'bg-[#2E7D4F] text-white' : 'text-[#5A646D] hover:bg-[#F0F7F1]'
-            }`}
-          >
-            {label}
-          </button>
-        ))}
+        {BASEMAPS.map(({ id, label }) => {
+          const localizedLabel =
+            id === 'osm'
+              ? t('gis.map.basemapScheme')
+              : id === 'satellite'
+                ? t('gis.map.basemapSatellite')
+                : label;
+          return (
+            <button
+              key={id}
+              type="button"
+              aria-pressed={basemap === id}
+              onClick={() => setBasemap(id)}
+              className={`px-3 py-1 text-[11px] font-semibold cursor-pointer transition-colors ${
+                basemap === id ? 'bg-[#2E7D4F] text-white' : 'text-[#5A646D] hover:bg-[#F0F7F1]'
+              }`}
+            >
+              {localizedLabel}
+            </button>
+          );
+        })}
       </div>
     </div>
   );

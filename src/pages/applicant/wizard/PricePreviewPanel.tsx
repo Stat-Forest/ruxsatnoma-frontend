@@ -3,6 +3,7 @@ import { Loader2 } from 'lucide-react';
 import { Alert } from '../../../components/ui/Feedback';
 import { ApiError } from '../../../api/errors';
 import { useT } from '../../../i18n/useT';
+import { useApiErrorText } from '../../../i18n/useApiErrorText';
 import { previewCalculation, type CalculationIn } from '../api';
 import { formatMoney } from '../format';
 import { fromPreviewChecks } from '../checkTypeLabels';
@@ -23,6 +24,7 @@ import { ChecksList } from './ChecksList';
  */
 export function PricePreviewPanel({ request }: { request: CalculationIn | null }) {
   const t = useT();
+  const errorText = useApiErrorText();
   const query = useQuery({
     queryKey: ['calc-preview', request],
     queryFn: () => previewCalculation(request!),
@@ -52,7 +54,7 @@ export function PricePreviewPanel({ request }: { request: CalculationIn | null }
     }
     return (
       <Alert variant="danger" title={t('wizard.step3.calcFailedTitle')}>
-        {err instanceof ApiError ? err.message : "Kutilmagan xatolik yuz berdi."}
+        {errorText(err, t('wizard.step3.calcFailedTitle'))}
       </Alert>
     );
   }

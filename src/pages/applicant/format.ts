@@ -36,6 +36,21 @@ export function pickName(name: LocalizedNameLike, lang: string = 'uz_latn'): str
   return translateTerm(raw, lang);
 }
 
+export function formatUnit(
+  unit: string | null | undefined,
+  t?: (key: string) => string,
+  lang: string = 'uz_latn',
+): string {
+  if (!unit) return '';
+  const key = `norms.tariffs.quantityUnit.${unit}`;
+  if (t) {
+    const translated = t(key);
+    if (translated && translated !== key) return translated;
+  }
+  return translateTerm(unit, lang);
+}
+
+
 /** `date` column (`YYYY-MM-DD`) as `DD.MM.YYYY` — never re-parsed through
  * `Date`, which would apply the browser's own timezone to a plain date. */
 export function formatDate(value: string | null | undefined): string {
