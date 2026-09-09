@@ -13,6 +13,7 @@ import { ActivityTypesPage } from './pages/admin/activities/ActivityTypesPage';
 import { ClassifiersPage } from './pages/admin/classifiers/ClassifiersPage';
 import { IntegrationsPage } from './pages/admin/integrations/IntegrationsPage';
 import { OrganizationsPage } from './pages/admin/organizations/OrganizationsPage';
+import { RecipientsPage } from './pages/admin/recipients/RecipientsPage';
 import { RolesPage } from './pages/admin/roles/RolesPage';
 import { SettingsPage } from './pages/admin/settings/SettingsPage';
 import { TemplatesPage } from './pages/admin/templates/TemplatesPage';
@@ -81,6 +82,7 @@ const CHILD_PAGES: Record<string, ReactNode> = {
   '/admin/legal-documents': <LegalDocumentsPage />,
   '/admin/notification-templates': <TemplatesPage />,
   '/admin/integrations': <IntegrationsPage />,
+  '/admin/payment-recipients': <RecipientsPage />,
   '/notifications': <NotificationsPage />,
   '/profile': <ProfilePage />,
   '/support': <SupportPage />,

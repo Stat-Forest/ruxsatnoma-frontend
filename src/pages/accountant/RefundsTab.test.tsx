@@ -13,6 +13,12 @@ const APPLICATION_ID = 'a0000000-0000-4000-8000-000000000001';
 const INVOICE_ID = 'in000000-0000-4000-8000-000000000001';
 const REFUND_ID = 'r0000000-0000-4000-8000-000000000009';
 
+/** Stage 7.9 task 7's shape: `components`/`available_sources` replace the
+ *  old fixed `budget_amount`/`recipient_amount`/`other_amount` trio and the
+ *  `allocations`/`recipient_account`/`budget_account` fields this fixture
+ *  used to carry. `available_sources` stays `[]` on every route but the
+ *  single-item `GET /refunds/{id}` — see `RefundOut`'s own docstring in
+ *  `src/api/schema.d.ts`. */
 function refund(overrides: Partial<Record<string, unknown>> = {}) {
   return {
     id: REFUND_ID,
@@ -22,9 +28,6 @@ function refund(overrides: Partial<Record<string, unknown>> = {}) {
     suggested_amount: '360000.00',
     suggestion_reason: null,
     final_amount: null,
-    budget_amount: null,
-    recipient_amount: null,
-    other_amount: null,
     status: 'requested',
     requested_by: 'u-1',
     requested_at: '2026-08-01T09:00:00Z',
@@ -32,9 +35,8 @@ function refund(overrides: Partial<Record<string, unknown>> = {}) {
     decided_by: null,
     decided_at: null,
     comment: null,
-    recipient_account: null,
-    budget_account: null,
-    allocations: [],
+    components: [],
+    available_sources: [],
     ...overrides,
   };
 }
@@ -127,10 +129,21 @@ test('filing a new refund request sends the application id, chosen basis and com
   expect(requestBody).toEqual({ application_id: APPLICATION_ID, basis_item_id: 'RF-03', comment: 'Mijoz talabi' });
 });
 
-test('submitting a decision is offered only on a requested refund, to a payments.manage holder, and posts string amounts', async () => {
+/** `AvailableSourceOut[]` — the invoice's own frozen split (stage 7.9 task
+ *  7), `GET /refunds/{id}`'s own addition. The register's list rows never
+ *  carry this (`available_sources` stays `[]` everywhere but the single-item
+ *  read), so the decision modal fetches it by id — this fixture is what that
+ *  second request answers. */
+const AVAILABLE_SOURCES = [
+  { recipient_id: 'recipient-1', name: { uz_latn: 'Davlat byudjeti' }, kind: 'percent' },
+  { recipient_id: null, name: { uz_latn: 'Burchmulla oʻrmon xoʻjaligi' }, kind: 'remainder' },
+];
+
+test('submitting a decision is offered only on a requested refund, to a payments.manage holder, one row per available source, and posts string amounts', async () => {
   let decisionBody: unknown;
   server.use(
     http.get('*/api/v1/refunds', () => HttpResponse.json({ items: [refund()], total: 1, page: 1, page_size: 100 })),
+    http.get('*/api/v1/refunds/:id', () => HttpResponse.json(refund({ available_sources: AVAILABLE_SOURCES }))),
     http.post('*/api/v1/refunds/:id/submit-decision', async ({ request }) => {
       decisionBody = await request.json();
       return HttpResponse.json(refund({ status: 'in_review', final_amount: '360000.00' }));
@@ -145,22 +158,54 @@ test('submitting a decision is offered only on a requested refund, to a payments
   const dialog = screen.getByRole('dialog');
   const finalAmountInput = within(dialog).getByLabelText('Yakuniy summa');
   expect(finalAmountInput).toHaveValue('360000.00'); // pre-filled from the suggestion
-  const recipientInput = within(dialog).getByLabelText('Ijrochi ulushi');
-  await user.clear(recipientInput);
-  await user.type(recipientInput, '360000.00');
-  await user.click(within(dialog).getByRole('button', { name: 'Yuborish' }));
+
+  const budgetInput = await within(dialog).findByTestId('refund-component-recipient-1');
+  const leshozInput = within(dialog).getByTestId('refund-component-__leshoz__');
+  const submit = within(dialog).getByRole('button', { name: 'Yuborish' });
+
+  // Nothing typed yet: the two rows default to 0.00, which does not match
+  // the pre-filled final amount, so the submit stays disabled.
+  expect(submit).toBeDisabled();
+
+  await user.clear(budgetInput);
+  await user.type(budgetInput, '110000.00');
+  await user.clear(leshozInput);
+  await user.type(leshozInput, '250000.00');
+  expect(submit).toBeEnabled();
+  await user.click(submit);
 
   expect(decisionBody).toEqual({
     final_amount: '360000.00',
-    budget_amount: '0.00',
-    recipient_amount: '360000.00',
-    other_amount: '0.00',
+    components: [
+      { recipient_id: 'recipient-1', amount: '110000.00' },
+      { recipient_id: null, amount: '250000.00' },
+    ],
     comment: null,
   });
   expect(typeof (decisionBody as { final_amount: unknown }).final_amount).toBe('string');
 });
 
-test('approving an in-review refund shows the allocations a "returned" resolution just wrote, with a null account read as settled outside the system', async () => {
+test('the decision submit stays disabled while the sources do not add up to the final amount', async () => {
+  server.use(
+    http.get('*/api/v1/refunds', () => HttpResponse.json({ items: [refund()], total: 1, page: 1, page_size: 100 })),
+    http.get('*/api/v1/refunds/:id', () => HttpResponse.json(refund({ available_sources: AVAILABLE_SOURCES }))),
+  );
+  const user = userEvent.setup();
+  renderTab(['payments.view', 'payments.manage']);
+
+  const row = await screen.findByTestId(`refund-row-${REFUND_ID}`);
+  await user.click(within(row).getByRole('button', { name: 'Qaror qabul qilish' }));
+
+  const dialog = screen.getByRole('dialog');
+  const budgetInput = await within(dialog).findByTestId('refund-component-recipient-1');
+  await user.clear(budgetInput);
+  await user.type(budgetInput, '100000.00'); // short of 360000.00
+
+  expect(within(dialog).getByRole('button', { name: 'Yuborish' })).toBeDisabled();
+  expect(within(dialog).getByText(/Manbalar boʻyicha summalar/)).toBeInTheDocument();
+});
+
+test('approving an in-review refund shows the components a "returned" resolution just wrote, with a null account read as settled outside the system', async () => {
   server.use(
     http.get('*/api/v1/refunds', () =>
       HttpResponse.json({ items: [refund({ status: 'in_review', final_amount: '360000.00' })], total: 1, page: 1, page_size: 100 }),
@@ -171,7 +216,10 @@ test('approving an in-review refund shows the allocations a "returned" resolutio
         refund({
           status: body.resolution === 'returned' ? 'returned' : 'rejected',
           final_amount: '360000.00',
-          allocations: body.resolution === 'returned' ? [{ target: 'budget', account: null, amount: '-360000.00' }] : [],
+          components:
+            body.resolution === 'returned'
+              ? [{ recipient_id: null, name: { uz_latn: 'Burchmulla oʻrmon xoʻjaligi' }, account: null, amount: '360000.00' }]
+              : [],
         }),
       );
     }),
@@ -186,6 +234,7 @@ test('approving an in-review refund shows the allocations a "returned" resolutio
   await user.click(within(dialog).getByRole('button', { name: 'Qaytarish' }));
 
   expect(await within(dialog).findByText(/qaytarildi\.$/)).toBeInTheDocument();
+  expect(within(dialog).getByText('Burchmulla oʻrmon xoʻjaligi')).toBeInTheDocument();
   expect(within(dialog).getByText('tizimdan tashqarida hisoblanadi')).toBeInTheDocument();
 });
 
@@ -210,7 +259,9 @@ test('the approve-by-id panel approves a refund purely by its id, with no row ev
     http.post('*/api/v1/refunds/:id/approve', async ({ request, params }) => {
       approveBody = await request.json();
       expect(params.id).toBe(REFUND_ID);
-      return HttpResponse.json(refund({ status: 'returned', allocations: [{ target: 'recipient', account: '2020...', amount: '-360000.00' }] }));
+      return HttpResponse.json(
+        refund({ status: 'returned', components: [{ recipient_id: null, name: { uz_latn: 'Leshoz' }, account: '2020...', amount: '360000.00' }] }),
+      );
     }),
   );
   const user = userEvent.setup();

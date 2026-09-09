@@ -25,6 +25,7 @@ import { apiError } from '../../api/errors';
 import type { components } from '../../api/schema';
 
 export type InvoiceOut = components['schemas']['InvoiceOut'];
+export type InvoiceRecipientOut = components['schemas']['InvoiceRecipientOut'];
 export type InvoiceStatus = InvoiceOut['status'];
 export type AllocationOut = components['schemas']['AllocationOut'];
 export type StatementAccepted = components['schemas']['StatementAccepted'];
@@ -34,6 +35,8 @@ export type ReconciliationOut = components['schemas']['ReconciliationOut'];
 export type ManualConfirmationOut = components['schemas']['ManualConfirmationOut'];
 export type FiledManualConfirmationOut = components['schemas']['FiledManualConfirmationOut'];
 export type RefundOut = components['schemas']['RefundOut'];
+export type AvailableSourceOut = components['schemas']['AvailableSourceOut'];
+export type RefundComponentOut = components['schemas']['RefundComponentOut'];
 export type FileOut = components['schemas']['FileOut'];
 export type OrganizationOut = components['schemas']['OrganizationOut'];
 export type RegionOut = components['schemas']['RegionOut'];
@@ -248,6 +251,23 @@ export async function listRefunds(params: ListRefundsParams) {
   return data;
 }
 
+/**
+ * `GET /refunds/{id}` — the ONLY route that populates `available_sources`
+ * (stage 7.9 task 7's own docstring on `RefundOut`): the invoice's own
+ * frozen split, so the decision form offers exactly the parties THIS
+ * payment was divided between, never a fixed three-bucket shape. The
+ * register's list rows (`listRefunds` above) always carry `available_sources:
+ * []` — a real absence, not a bug — so the decision modal fetches this by id
+ * rather than reading it off the row it was opened from.
+ */
+export async function getRefund(refundId: string): Promise<RefundOut> {
+  const { data, error } = await api.GET('/api/v1/refunds/{refund_id}', {
+    params: { path: { refund_id: refundId } },
+  });
+  if (error) throw apiError(error);
+  return data;
+}
+
 export async function requestRefund(body: {
   application_id: string;
   basis_item_id: string;
@@ -258,9 +278,18 @@ export async function requestRefund(body: {
   return data;
 }
 
+/**
+ * `POST /refunds/{id}/submit-decision` (stage 7.9 task 7, decision #154) —
+ * `components` replaces the old fixed `budget_amount`/`recipient_amount`/
+ * `other_amount` trio: a configurable directory of any size does not fit
+ * three named buckets. `recipient_id: null` means the leshoz's own
+ * remainder (`RefundComponentIn`'s own docstring); omitting a source from
+ * the list IS "nothing from here", the same reading an explicit `0.00`
+ * component gets.
+ */
 export async function submitRefundDecision(
   refundId: string,
-  body: { final_amount: string; budget_amount: string; recipient_amount: string; other_amount: string; comment?: string | null },
+  body: { final_amount: string; components: { recipient_id: string | null; amount: string }[]; comment?: string | null },
 ): Promise<RefundOut> {
   const { data, error } = await api.POST('/api/v1/refunds/{refund_id}/submit-decision', {
     params: { path: { refund_id: refundId } },

@@ -3218,12 +3218,13 @@ export interface paths {
          *     totals named in `comment` — `statement_service._period_reconciliation`).
          *
          *     This register answers ONE question: did the money arrive against an
-         *     invoice. It never answers whether each half of the 50/50 split reached
-         *     its own account — the budget's account number is in no table at all
-         *     (`tz/12` #15), so at least half of every `allocations` row has
-         *     `account = NULL`; `matcher.py`'s module docstring gives the same
-         *     limitation for the matching side, and this is the same fact seen from
-         *     the register a human actually reads.
+         *     invoice. It never answers whether a configured receiver's own wallet,
+         *     or the leshoz's own remainder, actually reached its account — a
+         *     `payment_recipients` row is a Payme WALLET, never a bank account, so
+         *     every receiver row's `allocations.account` is structurally `NULL`, and
+         *     the leshoz's own account may be missing too (`tz/12` #15); `matcher.py`'s
+         *     module docstring gives the same limitation for the matching side, and
+         *     this is the same fact seen from the register a human actually reads.
          */
         get: operations["list_reconciliations_api_v1_payments_reconciliations_get"];
         put?: never;
@@ -3382,13 +3383,16 @@ export interface paths {
          *     incomplete range would miss (the lesson on a reversed date period).
          *
          *     **This route answers "did the money arrive against an invoice" — never
-         *     "did each half of the 50/50 split reach its own account"** (ruling 10,
-         *     the same limitation `GET /payments/reconciliations`'s own docstring
-         *     states): `account` is `null`, present on EVERY row, whenever that row
-         *     is the state budget's own half or names a leshoz with no account on
-         *     file (`tz/12` #15 — the state budget's account number is stored nowhere
-         *     in this system). A client renders that `null` as "settled outside the
-         *     system", never as a blank account number.
+         *     "did a configured receiver's own wallet, or the leshoz's own
+         *     remainder, actually reach its account"** (ruling 10, the same
+         *     limitation `GET /payments/reconciliations`'s own docstring states):
+         *     `account` is `null`, present on EVERY row, whenever that row names a
+         *     configured receiver (STRUCTURALLY — a `payment_recipients` row is a
+         *     Payme wallet, never a bank account, the seeded state-budget row
+         *     included) or names a leshoz with no account on file (`tz/12` #15). A
+         *     client renders that `null` as "settled outside the system", never as a
+         *     blank account number. `recipient_id`/`recipient_name` (task 8) name
+         *     WHICH configured receiver a `target="receiver"` row belongs to.
          */
         get: operations["list_allocations_api_v1_payments_allocations_get"];
         put?: never;
@@ -3397,6 +3401,41 @@ export interface paths {
         options?: never;
         head?: never;
         patch?: never;
+        trace?: never;
+    };
+    "/api/v1/payments/recipients": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Recipients */
+        get: operations["list_recipients_api_v1_payments_recipients_get"];
+        put?: never;
+        /** Create Recipient */
+        post: operations["create_recipient_api_v1_payments_recipients_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/payments/recipients/{recipient_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Patch Recipient */
+        patch: operations["patch_recipient_api_v1_payments_recipients__recipient_id__patch"];
         trace?: never;
     };
     "/api/v1/refunds": {
@@ -3409,7 +3448,11 @@ export interface paths {
         /**
          * List Refunds
          * @description The accountant's/rahbar's own register — every refund, optionally
-         *     narrowed by `application_id` or `status`.
+         *     narrowed by `application_id` or `status`. `components`/
+         *     `available_sources` stay `[]` on every row here, the same scope the old
+         *     `allocations`/`recipient_account`/`budget_account` fields had: a page of
+         *     up to 200 rows is not the place for a per-row extra query, and
+         *     `GET /refunds/{id}` is the single-item read built for it.
          */
         get: operations["list_refunds_api_v1_refunds_get"];
         put?: never;
@@ -3418,7 +3461,8 @@ export interface paths {
          * @description An applicant appeals their own application, or an accountant files on
          *     anyone's behalf (ruling 7). Always 201: `suggested_amount` may be `None`
          *     with a `suggestion_reason` instead — a hint is never a reason to refuse
-         *     filing (ruling 2).
+         *     filing (ruling 2). `components` is always `[]` here — nothing has been
+         *     submitted yet.
          */
         post: operations["request_refund_api_v1_refunds_post"];
         delete?: never;
@@ -3438,9 +3482,10 @@ export interface paths {
         put?: never;
         /**
          * Submit Refund Decision
-         * @description The accountant's own half (ruling 4): stores the figures, moves
-         *     `requested` -> `in_review`, touches no money. A breakdown that does not
-         *     sum to `final_amount` answers `ERR-VAL-001` here, before any write.
+         * @description The accountant's own half (ruling 4): stores the breakdown by source,
+         *     moves `requested` -> `in_review`, touches no money. A breakdown that
+         *     does not sum to `final_amount`, or that names the same source twice
+         *     (Override 1), answers `ERR-VAL-001` here, before any write.
          */
         post: operations["submit_refund_decision_api_v1_refunds__refund_id__submit_decision_post"];
         delete?: never;
@@ -3465,10 +3510,36 @@ export interface paths {
          *     `resolution="rejected"` writes nothing and moves it to `rejected`.
          *     Neither ever touches the invoice or the application (ruling 6).
          *
-         *     The response's `budget_account` is `None` on a `returned` approval by
-         *     design, not by omission (`tz/12` #15) — see `RefundOut`'s own docstring.
+         *     The response's `components` carries each source's own name and
+         *     resolved account (Override 3 — this used to read
+         *     `allocation.target == "budget"`, a value migration `0046` retired; the
+         *     generalised read is `component.recipient_id is None` for the leshoz's
+         *     own remainder, done inside `refund_components_out` rather than here).
          */
         post: operations["approve_refund_api_v1_refunds__refund_id__approve_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/refunds/{refund_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Refund
+         * @description The single-item read (stage 7.9 task 7): `available_sources` — the
+         *     invoice's own frozen split, so the accountant's/rahbar's own form
+         *     offers exactly the parties THIS payment was split between — and
+         *     `components`, whatever has already been submitted.
+         */
+        get: operations["get_refund_api_v1_refunds__refund_id__get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -5431,13 +5502,25 @@ export interface components {
          *     `service.record_reversal`) and `refund` (a returned refund's negative
          *     entries, `backoffice_service.approve_refund`) rows alike.
          *
-         *     **`account` is `null` whenever the row is the state budget's own half of
-         *     the 50/50 split, or names a leshoz with no account on file** (`tz/12`
-         *     #15, ruling 10 — the budget's account number is stored nowhere in this
-         *     system): declared here with no default and no `field_serializer` of its
-         *     own, so a `None` value serializes as JSON `null` — present on every
-         *     response, never omitted, never `""`. An accountant's UI must render that
-         *     as "settled outside the system", not as a blank account number.
+         *     **`account` is `null` for two different reasons that look identical on
+         *     the wire.** A row naming a configured receiver (`target="receiver"`) is
+         *     null STRUCTURALLY: `payment_recipients` identifies a Payme WALLET
+         *     (`payme_account_id`), never a bank account, so this column carries
+         *     nothing for any of them, the seeded state-budget row included. A row
+         *     naming the leshoz's own remainder (`target="recipient"`) is null only
+         *     when that organization's own `requisites` carries no `"account"` key
+         *     (`tz/12` #15) — declared here with no default and no `field_serializer`
+         *     of its own, so a `None` value serializes as JSON `null` — present on
+         *     every response, never omitted, never `""`. An accountant's UI must
+         *     render that as "settled outside the system", not as a blank account
+         *     number.
+         *
+         *     `recipient_id`/`recipient_name` (stage 7.9 task 8) name the configured
+         *     receiver a `target="receiver"` row belongs to — `None` for the leshoz's
+         *     own remainder (`recipient_id` mirrors the column directly; `target`
+         *     already says what a `None` id means here, so this schema does not
+         *     invent a leshoz label the way `RefundComponentOut` does for its own,
+         *     symmetric breakdown form).
          */
         AllocationOut: {
             /**
@@ -5454,6 +5537,12 @@ export interface components {
             transaction_id: string | null;
             /** Refund Id */
             refund_id: string | null;
+            /** Recipient Id */
+            recipient_id: string | null;
+            /** Recipient Name */
+            recipient_name?: {
+                [key: string]: unknown;
+            } | null;
             /** Entry Type */
             entry_type: string;
             /** Target */
@@ -6622,6 +6711,25 @@ export interface components {
             role_codes?: string[] | null;
             /** Region Ids */
             region_ids?: string[] | null;
+        };
+        /**
+         * AvailableSourceOut
+         * @description One row of `RefundOut.available_sources` — the invoice's OWN frozen
+         *     split (`payments.service.invoice_recipients`), so the accountant's form
+         *     offers exactly the parties THIS payment was split between, never a
+         *     fixed budget/recipient/other trio. The last row is always
+         *     `kind="remainder"`, `recipient_id=None` — the leshoz's own share,
+         *     mirroring `InvoiceRecipient`'s own "remainder always last" convention.
+         */
+        AvailableSourceOut: {
+            /** Recipient Id */
+            recipient_id: string | null;
+            /** Name */
+            name: {
+                [key: string]: unknown;
+            };
+            /** Kind */
+            kind: string;
         };
         /** Body_create_bank_statement_api_v1_payments_bank_statements_post */
         Body_create_bank_statement_api_v1_payments_bank_statements_post: {
@@ -7928,6 +8036,38 @@ export interface components {
             due_at: string;
             /** Paid At */
             paid_at: string | null;
+            /** Recipients */
+            recipients?: components["schemas"]["InvoiceRecipientOut"][] | null;
+        };
+        /**
+         * InvoiceRecipientOut
+         * @description One row of an invoice's split, FROZEN at issuance
+         *     (`payments.models.InvoiceRecipient`, decision #158) — `InvoiceOut.
+         *     recipients`, ordered by `position`, the LAST row always the leshoz's
+         *     own remainder (`kind="remainder"`, `recipient_id=None`).
+         *
+         *     Carries the full frozen rule, not just the resulting `amount`: `kind`/
+         *     `percent`/`fixed_amount` are what a `payments.view` holder needs to see
+         *     WHY a share is what it is, the same fields `PaymentRecipientOut`
+         *     exposes for the live directory this snapshot was copied from.
+         */
+        InvoiceRecipientOut: {
+            /** Recipient Id */
+            recipient_id: string | null;
+            /** Name */
+            name: {
+                [key: string]: unknown;
+            };
+            /** Payme Account Id */
+            payme_account_id: string | null;
+            /** Kind */
+            kind: string;
+            /** Percent */
+            percent: string | null;
+            /** Fixed Amount */
+            fixed_amount: string | null;
+            /** Amount */
+            amount: string;
         };
         /** KpiOut */
         KpiOut: {
@@ -9000,6 +9140,17 @@ export interface components {
             /** Page Size */
             page_size: number;
         };
+        /** Page[PaymentRecipientOut] */
+        Page_PaymentRecipientOut_: {
+            /** Items */
+            items: components["schemas"]["PaymentRecipientOut"][];
+            /** Total */
+            total: number;
+            /** Page */
+            page: number;
+            /** Page Size */
+            page_size: number;
+        };
         /** Page[PermitOut] */
         Page_PermitOut_: {
             /** Items */
@@ -9213,6 +9364,105 @@ export interface components {
         PayIntentOut: {
             /** Payment Url */
             payment_url: string;
+        };
+        /**
+         * PaymentRecipientIn
+         * @description `POST /payments/recipients` (decisions #154, #157). Exactly ONE of
+         *     `percent`/`fixed_amount` may be set, matching `kind` — the DB CHECK
+         *     `rule_matches_kind` (migration `0045`) enforces the same rule, but a
+         *     client sending the wrong one should see a 422 here, never an
+         *     `IntegrityError` turned 500 (lesson: "A `response_model` mismatch is
+         *     invisible to ruff and pyright" sits beside this one — the schema is what
+         *     turns a database constraint into a client-facing error).
+         *
+         *     `active` is deliberately absent: every new row starts active (the
+         *     model's own default), and a row is deactivated afterwards through
+         *     `PATCH`, never created inactive — decision #157 makes deactivation, not
+         *     creation, the point where a row stops counting.
+         */
+        PaymentRecipientIn: {
+            name: components["schemas"]["LocalizedName"];
+            /** Payme Account Id */
+            payme_account_id?: string | null;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "percent" | "fixed";
+            /** Percent */
+            percent?: number | string | null;
+            /** Fixed Amount */
+            fixed_amount?: number | string | null;
+            /**
+             * Sort Order
+             * @default 0
+             */
+            sort_order: number;
+            /** Note */
+            note?: string | null;
+        };
+        /** PaymentRecipientOut */
+        PaymentRecipientOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Name */
+            name: {
+                [key: string]: unknown;
+            };
+            /** Payme Account Id */
+            payme_account_id: string | null;
+            /** Kind */
+            kind: string;
+            /** Percent */
+            percent: string | null;
+            /** Fixed Amount */
+            fixed_amount: string | null;
+            /** Active */
+            active: boolean;
+            /** Sort Order */
+            sort_order: number;
+            /** Note */
+            note: string | null;
+            /** Created By */
+            created_by: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /**
+         * PaymentRecipientPatch
+         * @description `PATCH /payments/recipients/{id}` — every field optional, only the
+         *     keys actually sent are touched (`exclude_unset=True`, the convention
+         *     `LegalDocumentPatchIn` established). `kind` is absent: it never changes
+         *     after creation, so `percent`/`fixed_amount` here always mean "the row's
+         *     OWN kind's own amount" — `recipients_service.update` refuses whichever
+         *     one does not match the row's `kind`, the same reasoning `_one_rule_only`
+         *     above enforces at creation.
+         */
+        PaymentRecipientPatch: {
+            name?: components["schemas"]["LocalizedName"] | null;
+            /** Payme Account Id */
+            payme_account_id?: string | null;
+            /** Percent */
+            percent?: number | string | null;
+            /** Fixed Amount */
+            fixed_amount?: number | string | null;
+            /** Sort Order */
+            sort_order?: number | null;
+            /** Note */
+            note?: string | null;
+            /** Active */
+            active?: boolean | null;
         };
         /** PaymentsKpiOut */
         PaymentsKpiOut: {
@@ -10043,20 +10293,6 @@ export interface components {
             resolution_doc_id?: string | null;
         };
         /**
-         * RefundAllocationOut
-         * @description One ledger row `approve_refund` just wrote — what makes ruling 5's
-         *     NULL visible on the wire rather than only in the database (see
-         *     `RefundOut.budget_account`'s own docstring).
-         */
-        RefundAllocationOut: {
-            /** Target */
-            target: string;
-            /** Account */
-            account: string | null;
-            /** Amount */
-            amount: string;
-        };
-        /**
          * RefundApproveIn
          * @description `POST /refunds/{id}/approve` — the rahbar's (`payments.confirm`) own
          *     half: `resolution="returned"` validates the breakdown again (defensive —
@@ -10073,6 +10309,73 @@ export interface components {
             comment?: string | null;
         };
         /**
+         * RefundComponentIn
+         * @description One line of the accountant's breakdown by source
+         *     (`RefundSubmitDecisionIn.components`) — `recipient_id` names a
+         *     configured `payment_recipients` row (a `target='receiver'` allocation
+         *     once approved), or `None` for the leshoz's own remainder
+         *     (`target='recipient'`). Replaces the three fixed `budget_amount`/
+         *     `recipient_amount`/`other_amount` fields (stage 7.9 task 7, decision
+         *     #154) — the split is now a configurable directory of any size, not
+         *     three named buckets.
+         *
+         *     `amount` defaults to no default at all: unlike the old three-column
+         *     shape, where an untouched bucket read `0.00` for free, a component the
+         *     accountant means to enter must be an explicit list entry — omitting a
+         *     source from the list IS "nothing from here", the same reading
+         *     `refunds.breakdown_is_complete` already gives an empty sequence.
+         *     `ge=0` (never `gt=0`) keeps a negative component out of a financial
+         *     ledger at the edge, before it becomes a negative-of-a-negative
+         *     allocation; a `0.00` component is accepted but writes no
+         *     `RefundComponent` row (that table's own `amount_positive` CHECK forbids
+         *     it) — the same "nothing from this source" reading.
+         *
+         *     **Override 1 — the SERVICE, not this schema, refuses a duplicate
+         *     source.** `uq_refund_components_source` cannot stop two components both
+         *     naming `recipient_id=None` (Postgres treats `NULL <> NULL` under a
+         *     plain UNIQUE constraint), so `backoffice_service.submit_refund_decision`
+         *     checks the whole list for a repeated `recipient_id` — `None` included —
+         *     before writing anything, and answers `ERR-VAL-001` naming the reason.
+         */
+        RefundComponentIn: {
+            /** Recipient Id */
+            recipient_id: string | null;
+            /** Amount */
+            amount: number | string;
+        };
+        /**
+         * RefundComponentOut
+         * @description One line of `RefundOut.components` — a `refund_components` row
+         *     enriched with its source's own name, replacing the old
+         *     `RefundAllocationOut`/`recipient_account`/`budget_account` trio (stage
+         *     7.9 task 7): a configurable directory of any size does not fit two
+         *     named accounts.
+         *
+         *     Always reflects whatever `submit_refund_decision` has stored — visible
+         *     on every response from `in_review` onward, including a `rejected` one
+         *     (the accountant's submitted breakdown is a fact about what was
+         *     entered, independent of whether the rahbar accepted it) and empty
+         *     while the refund is still `requested` (nothing submitted yet).
+         *     `account` is `None` for every configured receiver (never a bank
+         *     account of its own, `payments.ledger`'s own docstring) and for the
+         *     leshoz's own remainder UNTIL the refund reaches `returned` — the same
+         *     `None`-until-decided posture the old `budget_account` field documented
+         *     (`tz/12` #15), now generalised to any source rather than two fixed
+         *     ones.
+         */
+        RefundComponentOut: {
+            /** Recipient Id */
+            recipient_id: string | null;
+            /** Name */
+            name: {
+                [key: string]: unknown;
+            };
+            /** Account */
+            account: string | null;
+            /** Amount */
+            amount: string;
+        };
+        /**
          * RefundOut
          * @description One `refunds` row. `suggested_amount`/`suggestion_reason` are the
          *     formula's hint (`backoffice_service.request_refund`'s own docstring
@@ -10080,17 +10383,13 @@ export interface components {
          *     hint is never an error, so `POST /refunds` always answers 201 with one
          *     of the two set.
          *
-         *     `budget_account`/`recipient_account` are NOT columns on `refunds` — they
-         *     are filled in only by `POST /refunds/{id}/approve`'s own response, from
-         *     the allocations that call just wrote, and stay `None` on every other
-         *     response (nothing has been decided yet to have an account at all).
-         *     **`budget_account` is `None` by design, not by omission** (`tz/12` #15
-         *     — the state budget's account number is stored nowhere in this system):
-         *     the field is declared here, with an explicit default, specifically so an
-         *     accountant reading this response sees a `null` the API chose to report
-         *     rather than a key that silently is not there. `allocations` carries the
-         *     same two rows in full (target, account, amount) for a client that wants
-         *     more than the two named accounts.
+         *     `components`/`available_sources` are NOT columns on `refunds` (stage
+         *     7.9 task 7) — see `RefundComponentOut`/`AvailableSourceOut`'s own
+         *     docstrings. `available_sources` is populated only by
+         *     `GET /refunds/{id}` (the one route that already holds the invoice to
+         *     read it from); every other route leaves it `[]`, not because the data
+         *     would be wrong there but because no other handler reads the invoice's
+         *     snapshot today — a real absence, not a hidden default.
          */
         RefundOut: {
             /**
@@ -10119,12 +10418,6 @@ export interface components {
             suggestion_reason: string | null;
             /** Final Amount */
             final_amount: string | null;
-            /** Budget Amount */
-            budget_amount: string | null;
-            /** Recipient Amount */
-            recipient_amount: string | null;
-            /** Other Amount */
-            other_amount: string | null;
             /** Status */
             status: string;
             /** Requested By */
@@ -10145,12 +10438,10 @@ export interface components {
             decided_at: string | null;
             /** Comment */
             comment: string | null;
-            /** Recipient Account */
-            recipient_account?: string | null;
-            /** Budget Account */
-            budget_account?: string | null;
-            /** Allocations */
-            allocations?: components["schemas"]["RefundAllocationOut"][];
+            /** Components */
+            components?: components["schemas"]["RefundComponentOut"][];
+            /** Available Sources */
+            available_sources?: components["schemas"]["AvailableSourceOut"][];
         };
         /**
          * RefundRequestIn
@@ -10181,40 +10472,19 @@ export interface components {
         /**
          * RefundSubmitDecisionIn
          * @description `POST /refunds/{id}/submit-decision` — the accountant's (`payments.
-         *     manage`) own half (ruling 4): the three-way breakdown and the amount it
+         *     manage`) own half (ruling 4): the breakdown by source and the amount it
          *     is meant to sum to. Checked against `refunds.breakdown_is_complete` in
          *     code BEFORE the insert, so a mismatch answers `ERR-VAL-001` rather than
-         *     an IntegrityError 500 from `returned_needs_complete_breakdown` — even
-         *     though that CHECK only fires once `approve` moves the row to `returned`,
+         *     a 500 out of the `refund_components_complete` trigger — even though
+         *     that trigger only fires once `approve` moves the row to `returned`,
          *     catching the arithmetic here is what keeps a wrong number from ever
          *     reaching the rahbar's screen at all.
-         *
-         *     Each component defaults to `0.00`, not `None`: an accountant who leaves
-         *     a source untouched means "nothing from here", the same reading
-         *     `refunds.breakdown_is_complete`'s own `coalesce`-style treatment of
-         *     `None` already gives it — a bare `Field(ge=0, ...)` on each keeps a
-         *     negative component (which `returned_needs_complete_breakdown` does not
-         *     itself forbid) out of a financial ledger at the edge, before it becomes
-         *     a negative-of-a-negative allocation.
          */
         RefundSubmitDecisionIn: {
             /** Final Amount */
             final_amount: number | string;
-            /**
-             * Budget Amount
-             * @default 0.00
-             */
-            budget_amount: number | string;
-            /**
-             * Recipient Amount
-             * @default 0.00
-             */
-            recipient_amount: number | string;
-            /**
-             * Other Amount
-             * @default 0.00
-             */
-            other_amount: number | string;
+            /** Components */
+            components?: components["schemas"]["RefundComponentIn"][];
             /** Comment */
             comment?: string | null;
         };
@@ -18076,6 +18346,106 @@ export interface operations {
             };
         };
     };
+    list_recipients_api_v1_payments_recipients_get: {
+        parameters: {
+            query?: {
+                page?: number;
+                page_size?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Page_PaymentRecipientOut_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_recipient_api_v1_payments_recipients_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PaymentRecipientIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaymentRecipientOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    patch_recipient_api_v1_payments_recipients__recipient_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                recipient_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PaymentRecipientPatch"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaymentRecipientOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_refunds_api_v1_refunds_get: {
         parameters: {
             query?: {
@@ -18192,6 +18562,37 @@ export interface operations {
                 "application/json": components["schemas"]["RefundApproveIn"];
             };
         };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RefundOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_refund_api_v1_refunds__refund_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                refund_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
         responses: {
             /** @description Successful Response */
             200: {
