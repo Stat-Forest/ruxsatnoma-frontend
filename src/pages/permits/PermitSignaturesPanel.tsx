@@ -35,16 +35,58 @@ type PermitCardOut = components['schemas']['PermitCardOut'];
 // carries.
 const API_BASE = import.meta.env.VITE_API_BASE ?? 'http://localhost:8000';
 
+/** Fix wave, minor finding: distinguishes a fetch failure from any other
+ *  `Error` this component might see, so `handleSign`'s catch block can give
+ *  it its own localized message instead of `err.message` — the raw text
+ *  used to reach the citizen VERBATIM, in English, regardless of interface
+ *  language. */
+class PermitPdfFetchError extends Error {
+  readonly status: number;
+
+  constructor(status: number) {
+    super(`Failed to fetch the permit PDF (${status})`);
+    this.name = 'PermitPdfFetchError';
+    this.status = status;
+  }
+}
+
 async function fetchPermitPdfBytes(permitId: string): Promise<Uint8Array> {
   const res = await fetch(`${API_BASE}/api/v1/permits/${permitId}/pdf`, { credentials: 'include' });
-  if (!res.ok) throw new Error(`Failed to fetch the permit PDF (${res.status})`);
+  if (!res.ok) throw new PermitPdfFetchError(res.status);
   return new Uint8Array(await res.arrayBuffer());
 }
+
+/**
+ * Fix wave, finding 4: `ERR-SIGN-001` is not one condition — it is every
+ * refusal `signatures.service.sign()`/`register_certificate` can raise
+ * before or instead of writing a `signatures` row
+ * (`app/modules/signatures/service.py`), told apart only by
+ * `details.reason`. Under the mock, the ONLY reason this screen ever
+ * actually saw was `purpose_not_required` (a real E-IMZO client is the only
+ * way to reach `signature_invalid`/`certificate_revoked`/etc.), so ignoring
+ * `details.reason` and hard-coding "not required" text went unnoticed until
+ * a real backend started answering with the same code for a revoked
+ * certificate, a PINFL mismatch, or a broken signature. The backend
+ * deliberately keeps these reasons machine-readable (stage 3.8 ruling 9)
+ * specifically so a client can do this instead of guessing.
+ */
+const SIGN_ERROR_REASON_KEYS: Record<string, string> = {
+  purpose_not_required: 'permits.signatures.errors.purposeNotRequired',
+  signature_invalid: 'permits.signatures.errors.signatureInvalid',
+  certificate_pinfl_mismatch: 'permits.signatures.errors.certificatePinflMismatch',
+  signer_pinfl_unknown: 'permits.signatures.errors.signerPinflUnknown',
+  certificate_revoked: 'permits.signatures.errors.certificateRevoked',
+  certificate_expired: 'permits.signatures.errors.certificateExpired',
+  certificate_missing: 'permits.signatures.errors.certificateMissing',
+  certificate_invalid_at_signing: 'permits.signatures.errors.certificateInvalidAtSigning',
+  timestamp_missing: 'permits.signatures.errors.timestampMissing',
+  certificate_owned_by_another_user: 'permits.signatures.errors.certificateOwnedByAnother',
+};
 
 /** Every error `POST /permits/{id}/signatures` (and `sign()` underneath it)
  *  documents, turned into copy a signer can act on. Falls back to the raw
  *  message for anything this list does not name. */
-function signErrorMessage(err: ApiError): string {
+function signErrorMessage(t: (key: string) => string, err: ApiError): string {
   const reason = (err.details as { reason?: string } | undefined)?.reason;
   if (err.code === 'ERR-ACL-001') {
     if (reason === 'wrong_organization') {
@@ -55,7 +97,10 @@ function signErrorMessage(err: ApiError): string {
     }
     return "Sizda ushbu qatorni imzolash huquqi yoʻq — rol yoki PINFL/STIR mos kelmadi.";
   }
-  if (err.code === 'ERR-SIGN-001') return "Bu turdagi imzo hozircha talab qilinmaydi.";
+  if (err.code === 'ERR-SIGN-001') {
+    const key = reason ? SIGN_ERROR_REASON_KEYS[reason] : undefined;
+    return t(key ?? 'permits.signatures.errors.signRefusedGeneric');
+  }
   if (err.code === 'ERR-SIGN-002') return "Bu qator allaqachon imzolangan.";
   if (err.code === 'ERR-SIGN-004') return "Sertifikat holati ziddiyatli — qaytadan urining.";
   if (err.code === 'ERR-PERM-001') return "Ruxsatnoma endi imzo kutish holatida emas.";
@@ -115,7 +160,7 @@ function SignatureSlot({
     // it recognizes an `ApiError` instance and passes it through unchanged.
     onError: (err: unknown) => {
       const apiErr = toApiError(err);
-      setFormError(signErrorMessage(apiErr));
+      setFormError(signErrorMessage(t, apiErr));
       // `ERR-SIGN-002` (already signed) proves the permit's signatures moved
       // since this screen last read them — refresh instead of leaving the
       // count frozen until the next unrelated reload.
@@ -125,15 +170,20 @@ function SignatureSlot({
 
   async function handleSign() {
     setFormError(null);
+    // Minor finding (fix wave): PINFL/STIR validity (mock mode only) is
+    // checked BEFORE the doc_hash precondition — restored to the original
+    // order (mock mode had no real-mode branch to interleave with when this
+    // was first written). With both wrong, a mock-mode signer now sees the
+    // PINFL error again, not a hash message unrelated to what they typed.
+    if (isEimzoMock() && !isPlausiblePinflOrStir(pinfl)) {
+      setFormError("PINFL 14 ta, tashkilot STIR 9 ta raqamdan iborat boʻlishi kerak.");
+      return;
+    }
     if (!permit.doc_hash) {
       setFormError("Hujjat hali render qilinmagan — imzolab boʻlmaydi.");
       return;
     }
     if (isEimzoMock()) {
-      if (!isPlausiblePinflOrStir(pinfl)) {
-        setFormError("PINFL 14 ta, tashkilot STIR 9 ta raqamdan iborat boʻlishi kerak.");
-        return;
-      }
       const pkcs7 = buildMockPkcs7({
         pinflOrStir: pinfl,
         documentSha256: permit.doc_hash,
@@ -154,8 +204,15 @@ function SignatureSlot({
     } catch (err) {
       if (err instanceof EimzoError || isProviderUnreachable(err)) {
         setFormError(t(eimzoErrorMessageKey(err)));
+      } else if (err instanceof PermitPdfFetchError) {
+        // Minor finding (fix wave): this used to be `err.message` verbatim —
+        // an English sentence reaching a citizen regardless of interface
+        // language.
+        setFormError(t('permits.signatures.errors.pdfFetchFailed'));
       } else {
-        setFormError(err instanceof Error ? err.message : "Imzolashda xatolik yuz berdi.");
+        // Minor finding (fix wave): the fallback was a hardcoded Uzbek
+        // literal, bypassing i18n for `ru`/other-language signers.
+        setFormError(t('permits.signatures.errors.genericSigningError'));
       }
     } finally {
       setSigning(false);

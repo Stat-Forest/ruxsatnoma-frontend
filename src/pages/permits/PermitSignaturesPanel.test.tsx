@@ -170,6 +170,75 @@ test('a successful signature refreshes the panel through onSigned, with no stray
   expect(screen.queryByText('Unexpected error')).not.toBeInTheDocument();
 });
 
+// Finding 4 (review of stage 5.2): `ERR-SIGN-001` used to map unconditionally
+// to "this signature is not required" without ever reading `details.reason`.
+// Under the mock that code effectively only ever meant `purpose_not_required`;
+// a real backend answers with the SAME code for `certificate_revoked`,
+// `certificate_pinfl_mismatch`, etc. — collapsing them all into "not required"
+// told a signer whose certificate was revoked that nothing was needed at all.
+test('ERR-SIGN-001 with reason=certificate_revoked shows the revoked message, never "not required"', async () => {
+  const user = userEvent.setup();
+  server.use(
+    http.post('*/api/v1/permits/:id/signatures', () =>
+      HttpResponse.json(
+        { error: { code: 'ERR-SIGN-001', message: 'refused', details: { reason: 'certificate_revoked' } } },
+        { status: 422 },
+      ),
+    ),
+  );
+
+  renderPanel(permitCard(), () => {});
+  await user.click(screen.getByText('E-IMZO bilan imzolash'));
+
+  await screen.findByText(t('permits.signatures.errors.certificateRevoked'));
+  expect(screen.queryByText(t('permits.signatures.errors.purposeNotRequired'))).not.toBeInTheDocument();
+});
+
+test('ERR-SIGN-001 with no reason at all (or one this list does not name) falls back to a generic refusal, still never "not required"', async () => {
+  const user = userEvent.setup();
+  server.use(
+    http.post('*/api/v1/permits/:id/signatures', () =>
+      HttpResponse.json({ error: { code: 'ERR-SIGN-001', message: 'refused' } }, { status: 422 }),
+    ),
+  );
+
+  renderPanel(permitCard(), () => {});
+  await user.click(screen.getByText('E-IMZO bilan imzolash'));
+
+  await screen.findByText(t('permits.signatures.errors.signRefusedGeneric'));
+  expect(screen.queryByText(t('permits.signatures.errors.purposeNotRequired'))).not.toBeInTheDocument();
+});
+
+// Minor finding (fix wave): the PDF-fetch failure used to surface as
+// `err.message` verbatim — an untranslated English sentence.
+test('real mode: a failed PDF fetch shows a localized message, never the raw English fetch error', async () => {
+  vi.spyOn(eimzo, 'isEimzoMock').mockReturnValue(false);
+  server.use(http.get('*/api/v1/permits/:id/pdf', () => new HttpResponse(null, { status: 403 })));
+
+  renderPanel(permitCard(), () => {});
+  await userEvent.click(screen.getByText('E-IMZO bilan imzolash'));
+
+  await screen.findByText(t('permits.signatures.errors.pdfFetchFailed'));
+  expect(screen.queryByText(/Failed to fetch the permit PDF/)).not.toBeInTheDocument();
+});
+
+// Minor finding (fix wave): mock mode used to check `doc_hash` BEFORE the
+// PINFL/STIR field, reversing the original order — with both wrong, a signer
+// saw the hash message instead of the PINFL one they could actually act on.
+// The `permit_recipient` slot pre-fills the applicant's own (valid) PINFL, so
+// this test clears it to an invalid value first.
+test('mock mode: with both the PINFL and the missing doc_hash wrong, the PINFL error wins (original order)', async () => {
+  const user = userEvent.setup();
+  renderPanel(permitCard({ doc_hash: null }), () => {});
+  const pinflInput = screen.getByPlaceholderText('31708860250017');
+  await user.clear(pinflInput);
+  await user.type(pinflInput, '123');
+  await user.click(screen.getByText('E-IMZO bilan imzolash'));
+
+  await screen.findByText('PINFL 14 ta, tashkilot STIR 9 ta raqamdan iborat boʻlishi kerak.');
+  expect(screen.queryByText('Hujjat hali render qilinmagan — imzolab boʻlmaydi.')).not.toBeInTheDocument();
+});
+
 test('real mode: no PINFL/STIR box, and a sign fetches the PDF then calls signDocument (DETACHED)', async () => {
   vi.spyOn(eimzo, 'isEimzoMock').mockReturnValue(false);
   const signDocumentSpy = vi.spyOn(eimzo, 'signDocument').mockResolvedValue('REAL-PKCS7');

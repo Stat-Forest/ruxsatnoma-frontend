@@ -1065,6 +1065,28 @@ export const uz_latn = {
   'permits.lifecycle.errSignatureInvalid': "Imzo tasdiqlanmadi — qaytadan urining.",
   'permits.lifecycle.errUploadFailed': "Fayl yuklanmadi.",
 
+  // Fix wave, finding 4 — `ERR-SIGN-001` reasons `PermitSignaturesPanel.tsx`
+  // now reads from `details.reason` instead of always showing
+  // "not required" (the mock only ever produced that one reason, which is
+  // why the gap went unnoticed). Plus two minor findings: a fetch failure
+  // and the generic fallback used to bypass i18n entirely.
+  'permits.signatures.errors.purposeNotRequired': "Bu turdagi imzo hozircha talab qilinmaydi.",
+  'permits.signatures.errors.signatureInvalid':
+    "Imzo tekshiruvidan oʻtmadi — hujjat yoki E-IMZO kaliti notoʻgʻri boʻlishi mumkin.",
+  'permits.signatures.errors.certificatePinflMismatch': "Sertifikat sizning PINFL/STIR raqamingizga mos kelmaydi.",
+  'permits.signatures.errors.signerPinflUnknown':
+    "Tizimda sizning PINFL raqamingiz qayd etilmagan — profilingizni tekshiring.",
+  'permits.signatures.errors.certificateRevoked': "Sertifikat bekor qilingan — undan foydalanib boʻlmaydi.",
+  'permits.signatures.errors.certificateExpired': "Sertifikat muddati tugagan.",
+  'permits.signatures.errors.certificateMissing': "Sertifikat maʼlumotlari topilmadi.",
+  'permits.signatures.errors.certificateInvalidAtSigning': "Imzolash vaqtida sertifikat amal qilmagan.",
+  'permits.signatures.errors.timestampMissing':
+    "Imzoda vaqt tamgʻasi (timestamp) yoʻq — bunday imzo qabul qilinmaydi.",
+  'permits.signatures.errors.certificateOwnedByAnother': "Bu sertifikat boshqa foydalanuvchiga tegishli.",
+  'permits.signatures.errors.signRefusedGeneric': "Imzo rad etildi — qaytadan urining.",
+  'permits.signatures.errors.genericSigningError': "Imzolashda xatolik yuz berdi.",
+  'permits.signatures.errors.pdfFetchFailed': "Imzolanadigan hujjatni yuklab boʻlmadi — qaytadan urining.",
+
   // --- I1: the prosecutor's read-only registers with export ---------------
   'prosecutor.exportCsv': "CSV eksport",
   'prosecutor.exportTruncated':

@@ -1042,6 +1042,23 @@ export const ru = {
   'permits.lifecycle.errSignatureInvalid': 'Подпись не подтверждена — попробуйте ещё раз.',
   'permits.lifecycle.errUploadFailed': 'Файл не загружен.',
 
+  // Fix wave, finding 4 — см. комментарий в `uz_latn.ts`.
+  'permits.signatures.errors.purposeNotRequired': 'Подпись этого типа сейчас не требуется.',
+  'permits.signatures.errors.signatureInvalid':
+    'Подпись не прошла проверку — возможно, документ или ключ E-IMZO неверны.',
+  'permits.signatures.errors.certificatePinflMismatch': 'Сертификат не соответствует вашему ПИНФЛ/СТИР.',
+  'permits.signatures.errors.signerPinflUnknown': 'В системе не зарегистрирован ваш ПИНФЛ — проверьте профиль.',
+  'permits.signatures.errors.certificateRevoked': 'Сертификат отозван — использовать его нельзя.',
+  'permits.signatures.errors.certificateExpired': 'Срок действия сертификата истёк.',
+  'permits.signatures.errors.certificateMissing': 'Данные сертификата не найдены.',
+  'permits.signatures.errors.certificateInvalidAtSigning': 'На момент подписания сертификат не действовал.',
+  'permits.signatures.errors.timestampMissing':
+    'В подписи нет метки времени (timestamp) — такая подпись не принимается.',
+  'permits.signatures.errors.certificateOwnedByAnother': 'Этот сертификат принадлежит другому пользователю.',
+  'permits.signatures.errors.signRefusedGeneric': 'Подпись отклонена — попробуйте ещё раз.',
+  'permits.signatures.errors.genericSigningError': 'Ошибка при подписании.',
+  'permits.signatures.errors.pdfFetchFailed': 'Не удалось загрузить документ для подписания — попробуйте ещё раз.',
+
   // --- I1: реестры прокурора только для чтения, с экспортом --------------
   'prosecutor.exportCsv': 'Экспорт CSV',
   'prosecutor.exportTruncated':
