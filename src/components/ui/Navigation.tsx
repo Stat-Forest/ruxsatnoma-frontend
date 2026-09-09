@@ -147,9 +147,9 @@ export const Pagination: React.FC<PaginationProps> = ({
         </div>
       )}
 
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 max-w-full overflow-x-auto py-1">
         {onPageSizeChange && (
-          <div className="flex items-center gap-1.5 mr-4">
+          <div className="flex items-center gap-1.5 mr-4 shrink-0">
             <span className="text-xs">{pt.rows}</span>
             <select
               value={pageSize}
@@ -163,11 +163,11 @@ export const Pagination: React.FC<PaginationProps> = ({
           </div>
         )}
 
-        <div className="flex items-center space-x-1">
+        <div className="flex items-center space-x-1 shrink-0">
           <button
             onClick={() => onPageChange(currentPage - 1)}
             disabled={currentPage <= 1}
-            className="h-8 px-2.5 rounded border border-[#767F87] hover:bg-[#F8F9FA] disabled:opacity-40 disabled:cursor-not-allowed"
+            className="h-8 px-2.5 rounded border border-[#767F87] hover:bg-[#F8F9FA] disabled:opacity-40 disabled:cursor-not-allowed shrink-0"
           >
             {pt.prev}
           </button>
@@ -175,7 +175,7 @@ export const Pagination: React.FC<PaginationProps> = ({
             <button
               key={p}
               onClick={() => onPageChange(p)}
-              className={`h-8 w-8 rounded text-xs font-semibold ${
+              className={`h-8 w-8 rounded text-xs font-semibold shrink-0 ${
                 p === currentPage
                   ? 'bg-[#2E7D4F] text-white'
                   : 'hover:bg-[#F8F9FA] border border-transparent text-[#1A1F24]'
@@ -187,7 +187,7 @@ export const Pagination: React.FC<PaginationProps> = ({
           <button
             onClick={() => onPageChange(currentPage + 1)}
             disabled={currentPage >= totalPages}
-            className="h-8 px-2.5 rounded border border-[#767F87] hover:bg-[#F8F9FA] disabled:opacity-40 disabled:cursor-not-allowed"
+            className="h-8 px-2.5 rounded border border-[#767F87] hover:bg-[#F8F9FA] disabled:opacity-40 disabled:cursor-not-allowed shrink-0"
             aria-label={pt.next}
           >
             <span>{pt.next}</span>

@@ -225,7 +225,7 @@ export function MyApplicationCardPage() {
   const invoice = invoicesQuery.data?.[0];
 
   return (
-    <div className="max-w-5xl mx-auto space-y-6 font-sans pb-16">
+    <div className="max-w-5xl mx-auto space-y-4 sm:space-y-6 font-sans pb-16">
       <div className="flex items-center gap-2 text-xs text-[#5A646D] border-b border-[#E4E7EA] pb-3">
         <Button
           variant="ghost"
@@ -238,13 +238,15 @@ export function MyApplicationCardPage() {
         </Button>
       </div>
 
-      <div className="bg-white border border-[#E4E7EA] rounded-2xl p-6 shadow-xs space-y-3">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <h1 className="text-xl font-bold text-[#1A1F24] font-mono">{card.number ?? `${t.draft} (${card.id.slice(0, 8)})`}</h1>
-            <p className="text-sm text-[#5A646D] mt-1">{activityName}</p>
+      <div className="bg-white border border-[#E4E7EA] rounded-2xl p-4 sm:p-6 shadow-xs space-y-3">
+        <div className="flex flex-wrap items-start justify-between gap-3 sm:gap-4">
+          <div className="min-w-0 flex-1">
+            <h1 className="text-lg sm:text-xl font-bold text-[#1A1F24] font-mono break-all sm:break-normal">{card.number ?? `${t.draft} (${card.id.slice(0, 8)})`}</h1>
+            <p className="text-sm text-[#5A646D] mt-1 break-words">{activityName}</p>
           </div>
-          <StatusBadge status={STATUS_BADGE_KIND[card.status]} label={getStatusLabel(card.status, lang)} />
+          <div className="shrink-0">
+            <StatusBadge status={STATUS_BADGE_KIND[card.status]} label={getStatusLabel(card.status, lang)} />
+          </div>
         </div>
 
         <dl className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-3 border-t border-[#E4E7EA] text-xs">
@@ -271,7 +273,7 @@ export function MyApplicationCardPage() {
             <dt className="text-xs text-[#5A646D] mb-1">{t.livestockComposition}</dt>
             <ul className="text-xs text-[#1A1F24] space-y-0.5">
               {card.items.map((item) => (
-                <li key={item.id}>
+                <li key={item.id} className="break-words">
                   {livestockName(item.livestock_type_id)}: <strong>{item.head_count}</strong> {t.head}
                 </li>
               ))}
@@ -287,7 +289,7 @@ export function MyApplicationCardPage() {
 
         {card.status === 'DRAFT' && (
           <div className="pt-3 border-t border-[#E4E7EA]">
-            <Button variant="primary" size="sm" onClick={() => navigate(`/my/applications/new?draft=${card.id}`)} className="cursor-pointer font-bold">
+            <Button variant="primary" size="sm" onClick={() => navigate(`/my/applications/new?draft=${card.id}`)} className="cursor-pointer font-bold w-full sm:w-auto justify-center">
               {t.continueEditing}
             </Button>
           </div>
@@ -295,12 +297,12 @@ export function MyApplicationCardPage() {
       </div>
 
       {/* Calculated amount */}
-      <section className="bg-[#F0F9FF] border border-[#BAE6FD] rounded-2xl p-6 shadow-xs space-y-2">
+      <section className="bg-[#F0F9FF] border border-[#BAE6FD] rounded-2xl p-4 sm:p-6 shadow-xs space-y-2">
         <h2 className="text-sm font-bold text-[#0369A1] uppercase tracking-wider">{t.calculatedAmount}</h2>
         {card.calculation ? (
           <>
-            <div className="font-mono text-2xl font-extrabold text-[#123522]">{formatMoney(card.calculation.amount)} {t.som}</div>
-            <p className="text-xs text-[#5A646D]">
+            <div className="font-mono text-xl sm:text-2xl font-extrabold text-[#123522] break-all">{formatMoney(card.calculation.amount)} {t.som}</div>
+            <p className="text-xs text-[#5A646D] break-words">
               rule_version: <code className="bg-white px-1 py-0.5 rounded border border-[#BAE6FD]">{card.calculation.rule_version}</code>
               {card.calculation.max_sb !== null && (
                 <>
@@ -315,17 +317,17 @@ export function MyApplicationCardPage() {
         )}
 
         {invoice && (
-          <div className="pt-3 border-t border-[#BAE6FD] flex items-center justify-between gap-3">
-            <div className="text-xs text-[#1A1F24]">
+          <div className="pt-3 border-t border-[#BAE6FD] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="text-xs text-[#1A1F24] min-w-0">
               <span className="text-[#5A646D]">{t.invoice} </span>
               <strong className="font-mono">{invoice.number}</strong> — {formatMoney(invoice.amount)} {t.som}
             </div>
             <Button
               variant="outline"
               size="sm"
-              leftIcon={<Receipt className="w-4 h-4" />}
+              leftIcon={<Receipt className="w-4 h-4 shrink-0" />}
               onClick={() => navigate(`/my/invoices/${invoice.id}`)}
-              className="cursor-pointer"
+              className="cursor-pointer w-full sm:w-auto shrink-0 justify-center"
             >
               {t.viewInvoice}
             </Button>
@@ -335,19 +337,19 @@ export function MyApplicationCardPage() {
 
       {/* Permit */}
       {permitQuery.data && (
-        <section className="bg-[#F0F7F1] border border-[#D9EBDC] rounded-2xl p-6 shadow-xs flex flex-wrap items-center justify-between gap-3">
-          <div>
+        <section className="bg-[#F0F7F1] border border-[#D9EBDC] rounded-2xl p-4 sm:p-6 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="min-w-0">
             <h2 className="text-sm font-bold text-[#123522] uppercase tracking-wider">{t.permit}</h2>
-            <p className="text-xs text-[#5A646D] mt-1 font-mono">
+            <p className="text-xs text-[#5A646D] mt-1 font-mono break-all">
               {formatPermitNumber(permitQuery.data.series, permitQuery.data.number)}
             </p>
           </div>
           <Button
             variant="primary"
             size="sm"
-            leftIcon={<Award className="w-4 h-4" />}
+            leftIcon={<Award className="w-4 h-4 shrink-0" />}
             onClick={() => navigate(`/my/permits/${permitQuery.data!.id}`)}
-            className="cursor-pointer font-bold"
+            className="cursor-pointer font-bold w-full sm:w-auto shrink-0 justify-center"
           >
             {t.viewPermit}
           </Button>
@@ -355,7 +357,7 @@ export function MyApplicationCardPage() {
       )}
 
       {/* Documents */}
-      <section className="bg-white border border-[#E4E7EA] rounded-2xl shadow-xs p-6 space-y-3">
+      <section className="bg-white border border-[#E4E7EA] rounded-2xl shadow-xs p-4 sm:p-6 space-y-3">
         <h2 className="text-sm font-bold text-[#1A1F24] uppercase tracking-wider">
           {t.attachedDocuments} {card.documents.length > 0 && `(${card.documents.length})`}
         </h2>
@@ -368,10 +370,10 @@ export function MyApplicationCardPage() {
                 key={doc.id}
                 className="flex items-center justify-between gap-3 p-3 border border-[#E4E7EA] rounded-xl text-xs"
               >
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 min-w-0 flex-1">
                   <FileText className="w-4 h-4 text-[#5A646D] shrink-0" />
-                  <span className="font-semibold text-[#1A1F24]">{docTypeName(doc.doc_type_item_id)}</span>
-                  {doc.note && <span className="text-[#5A646D]">— {doc.note}</span>}
+                  <span className="font-semibold text-[#1A1F24] truncate">{docTypeName(doc.doc_type_item_id)}</span>
+                  {doc.note && <span className="text-[#5A646D] truncate">— {doc.note}</span>}
                 </div>
                 <a
                   href={`${API_BASE}/api/v1/files/${doc.file_id}`}
@@ -388,7 +390,7 @@ export function MyApplicationCardPage() {
       </section>
 
       {/* Timeline */}
-      <section className="bg-white border border-[#E4E7EA] rounded-2xl shadow-xs p-6 space-y-3">
+      <section className="bg-white border border-[#E4E7EA] rounded-2xl shadow-xs p-4 sm:p-6 space-y-3">
         <h2 className="text-sm font-bold text-[#1A1F24] uppercase tracking-wider">{t.history}</h2>
         <ApplicantTimeline timeline={timelineQuery.data} />
       </section>

@@ -81,7 +81,11 @@ function mockBackend(kpi: Partial<KpiOut> = {}) {
   );
 }
 
-function renderDashboard(lang: 'uz_latn' | 'ru' = 'uz_latn', permissions: string[] = ['dashboard.view'], isSuperuser = false) {
+function renderDashboard(
+  lang: 'uz_latn' | 'uz_cyrl' | 'ru' | 'en' | 'kaa' = 'uz_latn',
+  permissions: string[] = ['dashboard.view'],
+  isSuperuser = false,
+) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   const i18n = {
     lang,
@@ -193,21 +197,56 @@ test('changing the period via the UI and clicking Apply asks the backend for the
   await waitFor(() => expect(requestedPeriods.some((p) => p.startsWith('2026-01-01'))).toBe(true));
 });
 
-// Same compile-time-parity blind spot `LeadershipDashboardPage.test.tsx`'s
-// own version of this test documents: the two dictionaries share every KEY
-// by construction, never whether this screen asks for one that exists in
-// neither (which `t` renders as the bare key).
-test.each(['uz_latn', 'ru'] as const)('no untranslated leadership.*/dashboard.* key reaches the screen in %s', async (lang) => {
-  mockBackend({
-    omitted: ['inspections_count: not merged yet'],
-    rejections: [{ reason_item_id: 'x0000000-0000-4000-8000-000000000009', count: 3 }],
-    risk_indicators: { by_code: { 'RI-01': 2 }, by_level: { low: 1, critical: 1 } },
-    inspections: { inspections_count: 5, violations_count: 2 },
-  });
+// Test all five languages (uz_latn, uz_cyrl, ru, en, kaa) to ensure no untranslated keys leak.
+test.each(['uz_latn', 'uz_cyrl', 'ru', 'en', 'kaa'] as const)(
+  'no untranslated leadership.*/dashboard.* key reaches the screen in %s',
+  async (lang) => {
+    mockBackend({
+      omitted: ['inspections_count: not merged yet', 'violations_count: not merged yet'],
+      rejections: [{ reason_item_id: 'x0000000-0000-4000-8000-000000000009', count: 3 }],
+      risk_indicators: { by_code: { 'RI-01': 2 }, by_level: { low: 1, medium: 2, high: 3, critical: 1 } },
+      inspections: { inspections_count: 5, violations_count: 2 },
+    });
 
-  renderDashboard(lang, ['dashboard.view', 'oversight.view']);
+    renderDashboard(lang, ['dashboard.view', 'oversight.view']);
+    await screen.findByTestId('tile-permits');
+
+    expect(document.body.textContent).not.toMatch(/leadership\.[a-zA-Z.]+/);
+    expect(document.body.textContent).not.toMatch(/dashboard\.[a-zA-Z.]+/);
+  },
+);
+
+test('the filter bar and action buttons have mobile-friendly responsive layout classes', async () => {
+  mockBackend();
+  renderDashboard();
   await screen.findByTestId('tile-permits');
 
-  expect(document.body.textContent).not.toMatch(/leadership\.[a-zA-Z.]+/);
-  expect(document.body.textContent).not.toMatch(/dashboard\.[a-zA-Z.]+/);
+  const filters = screen.getByTestId('kpi-filters');
+  // Filter grid has mobile-friendly responsive breakpoints
+  const filterGrid = filters.querySelector('.grid');
+  expect(filterGrid).toHaveClass('grid-cols-1');
+  expect(filterGrid).toHaveClass('sm:grid-cols-2');
+  expect(filterGrid).toHaveClass('lg:grid-cols-4');
+  expect(filterGrid).toHaveClass('xl:grid-cols-7');
+
+  // Action buttons container has responsive flex direction and full width touch targets on mobile
+  const applyBtn = screen.getByRole('button', { name: /Qoʻllash/ });
+  const buttonsContainer = applyBtn.parentElement;
+  expect(buttonsContainer).toHaveClass('flex-col');
+  expect(buttonsContainer).toHaveClass('sm:flex-row');
+  expect(buttonsContainer).toHaveClass('justify-end');
+  expect(applyBtn).toHaveClass('w-full');
+  expect(applyBtn).toHaveClass('sm:w-auto');
+});
+
+test('tiles grid has mobile-friendly gap-3 sm:gap-4 responsive classes', async () => {
+  mockBackend();
+  renderDashboard();
+  const permitsTile = await screen.findByTestId('tile-permits');
+  const tilesGrid = permitsTile.parentElement;
+  expect(tilesGrid).toHaveClass('grid-cols-1');
+  expect(tilesGrid).toHaveClass('sm:grid-cols-2');
+  expect(tilesGrid).toHaveClass('xl:grid-cols-4');
+  expect(tilesGrid).toHaveClass('gap-3');
+  expect(tilesGrid).toHaveClass('sm:gap-4');
 });

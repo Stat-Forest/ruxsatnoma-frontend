@@ -31,19 +31,19 @@ export function PermitRequisitesPanel({
   return (
     <div
       data-testid="permit-requisites-panel"
-      className="bg-white border border-[#E4E7EA] rounded-2xl p-6 shadow-xs space-y-6"
+      className="bg-white border border-[#E4E7EA] rounded-2xl p-4 sm:p-6 shadow-xs space-y-4 sm:space-y-6"
     >
-      <div className="flex flex-wrap items-center justify-between gap-4 pb-4 border-b border-[#E4E7EA]">
-        <div>
+      <div className="flex flex-wrap items-center justify-between gap-3 sm:gap-4 pb-4 border-b border-[#E4E7EA]">
+        <div className="min-w-0">
           <span className="text-xs text-[#5A646D] block mb-1">
             {lang === 'ru' ? 'Электронное разрешение' : lang === 'en' ? 'Electronic permit' : lang === 'uz_cyrl' ? 'Электрон рухсатнома' : lang === 'kaa' ? 'Elektron ruqsatnama' : 'Elektron ruxsatnoma'}
           </span>
-          <h2 className="text-xl font-bold font-mono text-[#1A1F24]">
+          <h2 className="text-lg sm:text-xl font-bold font-mono text-[#1A1F24] break-all">
             {formatPermitNumber(permit.series, permit.number)}
           </h2>
         </div>
         <span
-          className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-bold border ${
+          className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs sm:text-sm font-bold border shrink-0 ${
             PERMIT_STATUS_STYLE[permit.status] ?? PERMIT_STATUS_STYLE.pending_signatures
           }`}
         >
@@ -51,12 +51,12 @@ export function PermitRequisitesPanel({
         </span>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-xs text-[#1A1F24]">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6 text-xs text-[#1A1F24]">
         <div className="space-y-1">
           <span className="text-[#5A646D] font-medium block">
             {lang === 'ru' ? 'Заявитель:' : lang === 'en' ? 'Applicant:' : lang === 'uz_cyrl' ? 'Аризачи:' : lang === 'kaa' ? 'Arzashı:' : 'Arizachi:'}
           </span>
-          <strong className="font-bold block text-[#1A1F24]">
+          <strong className="font-bold block text-[#1A1F24] break-words">
             {applicantName ?? `ID ${shortId(permit.applicant_id)}`}
           </strong>
         </div>
@@ -135,10 +135,10 @@ export function PermitRequisitesPanel({
       </div>
 
       <div className="pt-3 border-t border-[#E4E7EA] text-[11px] text-[#5A646D] font-mono break-all">
-        <span className="uppercase tracking-wider font-sans font-bold text-[#767F87] mr-2">
+        <span className="uppercase tracking-wider font-sans font-bold text-[#767F87] mr-2 block sm:inline">
           {sha256Label}
         </span>
-        <span title={permit.doc_hash ?? undefined}>{permit.doc_hash ?? notRenderedText}</span>
+        <span title={permit.doc_hash ?? undefined} className="break-all">{permit.doc_hash ?? notRenderedText}</span>
       </div>
     </div>
   );

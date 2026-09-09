@@ -56,7 +56,7 @@ export function ProfilePage() {
               </span>
               <span className="inline-flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-0.5 rounded-full text-[11px] sm:text-xs font-medium bg-emerald-400/20 text-emerald-200 border border-emerald-400/30">
                 <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-emerald-400 animate-pulse shrink-0" />
-                <span>{lang === 'ru' ? 'Активный аккаунт' : lang === 'uz_cyrl' ? 'Фаол ҳисоб' : lang === 'en' ? 'Active account' : lang === 'kaa' ? 'Aktiv esap' : 'Faol hisob'}</span>
+                <span>{t('cabinet.profile.activeAccount')}</span>
               </span>
               {me?.is_superuser && (
                 <span className="inline-flex items-center gap-1 px-2 sm:px-2.5 py-0.5 rounded-full text-[11px] sm:text-xs font-bold bg-amber-400/25 text-amber-200 border border-amber-400/40">
@@ -129,15 +129,7 @@ export function ProfilePage() {
               <span>{passwordLabels.title}</span>
             </h2>
             <p className="text-xs sm:text-sm text-[#5A646D] mt-1">
-              {lang === 'ru'
-                ? 'Используйте новый и надежный пароль для безопасности вашей учетной записи'
-                : lang === 'uz_cyrl'
-                ? 'Ҳисобингиз хавфсизлигини таъминлаш учун янги ва мустаҳкам паролдан фойдаланинг'
-                : lang === 'en'
-                ? 'Use a new and strong password to keep your account secure'
-                : lang === 'kaa'
-                ? "Esabıńız qawipsizligin támiyinlew ushın jańa hám bekkem paroldan paydalanıń"
-                : "Hisobingiz xavfsizligini ta'minlash uchun yangi va mustahkam paroldan foydalaning"}
+              {t('cabinet.profile.passwordSubtitle')}
             </p>
           </div>
           <ChangePasswordForm onChanged={() => window.location.assign('/')} />

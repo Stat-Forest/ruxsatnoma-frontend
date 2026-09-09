@@ -66,8 +66,8 @@ export function InvoicesTab() {
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <section className="rounded-2xl border border-[#E4E7EA] bg-white p-4 shadow-xs">
           <h2 className="mb-3 text-sm font-bold text-[#1A1F24]">{t('accountant.invoices.searchByApplication')}</h2>
-          <form className="flex items-end gap-2" onSubmit={searchByApplication}>
-            <FormField label={t('accountant.invoices.applicationIdLabel')} htmlFor="invoices-application-id" className="flex-1">
+          <form className="flex flex-col sm:flex-row sm:items-end gap-2.5" onSubmit={searchByApplication}>
+            <FormField label={t('accountant.invoices.applicationIdLabel')} htmlFor="invoices-application-id" className="flex-1 w-full">
               <Input
                 id="invoices-application-id"
                 value={applicationIdDraft}
@@ -75,7 +75,7 @@ export function InvoicesTab() {
                 placeholder={t('accountant.invoices.applicationIdPlaceholder')}
               />
             </FormField>
-            <Button type="submit" leftIcon={<Search className="h-4 w-4" />}>
+            <Button type="submit" className="w-full sm:w-auto" leftIcon={<Search className="h-4 w-4" />}>
               {t('accountant.invoices.searchButton')}
             </Button>
           </form>
@@ -84,13 +84,13 @@ export function InvoicesTab() {
         <section className="rounded-2xl border border-[#E4E7EA] bg-white p-4 shadow-xs">
           <h2 className="mb-3 text-sm font-bold text-[#1A1F24]">{t('accountant.invoices.openById')}</h2>
           <form
-            className="flex items-end gap-2"
+            className="flex flex-col sm:flex-row sm:items-end gap-2.5"
             onSubmit={(e) => {
               e.preventDefault();
               if (directInvoiceId.trim()) setOpenInvoiceId(directInvoiceId.trim());
             }}
           >
-            <FormField label={t('accountant.invoices.invoiceIdLabel')} htmlFor="invoices-direct-id" className="flex-1">
+            <FormField label={t('accountant.invoices.invoiceIdLabel')} htmlFor="invoices-direct-id" className="flex-1 w-full">
               <Input
                 id="invoices-direct-id"
                 value={directInvoiceId}
@@ -98,7 +98,7 @@ export function InvoicesTab() {
                 placeholder={t('accountant.invoices.invoiceIdPlaceholder')}
               />
             </FormField>
-            <Button type="submit" variant="secondary">
+            <Button type="submit" variant="secondary" className="w-full sm:w-auto">
               {t('accountant.invoices.openButton')}
             </Button>
           </form>
@@ -106,13 +106,13 @@ export function InvoicesTab() {
       </div>
 
       <section className="rounded-2xl border border-[#E4E7EA] bg-white shadow-xs">
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#E4E7EA] p-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#E4E7EA] p-4">
           <div>
             <h2 className="text-sm font-bold text-[#1A1F24]">{t('accountant.invoices.registerTitle')}</h2>
             <p className="mt-0.5 text-xs text-[#5A646D]">{t('accountant.invoices.registerHint')}</p>
           </div>
-          <div className="flex items-end gap-2">
-            <FormField label={t('accountant.invoices.statusFilterLabel')} htmlFor="invoices-status-filter">
+          <div className="flex items-end gap-2 w-full sm:w-auto">
+            <FormField label={t('accountant.invoices.statusFilterLabel')} htmlFor="invoices-status-filter" className="w-full sm:w-auto">
               <Select
                 id="invoices-status-filter"
                 value={status}
@@ -127,11 +127,11 @@ export function InvoicesTab() {
         </div>
 
         {applicationId && (
-          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#E4E7EA] bg-[#F8F9FA] px-4 py-2 text-xs">
-            <span className="text-[#5A646D]">
-              {t('accountant.invoices.filteredByApplication')}: <span className="font-mono text-[#1A1F24]">{applicationId}</span>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#E4E7EA] bg-[#F8F9FA] px-4 py-2 text-xs">
+            <span className="text-[#5A646D] break-words">
+              {t('accountant.invoices.filteredByApplication')}: <span className="font-mono text-[#1A1F24] break-all">{applicationId}</span>
             </span>
-            <Button size="sm" variant="outline" leftIcon={<RotateCcw className="h-3.5 w-3.5" />} onClick={clearApplicationFilter}>
+            <Button size="sm" variant="outline" className="w-full sm:w-auto" leftIcon={<RotateCcw className="h-3.5 w-3.5" />} onClick={clearApplicationFilter}>
               {t('accountant.invoices.clearFilter')}
             </Button>
           </div>
@@ -153,7 +153,7 @@ export function InvoicesTab() {
           </p>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="w-full min-w-[650px] text-sm whitespace-nowrap">
               <thead className="bg-[#F8F9FA] text-left text-xs font-bold uppercase tracking-wide text-[#5A646D]">
                 <tr>
                   <th className="px-4 py-3">{t('accountant.invoices.colNumber')}</th>
@@ -202,7 +202,7 @@ export function InvoicesTab() {
         )}
 
         {listQuery.data && listQuery.data.total > 0 && (
-          <div className="px-4 border-t border-[#E4E7EA]">
+          <div className="px-4 border-t border-[#E4E7EA] overflow-x-auto">
             <Pagination currentPage={page} totalPages={totalPages} onPageChange={setPage} totalRecords={listQuery.data.total} />
           </div>
         )}

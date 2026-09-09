@@ -71,13 +71,13 @@ function ReconciliationRegister({ canResolve }: { canResolve: boolean }) {
 
   return (
     <section className="rounded-2xl border border-[#E4E7EA] bg-white shadow-xs">
-      <div className="flex items-center justify-between gap-2 border-b border-[#E4E7EA] p-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#E4E7EA] p-4">
         <h2 className="text-sm font-bold text-[#1A1F24]">{t('accountant.discrepancies.title')}</h2>
-        <div className="flex gap-1">
-          <Button size="sm" variant={status === 'open' ? 'primary' : 'outline'} onClick={() => setStatus('open')}>
+        <div className="flex gap-1.5 w-full sm:w-auto">
+          <Button size="sm" className="flex-1 sm:flex-initial" variant={status === 'open' ? 'primary' : 'outline'} onClick={() => setStatus('open')}>
             {t('accountant.discrepancies.filterOpen')}
           </Button>
-          <Button size="sm" variant={status === 'resolved' ? 'primary' : 'outline'} onClick={() => setStatus('resolved')}>
+          <Button size="sm" className="flex-1 sm:flex-initial" variant={status === 'resolved' ? 'primary' : 'outline'} onClick={() => setStatus('resolved')}>
             {t('accountant.discrepancies.filterResolved')}
           </Button>
         </div>
@@ -93,7 +93,7 @@ function ReconciliationRegister({ canResolve }: { canResolve: boolean }) {
         <p className="p-4 text-sm text-[#5A646D]">{t('accountant.discrepancies.empty')}</p>
       ) : (
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+          <table className="w-full text-sm min-w-[750px] whitespace-nowrap">
             <thead className="bg-[#F8F9FA] text-left text-xs font-bold uppercase tracking-wide text-[#5A646D]">
               <tr>
                 <th className="px-4 py-3">{t('accountant.discrepancies.colInvoice')}</th>
@@ -301,10 +301,11 @@ function ManualConfirmationCheckPanel() {
         </div>
       )}
 
-      <div className="mt-3 flex flex-wrap gap-2">
+      <div className="mt-3 flex flex-col sm:flex-row gap-2">
         <Button
           variant="success"
           size="sm"
+          className="w-full sm:w-auto"
           leftIcon={<CheckCircle2 className="h-4 w-4" />}
           disabled={!confirmationId.trim()}
           isLoading={confirmMutation.isPending}
@@ -313,13 +314,14 @@ function ManualConfirmationCheckPanel() {
           {t('accountant.discrepancies.manualConfirmButton')}
         </Button>
         {!showReject ? (
-          <Button variant="danger" size="sm" leftIcon={<XCircle className="h-4 w-4" />} onClick={() => setShowReject(true)}>
+          <Button variant="danger" size="sm" className="w-full sm:w-auto" leftIcon={<XCircle className="h-4 w-4" />} onClick={() => setShowReject(true)}>
             {t('accountant.discrepancies.manualRejectButton')}
           </Button>
         ) : (
           <Button
             variant="danger"
             size="sm"
+            className="w-full sm:w-auto"
             leftIcon={<XCircle className="h-4 w-4" />}
             disabled={!confirmationId.trim() || !rejectReason.trim()}
             isLoading={rejectMutation.isPending}
@@ -370,7 +372,7 @@ function ManualConfirmationsPendingList({
 
   return (
     <div className="mb-4 overflow-x-auto rounded-xl border border-[#E4E7EA]">
-      <table className="w-full text-xs">
+      <table className="w-full text-xs min-w-[600px] whitespace-nowrap">
         <thead className="bg-[#F8F9FA] text-left font-bold uppercase tracking-wide text-[#5A646D]">
           <tr>
             <th className="px-3 py-2 text-right">{t('accountant.discrepancies.manualPendingColAmount')}</th>
@@ -395,7 +397,7 @@ function ManualConfirmationsPendingList({
                 </a>
               </td>
               <td className="px-3 py-2 text-right">
-                <div className="flex justify-end gap-1.5">
+                <div className="flex justify-end gap-1.5 whitespace-nowrap">
                   <Button
                     size="sm"
                     variant="success"

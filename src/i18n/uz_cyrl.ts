@@ -251,6 +251,65 @@ export const uz_cyrl = {
   'cabinet.notifications.filterAll': 'Барчаси',
   'cabinet.notifications.filterUnread': "Ўқилмаган",
   'cabinet.notifications.markRead': "Ўқилган деб белгилаш",
+
+  // Cabinet applications
+  'cabinet.applications.title': 'Менинг аризаларим',
+  'cabinet.applications.subtitle': 'Барча топширилган аризалар ва қораламалар рўйхати',
+  'cabinet.applications.newApp': 'Янги ариза топшириш',
+  'cabinet.applications.colNumber': 'Ариза рақами',
+  'cabinet.applications.colActivity': 'Фаолият тури',
+  'cabinet.applications.colPeriod': 'Давр',
+  'cabinet.applications.colStatus': 'Ҳолати',
+  'cabinet.applications.colCreatedAt': 'Яратилган',
+  'cabinet.applications.filterNumber': 'Ариза рақами',
+  'cabinet.applications.filterStatus': 'Ҳолати',
+  'cabinet.applications.filterActivity': 'Фаолият тури',
+  'cabinet.applications.all': 'Барчаси',
+  'cabinet.applications.draft': 'қоралама',
+  'cabinet.applications.open': 'Очиш →',
+  'cabinet.applications.emptyTitle': 'Ҳозирча аризалар йўқ',
+  'cabinet.applications.emptyDesc': 'Биринчи аризангизни топшириш учун юқоридаги тугмани босинг',
+
+  // Cabinet permits
+  'cabinet.permits.title': 'Менинг рухсатномаларим',
+  'cabinet.permits.subtitle': 'Сизга берилган электрон рухсатномалар рўйхати',
+  'cabinet.permits.status': 'Ҳолати',
+  'cabinet.permits.series': 'Серия',
+  'cabinet.permits.number': 'Рақами',
+  'cabinet.permits.organization': 'Ўрмон хўжалиги',
+  'cabinet.permits.all': 'Барчаси',
+  'cabinet.permits.reset': 'Тиклаш',
+  'cabinet.permits.apply': 'Қўллаш',
+  'cabinet.permits.loading': 'Юкланмоқда...',
+  'cabinet.permits.loadError': 'Рухсатномалар юкланмади.',
+  'cabinet.permits.notFoundFiltered': 'Фильтр бўйича рухсатнома топилмади.',
+  'cabinet.permits.empty': 'Ҳозирча рухсатномалар йўқ.',
+  'cabinet.permits.colPermitNo': 'Рухсатнома №',
+  'cabinet.permits.colStatus': 'Ҳолати',
+  'cabinet.permits.colActivity': 'Фаолият тури',
+  'cabinet.permits.colOrg': 'Ўрмон хўжалиги',
+  'cabinet.permits.colPeriod': 'Давр',
+  'cabinet.permits.colArea': 'Майдон, га',
+  'cabinet.permits.colAction': 'Амал',
+  'cabinet.permits.notFoundTitle': 'Рухсатнома топилмади',
+  'cabinet.permits.notFoundMsg': 'Бундай рухсатнома мавжуд эмас ёки сизга тегишли эмас.',
+  'cabinet.permits.pendingSigTitle': 'Барча имзолар ҳали қўйилмаган',
+  'cabinet.permits.pendingSigMsg': 'Рухсатнома ҳужжати шакллантирилган ва тўлов қабул қилинган, лекин у фақат тўртта имзонинг барчаси қўйилгач кучга киради.',
+
+  // Notifications aliases
+  'notifications.title': 'Билдиришномалар',
+  'notifications.empty': "Билдиришномалар ёқ",
+  'notifications.markAllRead': "Барчасини ўқилган деб белгилаш",
+  'notifications.markingAll': 'Бажарилмоқда…',
+  'notifications.filterAll': 'Барчаси',
+  'notifications.filterUnread': "Ўқилмаган",
+  'notifications.markRead': "Ўқилган деб белгилаш",
+
+  // Profile extra labels
+  'cabinet.profile.activeAccount': 'Фаол ҳисоб',
+  'cabinet.profile.passwordSubtitle': 'Ҳисобингиз хавфсизлигини таъминлаш учун янги ва мустаҳкам паролдан фойдаланинг',
+  'cabinet.profile.contactsSubtitle': 'Ҳисобингизга бириктирилган телефон ва электрон почта маълумотлари',
+
   // Track F3 — accountant's workspace (G1–G5), `src/pages/accountant/`.
   'accountant.common.loading': 'Юкланмоқда…',
   'accountant.common.copy': 'Нусхалаш',
@@ -1027,13 +1086,13 @@ export const uz_cyrl = {
   'permits.lifecycle.errUploadFailed': "Файл юкланмади.",
 
   // --- I1: the prosecutor's read-only registers with export ---------------
-  'prosecutor.exportCsv': "CСВ экспорт",
+  'prosecutor.exportCsv': "CSV экспорт",
   'prosecutor.exportTruncated':
-    "Diqqat: roʻyxat 2000 tadan koʻp yozuvni oʻz ichiga oladi — faqat birinchi 2000 tasi eksport qilindi. Aniqroq natija uchun filtrlarni toraytiring.",
+    "Диққат: рўйхат 2000 тадан кўп ёзувни ўз ичига олади — фақат биринчи 2000 таси экспорт қилинди. Аниқроқ натижа учун фильтрларни торайтиринг.",
 
   // --- J3: leadership dashboard --------------------------------------------
   'leadership.dash.loading': "Юкланмоқда...",
-  'leadership.dash.error': "Панел маʼлумотларини юклаб бўлмади.",
+  'leadership.dash.error': "Панел маълумотларини юклаб бўлмади.",
   'leadership.dash.filters.periodFrom': "Давр — дан",
   'leadership.dash.filters.periodTo': "Давр — гача",
   'leadership.dash.filters.region': "Вилоят",
@@ -1054,7 +1113,7 @@ export const uz_cyrl = {
   'leadership.dash.tile.payments.label': "Тўланган",
   'leadership.dash.tile.payments.noInvoices': "Давр учун ҳисоб-фактура чиқарилмаган",
   'leadership.dash.tile.payments.paidOfInvoiced': "ҳисоб-фактурадан тўланган",
-  'leadership.dash.tile.sla.label': "Ишдаги аризалар (СЛА)",
+  'leadership.dash.tile.sla.label': "Ишдаги аризалар (SLA)",
   'leadership.dash.tile.sla.hint': "Муддати ўтган",
   'leadership.dash.occupancy.title': "Контурларнинг ўртача бандлиги",
   'leadership.dash.occupancy.subtitle': "Контурлар бўйича:",
@@ -1077,9 +1136,9 @@ export const uz_cyrl = {
   'leadership.dash.territory.col.permits': "Рухсатномалар",
   'leadership.dash.territory.col.applicants': "Ариза берувчилар",
   'leadership.dash.omitted.inspections':
-    "Tekshiruvlar koʻrsatkichi mavjud emas — «Inspeksiyalar» moduli hali ulanmagan.",
+    "Текширувлар кўрсаткичи мавжуд эмас — «Инспекциялар» модули ҳали уланмаган.",
   'leadership.dash.omitted.violations':
-    "Buzilishlar koʻrsatkichi mavjud emas — «Inspeksiyalar» moduli hali ulanmagan.",
+    "Бузилишлар кўрсаткичи мавжуд эмас — «Инспекциялар» модули ҳали уланмаган.",
 
   // --- KpiOut.inspections — real data now (F19), shared by every KPI dashboard ---
   'dashboard.inspections.tileLabel': "Текширувлар",
@@ -1259,6 +1318,13 @@ export const uz_cyrl = {
   'support.appeals.answerSubmit': 'Жавобни юбориш',
   'support.appeals.actionFailed': 'Амални бажариб бўлмади.',
   'support.appeals.terminalNotice': 'Мурожаат ёпилган.',
+  'support.contact.title': 'Боғланиш маълумотлари',
+  'support.contact.phoneTitle': 'Ягона алоқа маркази',
+  'support.contact.phoneHours': 'Душ - Жума: 09:00 - 18:00',
+  'support.contact.emailTitle': 'Электрон почта',
+  'support.contact.emailHint': 'Савол ва мурожаатлар учун',
+  'support.contact.telegramTitle': 'Telegram орқали ёрдам',
+  'support.contact.telegramHint': 'Тезкор онлайн жавоблар',
   // reports.* — J2 (stage 6.7, track 2)
   'reports.title': 'Ҳисоботлар',
   'reports.tab.reports': 'Ҳисоботлар',
@@ -1380,6 +1446,11 @@ export const uz_cyrl = {
   'reports.detail.returnedNote': 'Ҳисобот қайта ишлашга қайтарилган',
   'reports.detail.returnedByHead': 'Ўрмон хўжалиги раҳбари қайтарди',
   'reports.detail.returnedByCenter': 'Марказий аппарат қайтарди',
+  'reports.detail.historyTitle': 'Тарих ва аудит',
+  'reports.detail.historyCreated': 'Яратилган',
+  'reports.detail.historySubmitted': 'Юборилган',
+  'reports.detail.historyApproved': 'Тасдиқланган',
+  'reports.detail.historyUpdated': 'Охирги янгиланиш',
   'reports.data.panelTitle': 'Ҳисобот маʼлумотлари',
   'reports.data.generateButton': 'Маʼлумотларни шакллантириш',
   'reports.data.generateHint': 'Давр учун берилган рухсатномалар ва ҳисоб-фактуралар асосида қаторларни тўлдиради',
@@ -1399,6 +1470,7 @@ export const uz_cyrl = {
   'reports.lifecycle.violation.paid_exceeds_total': 'Тўланган сумма ҳисобланган суммадан кўп',
   'reports.lifecycle.violation.period_reversed': 'Давр тугаши бошланишидан олдин',
   'reports.lifecycle.violation.generic': 'Қатор текширувида хатолик',
+  'reports.lifecycle.violationRow': 'Қатор',
   'reports.lifecycle.signButton': 'Имзолаш (ЭРИ)',
   'reports.lifecycle.signModalTitle': 'Ҳисоботни имзолаш',
   'reports.lifecycle.signHint': 'Ўрмон хўжалиги раҳбарининг ЭРИ билан имзоланади — бу муҳитда моcк имзо ишлатилади',

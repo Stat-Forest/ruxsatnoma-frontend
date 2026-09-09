@@ -83,24 +83,73 @@ const SIG_I18N = {
   },
 };
 
+const SIGN_ERROR_I18N = {
+  uz_latn: {
+    wrong_organization: 'Siz boshqa tashkilot xodimisiz — bu ruxsatnomani imzolay olmaysiz.',
+    not_the_holder: 'Siz ushbu ruxsatnoma egasi (arizachisi) emassiz.',
+    no_permission: 'Sizda ushbu qatorni imzolash huquqi yoʻq — rol yoki PINFL/STIR mos kelmadi.',
+    not_required: 'Bu turdagi imzo hozircha talab qilinmaydi.',
+    already_signed: 'Bu qator allaqachon imzolangan.',
+    cert_conflict: 'Sertifikat holati ziddiyatli — qaytadan urining.',
+    not_pending: 'Ruxsatnoma endi imzo kutish holatida emas.',
+  },
+  uz_cyrl: {
+    wrong_organization: 'Сиз бошқа ташкилот ходимисиз — бу рухсатномани имзолай олмайсиз.',
+    not_the_holder: 'Сиз ушбу рухсатнома эгаси (аризачиси) эмассиз.',
+    no_permission: 'Сизда ушбу қаторни имзолаш ҳуқуқи йўқ — роль ёки ЖШШИР/СТИР мос келмади.',
+    not_required: 'Бу турдаги имзо ҳозирча талаб қилинмайди.',
+    already_signed: 'Бу қатор аллақачон имзоланган.',
+    cert_conflict: 'Сертификат ҳолати зиддиятли — қайтадан урининг.',
+    not_pending: 'Рухсатнома энди имзо кутиш ҳолатида эмас.',
+  },
+  ru: {
+    wrong_organization: 'Вы сотрудник другой организации — вы не можете подписать это разрешение.',
+    not_the_holder: 'Вы не являетесь владельцем (заявителем) этого разрешения.',
+    no_permission: 'У вас нет права подписывать эту строку — роль или ПИНФЛ/ИНН не совпали.',
+    not_required: 'Этот тип подписи пока не требуется.',
+    already_signed: 'Эта строка уже подписана.',
+    cert_conflict: 'Конфликт статуса сертификата — попробуйте снова.',
+    not_pending: 'Разрешение больше не ожидает подписания.',
+  },
+  en: {
+    wrong_organization: 'You are an employee of another organization — you cannot sign this permit.',
+    not_the_holder: 'You are not the holder (applicant) of this permit.',
+    no_permission: 'You do not have permission to sign this row — role or PINFL/TIN mismatch.',
+    not_required: 'This signature type is not currently required.',
+    already_signed: 'This row is already signed.',
+    cert_conflict: 'Conflicting certificate status — please try again.',
+    not_pending: 'Permit is no longer in pending signature status.',
+  },
+  kaa: {
+    wrong_organization: 'Siz basqa shólkem xızmetkerisiz — bul ruxsatnamanı qol qoya almaysız.',
+    not_the_holder: 'Siz bul ruxsatnama iyesi (arzashısı) emessiz.',
+    no_permission: 'Sizde bul qatardı qol qoyıw huqıqı joq — rol yamasa JShShIR/STIR sáykes kelmedi.',
+    not_required: 'Bul túrdegi qol qoyıw házirshe talap etilmeydi.',
+    already_signed: 'Bul qatar álleqashan qol qoyılǵan.',
+    cert_conflict: 'Sertifikat jaǵdayı qarama-qarsı — qaytadan urınıń.',
+    not_pending: 'Ruxsatnama endi qol qoyıw kútiliwinde emes.',
+  },
+};
+
 /** Every error `POST /permits/{id}/signatures` (and `sign()` underneath it)
  *  documents, turned into copy a signer can act on. Falls back to the raw
  *  message for anything this list does not name. */
-function signErrorMessage(err: ApiError): string {
+function signErrorMessage(err: ApiError, lang: string): string {
+  const t = SIGN_ERROR_I18N[lang as keyof typeof SIGN_ERROR_I18N] || SIGN_ERROR_I18N.uz_latn;
   const reason = (err.details as { reason?: string } | undefined)?.reason;
   if (err.code === 'ERR-ACL-001') {
     if (reason === 'wrong_organization') {
-      return "Siz boshqa tashkilot xodimisiz — bu ruxsatnomani imzolay olmaysiz.";
+      return t.wrong_organization;
     }
     if (reason === 'not_the_holder') {
-      return "Siz ushbu ruxsatnoma egasi (arizachisi) emassiz.";
+      return t.not_the_holder;
     }
-    return "Sizda ushbu qatorni imzolash huquqi yoʻq — rol yoki PINFL/STIR mos kelmadi.";
+    return t.no_permission;
   }
-  if (err.code === 'ERR-SIGN-001') return "Bu turdagi imzo hozircha talab qilinmaydi.";
-  if (err.code === 'ERR-SIGN-002') return "Bu qator allaqachon imzolangan.";
-  if (err.code === 'ERR-SIGN-004') return "Sertifikat holati ziddiyatli — qaytadan urining.";
-  if (err.code === 'ERR-PERM-001') return "Ruxsatnoma endi imzo kutish holatida emas.";
+  if (err.code === 'ERR-SIGN-001') return t.not_required;
+  if (err.code === 'ERR-SIGN-002') return t.already_signed;
+  if (err.code === 'ERR-SIGN-004') return t.cert_conflict;
+  if (err.code === 'ERR-PERM-001') return t.not_pending;
   return err.message;
 }
 
@@ -146,7 +195,7 @@ function SignatureSlot({
     onSuccess: () => onSigned(),
     onError: (err: unknown) => {
       const apiErr = toApiError(err);
-      setFormError(signErrorMessage(apiErr));
+      setFormError(signErrorMessage(apiErr, lang));
       if (apiErr.code === 'ERR-SIGN-002') onSigned();
     },
   });

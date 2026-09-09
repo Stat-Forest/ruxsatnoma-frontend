@@ -135,13 +135,13 @@ export function FaqReaderTab() {
 function FaqItem({ item, lang }: { item: FaqOut; lang: string }) {
   return (
     <details
-      className="rounded-xl border border-[#E4E7EA] bg-white p-4 open:shadow-xs"
+      className="rounded-xl border border-[#E4E7EA] bg-white p-4 open:shadow-xs break-words"
       data-testid={`faq-item-${item.id}`}
     >
-      <summary className="cursor-pointer text-sm font-semibold text-[#1A1F24] marker:content-none">
+      <summary className="cursor-pointer text-sm font-semibold text-[#1A1F24] marker:content-none break-words">
         {pickName(item.question, lang)}
       </summary>
-      <p className="mt-3 whitespace-pre-wrap text-sm leading-relaxed text-[#5A646D]">
+      <p className="mt-3 whitespace-pre-wrap text-sm leading-relaxed text-[#5A646D] break-words">
         {pickName(item.answer, lang)}
       </p>
     </details>

@@ -123,7 +123,7 @@ export function MyPermitPage() {
   const isPendingSignatures = permit.status === 'pending_signatures';
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6 font-sans pb-16">
+    <div className="max-w-4xl mx-auto space-y-4 sm:space-y-6 font-sans pb-16">
       <div className="flex items-center gap-2 border-b border-[#E4E7EA] pb-3">
         <Button
           variant="ghost"
@@ -143,7 +143,7 @@ export function MyPermitPage() {
       </div>
 
       <div className="border-b border-[#E4E7EA] pb-4">
-        <h1 className="text-2xl font-extrabold text-[#1A1F24] tracking-tight">
+        <h1 className="text-xl sm:text-2xl font-extrabold text-[#1A1F24] tracking-tight break-all sm:break-normal">
           {t.permit} {formatPermitNumber(permit.series, permit.number)}
         </h1>
       </div>

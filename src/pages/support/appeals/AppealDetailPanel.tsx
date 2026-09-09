@@ -83,7 +83,7 @@ function AppealDetail({ appeal }: { appeal: AppealAdminOut }) {
   return (
     <div className="space-y-5" data-testid={`appeal-detail-${appeal.id}`}>
       <div>
-        <p className="text-sm font-semibold text-[#1A1F24]">{appeal.applicant_name}</p>
+        <p className="break-words text-sm font-semibold text-[#1A1F24]">{appeal.applicant_name}</p>
         <p className="mt-1 text-xs text-[#5A646D]">{t(STATUS_LABEL_KEY[status] ?? status)}</p>
       </div>
 
@@ -91,13 +91,13 @@ function AppealDetail({ appeal }: { appeal: AppealAdminOut }) {
         <div className="space-y-1 rounded-xl border border-[#E4E7EA] bg-[#F8F9FA] p-3 text-sm" data-testid="appeal-contact">
           <h3 className="text-xs font-bold uppercase tracking-wider text-[#5A646D]">{t('support.appeals.detailContact')}</h3>
           {contact.phone && (
-            <p>
+            <p className="break-words">
               <span className="text-[#5A646D]">{t('support.appeals.contactPhone')}: </span>
               {contact.phone}
             </p>
           )}
           {contact.email && (
-            <p>
+            <p className="break-words">
               <span className="text-[#5A646D]">{t('support.appeals.contactEmail')}: </span>
               {contact.email}
             </p>
@@ -107,18 +107,18 @@ function AppealDetail({ appeal }: { appeal: AppealAdminOut }) {
 
       <div>
         <h3 className="text-xs font-bold uppercase tracking-wider text-[#5A646D]">{t('support.appeals.detailSubject')}</h3>
-        <p className="mt-1 text-sm font-semibold text-[#1A1F24]">{appeal.subject}</p>
+        <p className="mt-1 break-words text-sm font-semibold text-[#1A1F24]">{appeal.subject}</p>
       </div>
 
       <div>
         <h3 className="text-xs font-bold uppercase tracking-wider text-[#5A646D]">{t('support.appeals.detailBody')}</h3>
-        <p className="mt-1 whitespace-pre-wrap text-sm text-[#1A1F24]">{appeal.body}</p>
+        <p className="mt-1 break-words whitespace-pre-wrap text-sm text-[#1A1F24]">{appeal.body}</p>
       </div>
 
       {appeal.answer_text && (
         <div className="rounded-xl border border-[#2E7D4F]/30 bg-[#F0F7F1] p-3" data-testid="appeal-answer">
           <h3 className="text-xs font-bold uppercase tracking-wider text-[#5A646D]">{t('support.appeals.detailAnswer')}</h3>
-          <p className="mt-1 whitespace-pre-wrap text-sm text-[#1A1F24]">{appeal.answer_text}</p>
+          <p className="mt-1 break-words whitespace-pre-wrap text-sm text-[#1A1F24]">{appeal.answer_text}</p>
           {appeal.answered_at && (
             <p className="mt-2 text-xs text-[#5A646D]">
               {t('support.appeals.answeredAt')}: {formatDateTime(appeal.answered_at)}
@@ -137,18 +137,18 @@ function AppealDetail({ appeal }: { appeal: AppealAdminOut }) {
         <Alert variant="info">{t('support.appeals.terminalNotice')}</Alert>
       ) : (
         <div className="space-y-3">
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
             {status === 'new' && (
-              <Button variant="secondary" size="sm" isLoading={advance.isPending} onClick={() => advance.mutate('in_progress')}>
+              <Button variant="secondary" size="sm" isLoading={advance.isPending} onClick={() => advance.mutate('in_progress')} className="w-full sm:w-auto">
                 {t('support.appeals.actionTakeInProgress')}
               </Button>
             )}
             {(status === 'new' || status === 'in_progress') && !answering && (
-              <Button variant="primary" size="sm" onClick={() => setAnswering(true)}>
+              <Button variant="primary" size="sm" onClick={() => setAnswering(true)} className="w-full sm:w-auto">
                 {t('support.appeals.actionAnswer')}
               </Button>
             )}
-            <Button variant="danger" size="sm" isLoading={advance.isPending} onClick={() => advance.mutate('closed')}>
+            <Button variant="danger" size="sm" isLoading={advance.isPending} onClick={() => advance.mutate('closed')} className="w-full sm:w-auto">
               {t('support.appeals.actionClose')}
             </Button>
           </div>
@@ -162,7 +162,7 @@ function AppealDetail({ appeal }: { appeal: AppealAdminOut }) {
                 onChange={(e) => setAnswerText(e.target.value)}
                 maxLength={5000}
               />
-              <Button variant="primary" size="sm" isLoading={answer.isPending} onClick={submitAnswer}>
+              <Button variant="primary" size="sm" isLoading={answer.isPending} onClick={submitAnswer} className="w-full sm:w-auto">
                 {t('support.appeals.answerSubmit')}
               </Button>
             </div>

@@ -90,10 +90,11 @@ function RefundsRegister({ canFile, canApprove }: { canFile: boolean; canApprove
   return (
     <>
       <section className="rounded-2xl border border-[#E4E7EA] bg-white shadow-xs">
-        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#E4E7EA] p-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#E4E7EA] p-4">
           <h2 className="text-sm font-bold text-[#1A1F24]">{t('accountant.refunds.title')}</h2>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
             <Select
+              className="w-full sm:w-auto"
               value={status}
               onChange={(e) => setStatus(e.target.value as StatusFilter)}
               options={[
@@ -105,7 +106,7 @@ function RefundsRegister({ canFile, canApprove }: { canFile: boolean; canApprove
               ]}
             />
             {canFile && (
-              <Button size="sm" leftIcon={<Plus className="h-4 w-4" />} onClick={() => setNewRequestOpen(true)}>
+              <Button size="sm" className="w-full sm:w-auto" leftIcon={<Plus className="h-4 w-4" />} onClick={() => setNewRequestOpen(true)}>
                 {t('accountant.refunds.newRequest')}
               </Button>
             )}
@@ -122,7 +123,7 @@ function RefundsRegister({ canFile, canApprove }: { canFile: boolean; canApprove
           <p className="p-4 text-sm text-[#5A646D]">{t('accountant.refunds.empty')}</p>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="w-full text-sm min-w-[700px] whitespace-nowrap">
               <thead className="bg-[#F8F9FA] text-left text-xs font-bold uppercase tracking-wide text-[#5A646D]">
                 <tr>
                   <th className="px-4 py-3">{t('accountant.refunds.colApplication')}</th>
@@ -235,10 +236,11 @@ function ApproveByIdPanel() {
         </div>
       )}
 
-      <div className="mt-3 flex flex-wrap gap-2">
+      <div className="mt-3 flex flex-col sm:flex-row gap-2">
         <Button
           variant="danger"
           size="sm"
+          className="w-full sm:w-auto"
           disabled={!refundId.trim()}
           isLoading={mutation.isPending && mutation.variables?.resolution === 'rejected'}
           onClick={() => mutation.mutate({ id: refundId.trim(), resolution: 'rejected', comment: comment.trim() || null })}
@@ -248,6 +250,7 @@ function ApproveByIdPanel() {
         <Button
           variant="success"
           size="sm"
+          className="w-full sm:w-auto"
           disabled={!refundId.trim()}
           isLoading={mutation.isPending && mutation.variables?.resolution === 'returned'}
           onClick={() => mutation.mutate({ id: refundId.trim(), resolution: 'returned', comment: comment.trim() || null })}

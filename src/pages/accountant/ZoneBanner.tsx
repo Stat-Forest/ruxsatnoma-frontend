@@ -35,7 +35,7 @@ export function ZoneBanner() {
     return (
       <div
         data-testid="zone-banner-republic"
-        className="flex items-start gap-2.5 rounded-xl border border-[#FDE68A] bg-[#FFFBEB] p-3 text-xs text-[#92400E]"
+        className="flex items-start gap-2.5 rounded-xl border border-[#FDE68A] bg-[#FFFBEB] p-3 text-xs text-[#92400E] leading-relaxed break-words"
       >
         <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
         <span>{t('accountant.zone.republicWarning')}</span>
@@ -56,11 +56,11 @@ export function ZoneBanner() {
   return (
     <div
       data-testid="zone-banner-scoped"
-      className="flex items-center gap-2 rounded-xl border border-[#E4E7EA] bg-[#F8F9FA] p-3 text-xs text-[#1A1F24]"
+      className="flex flex-wrap sm:flex-nowrap items-center gap-2 rounded-xl border border-[#E4E7EA] bg-[#F8F9FA] p-3 text-xs text-[#1A1F24] leading-relaxed"
     >
       <MapPin className="h-4 w-4 shrink-0 text-[#5A646D]" />
-      <span className="font-semibold text-[#5A646D]">{t('accountant.zone.label')}</span>
-      <span className="font-semibold">{label ?? t('accountant.common.loading')}</span>
+      <span className="font-semibold text-[#5A646D] shrink-0">{t('accountant.zone.label')}</span>
+      <span className="font-semibold break-words">{label ?? t('accountant.common.loading')}</span>
     </div>
   );
 }

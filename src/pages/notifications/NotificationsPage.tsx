@@ -42,7 +42,7 @@ export function NotificationsPage() {
 
   return (
     <div className="max-w-2xl space-y-4 pb-8">
-      <div className="flex items-center justify-between gap-3">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <h1 className="text-lg font-bold text-[#1A1F24]">{t('cabinet.notifications.title')}</h1>
         <Button
           type="button"
@@ -52,6 +52,7 @@ export function NotificationsPage() {
           disabled={markAllRead.isPending}
           isLoading={markAllRead.isPending}
           onClick={() => markAllRead.mutate()}
+          className="w-full sm:w-auto justify-center"
         >
           {markAllRead.isPending ? t('cabinet.notifications.markingAll') : t('cabinet.notifications.markAllRead')}
         </Button>
@@ -82,11 +83,20 @@ export function NotificationsPage() {
             <li
               key={n.id}
               data-testid={`notification-${n.id}`}
-              className={`p-4 flex items-start justify-between gap-3 ${n.read_at ? '' : 'bg-[#F0F7F1]'}`}
+              className={`p-3.5 sm:p-4 flex flex-col sm:flex-row sm:items-start justify-between gap-3 transition-colors ${
+                n.read_at ? '' : 'bg-[#F0F7F1] border-l-4 border-l-[#2E7D4F]'
+              }`}
             >
-              <div className="min-w-0">
-                {n.subject && <p className="text-sm font-semibold text-[#1A1F24]">{n.subject}</p>}
-                <p className="text-sm text-[#1A1F24]">{n.text}</p>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2 mb-1 flex-wrap">
+                  {n.subject && <p className="text-sm font-semibold text-[#1A1F24]">{n.subject}</p>}
+                  {!n.read_at && (
+                    <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[11px] font-medium bg-[#DCFCE7] text-[#15803D]">
+                      {t('cabinet.notifications.filterUnread')}
+                    </span>
+                  )}
+                </div>
+                <p className="text-sm text-[#1A1F24] break-words">{n.text}</p>
                 <p className="text-xs text-[#5A646D] mt-1">{formatDateTime(n.created_at)}</p>
               </div>
               {!n.read_at && (
@@ -97,7 +107,7 @@ export function NotificationsPage() {
                   data-testid={`mark-read-${n.id}`}
                   disabled={markRead.isPending}
                   onClick={() => markRead.mutate(n.id)}
-                  className="shrink-0"
+                  className="shrink-0 self-end sm:self-auto w-full sm:w-auto justify-center"
                 >
                   {t('cabinet.notifications.markRead')}
                 </Button>

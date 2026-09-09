@@ -98,6 +98,7 @@ export interface DrawerProps {
   children: React.ReactNode;
   footer?: React.ReactNode;
   position?: 'left' | 'right';
+  className?: string;
 }
 
 export const Drawer: React.FC<DrawerProps> = ({
@@ -107,6 +108,7 @@ export const Drawer: React.FC<DrawerProps> = ({
   children,
   footer,
   position = 'right',
+  className = 'w-full max-w-md',
 }) => {
   useEffect(() => {
     if (isOpen) {
@@ -126,7 +128,7 @@ export const Drawer: React.FC<DrawerProps> = ({
       <div className="fixed inset-0 bg-black/40 transition-opacity" onClick={onClose} />
 
       <div
-        className={`fixed top-0 bottom-0 ${posClass} w-full max-w-md bg-white shadow-2xl z-10 flex flex-col border-l border-[#E4E7EA] animate-in slide-in-from-right duration-300`}
+        className={`fixed top-0 bottom-0 ${posClass} ${className} bg-white shadow-2xl z-10 flex flex-col border-l border-[#E4E7EA] animate-in slide-in-from-right duration-300`}
       >
         <div className="flex items-center justify-between p-4 border-b border-[#E4E7EA]">
           <h3 className="font-semibold text-base text-[#1A1F24]">{title}</h3>

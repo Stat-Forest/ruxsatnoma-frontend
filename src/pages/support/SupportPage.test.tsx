@@ -127,3 +127,12 @@ test('clicking a tab actually swaps the rendered body', async () => {
   expect(await screen.findByRole('button', { name: 'Новое обращение' })).toBeInTheDocument();
   expect(screen.queryByText('Часто задаваемые вопросы')).not.toBeInTheDocument();
 });
+
+test('renders support contact cards with phone, email, and telegram', () => {
+  renderPage([]);
+  expect(screen.getByTestId('support-contact-cards')).toBeInTheDocument();
+  expect(screen.getByText('+998 71 200 11 00')).toBeInTheDocument();
+  expect(screen.getByText('support@ruxsatnoma.uz')).toBeInTheDocument();
+  expect(screen.getByText('@ruxsatnoma_support')).toBeInTheDocument();
+});
+

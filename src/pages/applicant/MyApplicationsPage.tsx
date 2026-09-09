@@ -1,10 +1,11 @@
 import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router';
-import { Plus, Search } from 'lucide-react';
+import { Inbox, Loader2, Plus, Search } from 'lucide-react';
 import { Button } from '../../components/ui/button';
 import { FormField, Input, Select } from '../../components/ui/FormControls';
 import { DataTable, type Column } from '../../components/ui/DataTable';
+import { Pagination } from '../../components/ui/Navigation';
 import { StatusBadge } from '../../components/ui/StatusBadge';
 import { listActivityTypes, listApplications, type ApplicationOut, type ApplicationStatus } from './api';
 import { formatDate } from './format';
@@ -32,6 +33,7 @@ const MY_APPS_I18N = {
     open: 'Ochish →',
     emptyTitle: 'Hozircha arizalar yoʻq',
     emptyDesc: 'Birinchi arizangizni topshirish uchun yuqoridagi tugmani bosing',
+    loading: 'Yuklanmoqda...',
   },
   uz_cyrl: {
     title: 'Менинг аризаларим',
@@ -50,6 +52,7 @@ const MY_APPS_I18N = {
     open: 'Очиш →',
     emptyTitle: 'Ҳозирча аризалар йўқ',
     emptyDesc: 'Биринчи аризангизни топшириш учун юқоридаги тугмани босинг',
+    loading: 'Юкланмоқда...',
   },
   ru: {
     title: 'Мои заявки',
@@ -68,6 +71,7 @@ const MY_APPS_I18N = {
     open: 'Открыть →',
     emptyTitle: 'Заявок пока нет',
     emptyDesc: 'Нажмите кнопку выше, чтобы подать первую заявку',
+    loading: 'Загрузка...',
   },
   en: {
     title: 'My applications',
@@ -86,6 +90,7 @@ const MY_APPS_I18N = {
     open: 'Open →',
     emptyTitle: 'No applications yet',
     emptyDesc: 'Click the button above to submit your first application',
+    loading: 'Loading...',
   },
   kaa: {
     title: 'Meniń arzalarım',
@@ -104,6 +109,7 @@ const MY_APPS_I18N = {
     open: 'Ashıw →',
     emptyTitle: 'Házirshe arzalar joq',
     emptyDesc: 'Dáslepki arzańızdı tapsırıw ushın joqarıdaǵı túymeni basıń',
+    loading: 'Júklenbekte...',
   },
 };
 
@@ -187,24 +193,24 @@ export function MyApplicationsPage() {
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
   return (
-    <div className="max-w-6xl mx-auto space-y-6 font-sans pb-16">
-      <div className="flex flex-wrap items-center justify-between gap-4 border-b border-[#E4E7EA] pb-4">
+    <div className="max-w-6xl mx-auto space-y-4 sm:space-y-6 font-sans pb-16">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 border-b border-[#E4E7EA] pb-4">
         <div>
-          <h1 className="text-2xl font-extrabold text-[#1A1F24] tracking-tight">{t.title}</h1>
-          <p className="text-sm text-[#5A646D] mt-1">{t.subtitle}</p>
+          <h1 className="text-xl sm:text-2xl font-extrabold text-[#1A1F24] tracking-tight">{t.title}</h1>
+          <p className="text-xs sm:text-sm text-[#5A646D] mt-1">{t.subtitle}</p>
         </div>
         <Button
           variant="primary"
           size="md"
-          leftIcon={<Plus className="w-4 h-4" />}
+          leftIcon={<Plus className="w-4 h-4 shrink-0" />}
           onClick={() => navigate('/my/applications/new')}
-          className="font-bold cursor-pointer"
+          className="font-bold cursor-pointer w-full sm:w-auto shrink-0 justify-center"
         >
           {t.newApp}
         </Button>
       </div>
 
-      <div className="bg-white border border-[#E4E7EA] rounded-2xl p-4 shadow-xs grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="bg-white border border-[#E4E7EA] rounded-2xl p-4 shadow-xs grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
         <FormField label={t.filterNumber} htmlFor="filter-number">
           <Input
             id="filter-number"
@@ -244,14 +250,84 @@ export function MyApplicationsPage() {
         </FormField>
       </div>
 
-      <DataTable
-        columns={columns}
-        data={applicationsQuery.data?.items ?? []}
-        isLoading={applicationsQuery.isLoading}
-        emptyTitle={t.emptyTitle}
-        emptyDescription={t.emptyDesc}
-        pagination={{ currentPage: page, totalPages, onPageChange: setPage, totalRecords: total }}
-      />
+      {/* Mobile card view (< md) */}
+      <div className="md:hidden space-y-3">
+        {applicationsQuery.isLoading ? (
+          <div className="bg-white border border-[#E4E7EA] rounded-2xl p-8 text-center text-sm text-[#5A646D]">
+            <Loader2 className="w-5 h-5 animate-spin inline-block mr-2 text-[#2E7D4F]" />
+            <span>{t.loading}</span>
+          </div>
+        ) : (applicationsQuery.data?.items ?? []).length === 0 ? (
+          <div className="bg-white border border-[#E4E7EA] rounded-2xl p-8 text-center space-y-2">
+            <Inbox className="w-8 h-8 text-[#9AA3AB] mx-auto" />
+            <h3 className="font-semibold text-sm text-[#1A1F24]">{t.emptyTitle}</h3>
+            <p className="text-xs text-[#5A646D]">{t.emptyDesc}</p>
+          </div>
+        ) : (
+          applicationsQuery.data!.items.map((row) => (
+            <div
+              key={row.id}
+              onClick={() => navigate(`/my/applications/${row.id}`)}
+              className="bg-white border border-[#E4E7EA] rounded-2xl p-4 shadow-xs hover:border-[#2E7D4F] transition-all cursor-pointer space-y-2.5"
+            >
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0 flex-1">
+                  <span className="font-mono font-bold text-sm text-[#1A1F24] block break-all">
+                    {row.number ?? `${t.draft} (${row.id.slice(0, 8)})`}
+                  </span>
+                  <span className="text-xs text-[#5A646D] mt-0.5 block break-words">
+                    {row.activity_type_id ? activityTypeById.get(row.activity_type_id) ?? '—' : '—'}
+                  </span>
+                </div>
+                <div className="shrink-0">
+                  <StatusBadge
+                    status={STATUS_BADGE_KIND[row.status]}
+                    label={getStatusLabel(row.status, lang)}
+                    size="sm"
+                  />
+                </div>
+              </div>
+
+              <div className="pt-2 border-t border-[#F1F3F5] grid grid-cols-1 gap-1 text-xs text-[#5A646D]">
+                <div className="flex items-center justify-between gap-2">
+                  <span>{t.colPeriod}:</span>
+                  <span className="font-medium text-[#1A1F24] text-right">
+                    {row.period_from && row.period_to ? `${formatDate(row.period_from)} — ${formatDate(row.period_to)}` : '—'}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between gap-2">
+                  <span>{t.colCreatedAt}:</span>
+                  <span className="font-medium text-[#1A1F24] text-right">{formatDate(row.created_at)}</span>
+                </div>
+              </div>
+
+              <div className="pt-1.5 flex justify-end border-t border-[#F1F3F5]">
+                <span className="text-xs font-bold text-[#2E7D4F] hover:underline">
+                  {t.open}
+                </span>
+              </div>
+            </div>
+          ))
+        )}
+
+        {total > 0 && (
+          <div className="bg-white border border-[#E4E7EA] rounded-2xl px-4 py-2">
+            <Pagination currentPage={page} totalPages={totalPages} onPageChange={setPage} totalRecords={total} />
+          </div>
+        )}
+      </div>
+
+      {/* Desktop table view (>= md) */}
+      <div className="hidden md:block">
+        <DataTable
+          columns={columns}
+          data={applicationsQuery.data?.items ?? []}
+          isLoading={applicationsQuery.isLoading}
+          emptyTitle={t.emptyTitle}
+          emptyDescription={t.emptyDesc}
+          pagination={{ currentPage: page, totalPages, onPageChange: setPage, totalRecords: total }}
+        />
+      </div>
     </div>
   );
 }

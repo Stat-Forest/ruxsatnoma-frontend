@@ -52,14 +52,14 @@ export function TicketFormModal({ onClose, onCreated }: TicketFormModalProps) {
       onClose={onClose}
       title={t('support.tickets.newTicket')}
       footer={
-        <>
-          <Button variant="outline" size="sm" onClick={onClose}>
+        <div className="flex w-full flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+          <Button variant="outline" size="sm" onClick={onClose} className="w-full sm:w-auto">
             {t('support.common.cancel')}
           </Button>
-          <Button variant="primary" size="sm" onClick={submit} isLoading={create.isPending}>
+          <Button variant="primary" size="sm" onClick={submit} isLoading={create.isPending} className="w-full sm:w-auto">
             {t('support.tickets.formSubmit')}
           </Button>
-        </>
+        </div>
       }
     >
       <div className="space-y-4">

@@ -128,10 +128,10 @@ export function StaffDashboardPage() {
   });
 
   return (
-    <div className="space-y-5 pb-8">
+    <div className="space-y-4 sm:space-y-5 pb-8">
       <KpiFilters initial={appliedFilters} onApply={setAppliedFilters} t={t} lang={lang} />
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-4">
         <KpiTile
           testId="tile-permits"
           label={t('leadership.dash.tile.permits.label')}
@@ -176,7 +176,7 @@ export function StaffDashboardPage() {
         />
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-5">
         <DashboardCard
           title={t('leadership.dash.occupancy.title')}
           subtitle={`${t('leadership.dash.occupancy.subtitle')} ${data.occupancy.contour_count}`}
@@ -190,7 +190,7 @@ export function StaffDashboardPage() {
         </DashboardCard>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-5">
         <RejectionsCard rows={rejectionRows} t={t} />
         <RiskIndicatorsCard
           byCode={data.risk_indicators.by_code}
