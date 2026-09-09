@@ -1,14 +1,16 @@
-import { useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useNavigate, useSearchParams } from 'react-router';
+import { useBlocker, useNavigate, useSearchParams, type BlockerFunction } from 'react-router';
 import { ArrowLeft, ArrowRight, Loader2, Plus, ShieldCheck, Trash2, Upload } from 'lucide-react';
 import { Button } from '../../../components/ui/button';
 import { FormField, Input, Select } from '../../../components/ui/FormControls';
 import { Alert } from '../../../components/ui/Feedback';
 import { Stepper } from '../../../components/ui/Navigation';
+import { Modal } from '../../../components/ui/Overlay';
 import { ApiError } from '../../../api/errors';
 import { saveApplicantAddress } from '../../../api/address';
 import { useAuth } from '../../../auth/useAuth';
+import type { UiLanguage } from '../../../i18n/context';
 import { useApiErrorText } from '../../../i18n/useApiErrorText';
 import { useLanguage, useT } from '../../../i18n/useT';
 import {
@@ -44,6 +46,98 @@ import {
 
 const GRAZING_CODE = 'grazing';
 
+// Mirrors the backend's own ceiling (`backend/app/modules/norms/checks.py`,
+// `MAX_PERIOD_DAYS = 5 * 366`) so a reversed or overlong period is named IN
+// THE FIELD before the request ever reaches the server — decision #177's
+// own worked example is exactly this miss: `ERR-VAL-001` with
+// `details.reason = "period_reversed"` reached the applicant as the
+// generic "data failed validation" sentence, because this screen dropped
+// `details` for that code entirely.
+const MAX_PERIOD_DAYS = 5 * 366;
+
+/** `iso` + `days` calendar days, in UTC so a local-timezone DST shift can
+ *  never shave a day off the span — the same reason `date-only` values are
+ *  compared as UTC midnight everywhere else this ceiling is enforced. */
+function addIsoDays(iso: string, days: number): string {
+  const d = new Date(`${iso}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + days);
+  return d.toISOString().slice(0, 10);
+}
+
+/** Whole calendar days between two `YYYY-MM-DD` values — the same quantity
+ *  `(period_to - period_from).days` computes server-side. */
+function isoDaySpan(fromIso: string, toIso: string): number {
+  const from = new Date(`${fromIso}T00:00:00Z`).getTime();
+  const to = new Date(`${toIso}T00:00:00Z`).getTime();
+  return Math.round((to - from) / 86_400_000);
+}
+
+/**
+ * Local copy, not `i18n/errorMessages.ts` (T3's file this stage) and not
+ * the shared `DICTIONARIES` either — a client-side check has no backend
+ * error code to key `errorMessages.ts` on, and a key added to `uz_latn.ts`
+ * would have to be added to all five dictionaries just for two sentences
+ * this one screen uses. Same idiom `Navigation.tsx`'s own `PAGINATION_I18N`
+ * already uses for copy that belongs to a single component.
+ */
+const DATE_ERROR_COPY: Record<UiLanguage, { reversed: string; tooLong: string }> = {
+  uz_latn: {
+    reversed: 'Tugash sanasi boshlanish sanasidan oldin boʻlishi mumkin emas.',
+    tooLong: `Davr muddati ${MAX_PERIOD_DAYS} kundan (5 yildan) oshmasligi kerak.`,
+  },
+  uz_cyrl: {
+    reversed: 'Тугаш санаси бошланиш санасидан олдин бўлиши мумкин эмас.',
+    tooLong: `Давр муддати ${MAX_PERIOD_DAYS} кундан (5 йилдан) ошмаслиги керак.`,
+  },
+  ru: {
+    reversed: 'Дата окончания не может быть раньше даты начала.',
+    tooLong: `Срок периода не может превышать ${MAX_PERIOD_DAYS} дней (5 лет).`,
+  },
+  en: {
+    reversed: 'End date cannot be earlier than the start date.',
+    tooLong: `The period cannot exceed ${MAX_PERIOD_DAYS} days (5 years).`,
+  },
+  kaa: {
+    reversed: 'Tamamlanıw sánesi baslanıw sánesinen aldın bolıwı múmkin emes.',
+    tooLong: `Dáwir múddeti ${MAX_PERIOD_DAYS} kúnnen (5 jıldan) aspawı kerek.`,
+  },
+};
+
+/** Same reasoning as `DATE_ERROR_COPY` — this confirmation belongs to the
+ *  wizard alone, so it stays local rather than growing the shared maps. */
+const LEAVE_CONFIRM_COPY: Record<UiLanguage, { title: string; body: string; stay: string; leave: string }> = {
+  uz_latn: {
+    title: 'Vizarddan chiqasizmi?',
+    body: 'Qoralama saqlanadi — arizalar roʻyxatidan istalgan vaqtda davom ettirishingiz mumkin.',
+    stay: 'Davom etish',
+    leave: 'Chiqish',
+  },
+  uz_cyrl: {
+    title: 'Визарддан чиқасизми?',
+    body: 'Қоралама сақланади — аризалар рўйхатидан исталган вақтда давом эттиришингиз мумкин.',
+    stay: 'Давом этиш',
+    leave: 'Чиқиш',
+  },
+  ru: {
+    title: 'Выйти из мастера?',
+    body: 'Черновик сохранён — вы можете продолжить в любой момент из списка заявок.',
+    stay: 'Продолжить',
+    leave: 'Выйти',
+  },
+  en: {
+    title: 'Leave the wizard?',
+    body: 'Your draft is saved — you can resume it any time from the applications list.',
+    stay: 'Continue',
+    leave: 'Leave',
+  },
+  kaa: {
+    title: 'Vizarddan shıgasız ba?',
+    body: 'Qoralama saqlanadı — arizalar dizıminen qálegen waqıtta dawam ettire alasız.',
+    stay: 'Dawam etiw',
+    leave: 'Shıgıw',
+  },
+};
+
 interface LivestockRow {
   key: string;
   livestockTypeId: string;
@@ -70,6 +164,12 @@ export function ApplicationWizardPage() {
   const queryClient = useQueryClient();
 
   const [step, setStep] = useState(1);
+  // The furthest step ever reached, distinct from `step` (where the
+  // applicant currently stands). T1's stepper contract: clicking a
+  // COMPLETED step returns to it, and that must survive going back further
+  // still — reaching step 4 then returning to step 2 must not re-lock
+  // steps 3 and 4 (`Stepper`'s own `maxStepReached` prop docstring).
+  const [maxStepReached, setMaxStepReached] = useState(1);
   const [applicationId, setApplicationId] = useState<string | null>(resumeId);
   const [onBehalf, setOnBehalf] = useState<'self' | 'legal'>('self');
   const [representationApplicantId, setRepresentationApplicantId] = useState('');
@@ -186,27 +286,60 @@ export function ApplicationWizardPage() {
     onSuccess: (data) => setPrecheckResult(data),
   });
 
-  async function ensureDraftAndPatchActivity() {
+  // Advances AND remembers the furthest point reached, so the stepper can
+  // later tell "completed" (clickable) apart from "never visited yet"
+  // (inert) regardless of where `step` itself currently sits.
+  function goToStep(next: number) {
+    setStep(next);
+    setMaxStepReached((m) => Math.max(m, next));
+  }
+
+  // The stepper's own click handler: only a step already reached is a valid
+  // destination — `Stepper` itself also gates this, so the check here is
+  // belt-and-braces, not the only guard.
+  function goToCompletedStep(stepId: number) {
+    if (stepId <= maxStepReached) setStep(stepId);
+  }
+
+  async function ensureDraftAndPatchActivity(overrideActivityTypeId?: string) {
     let id = applicationId;
     if (!id) {
       const created = await createMutation.mutateAsync();
       id = created.id;
       setApplicationId(id);
     }
-    await patchApplication(id, { activity_type_id: activityTypeId });
+    await patchApplication(id, { activity_type_id: overrideActivityTypeId ?? activityTypeId });
     invalidateCard();
+  }
+
+  // T1's contract: choosing the activity type advances to step 2 BY
+  // ITSELF — the footer's "Next" button stays in place (Oybek: not
+  // removed, merely no longer the only way forward). `id` is passed
+  // explicitly rather than read back from `activityTypeId` state: the
+  // `setActivityTypeId` call just above it has not re-rendered yet when
+  // `ensureDraftAndPatchActivity` runs, so the state would still read the
+  // PREVIOUS selection.
+  async function selectActivityType(id: string) {
+    setSubmitError(null);
+    setActivityTypeId(id);
+    await ensureDraftAndPatchActivity(id);
+    goToStep(2);
   }
 
   async function goNext() {
     setSubmitError(null);
     if (step === 1) {
+      // Reachable mainly when the applicant returns to step 1 through the
+      // stepper (activity already chosen) and presses "Next" again without
+      // reselecting — `selectActivityType` above is what normally leaves
+      // step 1 now.
       await ensureDraftAndPatchActivity();
-      setStep(2);
+      goToStep(2);
       return;
     }
     if (step === 2 && contour) {
       await patchMutation.mutateAsync({ contour_id: contour.id, period_from: periodFrom, period_to: periodTo });
-      setStep(3);
+      goToStep(3);
       return;
     }
     if (step === 3) {
@@ -220,11 +353,11 @@ export function ApplicationWizardPage() {
       }
       body.benefit_category_item_id = benefitCategoryItemId || null;
       await patchMutation.mutateAsync(body);
-      setStep(4);
+      goToStep(4);
       return;
     }
     if (step === 4) {
-      setStep(5);
+      goToStep(5);
       setPrecheckResult(null);
       await precheckMutation.mutateAsync();
       return;
@@ -309,6 +442,11 @@ export function ApplicationWizardPage() {
         ? await buildMockSignature({ documentBytes: packageBytes, pinfl: applicant.pinfl, fullName: applicant.name })
         : await signDocument(new Uint8Array(packageBytes));
       await submitApplication(applicationId, pkcs7);
+      // The one navigation the leave-guard below must let through without
+      // asking — it fires right after a successful submit, when there is
+      // nothing left to lose. A ref, not state: `navigate()` runs in the
+      // same tick, before a `setState` would have re-rendered the guard.
+      skipLeaveGuardRef.current = true;
       navigate(`/my/applications/${applicationId}`);
     } catch (err) {
       setSubmitError(
@@ -322,6 +460,62 @@ export function ApplicationWizardPage() {
   }
 
   const hasBlockingCheck = precheckResult?.checks.some((c) => c.result === 'fail') ?? false;
+
+  // T1's contract, item 1: named IN THE FIELD before the request ever
+  // leaves the browser — mirrors `norms/checks.py::_validate_period`
+  // exactly (`period_to < period_from`, then the `MAX_PERIOD_DAYS` span),
+  // so a pair this rejects is a pair the backend would also reject with
+  // `ERR-VAL-001`.
+  const periodError = useMemo(() => {
+    if (!periodFrom || !periodTo) return null;
+    const copy = DATE_ERROR_COPY[lang];
+    if (periodTo < periodFrom) return copy.reversed;
+    if (isoDaySpan(periodFrom, periodTo) > MAX_PERIOD_DAYS) return copy.tooLong;
+    return null;
+  }, [periodFrom, periodTo, lang]);
+
+  // Each input constrains the other via native `min`/`max`, so most invalid
+  // pairs are impossible to pick in the first place rather than merely
+  // flagged after the fact.
+  const periodFromMin = periodTo ? addIsoDays(periodTo, -MAX_PERIOD_DAYS) : undefined;
+  const periodFromMax = periodTo || undefined;
+  const periodToMin = periodFrom || undefined;
+  const periodToMax = periodFrom ? addIsoDays(periodFrom, MAX_PERIOD_DAYS) : undefined;
+
+  // T1's contract, item 3: leaving mid-draft asks first. The draft is
+  // already autosaved field by field (this file's own docstring above), so
+  // this is never "discard your work" — only "you'll need to come back for
+  // it". `applicationId` is the signal: step 1 sets it the moment a draft
+  // exists (`ensureDraftAndPatchActivity`/`selectActivityType`) and it is
+  // never cleared again in this component, so it tracks "is there
+  // something on the server to resume" for the page's whole lifetime.
+  const hasUnsavedDraft = applicationId !== null;
+  const skipLeaveGuardRef = useRef(false);
+
+  const shouldBlockLeaving = useCallback<BlockerFunction>(
+    ({ currentLocation, nextLocation }) =>
+      !skipLeaveGuardRef.current && hasUnsavedDraft && currentLocation.pathname !== nextLocation.pathname,
+    [hasUnsavedDraft],
+  );
+  // Covers BOTH the in-app "back to list" navigation and the browser's back
+  // button: a data router's `useBlocker` intercepts every in-SPA
+  // navigation attempt alike, `historyAction` included, so one guard is
+  // enough for both triggers T1's contract names separately.
+  const blocker = useBlocker(shouldBlockLeaving);
+  const leaveCopy = LEAVE_CONFIRM_COPY[lang];
+
+  // `useBlocker` explicitly does not cover a hard reload or tab close
+  // (react-router's own docs) — that is what this effect is for.
+  useEffect(() => {
+    if (!hasUnsavedDraft) return;
+    function handleBeforeUnload(e: BeforeUnloadEvent) {
+      if (skipLeaveGuardRef.current) return;
+      e.preventDefault();
+      e.returnValue = '';
+    }
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [hasUnsavedDraft]);
 
   const wizardSteps = [
     { id: 1, title: t('wizard.step1.title'), description: t('wizard.step1.desc') },
@@ -350,7 +544,7 @@ export function ApplicationWizardPage() {
       </div>
 
       <div className="bg-white border border-[#E4E7EA] rounded-2xl p-4 shadow-xs">
-        <Stepper steps={wizardSteps} currentStep={step} />
+        <Stepper steps={wizardSteps} currentStep={step} maxStepReached={maxStepReached} onStepClick={goToCompletedStep} />
       </div>
 
       {/* Step 1 — activity type */}
@@ -381,7 +575,7 @@ export function ApplicationWizardPage() {
             {(activityTypesQuery.data ?? []).map((a) => (
               <button
                 key={a.id}
-                onClick={() => setActivityTypeId(a.id)}
+                onClick={() => void selectActivityType(a.id)}
                 className={`text-left p-4 rounded-xl border transition-all cursor-pointer ${
                   activityTypeId === a.id
                     ? 'border-[#2E7D4F] bg-[#F0F7F1] ring-2 ring-[#2E7D4F]/30'
@@ -410,10 +604,29 @@ export function ApplicationWizardPage() {
           </div>
           <div className="bg-white border border-[#E4E7EA] rounded-2xl p-6 shadow-xs grid grid-cols-1 sm:grid-cols-2 gap-4">
             <FormField label={t('wizard.step2.periodFrom')} required htmlFor="period-from">
-              <Input id="period-from" type="date" value={periodFrom} onChange={(e) => setPeriodFrom(e.target.value)} />
+              <Input
+                id="period-from"
+                type="date"
+                value={periodFrom}
+                min={periodFromMin}
+                max={periodFromMax}
+                onChange={(e) => setPeriodFrom(e.target.value)}
+              />
             </FormField>
-            <FormField label={t('wizard.step2.periodTo')} required htmlFor="period-to">
-              <Input id="period-to" type="date" value={periodTo} onChange={(e) => setPeriodTo(e.target.value)} />
+            <FormField
+              label={t('wizard.step2.periodTo')}
+              required
+              htmlFor="period-to"
+              error={periodError ?? undefined}
+            >
+              <Input
+                id="period-to"
+                type="date"
+                value={periodTo}
+                min={periodToMin}
+                max={periodToMax}
+                onChange={(e) => setPeriodTo(e.target.value)}
+              />
             </FormField>
           </div>
         </section>
@@ -613,7 +826,7 @@ export function ApplicationWizardPage() {
               isLoading={createMutation.isPending || patchMutation.isPending}
               disabled={
                 (step === 1 && !activityTypeId) ||
-                (step === 2 && (!contour || !periodFrom || !periodTo)) ||
+                (step === 2 && (!contour || !periodFrom || !periodTo || !!periodError)) ||
                 (step === 3 && !isGrazing && !quantity) ||
                 (step === 3 && isGrazing && items.filter((i) => i.livestockTypeId && i.headCount).length === 0)
               }
@@ -625,6 +838,29 @@ export function ApplicationWizardPage() {
           )}
         </div>
       </div>
+
+      {/* T1's contract, item 3: leaving mid-draft asks first — the browser
+          back button and any in-app navigation away from the wizard both
+          go through the same `useBlocker` above. */}
+      {blocker.state === 'blocked' && (
+        <Modal
+          isOpen
+          onClose={() => blocker.reset()}
+          title={leaveCopy.title}
+          footer={
+            <>
+              <Button variant="outline" onClick={() => blocker.reset()} className="cursor-pointer font-bold">
+                {leaveCopy.stay}
+              </Button>
+              <Button variant="danger" onClick={() => blocker.proceed()} className="cursor-pointer font-bold">
+                {leaveCopy.leave}
+              </Button>
+            </>
+          }
+        >
+          <p>{leaveCopy.body}</p>
+        </Modal>
+      )}
     </div>
   );
 }
