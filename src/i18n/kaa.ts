@@ -188,6 +188,8 @@ export const kaa = {
   'cabinet.representation.invalidPinfl': '14 xanalı san bolıwı kerek',
   'cabinet.representation.addColleagueSubmit': 'Qosıw',
   'cabinet.certificates.title': 'Meniń ERI sertifikatlarım',
+  'cabinet.certificates.realHint':
+    'Biriktiriw ulanǵan E-IMZO giltińiz arqalı ámelge asadı. Gilttiń parolin E-IMZO dasturınıń óziniń sorайdı.',
   'cabinet.certificates.pinflLabel': 'PINFL (JSHSHIR)',
   'cabinet.certificates.fullNameLabel': 'Atı-jóni (sertifikat subyekti, ıqtıyarlı)',
   'cabinet.certificates.bind': 'Sertifikattı biriktiriw',
@@ -890,6 +892,22 @@ export const kaa = {
   'permits.lifecycle.errWrongSigner': 'Bul qarardı tek sol togʻay xojalıǵınıń basshısı qol qoyıwı múmkin.',
   'permits.lifecycle.errSignatureInvalid': 'Qol tastıyıqlanbadı — qaytadan urınıń.',
   'permits.lifecycle.errUploadFailed': 'Fayl júklenbedi.',
+  'permits.signatures.errors.purposeNotRequired': 'Bul túrdegi qol qoyıw házirshe talap etilmeydi.',
+  'permits.signatures.errors.signatureInvalid':
+    'Qol qoyıw tekseriwden ótpedi — hújjet yamasa E-IMZO gilti qáte bolıwı múmkin.',
+  'permits.signatures.errors.certificatePinflMismatch': 'Sertifikat sizdiń PINFL/STIR nomerińizge sáykes kelmeydi.',
+  'permits.signatures.errors.signerPinflUnknown':
+    'Sistemada sizdiń PINFL nomerińiz dizimge alınbaǵan — profilińizdi tekseriń.',
+  'permits.signatures.errors.certificateRevoked': 'Sertifikat biykar etilgen — odan paydalanıp bolmaydı.',
+  'permits.signatures.errors.certificateExpired': 'Sertifikattıń múddeti ótken.',
+  'permits.signatures.errors.certificateMissing': 'Sertifikat maǵlıwmatları tabılmadı.',
+  'permits.signatures.errors.certificateInvalidAtSigning': 'Qol qoyıw waqtında sertifikat ámel etpegen.',
+  'permits.signatures.errors.timestampMissing':
+    'Qol qoyıwda waqıt tańbası (timestamp) joq — bunday qol qoyıw qabıl etilmeydi.',
+  'permits.signatures.errors.certificateOwnedByAnother': 'Bul sertifikat basqa paydalanıwshıǵa tiyisli.',
+  'permits.signatures.errors.signRefusedGeneric': 'Qol qoyıw biykar etildi — qaytadan urınıń.',
+  'permits.signatures.errors.genericSigningError': 'Qol qoyıwda qátelik júz berdi.',
+  'permits.signatures.errors.pdfFetchFailed': 'Qol qoyılatuǵın hújjetti júklep bolmadı — qaytadan urınıń.',
   'prosecutor.exportCsv': 'CSV eksport',
   'leadership.dash.loading': 'Júklenbekte...',
   'leadership.dash.error': 'Panel maǵlıwmatların júklew múmkin bolmadı.',
@@ -1527,6 +1545,20 @@ export const kaa = {
   'login.oneidHint': 'Jeke hám yuridikalıq shaxslar ushın mámleketlik portal arqalı kiriw.',
   'login.eimzoMockNotice': 'Sınaw rejimi: gilt tekserilmeydi. Haqıyqıy E-IMZO — 5.2-basqısh.',
   'login.eimzoUnavailable': 'E-IMZO gilti hám brauzer platini talap etiledi. Bul imkaniyat ele ulanbaǵan.',
+  'login.eimzoRealHint': 'Ulanǵan E-IMZO giltińiz arqalı tizimge kiriń. Gilttiń parolin E-IMZO dasturınıń óziniń sorайdı.',
+  'eimzo.errors.notInstalled':
+    'E-IMZO dasturı tabılmadı yamasa iske túsirilmegen. Onı ornatıń yamasa iske túsiriń: e-imzo.uz',
+  'eimzo.errors.outdatedVersion': 'Ornatılǵan E-IMZO versiyası eskirgen. Onı jańalań: e-imzo.uz',
+  'eimzo.errors.chromeBlocked':
+    'E-IMZO menen baylanıs ornatılmadı. Áwele E-IMZO dasturınıń ornatılǵanın hám iske túsirilgenin tekseriń. Soń, brauzerińiz jergilikli tarmaqqa qosılıwǵa ruxsat sorasa — "Ruxsat beriw"di tańlań. Sorawshıq shıqpasa hám Chrome yamasa oǵan uqsas brauzerden (Edge, Brave, Opera, Yandex Browser) paydalanıp atırǵan bolsańız, adres qatarına kiritiń: chrome://flags/#local-network-access-check hám onı "Disabled" halatına ótkeriń — bul bet hár bir brauzerde de bar bolıp qoymaydı.',
+  'eimzo.errors.wrongPassword': 'Gilttiń parolı qátе kiritildi. Qaytadan urınıp kóriń.',
+  'eimzo.errors.providerUnreachable':
+    'Bul bizdiń xızmetimizdegi qátelik emes — E-IMZO provayderi yamasa onıń VPN baylanısı waqtınsha islemey atır. Birazdan soń qaytadan urınıń.',
+  'eimzo.errors.unknown': 'E-IMZO arqalı ámeldi orınlawda kútilmegen qátelik júz berdi. Qaytadan urınıp kóriń.',
+  'eimzo.errors.noValidKey':
+    'Ulanǵan E-IMZO-da ámeldegi (múddeti ótpegen) sertifikat tabılmadı. Jańa sertifikat alıń yamasa múddeti ótken gilttti jańalań.',
+  'eimzo.errors.multipleValidKeys':
+    'Bir neshe ámeldegi E-IMZO sertifikatı anıqlandı — qaysı biri menen qol qoyıw anıq emes. Tek kerekli sertifikat/gilttti ulanǵan halda qaldırıń hám qaytadan urınıń.',
   'cabinet.registration.intro': 'Sistemadan paydalanıwdı dawam ettiriw ushın bir neshe maydandı toltırıń hám telefon nomerińizdi tastıyıqlań.',
   'cabinet.registration.consentsStale': 'Hújjetler jańalandı — dawam etiw ushın razılıqlardı qaytadan tastıyıqlań.',
   'cabinet.registration.needPhoneVerified': 'Dawam etiw ushın telefon nomerin tastıyıqlań.',

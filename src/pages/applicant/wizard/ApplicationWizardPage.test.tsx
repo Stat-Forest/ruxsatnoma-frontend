@@ -10,6 +10,7 @@ import type { AuthContextValue } from '../../../auth/AuthContext';
 import { DICTIONARIES, I18nContext } from '../../../i18n/context';
 import type { UiLanguage } from '../../../i18n/context';
 import { buildMockSignature } from '../../../lib/eimzoMock';
+import * as eimzo from '../../../lib/eimzo';
 import { ApplicationWizardPage } from './ApplicationWizardPage';
 
 // The map, the organization tree and the contour list are ContourPicker's own
@@ -214,6 +215,54 @@ test('signing and submitting passes the signed-in applicant’s own name into th
   await waitFor(() =>
     expect(buildMockSignature).toHaveBeenCalledWith(expect.objectContaining({ fullName: APPLICANT_NAME })),
   );
+});
+
+// Finding 2 (review of stage 5.2): this call site was still hardwired to
+// the mock builder, bypassing the mock/real switch entirely — under real
+// mode, submitting an application would have signed with a builder the
+// real backend cannot verify.
+test('real mode: sign calls signDocument over the exact package bytes (DETACHED)', async () => {
+  vi.spyOn(eimzo, 'isEimzoMock').mockReturnValue(false);
+  const signDocumentSpy = vi.spyOn(eimzo, 'signDocument').mockResolvedValue('REAL-PKCS7');
+  let sentPkcs7 = '';
+  server.use(
+    http.post('*/api/v1/applications/:id/submit', async ({ request }) => {
+      sentPkcs7 = ((await request.json()) as { pkcs7: string }).pkcs7;
+      return HttpResponse.json({ id: APPLICATION_ID });
+    }),
+  );
+  renderWizard();
+
+  await driveToStep5();
+  const signButton = await screen.findByRole('button', { name: /ERI bilan imzolash va yuborish/ });
+  await waitFor(() => expect(signButton).toBeEnabled());
+  await userEvent.click(signButton);
+
+  await waitFor(() => expect(sentPkcs7).toBe('REAL-PKCS7'));
+  expect(signDocumentSpy).toHaveBeenCalledTimes(1);
+});
+
+test('a real-mode signing failure shows a distinct message and never reaches submit', async () => {
+  vi.spyOn(eimzo, 'isEimzoMock').mockReturnValue(false);
+  vi.spyOn(eimzo, 'signDocument').mockRejectedValue(new eimzo.EimzoPasswordError());
+  let called = false;
+  server.use(
+    http.post('*/api/v1/applications/:id/submit', () => {
+      called = true;
+      return HttpResponse.json({ id: APPLICATION_ID });
+    }),
+  );
+  renderWizard();
+
+  await driveToStep5();
+  const signButton = await screen.findByRole('button', { name: /ERI bilan imzolash va yuborish/ });
+  await waitFor(() => expect(signButton).toBeEnabled());
+  await userEvent.click(signButton);
+
+  expect(
+    await screen.findByText(DICTIONARIES.uz_latn[eimzo.EIMZO_ERROR_MESSAGE_KEYS.wrong_password]),
+  ).toBeInTheDocument();
+  expect(called).toBe(false);
 });
 
 // Ruling #113 (`docs/decisions.md`): the address requisite is gated at

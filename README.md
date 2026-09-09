@@ -12,6 +12,22 @@ Staff and citizen-cabinet frontend for the Ruxsatnoma electronic permit system
 - `npm run api:types` — regenerate `src/api/schema.d.ts` from a running
   backend's `/openapi.json` (see `scripts/gen-types.sh`)
 
+## Environment variables
+
+- `VITE_API_BASE` — the backend origin baked into the bundle at build time
+  (e.g. `https://dev-api.ruxsatnoma-urmon.uz`). Unset falls back to
+  `http://localhost:8000`.
+- `VITE_EIMZO_MOCK` — the E-IMZO mock/real switch (`src/lib/eimzo/index.ts`).
+  **Defaults to mock**: unset, or anything other than the literal string
+  `'false'`, means mock. Set it to `'false'` to run against a real E-IMZO
+  install and a backend whose own `EIMZO_MODE` is `real` — never the other
+  way around, and never by relying on the default: `.github/workflows/
+  checks.yml`/`deploy.yml` always pass it explicitly, per environment. This
+  is deliberately its own variable, distinct in both name and shape from the
+  backend's `EIMZO_MODE` (an enum, `mock`/`real`) — the two are configured
+  independently, one per side, and are not meant to be copied from one to
+  the other.
+
 ## Installing dependencies
 
 `.npmrc` sets `legacy-peer-deps=true`: `openapi-typescript@7` declares a peer

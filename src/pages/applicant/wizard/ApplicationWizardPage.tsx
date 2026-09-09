@@ -33,7 +33,14 @@ import { fromApplicationChecks } from '../checkTypeLabels';
 import { ChecksList } from './ChecksList';
 import { ContourPicker, type PickedContour } from './ContourPicker';
 import { PricePreviewPanel } from './PricePreviewPanel';
-import { buildMockSignature } from '../../../lib/eimzoMock';
+import {
+  buildMockSignature,
+  EimzoError,
+  eimzoErrorMessageKey,
+  isEimzoMock,
+  isProviderUnreachable,
+  signDocument,
+} from '../../../lib/eimzo';
 
 const GRAZING_CODE = 'grazing';
 
@@ -291,11 +298,24 @@ export function ApplicationWizardPage() {
         return;
       }
       const packageBytes = await getApplicationPackage(applicationId);
-      const pkcs7 = await buildMockSignature({ documentBytes: packageBytes, pinfl: applicant.pinfl, fullName: applicant.name });
+      // Fix wave, finding 2: real mode DETACHED, over the exact bytes
+      // `GET .../package` just served — `POST .../submit` verifies through
+      // `signatures.service.sign()` -> `verify_detached` against them
+      // (`applications/router.py::get_application_package`'s own docstring:
+      // "the client signs exactly these"). No PINFL to type in beyond the
+      // identity check above; the certificate the citizen picks in E-IMZO
+      // carries it.
+      const pkcs7 = isEimzoMock()
+        ? await buildMockSignature({ documentBytes: packageBytes, pinfl: applicant.pinfl, fullName: applicant.name })
+        : await signDocument(new Uint8Array(packageBytes));
       await submitApplication(applicationId, pkcs7);
       navigate(`/my/applications/${applicationId}`);
     } catch (err) {
-      setSubmitError(errorText(err, 'Kutilmagan xatolik yuz berdi.'));
+      setSubmitError(
+        err instanceof EimzoError || isProviderUnreachable(err)
+          ? t(eimzoErrorMessageKey(err))
+          : errorText(err, 'Kutilmagan xatolik yuz berdi.'),
+      );
     } finally {
       setSigning(false);
     }

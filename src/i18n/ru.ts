@@ -59,7 +59,24 @@ export const ru = {
   'login.eimzoButton': 'Войти с ключом E-IMZO',
   'login.eimzoBadPinfl': 'ПИНФЛ должен состоять из 14 цифр.',
   'login.eimzoMockNotice': 'Тестовый режим: ключ не проверяется. Настоящий E-IMZO — этап 5.2.',
-  'login.eimzoUnavailable': 'Требуется ключ E-IMZO и плагин браузера. Эта возможность пока не подключена.',
+  'login.eimzoRealHint': 'Войдите через подключённый ключ E-IMZO. Пароль ключа спросит само приложение E-IMZO.',
+  // Task 11 — see the matching comment in `uz_latn.ts`. `chromeBlocked` (fix
+  // wave, finding 6) names both possible causes and words the flag as a
+  // Chromium fallback, not a Chrome-only fact.
+  'eimzo.errors.notInstalled':
+    'Приложение E-IMZO не найдено или не запущено. Установите или запустите его: e-imzo.uz',
+  'eimzo.errors.outdatedVersion': 'Установленная версия E-IMZO устарела. Обновите её: e-imzo.uz',
+  'eimzo.errors.chromeBlocked':
+    'Не удалось подключиться к E-IMZO. Сначала убедитесь, что программа E-IMZO установлена и запущена. Затем, если браузер запросит разрешение на доступ к локальной сети — нажмите «Разрешить». Если запрос не появился и вы используете Chrome или браузер на его основе (Edge, Brave, Opera, Яндекс Браузер), откройте chrome://flags/#local-network-access-check и переключите в состояние «Disabled» — эта страница есть не в каждом браузере.',
+  'eimzo.errors.wrongPassword': 'Неверный пароль ключа. Попробуйте ещё раз.',
+  'eimzo.errors.providerUnreachable':
+    'Это не ошибка нашего сервиса — провайдер E-IMZO или его VPN-канал временно недоступен. Повторите попытку чуть позже.',
+  'eimzo.errors.unknown': 'При работе с E-IMZO произошла непредвиденная ошибка. Попробуйте ещё раз.',
+  // Fix wave, finding 5 — see the matching comment in `uz_latn.ts`.
+  'eimzo.errors.noValidKey':
+    'В подключённом E-IMZO не найден действующий (не просроченный) сертификат. Получите новый сертификат или обновите просроченный ключ.',
+  'eimzo.errors.multipleValidKeys':
+    'Обнаружено несколько действующих сертификатов E-IMZO — неясно, каким подписывать. Оставьте подключённым только нужный сертификат/ключ и повторите попытку.',
   'dash.error': 'Не удалось загрузить данные. Обновите страницу.',
   'dash.loading': 'Загрузка…',
   'dash.activePermits.label': 'Действующие разрешения',
@@ -221,6 +238,8 @@ export const ru = {
 
   'cabinet.certificates.title': 'Мои сертификаты ЭЦП',
   'cabinet.certificates.intro': 'Список ключей ЭЦП, привязанных для подписания документов.',
+  'cabinet.certificates.realHint':
+    'Привязка выполнится через подключённый ключ E-IMZO. Пароль ключа спросит само приложение E-IMZO.',
   'cabinet.certificates.pinflLabel': 'ПИНФЛ (JSHSHIR)',
   'cabinet.certificates.fullNameLabel': 'Имя (субъект сертификата, необязательно)',
   'cabinet.certificates.bind': 'Привязать сертификат',
@@ -1097,6 +1116,23 @@ export const ru = {
   'permits.lifecycle.errWrongSigner': 'Это решение может подписать только руководитель именно этого лесхоза.',
   'permits.lifecycle.errSignatureInvalid': 'Подпись не подтверждена — попробуйте ещё раз.',
   'permits.lifecycle.errUploadFailed': 'Файл не загружен.',
+
+  // Fix wave, finding 4 — см. комментарий в `uz_latn.ts`.
+  'permits.signatures.errors.purposeNotRequired': 'Подпись этого типа сейчас не требуется.',
+  'permits.signatures.errors.signatureInvalid':
+    'Подпись не прошла проверку — возможно, документ или ключ E-IMZO неверны.',
+  'permits.signatures.errors.certificatePinflMismatch': 'Сертификат не соответствует вашему ПИНФЛ/СТИР.',
+  'permits.signatures.errors.signerPinflUnknown': 'В системе не зарегистрирован ваш ПИНФЛ — проверьте профиль.',
+  'permits.signatures.errors.certificateRevoked': 'Сертификат отозван — использовать его нельзя.',
+  'permits.signatures.errors.certificateExpired': 'Срок действия сертификата истёк.',
+  'permits.signatures.errors.certificateMissing': 'Данные сертификата не найдены.',
+  'permits.signatures.errors.certificateInvalidAtSigning': 'На момент подписания сертификат не действовал.',
+  'permits.signatures.errors.timestampMissing':
+    'В подписи нет метки времени (timestamp) — такая подпись не принимается.',
+  'permits.signatures.errors.certificateOwnedByAnother': 'Этот сертификат принадлежит другому пользователю.',
+  'permits.signatures.errors.signRefusedGeneric': 'Подпись отклонена — попробуйте ещё раз.',
+  'permits.signatures.errors.genericSigningError': 'Ошибка при подписании.',
+  'permits.signatures.errors.pdfFetchFailed': 'Не удалось загрузить документ для подписания — попробуйте ещё раз.',
 
   // --- I1: реестры прокурора только для чтения, с экспортом --------------
   'prosecutor.exportCsv': 'Экспорт CSV',

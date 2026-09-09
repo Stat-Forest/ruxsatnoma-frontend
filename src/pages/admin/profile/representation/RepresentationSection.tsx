@@ -6,7 +6,15 @@ import { FileInput, FormField, Input, RadioGroup, Select } from '../../../../com
 import { useAuth } from '../../../../auth/useAuth';
 import { useApiErrorText } from '../../../../i18n/useApiErrorText';
 import { useT } from '../../../../i18n/useT';
-import { PINFL_PATTERN, buildMockSignedChallenge } from '../../../../lib/eimzoMock';
+import {
+  buildMockSignedChallenge,
+  EimzoError,
+  eimzoErrorMessageKey,
+  isEimzoMock,
+  isProviderUnreachable,
+  PINFL_PATTERN,
+  signAttached,
+} from '../../../../lib/eimzo';
 import { addRepresentation, attachLegal, issueEimzoChallenge, uploadPoaFile } from './api';
 import type { AddRepresentationIn, AttachLegalIn } from './api';
 import { formatDate } from './format';
@@ -90,7 +98,10 @@ function AttachLegalForm() {
   const [error, setError] = useState<string | null>(null);
 
   const stirValid = STIR_PATTERN.test(stir);
-  const signerPinflValid = PINFL_PATTERN.test(signerPinfl);
+  // Mock mode only — a real certificate carries the signer's identity, no
+  // PINFL box to validate (task 10's own rule, applied here per fix wave
+  // finding 2).
+  const signerPinflValid = !isEimzoMock() || PINFL_PATTERN.test(signerPinfl);
   const canSubmit =
     stirValid &&
     (basis === 'director_registry' ||
@@ -121,12 +132,20 @@ function AttachLegalForm() {
       const body: AttachLegalIn = { stir, basis };
       if (basis === 'org_eri') {
         const challenge = await issueEimzoChallenge();
-        body.signed_challenge = await buildMockSignedChallenge({
-          challenge,
-          pinfl: signerPinfl,
-          fullName: me?.user.full_name ?? '',
-          tin: stir,
-        });
+        // Fix wave, finding 2: real mode ATTACHED, exactly the pattern
+        // `AuthProvider.tsx::loginViaEimzo` already uses for its own ERI
+        // challenge — `_verify_org_challenge` -> `verify_signed_challenge`
+        // (attached), never timestamped (the challenge is short-lived and
+        // self-contained). No PINFL/name/STIR to sign with in real mode:
+        // the certificate the signer picks in E-IMZO carries that identity.
+        body.signed_challenge = isEimzoMock()
+          ? await buildMockSignedChallenge({
+              challenge,
+              pinfl: signerPinfl,
+              fullName: me?.user.full_name ?? '',
+              tin: stir,
+            })
+          : await signAttached(new TextEncoder().encode(challenge));
       } else if (basis === 'poa') {
         body.poa_file_id = poaFileId;
         body.valid_until = validUntil;
@@ -142,7 +161,11 @@ function AttachLegalForm() {
       setValidUntil('');
       setTouched(false);
     } catch (err) {
-      setError(errorText(err, t('cabinet.registration.genericError')));
+      setError(
+        err instanceof EimzoError || isProviderUnreachable(err)
+          ? t(eimzoErrorMessageKey(err))
+          : errorText(err, t('cabinet.registration.genericError')),
+      );
     } finally {
       setSubmitting(false);
     }
@@ -170,7 +193,7 @@ function AttachLegalForm() {
           <BasisPicker value={basis} onChange={setBasis} />
         </FormField>
 
-        {basis === 'org_eri' && (
+        {basis === 'org_eri' && isEimzoMock() && (
           <FormField
             label={t('cabinet.representation.signerPinflLabel')}
             required
@@ -274,7 +297,11 @@ function AddColleagueForm() {
 
   const selected = eligible.find((rep) => rep.applicant.id === applicantId) ?? eligible[0];
   const colleaguePinflValid = PINFL_PATTERN.test(colleaguePinfl);
-  const signerPinflValid = PINFL_PATTERN.test(signerPinfl);
+  // Mock mode only — a real certificate carries the SIGNER's identity, no
+  // PINFL box to validate (task 10's own rule, applied here per fix wave
+  // finding 2). `colleaguePinflValid` above is unrelated: it is the
+  // colleague being added, sent as `user_pinfl` regardless of signing mode.
+  const signerPinflValid = !isEimzoMock() || PINFL_PATTERN.test(signerPinfl);
   const canSubmit =
     colleaguePinflValid &&
     (basis === 'director_registry' ||
@@ -305,12 +332,16 @@ function AddColleagueForm() {
       const body: AddRepresentationIn = { user_pinfl: colleaguePinfl, basis };
       if (basis === 'org_eri') {
         const challenge = await issueEimzoChallenge();
-        body.signed_challenge = await buildMockSignedChallenge({
-          challenge,
-          pinfl: signerPinfl,
-          fullName: me?.user.full_name ?? '',
-          tin: selected.applicant.stir ?? undefined,
-        });
+        // Fix wave, finding 2 — see `AttachLegalForm.handleSubmit`'s own
+        // comment above; same route family, same ATTACHED challenge shape.
+        body.signed_challenge = isEimzoMock()
+          ? await buildMockSignedChallenge({
+              challenge,
+              pinfl: signerPinfl,
+              fullName: me?.user.full_name ?? '',
+              tin: selected.applicant.stir ?? undefined,
+            })
+          : await signAttached(new TextEncoder().encode(challenge));
       } else if (basis === 'poa') {
         body.poa_file_id = poaFileId;
         body.valid_until = validUntil;
@@ -324,7 +355,11 @@ function AddColleagueForm() {
       setValidUntil('');
       setTouched(false);
     } catch (err) {
-      setError(errorText(err, t('cabinet.registration.genericError')));
+      setError(
+        err instanceof EimzoError || isProviderUnreachable(err)
+          ? t(eimzoErrorMessageKey(err))
+          : errorText(err, t('cabinet.registration.genericError')),
+      );
     } finally {
       setSubmitting(false);
     }
@@ -367,7 +402,7 @@ function AddColleagueForm() {
           <BasisPicker value={basis} onChange={setBasis} />
         </FormField>
 
-        {basis === 'org_eri' && (
+        {basis === 'org_eri' && isEimzoMock() && (
           <FormField label={t('cabinet.representation.signerPinflLabel')} required>
             <Input
               data-testid="colleague-signer-pinfl"

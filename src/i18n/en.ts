@@ -56,6 +56,20 @@ export const en = {
   'login.eimzoBadPinfl': 'PINFL must be 14 digits.',
   'login.eimzoMockNotice': 'Test mode: actual E-IMZO app is not required.',
   'login.eimzoUnavailable': 'E-IMZO service is unavailable. Make sure the E-IMZO app is running.',
+  'login.eimzoRealHint': 'Sign in using your connected E-IMZO key. The E-IMZO application itself will ask for the key password.',
+  'eimzo.errors.notInstalled':
+    'E-IMZO application not found or not running. Install it or start it: e-imzo.uz',
+  'eimzo.errors.outdatedVersion': 'The installed E-IMZO version is outdated. Update it: e-imzo.uz',
+  'eimzo.errors.chromeBlocked':
+    'Could not connect to E-IMZO. First check that the E-IMZO application is installed and running. Then, if your browser asks for permission to connect to the local network, choose "Allow". If no prompt appears and you are using Chrome or a similar browser (Edge, Brave, Opera, Yandex Browser), enter this in the address bar: chrome://flags/#local-network-access-check and set it to "Disabled" — this page is not available in every browser.',
+  'eimzo.errors.wrongPassword': 'Incorrect key password. Please try again.',
+  'eimzo.errors.providerUnreachable':
+    'This is not an error on our side — the E-IMZO provider or its VPN connection is temporarily unavailable. Please try again shortly.',
+  'eimzo.errors.unknown': 'An unexpected error occurred while performing the E-IMZO action. Please try again.',
+  'eimzo.errors.noValidKey':
+    'No valid (non-expired) certificate was found on the connected E-IMZO. Get a new certificate or renew the expired key.',
+  'eimzo.errors.multipleValidKeys':
+    'Multiple valid E-IMZO certificates were detected — it is unclear which one to sign with. Keep only the certificate/key you need connected and try again.',
   'dash.error': 'Failed to load data. Refresh the page.',
   'dash.loading': 'Loading…',
   'dash.activePermits.label': 'Active permits',
@@ -202,6 +216,8 @@ export const en = {
   'cabinet.representation.applicantOnly': 'Legal entity representation is only available for applicant accounts.',
   'cabinet.certificates.title': 'My ESI certificates',
   'cabinet.certificates.intro': 'List of electronic signature certificates linked for document signing.',
+  'cabinet.certificates.realHint':
+    'Linking is done through your connected E-IMZO key. The E-IMZO application itself will ask for the key password.',
   'cabinet.certificates.pinflLabel': 'PINFL (JSHSHIR)',
   'cabinet.certificates.fullNameLabel': 'Name (certificate subject, optional)',
   'cabinet.certificates.bind': 'Link certificate',
@@ -951,6 +967,22 @@ export const en = {
   'permits.lifecycle.errWrongSigner': 'This decision can only be signed by the head of this specific forestry enterprise.',
   'permits.lifecycle.errSignatureInvalid': 'Signature not verified — please try again.',
   'permits.lifecycle.errUploadFailed': 'File not uploaded.',
+  'permits.signatures.errors.purposeNotRequired': 'This signature type is not currently required.',
+  'permits.signatures.errors.signatureInvalid':
+    'Signature verification failed — the document or E-IMZO key may be incorrect.',
+  'permits.signatures.errors.certificatePinflMismatch': 'The certificate does not match your PINFL/TIN.',
+  'permits.signatures.errors.signerPinflUnknown':
+    'Your PINFL is not registered in the system — check your profile.',
+  'permits.signatures.errors.certificateRevoked': 'The certificate has been revoked — it cannot be used.',
+  'permits.signatures.errors.certificateExpired': 'The certificate has expired.',
+  'permits.signatures.errors.certificateMissing': 'Certificate data not found.',
+  'permits.signatures.errors.certificateInvalidAtSigning': 'The certificate was not valid at the time of signing.',
+  'permits.signatures.errors.timestampMissing':
+    'The signature has no timestamp — such a signature is not accepted.',
+  'permits.signatures.errors.certificateOwnedByAnother': 'This certificate belongs to another user.',
+  'permits.signatures.errors.signRefusedGeneric': 'Signature refused — please try again.',
+  'permits.signatures.errors.genericSigningError': 'An error occurred while signing.',
+  'permits.signatures.errors.pdfFetchFailed': 'Could not load the document to sign — please try again.',
   'prosecutor.exportCsv': 'Export CSV',
   'prosecutor.exportTruncated': 'Warning: list exceeds 2,000 records — only first 2,000 exported. Refine filters for narrower results.',
   'leadership.dash.loading': 'Loading...',

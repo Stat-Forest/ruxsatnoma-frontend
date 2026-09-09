@@ -189,6 +189,35 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    /**
+     * Hand-added (stage 5.2, task 9-11, frontend worktree): the backend half
+     * of E-IMZO (tasks 1-8) merged on a sibling branch this worktree does not
+     * have, so `scripts/gen-types.sh` cannot regenerate against it yet — no
+     * local backend was running at the time this was written. Shaped to match
+     * `POST /auth/eimzo/challenge`/`login` immediately above (a bare POST,
+     * one JSON body in, one JSON body out) and the task brief's own contract:
+     * `{pkcs7}` in, the SAME pkcs7 with a timestamp attached, out. Replace
+     * this block wholesale the next time `npm run api:types` runs against a
+     * backend that actually serves this route — do not hand-edit it again
+     * once that happens.
+     */
+    "/api/v1/eimzo/timestamp": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Eimzo Timestamp */
+        post: operations["eimzo_timestamp_api_v1_eimzo_timestamp_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/auth/password/change": {
         parameters: {
             query?: never;
@@ -7501,6 +7530,18 @@ export interface components {
             /** Signed Challenge */
             signed_challenge: string;
         };
+        /** EimzoTimestampIn — hand-added, see the path-level comment on
+         *  `"/api/v1/eimzo/timestamp"`. */
+        EimzoTimestampIn: {
+            /** Pkcs7 */
+            pkcs7: string;
+        };
+        /** EimzoTimestampOut — hand-added, see the path-level comment on
+         *  `"/api/v1/eimzo/timestamp"`. */
+        EimzoTimestampOut: {
+            /** Pkcs7 */
+            pkcs7: string;
+        };
         /** ExplanationIn */
         ExplanationIn: {
             /** Text */
@@ -12533,6 +12574,41 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["MeOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    /** Hand-added — see the matching comment on the `"/api/v1/eimzo/timestamp"`
+     *  path entry above. */
+    eimzo_timestamp_api_v1_eimzo_timestamp_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EimzoTimestampIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EimzoTimestampOut"];
                 };
             };
             /** @description Validation Error */

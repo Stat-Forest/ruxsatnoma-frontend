@@ -1,9 +1,41 @@
 /**
- * Uzbek Cyrillic UI copy. Key set mirrors `uz_latn.ts` exactly.
- * Uzbek (Latin) UI copy (ruling R14). Chosen as the Uzbek map over `uz_cyrl`
- * because the design reference's own UI copy is Latin-script Uzbek, so ported
- * screens stay coherent. A later stage adds `uz_cyrl.ts` and one row in
- * `resolveLanguage` (src/i18n/index.tsx) — nothing else changes shape.
+ * Uzbek (Cyrillic) copy for the E-IMZO messages `src/lib/eimzo/errors.ts`
+ * names (task 11, plus `noValidKey`/`multipleValidKeys` from the fix wave's
+ * finding 5; decision #90 — `uz_latn` is the required language, `uz_cyrl`
+ * optional).
+ *
+ * This standalone record predates `uz_cyrl` below becoming a full,
+ * first-class `UiLanguage` dictionary — it is kept because `errors.test.ts`
+ * asserts against it directly. The same eight strings also live under their
+ * `'eimzo.errors.*'` keys inside the full `uz_cyrl` dictionary further down
+ * this file, so `t()` resolves them the same way it resolves everything
+ * else; keep both copies in sync by hand if either changes.
+ *
+ * Keys mirror `EIMZO_ERROR_MESSAGE_KEYS` in `src/lib/eimzo/errors.ts`
+ * exactly (duplicated as string literals, not imported, to avoid a
+ * dependency from `src/i18n/` back into `src/lib/eimzo/` for these
+ * strings) — `errors.test.ts` asserts the two lists match.
+ */
+export const uz_cyrl_eimzo_errors: Record<string, string> = {
+  'eimzo.errors.notInstalled':
+    'E-IMZO дастури топилмаган ёки ишга туширилмаган. Дастурни ўрнатинг ёки ишга туширинг: e-imzo.uz',
+  'eimzo.errors.outdatedVersion': 'Ўрнатилган E-IMZO версияси эскирган. Уни янгиланг: e-imzo.uz',
+  'eimzo.errors.chromeBlocked':
+    'E-IMZO билан алоқа ўрнатилмади. Аввал E-IMZO дастури ўрнатилган ва ишга туширилганини текширинг. Сўнгра, браузерингиз маҳаллий тармоққа уланишга рухсат сўраса — «Рухсат бериш»ни танланг. Сўров чиқмаса ва Chrome ёки унга ўхшаш браузердан (Edge, Brave, Opera, Yandex Browser) фойдаланаётган бўлсангиз, манзил қаторига киритинг: chrome://flags/#local-network-access-check ва уни «Disabled» ҳолатига ўтказинг — бу саҳифа ҳар бир браузерда ҳам мавжуд бўлавермайди.',
+  'eimzo.errors.wrongPassword': "Калит пароли нотўғри киритилди. Қайтадан уриниб кўринг.",
+  'eimzo.errors.providerUnreachable':
+    'Бу бизнинг хизматимиздаги хато эмас — E-IMZO провайдери ёки унинг VPN алоқаси вақтинча ишламаяпти. Бироздан сўнг қайта уринг.',
+  'eimzo.errors.unknown': 'E-IMZO орқали амални бажаришда кутилмаган хатолик юз берди. Қайтадан уриниб кўринг.',
+  'eimzo.errors.noValidKey':
+    'Уланган E-IMZO’да амалдаги (муддати ўтмаган) сертификат топилмади. Янги сертификат олинг ёки муддати ўтган калитни янгиланг.',
+  'eimzo.errors.multipleValidKeys':
+    'Бир нечта амалдаги E-IMZO сертификати аниқланди — қайси бири билан имзолаш ноаниқ. Фақат керакли сертификат/калитни улаб қолдиринг ва қайтадан уринг.',
+};
+
+/**
+ * Uzbek Cyrillic UI copy. Key set mirrors `uz_latn.ts` exactly — `uz_cyrl` is
+ * a first-class `UiLanguage` (`src/i18n/context.ts`), wired into
+ * `DICTIONARIES` and `TranslationKey`.
  */
 export const uz_cyrl = {
   'nav.dashboard': 'Бош саҳифа',
@@ -63,6 +95,39 @@ export const uz_cyrl = {
     'Sinov rejimi: kalit tekshirilmaydi. Haqiqiy E-IMZO — 5.2-bosqich.',
   'login.eimzoUnavailable':
     "E-IMZO kaliti va brauzer plagini talab qilinadi. Bu imkoniyat hali ulanmagan.",
+  'login.eimzoRealHint':
+    'Уланган E-IMZO калитингиз орқали тизимга киринг. Калит паролини E-IMZO дастурининг ўзи сўрайди.',
+  // Task 11 — the conditions a citizen actually hits with the real E-IMZO
+  // client (`src/lib/eimzo/errors.ts`), each with an action rather than an
+  // apology. `notInstalled`/`outdatedVersion` name `e-imzo.uz` (the vendor's
+  // own site) rather than a deep link this app cannot verify stays valid.
+  // `chromeBlocked` (fix wave, finding 6): the SAME connection failure as
+  // `notInstalled` — this page cannot tell "E-IMZO is not running" apart
+  // from "the browser silently blocked the connection" from the failure
+  // alone (`client.ts`'s own docstring), and the most common cause is still
+  // simply that E-IMZO is not running. The text therefore names BOTH
+  // actions rather than committing to the browser-gate one alone, and words
+  // the flag as a Chromium fallback rather than a Chrome-only fact — Edge,
+  // Opera, Brave and Yandex Browser all carry a `Chrome/1xx` token and reach
+  // this same message, and not all of them have `chrome://flags` at all.
+  //
+  // These eight literals are also exported standalone as
+  // `uz_cyrl_eimzo_errors` above (kept for `errors.test.ts`, which predates
+  // `uz_cyrl` becoming a full dictionary) — keep the two copies in sync by
+  // hand if either changes.
+  'eimzo.errors.notInstalled':
+    'E-IMZO дастури топилмаган ёки ишга туширилмаган. Дастурни ўрнатинг ёки ишга туширинг: e-imzo.uz',
+  'eimzo.errors.outdatedVersion': 'Ўрнатилган E-IMZO версияси эскирган. Уни янгиланг: e-imzo.uz',
+  'eimzo.errors.chromeBlocked':
+    'E-IMZO билан алоқа ўрнатилмади. Аввал E-IMZO дастури ўрнатилган ва ишга туширилганини текширинг. Сўнгра, браузерингиз маҳаллий тармоққа уланишга рухсат сўраса — «Рухсат бериш»ни танланг. Сўров чиқмаса ва Chrome ёки унга ўхшаш браузердан (Edge, Brave, Opera, Yandex Browser) фойдаланаётган бўлсангиз, манзил қаторига киритинг: chrome://flags/#local-network-access-check ва уни «Disabled» ҳолатига ўтказинг — бу саҳифа ҳар бир браузерда ҳам мавжуд бўлавермайди.',
+  'eimzo.errors.wrongPassword': "Калит пароли нотўғри киритилди. Қайтадан уриниб кўринг.",
+  'eimzo.errors.providerUnreachable':
+    'Бу бизнинг хизматимиздаги хато эмас — E-IMZO провайдери ёки унинг VPN алоқаси вақтинча ишламаяпти. Бироздан сўнг қайта уринг.',
+  'eimzo.errors.unknown': 'E-IMZO орқали амални бажаришда кутилмаган хатолик юз берди. Қайтадан уриниб кўринг.',
+  'eimzo.errors.noValidKey':
+    'Уланган E-IMZO’да амалдаги (муддати ўтмаган) сертификат топилмади. Янги сертификат олинг ёки муддати ўтган калитни янгиланг.',
+  'eimzo.errors.multipleValidKeys':
+    'Бир нечта амалдаги E-IMZO сертификати аниқланди — қайси бири билан имзолаш ноаниқ. Фақат керакли сертификат/калитни улаб қолдиринг ва қайтадан уринг.',
   'dash.error': "Маълумотларни юклаб бўлмади. Саҳифани янгилаб кўринг.",
   'dash.loading': 'Юкланмоқда…',
   'dash.activePermits.label': 'Амалдаги рухсатномалар',
@@ -227,6 +292,8 @@ export const uz_cyrl = {
   'cabinet.certificates.title': 'Менинг ЭРИ сертификатларим',
   'cabinet.certificates.intro':
     "Bu yerda hujjatlarni imzolash uchun biriktirilgan ERI kalitlaringiz roʻyxati.",
+  'cabinet.certificates.realHint':
+    'Бириктириш уланган E-IMZO калитингиз орқали амалга ошади. Калит паролини E-IMZO дастурининг ўзи сўрайди.',
   'cabinet.certificates.pinflLabel': 'ЖШШИР (ЖШШИР)',
   'cabinet.certificates.fullNameLabel': 'Исм (сертификат субекти, ихтиёрий)',
   'cabinet.certificates.bind': 'Сертификатни бириктириш',
@@ -1090,6 +1157,27 @@ export const uz_cyrl = {
   'permits.lifecycle.errWrongSigner': "Бу қарорни фақат шу ўрмон хўжалигининг раҳбари имзолаши мумкин.",
   'permits.lifecycle.errSignatureInvalid': "Имзо тасдиқланмади — қайтадан урининг.",
   'permits.lifecycle.errUploadFailed': "Файл юкланмади.",
+  // Task 11 — the same reason-keyed E-IMZO signing errors as the eight
+  // `login.*`/`eimzo.errors.*` keys above, but for the PERMIT signature flow
+  // (`PermitSignaturesPanel.tsx`, fix wave finding 4): `ERR-SIGN-001` is told
+  // apart by `details.reason` rather than collapsed into one "not required"
+  // string.
+  'permits.signatures.errors.purposeNotRequired': 'Бу турдаги имзо ҳозирча талаб қилинмайди.',
+  'permits.signatures.errors.signatureInvalid':
+    'Имзо текширувидан ўтмади — ҳужжат ёки E-IMZO калити нотўғри бўлиши мумкин.',
+  'permits.signatures.errors.certificatePinflMismatch': 'Сертификат сизнинг ПИНФЛ/СТИР рақамингизга мос келмайди.',
+  'permits.signatures.errors.signerPinflUnknown':
+    'Тизимда сизнинг ПИНФЛ рақамингиз қайд этилмаган — профилингизни текширинг.',
+  'permits.signatures.errors.certificateRevoked': 'Сертификат бекор қилинган — ундан фойдаланиб бўлмайди.',
+  'permits.signatures.errors.certificateExpired': 'Сертификат муддати тугаган.',
+  'permits.signatures.errors.certificateMissing': 'Сертификат маълумотлари топилмади.',
+  'permits.signatures.errors.certificateInvalidAtSigning': 'Имзолаш вақтида сертификат амал қилмаган.',
+  'permits.signatures.errors.timestampMissing':
+    'Имзода вақт тамғаси (timestamp) йўқ — бундай имзо қабул қилинмайди.',
+  'permits.signatures.errors.certificateOwnedByAnother': 'Бу сертификат бошқа фойдаланувчига тегишли.',
+  'permits.signatures.errors.signRefusedGeneric': 'Имзо рад этилди — қайтадан уриниг.',
+  'permits.signatures.errors.genericSigningError': 'Имзолашда хатолик юз берди.',
+  'permits.signatures.errors.pdfFetchFailed': 'Имзоланадиган ҳужжатни юклаб бўлмади — қайтадан уриниг.',
 
   // --- I1: the prosecutor's read-only registers with export ---------------
   'prosecutor.exportCsv': "CSV экспорт",

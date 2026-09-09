@@ -65,8 +65,41 @@ export const uz_latn = {
   'login.eimzoBadPinfl': "PINFL 14 ta raqamdan iborat bo'lishi kerak.",
   'login.eimzoMockNotice':
     'Sinov rejimi: kalit tekshirilmaydi. Haqiqiy E-IMZO — 5.2-bosqich.',
-  'login.eimzoUnavailable':
-    "E-IMZO kaliti va brauzer plagini talab qilinadi. Bu imkoniyat hali ulanmagan.",
+  'login.eimzoRealHint':
+    "Ulangan E-IMZO kalitingiz orqali tizimga kiring. Kalit parolini E-IMZO dasturining o'zi so'raydi.",
+  // Task 11 — the conditions a citizen actually hits with the real E-IMZO
+  // client (`src/lib/eimzo/errors.ts`), each with an action rather than an
+  // apology. `notInstalled`/`outdatedVersion` name `e-imzo.uz` (the vendor's
+  // own site) rather than a deep link this app cannot verify stays valid.
+  // `chromeBlocked` (fix wave, finding 6): the SAME connection failure as
+  // `notInstalled` — this page cannot tell "E-IMZO is not running" apart
+  // from "the browser silently blocked the connection" from the failure
+  // alone (`client.ts`'s own docstring), and the most common cause is still
+  // simply that E-IMZO is not running. The text therefore names BOTH
+  // actions rather than committing to the browser-gate one alone, and words
+  // the flag as a Chromium fallback rather than a Chrome-only fact — Edge,
+  // Opera, Brave and Yandex Browser all carry a `Chrome/1xx` token and reach
+  // this same message, and not all of them have `chrome://flags` at all.
+  'eimzo.errors.notInstalled':
+    "E-IMZO dasturi topilmadi yoki ishga tushirilmagan. Uni o'rnating yoki ishga tushiring: e-imzo.uz",
+  'eimzo.errors.outdatedVersion':
+    "O'rnatilgan E-IMZO versiyasi eskirgan. Uni yangilang: e-imzo.uz",
+  'eimzo.errors.chromeBlocked':
+    "E-IMZO bilan aloqa o'rnatilmadi. Avval E-IMZO dasturi o'rnatilgan va ishga tushirilganini tekshiring. So'ngra, brauzeringiz mahalliy tarmoqqa ulanishga ruxsat so'rasa — \"Ruxsat berish\"ni tanlang. So'rov chiqmasa va Chrome yoki unga o'xshash brauzerdan (Edge, Brave, Opera, Yandex Browser) foydalanayotgan bo'lsangiz, manzil qatoriga kiriting: chrome://flags/#local-network-access-check va uni \"Disabled\" holatiga o'tkazing — bu sahifa har bir brauzerda ham mavjud bo'lavermaydi.",
+  'eimzo.errors.wrongPassword': "Kalit paroli noto'g'ri kiritildi. Qaytadan urinib ko'ring.",
+  'eimzo.errors.providerUnreachable':
+    "Bu bizning xizmatimizdagi xato emas — E-IMZO provayderi yoki uning VPN aloqasi vaqtincha ishlamayapti. Birozdan so'ng qayta urining.",
+  'eimzo.errors.unknown':
+    "E-IMZO orqali amalni bajarishda kutilmagan xatolik yuz berdi. Qaytadan urinib ko'ring.",
+  // Fix wave, finding 5 — more than one usable certificate, or none once
+  // expired ones are filtered out (`client.ts::pickSigningKey`). Distinct
+  // from `notInstalled`: E-IMZO IS running and DID answer, the problem is
+  // which certificate (or that there is no usable one), never whether the
+  // program itself is there.
+  'eimzo.errors.noValidKey':
+    "Ulangan E-IMZO'da amaldagi (muddati o'tmagan) sertifikat topilmadi. Yangi sertifikat oling yoki muddati o'tgan kalitni yangilang.",
+  'eimzo.errors.multipleValidKeys':
+    "Bir nechta amaldagi E-IMZO sertifikati aniqlandi — qaysi biri bilan imzolash noaniq. Faqat kerakli sertifikat/kalitni ulab qoldiring va qaytadan urining.",
   'dash.error': "Ma'lumotlarni yuklab bo'lmadi. Sahifani yangilab ko'ring.",
   'dash.loading': 'Yuklanmoqda…',
   'dash.activePermits.label': 'Amaldagi ruxsatnomalar',
@@ -231,6 +264,8 @@ export const uz_latn = {
   'cabinet.certificates.title': 'Mening ERI sertifikatlarim',
   'cabinet.certificates.intro':
     "Bu yerda hujjatlarni imzolash uchun biriktirilgan ERI kalitlaringiz roʻyxati.",
+  'cabinet.certificates.realHint':
+    "Biriktirish ulangan E-IMZO kalitingiz orqali amalga oshadi. Kalit parolini E-IMZO dasturining o'zi so'raydi.",
   'cabinet.certificates.pinflLabel': 'PINFL (JSHSHIR)',
   'cabinet.certificates.fullNameLabel': 'Ism (sertifikat subyekti, ixtiyoriy)',
   'cabinet.certificates.bind': 'Sertifikatni biriktirish',
@@ -1105,6 +1140,28 @@ export const uz_latn = {
   'permits.lifecycle.errWrongSigner': "Bu qarorni faqat shu oʻrmon xoʻjaligining rahbari imzolashi mumkin.",
   'permits.lifecycle.errSignatureInvalid': "Imzo tasdiqlanmadi — qaytadan urining.",
   'permits.lifecycle.errUploadFailed': "Fayl yuklanmadi.",
+
+  // Fix wave, finding 4 — `ERR-SIGN-001` reasons `PermitSignaturesPanel.tsx`
+  // now reads from `details.reason` instead of always showing
+  // "not required" (the mock only ever produced that one reason, which is
+  // why the gap went unnoticed). Plus two minor findings: a fetch failure
+  // and the generic fallback used to bypass i18n entirely.
+  'permits.signatures.errors.purposeNotRequired': "Bu turdagi imzo hozircha talab qilinmaydi.",
+  'permits.signatures.errors.signatureInvalid':
+    "Imzo tekshiruvidan oʻtmadi — hujjat yoki E-IMZO kaliti notoʻgʻri boʻlishi mumkin.",
+  'permits.signatures.errors.certificatePinflMismatch': "Sertifikat sizning PINFL/STIR raqamingizga mos kelmaydi.",
+  'permits.signatures.errors.signerPinflUnknown':
+    "Tizimda sizning PINFL raqamingiz qayd etilmagan — profilingizni tekshiring.",
+  'permits.signatures.errors.certificateRevoked': "Sertifikat bekor qilingan — undan foydalanib boʻlmaydi.",
+  'permits.signatures.errors.certificateExpired': "Sertifikat muddati tugagan.",
+  'permits.signatures.errors.certificateMissing': "Sertifikat maʼlumotlari topilmadi.",
+  'permits.signatures.errors.certificateInvalidAtSigning': "Imzolash vaqtida sertifikat amal qilmagan.",
+  'permits.signatures.errors.timestampMissing':
+    "Imzoda vaqt tamgʻasi (timestamp) yoʻq — bunday imzo qabul qilinmaydi.",
+  'permits.signatures.errors.certificateOwnedByAnother': "Bu sertifikat boshqa foydalanuvchiga tegishli.",
+  'permits.signatures.errors.signRefusedGeneric': "Imzo rad etildi — qaytadan urining.",
+  'permits.signatures.errors.genericSigningError': "Imzolashda xatolik yuz berdi.",
+  'permits.signatures.errors.pdfFetchFailed': "Imzolanadigan hujjatni yuklab boʻlmadi — qaytadan urining.",
 
   // --- I1: the prosecutor's read-only registers with export ---------------
   'prosecutor.exportCsv': "CSV eksport",
