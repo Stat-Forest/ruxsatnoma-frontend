@@ -10,7 +10,15 @@ import { Button } from '../../../components/ui/button';
 import { Modal } from '../../../components/ui/Overlay';
 import { FormField, Input, Select, Textarea } from '../../../components/ui/FormControls';
 import { ApiError } from '../../../api/errors';
-import { buildMockSignature, PINFL_PATTERN } from '../../../lib/eimzoMock';
+import {
+  buildMockSignature,
+  EimzoError,
+  eimzoErrorMessageKey,
+  isEimzoMock,
+  isProviderUnreachable,
+  PINFL_PATTERN,
+  signDocument,
+} from '../../../lib/eimzo';
 import { PERMITS_MANAGE } from '../permissions';
 import {
   EXPLANATION_REQUIRED_CODE,
@@ -90,6 +98,11 @@ function LifecycleDecisionModal({
   const [pinflTouched, setPinflTouched] = useState(false);
   const [docFile, setDocFile] = useState<{ id: string; name: string } | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  // Real mode only: `signDocument` runs BEFORE `mutation.mutate`, so its own
+  // failure never reaches `mutation.error`/`apiError` below — kept apart,
+  // same reason `PermitSignaturesPanel.tsx`'s own `formError` is.
+  const [eimzoErrorKey, setEimzoErrorKey] = useState<string | null>(null);
+  const [signing, setSigning] = useState(false);
 
   const reasons = usePermitStatusReasons();
   // `grounds._kinds` — never offer a ground the server would refuse with
@@ -118,15 +131,16 @@ function LifecycleDecisionModal({
     }
   }
 
-  const pinflValid = PINFL_PATTERN.test(pinfl);
+  const pinflValid = !isEimzoMock() || PINFL_PATTERN.test(pinfl);
   const canSubmit =
     reasonItemId !== '' &&
     (!requiresLegalBasis || legalBasis.trim().length > 0) &&
     (!requiresDoc || docFile !== null) &&
-    !mutation.isPending;
+    !mutation.isPending &&
+    !signing;
 
   async function handleSubmit() {
-    if (!pinflValid) {
+    if (isEimzoMock() && !PINFL_PATTERN.test(pinfl)) {
       setPinflTouched(true);
       return;
     }
@@ -140,7 +154,26 @@ function LifecycleDecisionModal({
       legalBasis: legalBasis || null,
       docFileId: docFile?.id ?? null,
     });
-    const pkcs7 = await buildMockSignature({ pinfl, documentBytes });
+    setEimzoErrorKey(null);
+    let pkcs7: string;
+    if (isEimzoMock()) {
+      pkcs7 = await buildMockSignature({ pinfl, documentBytes });
+    } else {
+      // Real mode: DETACHED, over the exact canonical bytes just built above
+      // (`decisions.py::decision_document()`'s own byte-for-byte match) — no
+      // PINFL to type in, the signer's certificate carries that identity.
+      setSigning(true);
+      try {
+        pkcs7 = await signDocument(new Uint8Array(documentBytes));
+      } catch (err) {
+        if (err instanceof EimzoError || isProviderUnreachable(err)) {
+          setEimzoErrorKey(eimzoErrorMessageKey(err));
+        }
+        return;
+      } finally {
+        setSigning(false);
+      }
+    }
     mutation.mutate(
       {
         reason_item_id: reasonItemId,
@@ -161,12 +194,12 @@ function LifecycleDecisionModal({
       maxWidth="lg"
       footer={
         <>
-          <Button variant="outline" onClick={onClose} disabled={mutation.isPending}>
+          <Button variant="outline" onClick={onClose} disabled={mutation.isPending || signing}>
             {t('permits.lifecycle.cancelButton')}
           </Button>
           <Button
             variant={act === 'revoke' ? 'danger' : 'primary'}
-            isLoading={mutation.isPending}
+            isLoading={mutation.isPending || signing}
             disabled={!canSubmit}
             onClick={() => void handleSubmit()}
           >
@@ -225,20 +258,28 @@ function LifecycleDecisionModal({
           </FormField>
         )}
 
-        <FormField
-          label={t('permits.lifecycle.pinflLabel')}
-          required
-          helperText={t('permits.lifecycle.pinflHelp')}
-          error={pinflTouched && !pinflValid ? t('permits.lifecycle.pinflError') : undefined}
-        >
-          <Input
-            inputMode="numeric"
-            value={pinfl}
-            onChange={(e) => setPinfl(e.target.value.replace(/\D/g, '').slice(0, 14))}
-            onBlur={() => setPinflTouched(true)}
-            placeholder="31708860250017"
-          />
-        </FormField>
+        {isEimzoMock() && (
+          <FormField
+            label={t('permits.lifecycle.pinflLabel')}
+            required
+            helperText={t('permits.lifecycle.pinflHelp')}
+            error={pinflTouched && !pinflValid ? t('permits.lifecycle.pinflError') : undefined}
+          >
+            <Input
+              inputMode="numeric"
+              value={pinfl}
+              onChange={(e) => setPinfl(e.target.value.replace(/\D/g, '').slice(0, 14))}
+              onBlur={() => setPinflTouched(true)}
+              placeholder="31708860250017"
+            />
+          </FormField>
+        )}
+
+        {eimzoErrorKey && (
+          <div className="p-3 bg-[#FEF2F2] border border-[#FCA5A5] rounded-xl text-xs text-[#991B1B] space-y-1">
+            <p>{t(eimzoErrorKey)}</p>
+          </div>
+        )}
 
         {apiError && (
           <div className="p-3 bg-[#FEF2F2] border border-[#FCA5A5] rounded-xl text-xs text-[#991B1B] space-y-1">

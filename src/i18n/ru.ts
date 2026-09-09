@@ -56,7 +56,17 @@ export const ru = {
   'login.eimzoButton': 'Войти с ключом E-IMZO',
   'login.eimzoBadPinfl': 'ПИНФЛ должен состоять из 14 цифр.',
   'login.eimzoMockNotice': 'Тестовый режим: ключ не проверяется. Настоящий E-IMZO — этап 5.2.',
-  'login.eimzoUnavailable': 'Требуется ключ E-IMZO и плагин браузера. Эта возможность пока не подключена.',
+  'login.eimzoRealHint': 'Войдите через подключённый ключ E-IMZO. Пароль ключа спросит само приложение E-IMZO.',
+  // Task 11 — see the matching comment in `uz_latn.ts`.
+  'eimzo.errors.notInstalled':
+    'Приложение E-IMZO не найдено или не запущено. Установите или запустите его: e-imzo.uz',
+  'eimzo.errors.outdatedVersion': 'Установленная версия E-IMZO устарела. Обновите её: e-imzo.uz',
+  'eimzo.errors.chromeBlocked':
+    'Ваш браузер (Chrome 147 и новее) проверяет подключение к E-IMZO — нажмите «Разрешить» во всплывающем запросе. Если запрос не появился, откройте chrome://flags/#local-network-access-check и отключите эту проверку (Disabled).',
+  'eimzo.errors.wrongPassword': 'Неверный пароль ключа. Попробуйте ещё раз.',
+  'eimzo.errors.providerUnreachable':
+    'Это не ошибка нашего сервиса — провайдер E-IMZO или его VPN-канал временно недоступен. Повторите попытку чуть позже.',
+  'eimzo.errors.unknown': 'При работе с E-IMZO произошла непредвиденная ошибка. Попробуйте ещё раз.',
   'dash.error': 'Не удалось загрузить данные. Обновите страницу.',
   'dash.loading': 'Загрузка…',
   'dash.activePermits.label': 'Действующие разрешения',
@@ -218,6 +228,8 @@ export const ru = {
 
   'cabinet.certificates.title': 'Мои сертификаты ЭЦП',
   'cabinet.certificates.intro': 'Список ключей ЭЦП, привязанных для подписания документов.',
+  'cabinet.certificates.realHint':
+    'Привязка выполнится через подключённый ключ E-IMZO. Пароль ключа спросит само приложение E-IMZO.',
   'cabinet.certificates.pinflLabel': 'ПИНФЛ (JSHSHIR)',
   'cabinet.certificates.fullNameLabel': 'Имя (субъект сертификата, необязательно)',
   'cabinet.certificates.bind': 'Привязать сертификат',

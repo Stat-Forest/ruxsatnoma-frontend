@@ -62,8 +62,25 @@ export const uz_latn = {
   'login.eimzoBadPinfl': "PINFL 14 ta raqamdan iborat bo'lishi kerak.",
   'login.eimzoMockNotice':
     'Sinov rejimi: kalit tekshirilmaydi. Haqiqiy E-IMZO — 5.2-bosqich.',
-  'login.eimzoUnavailable':
-    "E-IMZO kaliti va brauzer plagini talab qilinadi. Bu imkoniyat hali ulanmagan.",
+  'login.eimzoRealHint':
+    "Ulangan E-IMZO kalitingiz orqali tizimga kiring. Kalit parolini E-IMZO dasturining o'zi so'raydi.",
+  // Task 11 — the five conditions a citizen actually hits with the real
+  // E-IMZO client (`src/lib/eimzo/errors.ts`), each with an action rather
+  // than an apology. `notInstalled`/`outdatedVersion` name `e-imzo.uz`
+  // (the vendor's own site) rather than a deep link this app cannot verify
+  // stays valid. `chromeBlocked` is the one condition nothing on our side
+  // would otherwise report at all — see that file's own docstring.
+  'eimzo.errors.notInstalled':
+    "E-IMZO dasturi topilmadi yoki ishga tushirilmagan. Uni o'rnating yoki ishga tushiring: e-imzo.uz",
+  'eimzo.errors.outdatedVersion':
+    "O'rnatilgan E-IMZO versiyasi eskirgan. Uni yangilang: e-imzo.uz",
+  'eimzo.errors.chromeBlocked':
+    'Brauzeringiz (Chrome 147 va undan keyingi versiyalar) E-IMZO ulanishini tekshirmoqda — chiqqan so\'rovda "Ruxsat berish"ni tanlang. So\'rov chiqmasa, manzil qatoriga kiriting: chrome://flags/#local-network-access-check va uni "Disabled" holatiga o\'tkazing.',
+  'eimzo.errors.wrongPassword': "Kalit paroli noto'g'ri kiritildi. Qaytadan urinib ko'ring.",
+  'eimzo.errors.providerUnreachable':
+    "Bu bizning xizmatimizdagi xato emas — E-IMZO provayderi yoki uning VPN aloqasi vaqtincha ishlamayapti. Birozdan so'ng qayta urining.",
+  'eimzo.errors.unknown':
+    "E-IMZO orqali amalni bajarishda kutilmagan xatolik yuz berdi. Qaytadan urinib ko'ring.",
   'dash.error': "Ma'lumotlarni yuklab bo'lmadi. Sahifani yangilab ko'ring.",
   'dash.loading': 'Yuklanmoqda…',
   'dash.activePermits.label': 'Amaldagi ruxsatnomalar',
@@ -228,6 +245,8 @@ export const uz_latn = {
   'cabinet.certificates.title': 'Mening ERI sertifikatlarim',
   'cabinet.certificates.intro':
     "Bu yerda hujjatlarni imzolash uchun biriktirilgan ERI kalitlaringiz roʻyxati.",
+  'cabinet.certificates.realHint':
+    "Biriktirish ulangan E-IMZO kalitingiz orqali amalga oshadi. Kalit parolini E-IMZO dasturining o'zi so'raydi.",
   'cabinet.certificates.pinflLabel': 'PINFL (JSHSHIR)',
   'cabinet.certificates.fullNameLabel': 'Ism (sertifikat subyekti, ixtiyoriy)',
   'cabinet.certificates.bind': 'Sertifikatni biriktirish',

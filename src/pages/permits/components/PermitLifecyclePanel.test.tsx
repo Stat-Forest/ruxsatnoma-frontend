@@ -20,6 +20,7 @@ import { AuthContext } from '../../../auth/AuthContext';
 import type { AuthContextValue } from '../../../auth/AuthContext';
 import { stubAuthActions } from '../../../auth/testAuthActions';
 import { I18nContext } from '../../../i18n/context';
+import * as eimzo from '../../../lib/eimzo';
 import { PermitLifecyclePanel } from './PermitLifecyclePanel';
 import { decisionDocumentJson } from '../lifecycleDocument';
 import type { PermitCardOut } from '../lifecycle';
@@ -117,7 +118,10 @@ const server = setupServer(
   http.get('*/api/v1/refs/classifiers/:code/items', () => HttpResponse.json(REASONS)),
 );
 beforeAll(() => server.listen({ onUnhandledRequest: 'error' }));
-afterEach(() => server.resetHandlers());
+afterEach(() => {
+  server.resetHandlers();
+  vi.restoreAllMocks();
+});
 afterAll(() => server.close());
 
 function renderPanel(permissions: string[], permitOver: Partial<PermitCardOut> = {}) {
@@ -233,4 +237,65 @@ test('resume (no document required) signs the canonical bytes byte-for-byte', as
   );
   expect(decoded.document_sha256).toBe(expectedHash);
   expect(decoded.pinfl_or_stir).toBe('31708860250017');
+});
+
+test('real mode: no PINFL box, and resume calls signDocument over the canonical bytes (DETACHED)', async () => {
+  vi.spyOn(eimzo, 'isEimzoMock').mockReturnValue(false);
+  const signDocumentSpy = vi.spyOn(eimzo, 'signDocument').mockResolvedValue('REAL-PKCS7');
+  const user = userEvent.setup();
+  let sentBody: { pkcs7: string } | undefined;
+  server.use(
+    http.post('*/api/v1/permits/:id/resume', async ({ request }) => {
+      sentBody = (await request.json()) as typeof sentBody;
+      return HttpResponse.json(permit({ status: 'active' }));
+    }),
+  );
+
+  renderPanel(['permits.manage'], { status: 'suspended' });
+  await user.click(screen.getByText('permits.lifecycle.resumeButton'));
+
+  expect(screen.queryByPlaceholderText('31708860250017')).not.toBeInTheDocument();
+
+  const reasonSelect = await screen.findByDisplayValue('permits.lifecycle.selectPlaceholder');
+  await user.selectOptions(reasonSelect, 'Sabab bartaraf etildi');
+  await user.click(screen.getByText('permits.lifecycle.confirmResume'));
+
+  await waitFor(() => expect(sentBody).toBeDefined());
+  expect(signDocumentSpy).toHaveBeenCalledTimes(1);
+
+  const expectedDocumentJson = decisionDocumentJson({
+    permitId: PERMIT_ID,
+    series: 'А',
+    number: 42,
+    toStatus: 'active',
+    reasonCode: 'PS-06',
+    legalBasis: null,
+    docFileId: null,
+  });
+  const signedBytes = signDocumentSpy.mock.calls[0][0];
+  expect(new TextDecoder().decode(signedBytes)).toBe(expectedDocumentJson);
+  expect(sentBody!.pkcs7).toBe('REAL-PKCS7');
+});
+
+test('a real-mode signing failure shows a distinct message and never reaches the resume mutation', async () => {
+  vi.spyOn(eimzo, 'isEimzoMock').mockReturnValue(false);
+  vi.spyOn(eimzo, 'signDocument').mockRejectedValue(new eimzo.EimzoPasswordError());
+  let called = false;
+  server.use(
+    http.post('*/api/v1/permits/:id/resume', () => {
+      called = true;
+      return HttpResponse.json(permit({ status: 'active' }));
+    }),
+  );
+
+  const user = userEvent.setup();
+  renderPanel(['permits.manage'], { status: 'suspended' });
+  await user.click(screen.getByText('permits.lifecycle.resumeButton'));
+
+  const reasonSelect = await screen.findByDisplayValue('permits.lifecycle.selectPlaceholder');
+  await user.selectOptions(reasonSelect, 'Sabab bartaraf etildi');
+  await user.click(screen.getByText('permits.lifecycle.confirmResume'));
+
+  expect(await screen.findByText(eimzo.EIMZO_ERROR_MESSAGE_KEYS.wrong_password)).toBeInTheDocument();
+  expect(called).toBe(false);
 });

@@ -19,6 +19,9 @@ import { AuthContext } from '../../auth/AuthContext';
 import type { AuthContextValue } from '../../auth/AuthContext';
 import { stubAuthActions } from '../../auth/testAuthActions';
 import type { components } from '../../api/schema';
+import { I18nContext } from '../../i18n/context';
+import { uz_latn } from '../../i18n/uz_latn';
+import * as eimzo from '../../lib/eimzo';
 import { PermitSignaturesPanel } from './PermitSignaturesPanel';
 
 type PermitCardOut = components['schemas']['PermitCardOut'];
@@ -94,16 +97,24 @@ function permitCard(over: Partial<PermitCardOut> = {}): PermitCardOut {
 
 const server = setupServer();
 beforeAll(() => server.listen({ onUnhandledRequest: 'error' }));
-afterEach(() => server.resetHandlers());
+afterEach(() => {
+  server.resetHandlers();
+  vi.restoreAllMocks();
+});
 afterAll(() => server.close());
+
+const t = (key: string) => (uz_latn as Record<string, string>)[key] ?? key;
 
 function renderPanel(permit: PermitCardOut, onSigned: () => void) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
+  const i18n = { lang: 'uz_latn' as const, backendLang: 'uz_latn' as const, t, setLanguage: async () => {} };
   return render(
     <QueryClientProvider client={client}>
-      <AuthContext.Provider value={authValue()}>
-        <PermitSignaturesPanel permit={permit} onSigned={onSigned} />
-      </AuthContext.Provider>
+      <I18nContext.Provider value={i18n}>
+        <AuthContext.Provider value={authValue()}>
+          <PermitSignaturesPanel permit={permit} onSigned={onSigned} />
+        </AuthContext.Provider>
+      </I18nContext.Provider>
     </QueryClientProvider>,
   );
 }
@@ -157,4 +168,27 @@ test('a successful signature refreshes the panel through onSigned, with no stray
 
   await vi.waitFor(() => expect(onSigned).toHaveBeenCalledTimes(1));
   expect(screen.queryByText('Unexpected error')).not.toBeInTheDocument();
+});
+
+test('real mode: no PINFL/STIR box, and a sign fetches the PDF then calls signDocument (DETACHED)', async () => {
+  vi.spyOn(eimzo, 'isEimzoMock').mockReturnValue(false);
+  const signDocumentSpy = vi.spyOn(eimzo, 'signDocument').mockResolvedValue('REAL-PKCS7');
+  let sentPkcs7 = '';
+  server.use(
+    http.get('*/api/v1/permits/:id/pdf', () => new HttpResponse(new Uint8Array([1, 2, 3]).buffer)),
+    http.post('*/api/v1/permits/:id/signatures', async ({ request }) => {
+      sentPkcs7 = ((await request.json()) as { pkcs7: string }).pkcs7;
+      return HttpResponse.json(permitCard({ status: 'active' }));
+    }),
+  );
+
+  const onSigned = vi.fn();
+  renderPanel(permitCard(), onSigned);
+  expect(screen.queryByPlaceholderText('31708860250017')).not.toBeInTheDocument();
+
+  await userEvent.click(screen.getByText('E-IMZO bilan imzolash'));
+
+  await vi.waitFor(() => expect(onSigned).toHaveBeenCalledTimes(1));
+  expect(signDocumentSpy).toHaveBeenCalledTimes(1);
+  expect(sentPkcs7).toBe('REAL-PKCS7');
 });

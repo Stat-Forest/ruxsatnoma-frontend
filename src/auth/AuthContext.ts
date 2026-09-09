@@ -36,11 +36,15 @@ export interface AuthContextValue {
    */
   startOneId: (next: string) => Promise<void>;
   /**
-   * Mock-mode E-IMZO login: fetch a challenge, build the envelope the mock
-   * adapter verifies, exchange it for a session. A real E-IMZO key would
-   * produce the envelope in its own plugin instead — stage 5.2.
+   * ERI login: fetch a challenge, sign it, exchange the signed challenge for
+   * a session. `pinfl`/`fullName` are used ONLY in mock mode, to build the
+   * envelope `buildMockSignedChallenge` needs since a mock has no real key
+   * to read an identity from (`src/lib/eimzo/eimzoMock.ts`'s own docstring);
+   * in real mode they are ignored — the signer's identity comes from their
+   * actual certificate, read server-side out of the signed PKCS7 itself, so
+   * `LoginPage`'s real-mode branch calls this with no arguments at all.
    */
-  loginViaEimzo: (pinfl: string, fullName: string) => Promise<void>;
+  loginViaEimzo: (pinfl?: string, fullName?: string) => Promise<void>;
   logout: () => Promise<void>;
   /**
    * Adopts a fresh `MeOut` a screen already holds — `complete-registration`,

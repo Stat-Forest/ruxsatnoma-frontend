@@ -19,6 +19,8 @@ import { AuthContext } from '../../auth/AuthContext';
 import type { AuthContextValue } from '../../auth/AuthContext';
 import { stubAuthActions } from '../../auth/testAuthActions';
 import { I18nContext } from '../../i18n/context';
+import * as eimzo from '../../lib/eimzo';
+import { actPackageJson } from './actPackage';
 import { ActFormPage } from './ActFormPage';
 import type { ActCardOut, CaseOut, ChecklistOut, ClassifierItemOut } from './queries';
 
@@ -138,7 +140,10 @@ const server = setupServer(
   http.get('*/api/v1/refs/classifiers/:code/items', () => HttpResponse.json([])),
 );
 beforeAll(() => server.listen({ onUnhandledRequest: 'error' }));
-afterEach(() => server.resetHandlers());
+afterEach(() => {
+  server.resetHandlers();
+  vi.restoreAllMocks();
+});
 afterAll(() => server.close());
 
 function LandedProbe() {
@@ -315,6 +320,64 @@ test('a successful sign with no matching case on the first page falls back to a 
 
   expect(await screen.findByText('inspector.actForm.sign.violationCaseOpenedFallback')).toBeInTheDocument();
   expect(screen.queryByTestId('landed')).not.toBeInTheDocument();
+});
+
+test('real mode: no PINFL box, and sign calls signDocument over the canonical act bytes (DETACHED)', async () => {
+  vi.spyOn(eimzo, 'isEimzoMock').mockReturnValue(false);
+  const signDocumentSpy = vi.spyOn(eimzo, 'signDocument').mockResolvedValue('REAL-PKCS7');
+  let sentBody: { pkcs7: string } | undefined;
+  server.use(
+    http.get('*/api/v1/inspections/acts/:act_id', () => HttpResponse.json(act({ status: 'draft' }))),
+    http.post('*/api/v1/inspections/acts/:act_id/sign', async ({ request }) => {
+      sentBody = (await request.json()) as { pkcs7: string };
+      return HttpResponse.json(act({ status: 'signed' }));
+    }),
+  );
+
+  const user = userEvent.setup();
+  renderAt(`/inspections/acts/${ACT_ID}`);
+
+  await screen.findByText('inspector.actForm.sign.signButton');
+  expect(screen.queryByPlaceholderText('31708860250017')).not.toBeInTheDocument();
+
+  await user.click(screen.getByText('inspector.actForm.sign.signButton'));
+
+  await waitFor(() => expect(sentBody).toBeDefined());
+  expect(signDocumentSpy).toHaveBeenCalledTimes(1);
+  const signedBytes = signDocumentSpy.mock.calls[0][0];
+  const expectedJson = actPackageJson({
+    id: ACT_ID,
+    inspectorId: ME_ID,
+    occurredAtIso: '2026-09-01T10:00:00+05:00',
+    checklistId: CHECKLIST_ID,
+    answers: { fence_ok: true },
+    facts: {},
+    result: null,
+  });
+  expect(new TextDecoder().decode(signedBytes)).toBe(expectedJson);
+  expect(sentBody!.pkcs7).toBe('REAL-PKCS7');
+});
+
+test('a real-mode signing failure shows a distinct message and never reaches the sign mutation', async () => {
+  vi.spyOn(eimzo, 'isEimzoMock').mockReturnValue(false);
+  vi.spyOn(eimzo, 'signDocument').mockRejectedValue(new eimzo.EimzoPasswordError());
+  let called = false;
+  server.use(
+    http.get('*/api/v1/inspections/acts/:act_id', () => HttpResponse.json(act({ status: 'draft' }))),
+    http.post('*/api/v1/inspections/acts/:act_id/sign', () => {
+      called = true;
+      return HttpResponse.json(act({ status: 'signed' }));
+    }),
+  );
+
+  const user = userEvent.setup();
+  renderAt(`/inspections/acts/${ACT_ID}`);
+
+  await screen.findByText('inspector.actForm.sign.signButton');
+  await user.click(screen.getByText('inspector.actForm.sign.signButton'));
+
+  expect(await screen.findByText(eimzo.EIMZO_ERROR_MESSAGE_KEYS.wrong_password)).toBeInTheDocument();
+  expect(called).toBe(false);
 });
 
 test('a photo attach calls POST /files then POST .../acts/:id/files, in that order', async () => {

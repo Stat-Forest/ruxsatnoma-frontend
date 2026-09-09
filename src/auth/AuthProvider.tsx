@@ -4,7 +4,7 @@ import { api, setCsrfToken, setSessionGoneHandler } from '../api/client';
 import { apiError, SESSION_GONE } from '../api/errors';
 import type { ApiError } from '../api/errors';
 import type { components } from '../api/schema';
-import { buildMockSignedChallenge } from '../lib/eimzoMock';
+import { buildMockSignedChallenge, isEimzoMock, signAttached } from '../lib/eimzo';
 import { navigation } from '../lib/navigation';
 import { AuthContext } from './AuthContext';
 import type { PasswordStepOutcome } from './AuthContext';
@@ -144,17 +144,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     navigation.assign(data.redirect_url);
   }, []);
 
-  const loginViaEimzo = useCallback(async (pinfl: string, fullName: string) => {
+  // Real mode: `POST /auth/eimzo/challenge` mints the PROVIDER's own
+  // challenge (120s TTL) — signed ATTACHED, never timestamped (`signAttached`'s
+  // own docstring: `login_via_eimzo`/`verify_signed_challenge` is not
+  // `signatures.service.sign()`, so ruling R5's mandatory timestamp does not
+  // gate it). Mock mode keeps building the same JSON envelope it always did,
+  // from the pinfl/fullName the caller supplies — see this method's own
+  // doc comment on `AuthContextValue` for why real mode ignores both.
+  const loginViaEimzo = useCallback(async (pinfl?: string, fullName?: string) => {
     const { data: challengeData, error: challengeError } = await api.POST(
       '/api/v1/auth/eimzo/challenge',
       {},
     );
     if (challengeError) throw apiError(challengeError);
-    const signed = await buildMockSignedChallenge({
-      challenge: challengeData.challenge,
-      pinfl,
-      fullName,
-    });
+    const signed = isEimzoMock()
+      ? await buildMockSignedChallenge({
+          challenge: challengeData.challenge,
+          pinfl: pinfl ?? '',
+          fullName: fullName ?? '',
+        })
+      : await signAttached(new TextEncoder().encode(challengeData.challenge));
     const { data, error } = await api.POST('/api/v1/auth/eimzo/login', {
       body: { signed_challenge: signed },
     });

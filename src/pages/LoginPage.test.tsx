@@ -229,15 +229,21 @@ it('leaving the E-IMZO tab and coming back clears a stale bad-PINFL alert', asyn
   expect(screen.queryByTestId('eimzo-bad-pinfl')).not.toBeInTheDocument();
 });
 
-it('the E-IMZO tab shows the plugin-required notice when the mock flag is off — the branch every real build shows', async () => {
+it('the E-IMZO tab offers the real sign-in button when the mock flag is off, with no PINFL/name box — the branch every real build shows', async () => {
   // `vite.config.ts` turns the mock on for the whole suite so the form
-  // above can be tested; the flag defaults OFF in every real build, and
-  // nothing else in this file ever exercises that branch. Overridden here
-  // only, not suite-wide — `unstubEnvs` in `vite.config.ts` reverts it once
-  // this test ends.
+  // above can be tested; the flag defaults OFF in every real build (stage
+  // 5.2, task 10), and nothing else in this file ever exercises that
+  // branch. Overridden here only, not suite-wide — `unstubEnvs` in
+  // `vite.config.ts` reverts it once this test ends.
+  //
+  // No PINFL/full-name box: a real certificate carries the signer's
+  // identity, unlike the mock, which has no key to read one from
+  // (`AuthContextValue.loginViaEimzo`'s own doc comment) — this is the one
+  // thing task 10 requires of every real-mode branch.
   vi.stubEnv('VITE_EIMZO_MOCK', 'false');
   render(<App />);
   await userEvent.click(await screen.findByRole('tab', { name: 'E-IMZO' }));
-  expect(await screen.findByText(/E-IMZO kaliti va brauzer plagini talab qilinadi/)).toBeInTheDocument();
+  expect(await screen.findByRole('button', { name: 'E-IMZO kaliti bilan kirish' })).toBeInTheDocument();
   expect(screen.queryByLabelText(/PINFL/)).not.toBeInTheDocument();
+  expect(screen.queryByLabelText(/F\.I\.SH|ФИО/)).not.toBeInTheDocument();
 });

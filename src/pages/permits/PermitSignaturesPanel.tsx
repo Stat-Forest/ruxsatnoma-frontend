@@ -6,18 +6,40 @@ import { apiError, ApiError } from '../../api/errors';
 import type { components } from '../../api/schema';
 import { useAuth } from '../../auth/useAuth';
 import { Button } from '../../components/ui/button';
-import { toApiError } from './apiErrorHelpers';
+import { useT } from '../../i18n/useT';
 import {
+  EimzoError,
   buildMockPkcs7,
   canAttemptPurpose,
+  eimzoErrorMessageKey,
+  isEimzoMock,
   isPlausiblePinflOrStir,
+  isProviderUnreachable,
   PURPOSE_LABEL,
   RECIPIENT_PURPOSE,
+  signDocument,
   SIGNATURE_ORDER,
-} from './eimzo';
+} from '../../lib/eimzo';
+import { toApiError } from './apiErrorHelpers';
 import { formatDateTime } from './format';
 
 type PermitCardOut = components['schemas']['PermitCardOut'];
+
+// Not imported from `../../api/client`: that module's `BASE_URL` is not
+// exported, and `openapi-fetch` parses every response as JSON, which this
+// route (`application/pdf`) is not — the same reason `PermitPdfPanel.tsx`
+// bypasses it too. Real-mode signing needs the exact bytes E-IMZO must sign
+// DETACHED (`signatures.service.sign()` hashes the document it already
+// stores, `doc_hash` alone is not enough to hand a real key) — mock mode
+// never calls this, it only ever needs the hash `permit.doc_hash` already
+// carries.
+const API_BASE = import.meta.env.VITE_API_BASE ?? 'http://localhost:8000';
+
+async function fetchPermitPdfBytes(permitId: string): Promise<Uint8Array> {
+  const res = await fetch(`${API_BASE}/api/v1/permits/${permitId}/pdf`, { credentials: 'include' });
+  if (!res.ok) throw new Error(`Failed to fetch the permit PDF (${res.status})`);
+  return new Uint8Array(await res.arrayBuffer());
+}
 
 /** Every error `POST /permits/{id}/signatures` (and `sign()` underneath it)
  *  documents, turned into copy a signer can act on. Falls back to the raw
@@ -50,6 +72,7 @@ function SignatureSlot({
   onSigned: () => void;
 }) {
   const { me } = useAuth();
+  const t = useT();
   const validRow = permit.signatures.find((s) => s.purpose === purpose && s.verification_status === 'valid');
   const invalidAttempts = permit.signatures.filter(
     (s) => s.purpose === purpose && s.verification_status !== 'valid',
@@ -66,6 +89,10 @@ function SignatureSlot({
 
   const [pinfl, setPinfl] = useState(purpose === RECIPIENT_PURPOSE ? (me?.applicant?.pinfl ?? '') : '');
   const [formError, setFormError] = useState<string | null>(null);
+  // Real mode only: fetching the PDF and running the whole E-IMZO flow
+  // (`signDocument`) happens BEFORE `mutation.mutate` — `mutation.isPending`
+  // alone would leave the button looking idle during that entire stretch.
+  const [signing, setSigning] = useState(false);
 
   const mutation = useMutation({
     mutationFn: async (pkcs7: string) => {
@@ -96,22 +123,43 @@ function SignatureSlot({
     },
   });
 
-  function handleSign() {
+  async function handleSign() {
     setFormError(null);
-    if (!isPlausiblePinflOrStir(pinfl)) {
-      setFormError("PINFL 14 ta, tashkilot STIR 9 ta raqamdan iborat boʻlishi kerak.");
-      return;
-    }
     if (!permit.doc_hash) {
       setFormError("Hujjat hali render qilinmagan — imzolab boʻlmaydi.");
       return;
     }
-    const pkcs7 = buildMockPkcs7({
-      pinflOrStir: pinfl,
-      documentSha256: permit.doc_hash,
-      subject: `PINFL=${pinfl}, CN=${me?.user.full_name ?? ''}`,
-    });
-    mutation.mutate(pkcs7);
+    if (isEimzoMock()) {
+      if (!isPlausiblePinflOrStir(pinfl)) {
+        setFormError("PINFL 14 ta, tashkilot STIR 9 ta raqamdan iborat boʻlishi kerak.");
+        return;
+      }
+      const pkcs7 = buildMockPkcs7({
+        pinflOrStir: pinfl,
+        documentSha256: permit.doc_hash,
+        subject: `PINFL=${pinfl}, CN=${me?.user.full_name ?? ''}`,
+      });
+      mutation.mutate(pkcs7);
+      return;
+    }
+    // Real mode: DETACHED — `signatures.service.sign()` hashes the exact
+    // bytes `GET /permits/{id}/pdf` serves and calls
+    // `adapter.verify_detached(document, pkcs7)`; no pinfl/STIR to type in,
+    // the certificate the signer picks in E-IMZO carries that identity.
+    setSigning(true);
+    try {
+      const bytes = await fetchPermitPdfBytes(permit.id);
+      const pkcs7 = await signDocument(bytes);
+      mutation.mutate(pkcs7);
+    } catch (err) {
+      if (err instanceof EimzoError || isProviderUnreachable(err)) {
+        setFormError(t(eimzoErrorMessageKey(err)));
+      } else {
+        setFormError(err instanceof Error ? err.message : "Imzolashda xatolik yuz berdi.");
+      }
+    } finally {
+      setSigning(false);
+    }
   }
 
   if (validRow) {
@@ -148,27 +196,29 @@ function SignatureSlot({
         <p className="text-[#B45309]">Imzo kutilmoqda — bu qatorni faqat tegishli mansabdor imzolashi mumkin.</p>
       ) : (
         <div className="space-y-2">
-          <label className="block">
-            <span className="block text-[11px] font-semibold text-[#5A646D] mb-1">
-              PINFL (14 ta) yoki tashkilot STIR (9 ta raqam)
-            </span>
-            <input
-              value={pinfl}
-              onChange={(e) => setPinfl(e.target.value.replace(/[^0-9]/g, ''))}
-              inputMode="numeric"
-              maxLength={14}
-              className="w-full h-9 rounded-md border border-[#767F87] px-2 font-mono text-xs"
-              placeholder="31708860250017"
-            />
-          </label>
+          {isEimzoMock() && (
+            <label className="block">
+              <span className="block text-[11px] font-semibold text-[#5A646D] mb-1">
+                PINFL (14 ta) yoki tashkilot STIR (9 ta raqam)
+              </span>
+              <input
+                value={pinfl}
+                onChange={(e) => setPinfl(e.target.value.replace(/[^0-9]/g, ''))}
+                inputMode="numeric"
+                maxLength={14}
+                className="w-full h-9 rounded-md border border-[#767F87] px-2 font-mono text-xs"
+                placeholder="31708860250017"
+              />
+            </label>
+          )}
           {formError && <p className="text-[#B91C1C] font-semibold">{formError}</p>}
           <Button
             variant="primary"
             size="sm"
             fullWidth
-            isLoading={mutation.isPending}
+            isLoading={mutation.isPending || signing}
             leftIcon={<PenTool className="w-4 h-4" />}
-            onClick={handleSign}
+            onClick={() => void handleSign()}
             className="bg-[#2E7D4F] hover:bg-[#23653F] text-white font-bold h-9 text-xs"
           >
             E-IMZO bilan imzolash
