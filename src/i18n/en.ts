@@ -1726,7 +1726,7 @@ export const en = {
   'common.fileSelected': 'File selected',
   'common.removeFile': 'Remove file',
   'wizard.title': 'Submit new application',
-  'wizard.subtitle': 'Complete the steps sequentially — draft is saved at each step',
+  'wizard.subtitle': 'Complete the steps sequentially.',
   'wizard.backToList': 'Back to list',
   'wizard.step1.title': 'Activity type',
   'wizard.step1.desc': 'Usage type',

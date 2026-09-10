@@ -1947,7 +1947,7 @@ export const uz_latn = {
   'common.fileSelected': "Fayl tanlandi",
   'common.removeFile': "Faylni oʻchirish",
   'wizard.title': "Yangi ariza topshirish",
-  'wizard.subtitle': "Bosqichlarni ketma-ket toʻldiring — har bir qadamda qoralama saqlanadi",
+  'wizard.subtitle': "Bosqichlarni ketma-ket toʻldiring.",
   'wizard.backToList': "Roʻyxatga qaytish",
   'wizard.step1.title': "Faoliyat turi",
   'wizard.step1.desc': "Foydalanish turi",

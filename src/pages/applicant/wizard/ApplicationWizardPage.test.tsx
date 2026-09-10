@@ -39,6 +39,9 @@ const ACTIVITY_ID = 'a0000000-0000-4000-8000-000000000001';
 const OTHER_ACTIVITY_ID = 'a0000000-0000-4000-8000-000000000002';
 const APPLICATION_ID = 'ap000000-0000-4000-8000-000000000001';
 const APPLICANT_NAME = 'Aliyev Vali Applicant';
+// A stand-in for the base64 `package` field of `FilingPackageOut` — its
+// content never matters to these tests, only that it decodes.
+const PACKAGE_B64 = btoa('package-bytes');
 
 function authValue(language: string): AuthContextValue {
   return {
@@ -143,6 +146,10 @@ async function selectLegalEntity() {
   await userEvent.selectOptions(screen.getByRole('combobox'), LEGAL_ENTITY_ID);
 }
 
+// Plan 12: `POST /applications/precheck` and `POST /applications/package`
+// replace the old per-id routes; `POST /applications` is the ONE request
+// that files (self, directly, or legal, with `application_id` + `pkcs7`
+// from the package). Nothing here holds a server-side draft any more.
 const server = setupServer(
   http.get('*/api/v1/refs/activity-types', () =>
     HttpResponse.json([{ id: ACTIVITY_ID, code: 'haymaking', name: { uz_latn: 'Pichanchilik' }, quantity_unit: 'ga' }]),
@@ -177,15 +184,12 @@ const server = setupServer(
       periods: [],
     }),
   ),
-  http.post('*/api/v1/applications', () => HttpResponse.json({ id: APPLICATION_ID })),
-  http.patch('*/api/v1/applications/:id', () => HttpResponse.json({ id: APPLICATION_ID })),
-  http.get('*/api/v1/applications/:id', () => HttpResponse.json({ id: APPLICATION_ID, documents: [], items: [] })),
-  http.post('*/api/v1/applications/:id/precheck', () => HttpResponse.json({ checks: [], calculation: null })),
-  http.get(
-    '*/api/v1/applications/:id/package',
-    () => new HttpResponse(new ArrayBuffer(8), { headers: { 'Content-Type': 'application/octet-stream' } }),
+  http.post('*/api/v1/applications/precheck', () => HttpResponse.json({ checks: [], calculation: null })),
+  http.post('*/api/v1/applications/package', () =>
+    HttpResponse.json({ application_id: APPLICATION_ID, package: PACKAGE_B64 }),
   ),
-  http.post('*/api/v1/applications/:id/submit', () => HttpResponse.json({ id: APPLICATION_ID })),
+  http.post('*/api/v1/applications', () => HttpResponse.json({ id: APPLICATION_ID })),
+  http.post('*/api/v1/files', () => HttpResponse.json({ id: 'file-1' })),
   // Ruling #184: the rules checkbox links here — fetched unconditionally on
   // mount, so every test in this file needs it handled, not only the ones
   // that reach step 5.
@@ -202,7 +206,7 @@ afterAll(() => server.close());
 // context. Same pattern `ReportDetailPage.test.tsx` already uses for its
 // own real-navigation assertions. Two extra routes stand in for the pages
 // the wizard actually navigates to — "back to list" and a successful
-// submit's redirect — so a proceeded navigation has somewhere to land
+// filing's redirect — so a proceeded navigation has somewhere to land
 // instead of rendering react-router's own "no route matched" error.
 function renderWizard(
   auth: AuthContextValue = AUTH_VALUE,
@@ -293,7 +297,7 @@ test.each([
   'a duplicate-application refusal (ERR-APP-002) renders localized copy, not the raw code, in %s',
   async (language, expectedText) => {
     server.use(
-      http.post('*/api/v1/applications/:id/submit', () =>
+      http.post('*/api/v1/applications', () =>
         HttpResponse.json(
           { error: { code: 'ERR-APP-002', message: 'Активная заявка на пересекающийся период уже существует' } },
           { status: 409 },
@@ -322,6 +326,11 @@ test.each([
 // (covered separately below). `applicant.name` signed here is still the
 // SIGNED-IN citizen's own name (`me.applicant`, the representative), never
 // the entity's — unaffected by which one is being filed for.
+//
+// Plan 12, R2: a legal filing first calls `POST /applications/package` (the
+// default handler above mints `APPLICATION_ID` and a base64 `package`), then
+// signs those bytes, then posts `POST /applications` with `application_id` +
+// `pkcs7` alongside the filing — never a per-id route.
 test('signing and submitting passes the signed-in applicant’s own name into the mock signature', async () => {
   const auth = authValueLegal();
   renderWizard(auth);
@@ -330,7 +339,7 @@ test('signing and submitting passes the signed-in applicant’s own name into th
   await driveToStep5();
   await acceptRules();
 
-  // Step 5 — precheck resolves, then sign and submit.
+  // Step 5 — precheck resolves, then package + sign + file.
   const signButton = await screen.findByRole('button', { name: /ERI bilan imzolash va yuborish/ });
   await waitFor(() => expect(signButton).toBeEnabled());
   await userEvent.click(signButton);
@@ -342,14 +351,14 @@ test('signing and submitting passes the signed-in applicant’s own name into th
 
 // Finding 2 (review of stage 5.2): this call site was still hardwired to
 // the mock builder, bypassing the mock/real switch entirely — under real
-// mode, submitting an application would have signed with a builder the
-// real backend cannot verify.
+// mode, filing an application would have signed with a builder the real
+// backend cannot verify.
 test('real mode: sign calls signDocument over the exact package bytes (DETACHED)', async () => {
   vi.spyOn(eimzo, 'isEimzoMock').mockReturnValue(false);
   const signDocumentSpy = vi.spyOn(eimzo, 'signDocument').mockResolvedValue('REAL-PKCS7');
-  let sentBody: { pkcs7?: string; rules_accepted?: boolean } = {};
+  let sentBody: { pkcs7?: string; rules_accepted?: boolean; application_id?: string } = {};
   server.use(
-    http.post('*/api/v1/applications/:id/submit', async ({ request }) => {
+    http.post('*/api/v1/applications', async ({ request }) => {
       sentBody = (await request.json()) as typeof sentBody;
       return HttpResponse.json({ id: APPLICATION_ID });
     }),
@@ -364,19 +373,20 @@ test('real mode: sign calls signDocument over the exact package bytes (DETACHED)
   await waitFor(() => expect(signButton).toBeEnabled());
   await userEvent.click(signButton);
 
-  // A legal filing still carries the envelope AND the mandatory acceptance
-  // (ruling #184) in the same body.
+  // A legal filing carries the envelope, the id the package minted, AND the
+  // mandatory acceptance (ruling #184) in the same body.
   await waitFor(() => expect(sentBody.pkcs7).toBe('REAL-PKCS7'));
   expect(sentBody.rules_accepted).toBe(true);
+  expect(sentBody.application_id).toBe(APPLICATION_ID);
   expect(signDocumentSpy).toHaveBeenCalledTimes(1);
 });
 
-test('a real-mode signing failure shows a distinct message and never reaches submit', async () => {
+test('a real-mode signing failure shows a distinct message and never reaches the filing request', async () => {
   vi.spyOn(eimzo, 'isEimzoMock').mockReturnValue(false);
   vi.spyOn(eimzo, 'signDocument').mockRejectedValue(new eimzo.EimzoPasswordError());
   let called = false;
   server.use(
-    http.post('*/api/v1/applications/:id/submit', () => {
+    http.post('*/api/v1/applications', () => {
       called = true;
       return HttpResponse.json({ id: APPLICATION_ID });
     }),
@@ -398,13 +408,19 @@ test('a real-mode signing failure shows a distinct message and never reaches sub
 });
 
 // Ruling #183: the OTHER half of the branch — a `self` filing posts no
-// envelope at all, and never touches the mock/real ERI machinery above.
-test('a self filing (the default fixture) signs with a plain button: no pkcs7, rules_accepted true, no envelope built', async () => {
-  let sentBody: { pkcs7?: string | null; rules_accepted?: boolean } = {};
+// envelope at all, never calls `POST /applications/package`, and never
+// touches the mock/real ERI machinery above.
+test('a self filing (the default fixture) signs with a plain button: no pkcs7, rules_accepted true, no package call', async () => {
+  let sentBody: { pkcs7?: string | null; rules_accepted?: boolean; application_id?: string | null } = {};
+  let packageCalled = false;
   server.use(
-    http.post('*/api/v1/applications/:id/submit', async ({ request }) => {
+    http.post('*/api/v1/applications', async ({ request }) => {
       sentBody = (await request.json()) as typeof sentBody;
       return HttpResponse.json({ id: APPLICATION_ID });
+    }),
+    http.post('*/api/v1/applications/package', () => {
+      packageCalled = true;
+      return HttpResponse.json({ application_id: APPLICATION_ID, package: PACKAGE_B64 });
     }),
   );
   // Counted rather than asserted absent: the mock is module-level and
@@ -420,6 +436,8 @@ test('a self filing (the default fixture) signs with a plain button: no pkcs7, r
 
   await waitFor(() => expect(sentBody.rules_accepted).toBe(true));
   expect(sentBody.pkcs7).toBeUndefined();
+  expect(sentBody.application_id).toBeUndefined();
+  expect(packageCalled).toBe(false);
   expect(vi.mocked(buildMockSignature).mock.calls.length).toBe(signaturesBefore);
 });
 
@@ -440,7 +458,7 @@ test('an account with no address is asked for it in step 5, and can submit once 
         address: "Farg'ona sh., Mustaqillik ko'chasi 5",
       });
     }),
-    http.post('*/api/v1/applications/:id/submit', async ({ request }) => {
+    http.post('*/api/v1/applications', async ({ request }) => {
       sentBody = (await request.json()) as typeof sentBody;
       return HttpResponse.json({ id: APPLICATION_ID });
     }),
@@ -588,22 +606,107 @@ test('choosing the activity type advances to step 2 by itself, and the Next butt
   expect(screen.getByRole('button', { name: new RegExp(UZ['wizard.nav.next']) })).toBeInTheDocument();
 });
 
-test('a reversed period is named in the field and blocks Next before any request leaves the browser', async () => {
-  let patchCount = 0;
+// Plan 12, R10: steps 1-4 write NOTHING — this is the direct test of that
+// contract, over the exact path (haymaking, quantity, no documents) the
+// other T1 tests already drive.
+test('walking steps 1 through 4 issues no request to /applications*', async () => {
+  const seenUrls: string[] = [];
   server.use(
-    http.patch('*/api/v1/applications/:id', () => {
-      patchCount += 1;
+    http.post('*/api/v1/applications', ({ request }) => {
+      seenUrls.push(request.url);
       return HttpResponse.json({ id: APPLICATION_ID });
+    }),
+    http.post('*/api/v1/applications/precheck', ({ request }) => {
+      seenUrls.push(request.url);
+      return HttpResponse.json({ checks: [], calculation: null });
+    }),
+    http.post('*/api/v1/applications/package', ({ request }) => {
+      seenUrls.push(request.url);
+      return HttpResponse.json({ application_id: APPLICATION_ID, package: PACKAGE_B64 });
     }),
   );
   renderWizard();
 
   await chooseActivity();
   await userEvent.click(await screen.findByText('pick-contour'));
-  // The activity-type PATCH already landed by the time step 2 renders —
-  // count from here, not from zero.
-  await waitFor(() => expect(patchCount).toBeGreaterThan(0));
-  const countBeforeDates = patchCount;
+  fireEvent.change(screen.getByLabelText(new RegExp(UZ['wizard.step2.periodFrom'])), { target: { value: '2026-01-01' } });
+  fireEvent.change(screen.getByLabelText(new RegExp(UZ['wizard.step2.periodTo'])), { target: { value: '2026-06-01' } });
+  await userEvent.click(screen.getByRole('button', { name: new RegExp(UZ['wizard.nav.next']) }));
+
+  await userEvent.type(await screen.findByLabelText(new RegExp(UZ['wizard.step3.quantity'])), '5');
+  await userEvent.click(screen.getByRole('button', { name: new RegExp(UZ['wizard.nav.next']) }));
+
+  await screen.findByText(UZ['wizard.step4.heading']);
+  expect(seenUrls).toEqual([]);
+});
+
+// Plan 12, R3/R10: the whole filing — assembled from every step so far —
+// is what the pre-check receives, over the ONE stateless route.
+test('reaching step 5 posts the filing assembled from steps 1-4 to /applications/precheck', async () => {
+  let precheckBody: unknown = null;
+  server.use(
+    http.post('*/api/v1/applications/precheck', async ({ request }) => {
+      precheckBody = await request.json();
+      return HttpResponse.json({ checks: [], calculation: null });
+    }),
+  );
+  renderWizard();
+
+  await driveToStep5();
+
+  await waitFor(() =>
+    expect(precheckBody).toMatchObject({
+      on_behalf: 'self',
+      activity_type_id: ACTIVITY_ID,
+      contour_id: 'contour-1',
+      period_from: '2026-01-01',
+      period_to: '2026-06-01',
+      quantity: '5',
+      items: [],
+      benefit_category_item_id: null,
+      benefit_certificate_no: null,
+      documents: [],
+    }),
+  );
+});
+
+// Plan 12, R10: `?draft=` is not read at all — nothing about a former
+// resume flow survives, so no request for an existing application is ever
+// made from this page.
+test('a ?draft= id in the URL is ignored: no request for an existing application is made', async () => {
+  let cardRequested = false;
+  server.use(
+    http.get('*/api/v1/applications/:id', () => {
+      cardRequested = true;
+      return HttpResponse.json({ id: APPLICATION_ID, documents: [], items: [] });
+    }),
+  );
+  renderWizard(AUTH_VALUE, 'uz_latn', `/my/applications/new?draft=${APPLICATION_ID}`);
+
+  await screen.findByText('Pichanchilik');
+  expect(cardRequested).toBe(false);
+});
+
+test('a reversed period is named in the field and blocks Next before any request leaves the browser', async () => {
+  const seenUrls: string[] = [];
+  server.use(
+    http.post('*/api/v1/applications', ({ request }) => {
+      seenUrls.push(request.url);
+      return HttpResponse.json({ id: APPLICATION_ID });
+    }),
+    http.post('*/api/v1/applications/precheck', ({ request }) => {
+      seenUrls.push(request.url);
+      return HttpResponse.json({ checks: [], calculation: null });
+    }),
+    http.post('*/api/v1/applications/package', ({ request }) => {
+      seenUrls.push(request.url);
+      return HttpResponse.json({ application_id: APPLICATION_ID, package: PACKAGE_B64 });
+    }),
+  );
+  renderWizard();
+
+  await chooseActivity();
+  await userEvent.click(await screen.findByText('pick-contour'));
 
   fireEvent.change(screen.getByLabelText(new RegExp(UZ['wizard.step2.periodFrom'])), { target: { value: '2026-06-01' } });
   fireEvent.change(screen.getByLabelText(new RegExp(UZ['wizard.step2.periodTo'])), { target: { value: '2026-01-01' } });
@@ -613,7 +716,7 @@ test('a reversed period is named in the field and blocks Next before any request
   expect(nextButton).toBeDisabled();
 
   await userEvent.click(nextButton);
-  expect(patchCount).toBe(countBeforeDates);
+  expect(seenUrls).toEqual([]);
 });
 
 test('a period longer than 5×366 days is named in the field and blocks Next', async () => {
@@ -680,25 +783,28 @@ test('a step already reached stays clickable even after going further back than 
   expect(await screen.findByText(UZ['wizard.step4.heading'])).toBeInTheDocument();
 });
 
-test('leaving mid-draft via in-app navigation asks first, and the draft is kept if cancelled', async () => {
+// Plan 12, R10: nothing is saved before «Yuborish», so leaving mid-way
+// genuinely loses everything entered — the modal says so.
+test('leaving mid-way via in-app navigation asks first, and everything entered is kept if cancelled', async () => {
   const { router } = renderWizard();
-  await chooseActivity(); // draft exists after the first click; the second moves on
+  await chooseActivity(); // progress exists after the first click; the second moves on
   await screen.findByText('pick-contour');
 
   await userEvent.click(screen.getByRole('button', { name: new RegExp(UZ['wizard.backToList']) }));
 
-  expect(await screen.findByText(/Vizarddan chiqasizmi/)).toBeInTheDocument();
+  expect(await screen.findByText(/Ariza yuborilmadi/)).toBeInTheDocument();
+  expect(screen.getByText(/Ariza saqlanmaydi/)).toBeInTheDocument();
   // Blocked, not navigated yet.
   expect(router.state.location.pathname).toBe('/my/applications/new');
 
   await userEvent.click(screen.getByRole('button', { name: 'Davom etish' }));
-  expect(screen.queryByText(/Vizarddan chiqasizmi/)).not.toBeInTheDocument();
+  expect(screen.queryByText(/Ariza yuborilmadi/)).not.toBeInTheDocument();
   expect(router.state.location.pathname).toBe('/my/applications/new');
   // Still on the wizard, the contour picker included — nothing was reset.
   expect(screen.getByText('pick-contour')).toBeInTheDocument();
 });
 
-test('leaving mid-draft via in-app navigation proceeds once confirmed', async () => {
+test('leaving mid-way via in-app navigation proceeds once confirmed', async () => {
   const { router } = renderWizard();
   await chooseActivity();
   await screen.findByText('pick-contour');
@@ -709,7 +815,7 @@ test('leaving mid-draft via in-app navigation proceeds once confirmed', async ()
   await waitFor(() => expect(router.state.location.pathname).toBe('/my/applications'));
 });
 
-test('no leave-confirmation is asked before any draft exists (step 1, nothing chosen yet)', async () => {
+test('no leave-confirmation is asked before any progress exists (step 1, nothing chosen yet)', async () => {
   const { router } = renderWizard();
   await screen.findByText('Pichanchilik'); // step 1, no activity picked yet
 
@@ -719,7 +825,7 @@ test('no leave-confirmation is asked before any draft exists (step 1, nothing ch
   await waitFor(() => expect(router.state.location.pathname).toBe('/my/applications'));
 });
 
-test('a successful submit navigates straight through, without asking to leave', async () => {
+test('a successful filing navigates straight through, without asking to leave', async () => {
   const { router } = renderWizard();
   await driveToStep5();
   await acceptRules();
@@ -729,20 +835,20 @@ test('a successful submit navigates straight through, without asking to leave', 
   await userEvent.click(signButton);
 
   await waitFor(() => expect(router.state.location.pathname).toBe(`/my/applications/${APPLICATION_ID}`));
-  expect(screen.queryByText(/Vizarddan chiqasizmi/)).not.toBeInTheDocument();
+  expect(screen.queryByText(/Ariza yuborilmadi/)).not.toBeInTheDocument();
 });
 
-test('beforeunload is prevented while a draft exists, and not before one does', async () => {
+test('beforeunload is prevented once progress exists, and not before', async () => {
   renderWizard();
   await screen.findByText('Pichanchilik');
 
-  // Step 1, nothing chosen yet — no draft, nothing to warn about.
+  // Step 1, nothing chosen yet — no progress, nothing to warn about.
   const before = new Event('beforeunload', { cancelable: true });
   window.dispatchEvent(before);
   expect(before.defaultPrevented).toBe(false);
 
   await chooseActivity();
-  await screen.findByText('pick-contour'); // draft now exists
+  await screen.findByText('pick-contour'); // progress now exists
 
   const after = new Event('beforeunload', { cancelable: true });
   window.dispatchEvent(after);
@@ -861,24 +967,14 @@ function classifierHandler(benefits: object[], docTypes: object[]) {
     return HttpResponse.json([]);
   });
 }
-// A card whose `documents` grow as `POST .../documents` lands — the wizard
-// re-reads the card after every upload, and step 4's rows are drawn from it.
-function documentsStore(initial: { id: string; doc_type_item_id: string; file_id: string }[] = []) {
-  let documents = initial;
-  return [
-    http.get('*/api/v1/applications/:id', () => HttpResponse.json({ id: APPLICATION_ID, documents, items: [] })),
-    http.post('*/api/v1/applications/:id/documents', async ({ request }) => {
-      const body = (await request.json()) as { doc_type_item_id: string; file_id: string };
-      const doc = { id: `doc-${documents.length + 1}`, doc_type_item_id: body.doc_type_item_id, file_id: body.file_id };
-      documents = [...documents, doc];
-      return HttpResponse.json(doc);
-    }),
-    http.delete('*/api/v1/applications/:id/documents/:documentId', ({ params }) => {
-      documents = documents.filter((d) => d.id !== params.documentId);
-      return new HttpResponse(null, { status: 204 });
-    }),
-    http.post('*/api/v1/files', () => HttpResponse.json({ id: 'file-1' })),
-  ];
+// Every uploaded file gets its own id, in order, so a test asserting on
+// which document a row's file landed under can tell them apart.
+function filesHandler() {
+  let n = 0;
+  return http.post('*/api/v1/files', () => {
+    n += 1;
+    return HttpResponse.json({ id: `file-${n}` });
+  });
 }
 // Steps 1–3 for a non-grazing activity, ending on step 4's first row.
 async function driveToStep4() {
@@ -919,14 +1015,15 @@ test('the benefit is not asked on step 3 any more — it is an option of the doc
 // Ruling #181: the certificate number is mandatory for EVERY benefit
 // category now — there is no `props.requires_certificate` switch any more,
 // so this fixture deliberately carries `props: {}` to prove the field is
-// still required regardless.
-test('the benefit certificate number is required before Next for ANY chosen category (no per-item switch), and reaches the PATCH', async () => {
-  server.use(classifierHandler([BENEFIT_ITEM], [PROOF_DOC_TYPE]), ...documentsStore());
-  let lastPatchBody: unknown = null;
+// still required regardless. Plan 12: the claim rides in the PRE-CHECK body
+// (there is no more PATCH to carry it).
+test('the benefit certificate number is required before Next for ANY chosen category (no per-item switch), and reaches the pre-check', async () => {
+  server.use(classifierHandler([BENEFIT_ITEM], [PROOF_DOC_TYPE]));
+  let precheckBody: unknown = null;
   server.use(
-    http.patch('*/api/v1/applications/:id', async ({ request }) => {
-      lastPatchBody = await request.json();
-      return HttpResponse.json({ id: APPLICATION_ID });
+    http.post('*/api/v1/applications/precheck', async ({ request }) => {
+      precheckBody = await request.json();
+      return HttpResponse.json({ checks: [], calculation: null });
     }),
   );
   renderWizard();
@@ -946,7 +1043,7 @@ test('the benefit certificate number is required before Next for ANY chosen cate
   await userEvent.click(nextButton);
 
   await waitFor(() =>
-    expect(lastPatchBody).toMatchObject({ benefit_category_item_id: 'benefit-1', benefit_certificate_no: 'AB-12345' }),
+    expect(precheckBody).toMatchObject({ benefit_category_item_id: 'benefit-1', benefit_certificate_no: 'AB-12345' }),
   );
 });
 
@@ -966,13 +1063,13 @@ test('the certificate field is shown for a SECOND category with no special props
 
 // Choosing "no benefit" (clearing the selection) is the one way to make the
 // certificate optional again — not a per-item classifier flag.
-test('clearing the benefit selection hides the certificate field again and sends null', async () => {
+test('clearing the benefit selection hides the certificate field again and sends null in the pre-check', async () => {
   server.use(classifierHandler([BENEFIT_ITEM], [PROOF_DOC_TYPE]));
-  let lastPatchBody: unknown = null;
+  let precheckBody: unknown = null;
   server.use(
-    http.patch('*/api/v1/applications/:id', async ({ request }) => {
-      lastPatchBody = await request.json();
-      return HttpResponse.json({ id: APPLICATION_ID });
+    http.post('*/api/v1/applications/precheck', async ({ request }) => {
+      precheckBody = await request.json();
+      return HttpResponse.json({ checks: [], calculation: null });
     }),
   );
   renderWizard();
@@ -985,15 +1082,17 @@ test('clearing the benefit selection hides the certificate field again and sends
   expect(screen.queryByLabelText(new RegExp(UZ['wizard.step4.certificateNumber']))).not.toBeInTheDocument();
   await userEvent.click(screen.getByRole('button', { name: new RegExp(UZ['wizard.nav.next']) }));
 
-  await waitFor(() => expect(lastPatchBody).toMatchObject({ benefit_category_item_id: null, benefit_certificate_no: null }));
+  await waitFor(() => expect(precheckBody).toMatchObject({ benefit_category_item_id: null, benefit_certificate_no: null }));
 });
 
-// Every upload is its own row: the row dissolves into the card's list once
-// its file is on the server, and "add document" opens the next one. A row
-// with a type chosen and no file holds Next — moving on would drop it
-// without a word.
+// Every upload is its own row: the row dissolves into the local documents
+// list the moment its file lands on the server, and "add document" opens
+// the next one. A row with a type chosen and no file holds Next — moving on
+// would drop it without a word. Plan 12, R9: `POST /files` is the only
+// server call an upload makes now — the association with the (not yet
+// filed) application lives only in this component's own state.
 test('a second document is added as a new row; a half-filled row holds Next until its file lands', async () => {
-  server.use(classifierHandler([], [OTHER_DOC_TYPE]), ...documentsStore());
+  server.use(classifierHandler([], [OTHER_DOC_TYPE]), filesHandler());
   renderWizard();
   await driveToStep4();
 
@@ -1071,7 +1170,7 @@ test('the rules checkbox gates the sign button and links to rules_url', async ()
 
 test('a simple-signature refusal (ERR-SIGN-001, simple_signature_not_allowed) is shown at the sign button', async () => {
   server.use(
-    http.post('*/api/v1/applications/:id/submit', () =>
+    http.post('*/api/v1/applications', () =>
       HttpResponse.json(
         { error: { code: 'ERR-SIGN-001', message: 'x', details: { reason: 'simple_signature_not_allowed' } } },
         { status: 422 },
@@ -1096,17 +1195,7 @@ test('a simple-signature refusal (ERR-SIGN-001, simple_signature_not_allowed) is
 test('a benefit-certificate refusal (ERR-APP-003, benefit_certificate_unknown) sends the applicant back to step 4 and shows it at the field', async () => {
   server.use(
     classifierHandler([BENEFIT_ITEM], [PROOF_DOC_TYPE]),
-    // The proof is already on the card: step 4's gate is fail-closed (review
-    // finding 3), so reaching the sign button needs a real `benefit_proof`
-    // row, not an unloaded doc-type list.
-    http.get('*/api/v1/applications/:id', () =>
-      HttpResponse.json({
-        id: APPLICATION_ID,
-        documents: [{ id: 'doc-1', doc_type_item_id: 'doctype-proof', file_id: 'file-1' }],
-        items: [],
-      }),
-    ),
-    http.post('*/api/v1/applications/:id/submit', () =>
+    http.post('*/api/v1/applications', () =>
       HttpResponse.json(
         { error: { code: 'ERR-APP-003', message: 'x', details: { reason: 'benefit_certificate_unknown' } } },
         { status: 422 },
@@ -1134,18 +1223,14 @@ test('a benefit-certificate refusal (ERR-APP-003, benefit_certificate_unknown) s
 // scan under `benefit_proof` (no doc type to pick: the category IS the type).
 test('the benefit_proof scan is optional: Next opens on the number alone, and the file, when attached, is filed under benefit_proof', async () => {
   let uploadedType: string | null = null;
-  let documents: { id: string; doc_type_item_id: string; file_id: string }[] = [];
   server.use(
     classifierHandler([BENEFIT_ITEM], [PROOF_DOC_TYPE, OTHER_DOC_TYPE]),
-    http.get('*/api/v1/applications/:id', () => HttpResponse.json({ id: APPLICATION_ID, documents, items: [] })),
-    http.post('*/api/v1/applications/:id/documents', async ({ request }) => {
-      const body = (await request.json()) as { doc_type_item_id: string; file_id: string };
-      uploadedType = body.doc_type_item_id;
-      const doc = { id: 'doc-1', doc_type_item_id: body.doc_type_item_id, file_id: body.file_id };
-      documents = [...documents, doc];
-      return HttpResponse.json(doc);
+    http.post('*/api/v1/files', async ({ request }) => {
+      const body = await request.formData();
+      const file = body.get('file') as File;
+      uploadedType = file ? 'uploaded' : null;
+      return HttpResponse.json({ id: 'file-1' });
     }),
-    http.post('*/api/v1/files', () => HttpResponse.json({ id: 'file-1' })),
   );
   renderWizard();
   await driveToStep4();
@@ -1160,7 +1245,7 @@ test('the benefit_proof scan is optional: Next opens on the number alone, and th
   await userEvent.upload(fileInput(), new File(['x'], 'proof.pdf', { type: 'application/pdf' }));
 
   await waitFor(() => expect(screen.getByText(UZ['wizard.step4.benefitProofOk'])).toBeInTheDocument());
-  expect(uploadedType).toBe('doctype-proof');
+  expect(uploadedType).toBe('uploaded');
   expect(screen.queryByText(UZ['wizard.step4.benefitProofOptional'])).not.toBeInTheDocument();
   expect(nextButton).toBeEnabled();
 });
@@ -1169,13 +1254,8 @@ test('the benefit_proof scan is optional: Next opens on the number alone, and th
 // the benefit row has nothing to file a scan under, so it offers no file
 // button — and, the scan being optional (#189), the claim still moves on.
 test('an unknown benefit_proof doc type hides the file button and does not hold the claim', async () => {
-  server.use(
-    // `doc_types` answers without `benefit_proof`.
-    classifierHandler([BENEFIT_ITEM], [OTHER_DOC_TYPE]),
-    http.get('*/api/v1/applications/:id', () =>
-      HttpResponse.json({ id: APPLICATION_ID, documents: [{ id: 'doc-1', doc_type_item_id: 'some-other-type', file_id: 'file-1' }], items: [] }),
-    ),
-  );
+  // `doc_types` answers without `benefit_proof`.
+  server.use(classifierHandler([BENEFIT_ITEM], [OTHER_DOC_TYPE]));
   renderWizard();
   await driveToStep4();
 
@@ -1187,53 +1267,6 @@ test('an unknown benefit_proof doc type hides the file button and does not hold 
   expect(screen.queryByRole('button', { name: new RegExp(UZ['wizard.step4.chooseFile']) })).not.toBeInTheDocument();
   expect(screen.queryByText(UZ['wizard.step4.benefitProofOk'])).not.toBeInTheDocument();
   await waitFor(() => expect(nextButton).toBeEnabled());
-});
-
-// A resumed draft must restore WHO it is filed for — the last step's
-// self/legal branch reads local `onBehalf` state, which defaults to 'self'
-// unless the hydration explicitly restores it from the card.
-test('resuming a legal draft restores the representation, not the self default', async () => {
-  server.use(
-    http.get('*/api/v1/applications/:id', () =>
-      HttpResponse.json({
-        id: APPLICATION_ID,
-        on_behalf: 'legal',
-        applicant_id: LEGAL_ENTITY_ID,
-        activity_type_id: ACTIVITY_ID,
-        contour_id: 'contour-1',
-        requested_area_ha: '12',
-        period_from: '2026-01-01',
-        period_to: '2026-06-01',
-        quantity: '5',
-        documents: [],
-        items: [],
-      }),
-    ),
-  );
-  renderWizard(authValueLegal(), 'uz_latn', `/my/applications/new?draft=${APPLICATION_ID}`);
-
-  // Resuming never auto-advances the step — still step 1, but the on-behalf
-  // dropdown is never touched in this test, only restored from the card.
-  await screen.findByText('Pichanchilik');
-  const next = () => screen.getByRole('button', { name: new RegExp(UZ['wizard.nav.next']) });
-  await waitFor(() => expect(next()).toBeEnabled());
-  await userEvent.click(next());
-
-  await screen.findByText(UZ['wizard.step2.heading']);
-  await waitFor(() => expect(next()).toBeEnabled());
-  await userEvent.click(next());
-
-  await screen.findByText(UZ['wizard.step3.heading']);
-  await waitFor(() => expect(next()).toBeEnabled());
-  await userEvent.click(next());
-
-  await screen.findByText(UZ['wizard.step4.heading']);
-  await userEvent.click(next());
-
-  await acceptRules();
-  // The LEGAL branch's own button — proof `onBehalf` came from the card,
-  // not the 'self' default.
-  expect(await screen.findByRole('button', { name: /ERI bilan imzolash va yuborish/ })).toBeInTheDocument();
 });
 
 // ─── The benefit list is scoped to the activity (ruling #181) ─────────────
@@ -1276,63 +1309,12 @@ test("step 4 offers only the benefit categories whose props.activity is the chos
   ]);
 });
 
-// A draft resumed with a claim that does not fit its activity (filed before
-// this filter existed, or the activity changed on step 1 afterwards) reads
-// as NO claim: the certificate field is not asked, and confirming step 4
-// clears the stale claim server-side rather than carrying it into a
-// pre-check that can only refuse it.
-test('a resumed draft whose claim does not fit the activity reads as no claim, and Next sends null', async () => {
-  server.use(
-    classifierHandler([RECREATION_ONLY_ITEM], [OTHER_DOC_TYPE]),
-    http.get('*/api/v1/applications/:id', () =>
-      HttpResponse.json({
-        id: APPLICATION_ID,
-        on_behalf: 'self',
-        activity_type_id: ACTIVITY_ID,
-        contour_id: 'contour-1',
-        requested_area_ha: '12',
-        period_from: '2026-01-01',
-        period_to: '2026-06-01',
-        quantity: '5',
-        benefit_category_item_id: 'benefit-recreation',
-        benefit_certificate_no: '1235',
-        documents: [],
-        items: [],
-      }),
-    ),
-  );
-  let lastPatchBody: unknown = null;
-  server.use(
-    http.patch('*/api/v1/applications/:id', async ({ request }) => {
-      lastPatchBody = await request.json();
-      return HttpResponse.json({ id: APPLICATION_ID });
-    }),
-  );
-  renderWizard(AUTH_VALUE, 'uz_latn', `/my/applications/new?draft=${APPLICATION_ID}`);
-
-  await screen.findByText('Pichanchilik');
-  const next = () => screen.getByRole('button', { name: new RegExp(UZ['wizard.nav.next']) });
-  for (const heading of [UZ['wizard.step2.heading'], UZ['wizard.step3.heading'], UZ['wizard.step4.heading']]) {
-    await waitFor(() => expect(next()).toBeEnabled());
-    await userEvent.click(next());
-    await screen.findByText(heading);
-  }
-
-  // No certificate field: the recreation-only claim is not a claim on a
-  // haymaking draft, so nothing about it is asked.
-  expect(screen.queryByLabelText(new RegExp(UZ['wizard.step4.certificateNumber']))).not.toBeInTheDocument();
-  await waitFor(() => expect(next()).toBeEnabled());
-  await userEvent.click(next());
-
-  await waitFor(() => expect(lastPatchBody).toMatchObject({ benefit_category_item_id: null, benefit_certificate_no: null }));
-});
-
 // The safety net for whatever the filter cannot see (a category re-scoped
 // after the list was loaded): the refusal names the benefit and points at
 // step 4, rather than the generic "check failed".
 test('a pre-check refused with unknown_benefit_code says the benefit does not apply to this activity', async () => {
   server.use(
-    http.post('*/api/v1/applications/:id/precheck', () =>
+    http.post('*/api/v1/applications/precheck', () =>
       HttpResponse.json(
         { error: { code: 'ERR-VAL-001', message: 'x', details: { reason: 'unknown_benefit_code', code: 'persons_with_disabilities' } } },
         { status: 400 },

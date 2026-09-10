@@ -1726,7 +1726,7 @@ export const kaa = {
   'common.fileSelected': 'Fayl tańlandı',
   'common.removeFile': 'Fayldı óshiriw',
   'wizard.title': 'Jańa arza tapsırıw',
-  'wizard.subtitle': 'Basqıshlardı izbe-iz toldırıń — qoralama hár basqıshta saqlanadı',
+  'wizard.subtitle': 'Basqıshlardı izbe-iz toldırıń.',
   'wizard.backToList': 'Dizimge qaytıw',
   'wizard.step1.title': 'Xızmet túri',
   'wizard.step1.desc': 'Paydalanıw túri',
