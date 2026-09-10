@@ -1744,6 +1744,26 @@ export const kaa = {
   'wizard.step3.priceTariffNote': 'ámeldegi tarifler boyınsha shamalı baha.',
   'wizard.step3.loadRatio': 'Júkleme:',
   'wizard.step3.conditionalHead': 'shártli bas',
+
+  // --- T10 (`docs/plans/09-odilxon-demo-fixes.md`, decisions #177/#179): the
+  // occupancy calendar, the season/minimum-term note, and the benefit
+  // certificate number. ---
+  'wizard.step2.seasonOutOfRange': 'Tańlanǵan sáne usı iskerlik hám kontur ushın belgilengen máwsımnan sırtta.',
+  'wizard.step2.minTermNotice': 'Dáwir múddeti kem degende {days} kún bolıwı kerek.',
+  'wizard.step3.certificateNumber': 'Gúwalik nomeri',
+  'wizard.step3.certificateNumberRequired': 'Tańlanǵan jeńillik kategoriyası ushın gúwalik nomeri kiritiliwi shárt.',
+  'wizard.calendar.heading': 'Bánt bolıw kalendarı',
+  'wizard.calendar.legendFree': 'Bos',
+  'wizard.calendar.legendPartial': 'Jarım-jartılay bánt',
+  'wizard.calendar.legendFull': 'Tolıq bánt',
+  'wizard.calendar.outOfSeason': 'Máwsımnan sırtta',
+  'wizard.calendar.remainderLabel': 'bos: {value}',
+  'wizard.calendar.selectFromHint': 'Baslanıw sánesin tańlań',
+  'wizard.calendar.selectToHint': 'Tamamlanıw sánesin tańlań',
+  'wizard.calendar.prevMonth': 'Aldıńǵı ay',
+  'wizard.calendar.nextMonth': 'Keyingi ay',
+  'wizard.calendar.weekdays': 'Du,Se,Sá,Pe,Jm,Şb,Ye',
+
   'wizard.step4.title': 'Hújjetler',
   'wizard.step4.desc': 'Qosımsha fayllar',
   'wizard.step4.heading': '4. Hújjetlerdi biriktiriń',
