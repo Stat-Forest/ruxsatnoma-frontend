@@ -12,6 +12,11 @@ import { DICTIONARIES, I18nContext } from '../../i18n/context';
 const APPLICATION_ID = 'a0000000-0000-4000-8000-000000000001';
 const INVOICE_ID = 'in000000-0000-4000-8000-000000000001';
 const REFUND_ID = 'r0000000-0000-4000-8000-000000000009';
+const RF03 = 'c0000000-0000-4000-8000-000000000003';
+const REASONS = [
+  { id: 'c0000000-0000-4000-8000-000000000001', code: 'RF-01', name: { en: 'Permit revoked' }, status: 'active' },
+  { id: RF03, code: 'RF-03', name: { en: 'Overpayment' }, status: 'active' },
+];
 
 /** Stage 7.9 task 7's shape: `components`/`available_sources` replace the
  *  old fixed `budget_amount`/`recipient_amount`/`other_amount` trio and the
@@ -109,6 +114,7 @@ test('filing a new refund request sends the application id, chosen basis and com
   let requestBody: unknown;
   server.use(
     http.get('*/api/v1/refunds', () => HttpResponse.json({ items: [], total: 0, page: 1, page_size: 100 })),
+    http.get('*/api/v1/refs/classifiers/refund_reasons/items', () => HttpResponse.json(REASONS)),
     http.post('*/api/v1/refunds', async ({ request }) => {
       requestBody = await request.json();
       return HttpResponse.json(refund({ comment: (requestBody as { comment: string }).comment }), { status: 201 });
@@ -122,11 +128,11 @@ test('filing a new refund request sends the application id, chosen basis and com
 
   const dialog = screen.getByRole('dialog');
   await user.type(within(dialog).getByLabelText('Ariza ID'), APPLICATION_ID);
-  await user.selectOptions(within(dialog).getByLabelText('Asos'), 'RF-03');
+  await user.selectOptions(within(dialog).getByLabelText('Asos'), RF03);
   await user.type(within(dialog).getByLabelText('Izoh'), 'Mijoz talabi');
   await user.click(within(dialog).getByRole('button', { name: 'Yuborish' }));
 
-  expect(requestBody).toEqual({ application_id: APPLICATION_ID, basis_item_id: 'RF-03', comment: 'Mijoz talabi' });
+  expect(requestBody).toEqual({ application_id: APPLICATION_ID, basis_item_id: RF03, comment: 'Mijoz talabi' });
 });
 
 /** `AvailableSourceOut[]` — the invoice's own frozen split (stage 7.9 task

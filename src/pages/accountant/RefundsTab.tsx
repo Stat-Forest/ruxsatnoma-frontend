@@ -13,25 +13,11 @@ import { pickName } from '../applicant/format';
 import { REFUND_STATUS_STYLE, getRefundStatusLabel } from './statusMeta';
 import type { AvailableSourceOut, RefundOut } from './api';
 import { useApproveRefund, useRefund, useRefunds, useRequestRefund, useSubmitRefundDecision } from './queries';
+import { useRefundReasons } from '../applicant/payments/queries';
 
 const PAYMENTS_VIEW = 'payments.view';
 const PAYMENTS_MANAGE = 'payments.manage';
 const PAYMENTS_CONFIRM = 'payments.confirm';
-
-/** The four seeded `refund_reasons` classifier items (migration 0022) —
- *  hard-coded here rather than fetched, the same way `MyInvoicePage.tsx`
- *  hard-codes `provider: 'payme'`: these codes are the classifier's whole
- *  content today, and `GET /refs/classifiers/{code}/items` for
- *  `refund_reasons` would be one more round trip to list four rows that do
- *  not change per zone or per user. Labels are UZ (uz_cyrl in the seed),
- *  transliterated to the UI's own uz_latn since this classifier has no
- *  translated set yet — an accountant reads the reason, not the code. */
-const REFUND_BASIS_OPTIONS = [
-  { value: 'RF-01', labelKey: 'accountant.refunds.basisRevoked' },
-  { value: 'RF-02', labelKey: 'accountant.refunds.basisUnusedPeriod' },
-  { value: 'RF-03', labelKey: 'accountant.refunds.basisOverpayment' },
-  { value: 'RF-04', labelKey: 'accountant.refunds.basisBenefit' },
-] as const;
 
 type StatusFilter = '' | 'requested' | 'in_review' | 'returned' | 'rejected';
 
@@ -265,11 +251,20 @@ function ApproveByIdPanel() {
 
 function NewRequestModal({ onClose }: { onClose: () => void }) {
   const t = useT();
+  const { lang } = useLanguage();
   const errorText = useApiErrorText();
   const [applicationId, setApplicationId] = useState('');
-  const [basisItemId, setBasisItemId] = useState<string>(REFUND_BASIS_OPTIONS[0].value);
+  const [basisItemId, setBasisItemId] = useState('');
   const [comment, setComment] = useState('');
   const mutation = useRequestRefund();
+  const reasonsQuery = useRefundReasons();
+  const reasons = reasonsQuery.data ?? [];
+
+  // Re-derive the effective value on every render, the same reasoning
+  // `RefundRequestModal.tsx` (the applicant's own copy of this form) gives
+  // for not seeding the state from `reasons[0]?.id` — the classifier may
+  // still be loading when the modal opens.
+  const chosenBasis = basisItemId || reasons[0]?.id || '';
 
   const error =
     mutation.error instanceof ApiError
@@ -292,11 +287,11 @@ function NewRequestModal({ onClose }: { onClose: () => void }) {
           </Button>
           <Button
             variant="primary"
-            disabled={!applicationId.trim()}
+            disabled={!applicationId.trim() || chosenBasis === ''}
             isLoading={mutation.isPending}
             onClick={() =>
               mutation.mutate(
-                { application_id: applicationId.trim(), basis_item_id: basisItemId, comment: comment.trim() || null },
+                { application_id: applicationId.trim(), basis_item_id: chosenBasis, comment: comment.trim() || null },
                 { onSuccess: onClose },
               )
             }
@@ -313,9 +308,9 @@ function NewRequestModal({ onClose }: { onClose: () => void }) {
         <FormField label={t('accountant.refunds.basisLabel')} htmlFor="refund-basis">
           <Select
             id="refund-basis"
-            value={basisItemId}
+            value={chosenBasis}
             onChange={(e) => setBasisItemId(e.target.value)}
-            options={REFUND_BASIS_OPTIONS.map((option) => ({ value: option.value, label: t(option.labelKey) }))}
+            options={reasons.map((item) => ({ value: item.id, label: pickName(item.name, lang) }))}
           />
         </FormField>
         <FormField label={t('accountant.refunds.commentLabel')} htmlFor="refund-comment">
