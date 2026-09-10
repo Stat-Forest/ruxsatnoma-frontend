@@ -296,7 +296,7 @@ export const ru = {
 
   // Cabinet applications
   'cabinet.applications.title': 'Мои заявки',
-  'cabinet.applications.subtitle': 'Список всех поданных заявок и черновиков',
+  'cabinet.applications.subtitle': 'Список всех поданных заявок',
   'cabinet.applications.newApp': 'Подать новую заявку',
   'cabinet.applications.colNumber': 'Номер заявки',
   'cabinet.applications.colActivity': 'Вид деятельности',

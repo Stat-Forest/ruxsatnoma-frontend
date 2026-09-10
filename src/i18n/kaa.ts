@@ -218,7 +218,7 @@ export const kaa = {
 
   // Cabinet applications
   'cabinet.applications.title': 'Meniń arzalarım',
-  'cabinet.applications.subtitle': 'Barlıq tapsırılǵan arzalar hám dáslepki nusqalar dizimi',
+  'cabinet.applications.subtitle': 'Barlıq tapsırılǵan arzalar dizimi',
   'cabinet.applications.newApp': 'Jańa arza tapsırıw',
   'cabinet.applications.colNumber': 'Arza nómeri',
   'cabinet.applications.colActivity': 'Xızmet túri',

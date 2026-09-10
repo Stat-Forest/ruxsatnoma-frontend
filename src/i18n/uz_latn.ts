@@ -319,7 +319,7 @@ export const uz_latn = {
 
   // Cabinet applications
   'cabinet.applications.title': 'Mening arizalarim',
-  'cabinet.applications.subtitle': 'Barcha topshirilgan arizalar va qoralamalar roʻyxati',
+  'cabinet.applications.subtitle': 'Barcha topshirilgan arizalar roʻyxati',
   'cabinet.applications.newApp': 'Yangi ariza topshirish',
   'cabinet.applications.colNumber': 'Ariza raqami',
   'cabinet.applications.colActivity': 'Faoliyat turi',
