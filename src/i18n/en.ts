@@ -29,7 +29,6 @@ export const en = {
   'shell.language': 'Language',
   'shell.openMenu': 'Menu',
   'shell.closeMenu': 'Close',
-  'shell.refresh': 'Refresh',
   'shell.logout': 'Log out',
   'login.loginLabel': 'Login',
   'login.passwordLabel': 'Password',

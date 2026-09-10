@@ -259,12 +259,13 @@ export function OccupancyCalendar({
           // decorating it (Oybek, 2026-09-10, from the stand): a free day was
           // pale green and a chosen day was the same pale green with a thin
           // ring, so the applicant could not tell what they had actually
-          // selected. The two edges are solid dark green with white text, the
-          // days between them a filled green — neither can be mistaken for
-          // "free". The remainder still prints inside the cell, so a partly
+          // selected. The two edges are solid brand green with white text, the
+          // days between them a filled lighter green — neither can be mistaken
+          // for "free". (The edges were first painted #123522, the near-black
+          // text green; Oybek found it too dark next to the range.) The remainder still prints inside the cell, so a partly
           // taken day that is also selected keeps saying how much is left.
           if (isFrom || isTo) {
-            colorClass = 'bg-[#123522] border-[#123522] text-white';
+            colorClass = 'bg-[#2E7D4F] border-[#2E7D4F] text-white';
             statusLabel = t('wizard.calendar.selectedEdge');
           } else if (inRange) {
             colorClass = 'bg-[#86EFAC] border-[#2E7D4F] text-[#123522]';
@@ -314,7 +315,7 @@ export function OccupancyCalendar({
           <span className="w-3 h-3 rounded-sm bg-[#F3F4F6] border border-[#E4E7EA]" /> {t('wizard.calendar.outOfSeason')}
         </span>
         <span className="inline-flex items-center gap-1">
-          <span className="w-3 h-3 rounded-sm bg-[#123522] border border-[#123522]" />{' '}
+          <span className="w-3 h-3 rounded-sm bg-[#2E7D4F] border border-[#2E7D4F]" />{' '}
           {t('wizard.calendar.selectedEdge')}
         </span>
       </div>

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, Outlet } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
-import { Bell, LogOut, Menu, RefreshCw, Trees, X } from 'lucide-react';
+import { Bell, LogOut, Menu, Trees, X } from 'lucide-react';
 import { api } from '../api/client';
 import { apiError } from '../api/errors';
 import { useAuth } from '../auth/useAuth';
@@ -112,7 +112,7 @@ export function AppShell() {
           className="relative flex items-center justify-center h-11 w-11 text-[#5A646D] hover:bg-[#F8F9FA] rounded-md shrink-0"
         >
           <Bell className="w-5 h-5" />
-          {unreadQuery.data !== undefined && (
+          {unreadCount > 0 && (
             <span
               data-testid="unread-badge"
               className="absolute top-1.5 right-1.5 min-w-4 h-4 px-1 bg-[#B91C1C] text-white text-[10px] font-bold rounded-full flex items-center justify-center"
@@ -121,16 +121,6 @@ export function AppShell() {
             </span>
           )}
         </Link>
-        <button
-          type="button"
-          data-testid="refresh-notifications"
-          aria-label={t('shell.refresh')}
-          onClick={() => void unreadQuery.refetch()}
-          className="flex items-center justify-center h-11 w-11 rounded-md text-[#5A646D] hover:bg-[#F8F9FA] shrink-0"
-        >
-          <RefreshCw className="w-4 h-4" />
-        </button>
-
         <Link
           to="/profile"
           aria-label={t('nav.profile')}

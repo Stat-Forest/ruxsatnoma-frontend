@@ -268,12 +268,12 @@ test('a picked day cannot be mistaken for a free one', async () => {
 
   // The two edges are solid dark green with white text; the day between them
   // is a filled green; neither shares the free day's own class.
-  expect(edge.className).toContain('bg-[#123522]');
+  expect(edge.className).toContain('bg-[#2E7D4F]');
   expect(middle.className).toContain('bg-[#86EFAC]');
   // Whatever an UNPICKED day looks like, it must not look like a picked one:
   // that is the whole complaint, and asserting the picked classes are absent
   // survives a later change to the availability palette.
-  expect(free.className).not.toContain('bg-[#123522]');
+  expect(free.className).not.toContain('bg-[#2E7D4F]');
   expect(free.className).not.toContain('bg-[#86EFAC]');
   expect(free.getAttribute('title')).not.toMatch(/Tanlangan/);
 
