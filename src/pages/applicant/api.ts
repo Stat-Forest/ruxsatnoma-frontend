@@ -321,3 +321,49 @@ export async function listInvoicesForApplication(applicationId: string): Promise
   if (error) throw apiError(error);
   return data.items;
 }
+
+export type RefundOut = components['schemas']['RefundOut'];
+
+/** `GET /invoices` with NO `application_id` — for a caller who holds no
+ * payments right (every applicant) the backend answers every invoice of
+ * every application they own or represent (stage 11, ruling R1). Never send
+ * `application_id` from here: with it the route is the per-application read. */
+export async function listMyInvoices(params: {
+  status?: string;
+  limit?: number;
+  offset?: number;
+}): Promise<Paged<InvoiceOut>> {
+  const { data, error } = await api.GET('/api/v1/invoices', {
+    params: { query: { limit: 50, offset: 0, ...params } },
+  });
+  if (error) throw apiError(error);
+  return data;
+}
+
+/** `GET /refunds` with NO `application_id` — the caller's own refund
+ * requests (ruling R1), with the accountant's working fields blanked by the
+ * backend (ruling R3). */
+export async function listMyRefunds(params: {
+  status?: string;
+  limit?: number;
+  offset?: number;
+}): Promise<Paged<RefundOut>> {
+  const { data, error } = await api.GET('/api/v1/refunds', {
+    params: { query: { limit: 50, offset: 0, ...params } },
+  });
+  if (error) throw apiError(error);
+  return data;
+}
+
+/** `POST /refunds` — the citizen appealing their OWN application (ownership
+ * is the backend's check). `basis_item_id` is a `refund_reasons` classifier
+ * item ID, never its code. */
+export async function requestRefund(body: {
+  application_id: string;
+  basis_item_id: string;
+  comment?: string | null;
+}): Promise<RefundOut> {
+  const { data, error } = await api.POST('/api/v1/refunds', { body });
+  if (error) throw apiError(error);
+  return data;
+}

@@ -123,6 +123,25 @@ test('the tiles carry the figures computed from the citizen own documents', asyn
   expect(screen.getByTestId('tile-payments')).toHaveTextContent('3.68 mln UZS');
 });
 
+test('the invoices come from ONE own-list call, not one call per application', async () => {
+  const urls: string[] = [];
+  mockBackend({
+    applications: [application({ status: 'INVOICED' }), application({ status: 'EXPIRED_UNPAID' }), application({ status: 'PAID' })],
+    invoices: [invoice({ paid_at: null })],
+  });
+  server.use(
+    http.get('*/api/v1/invoices', ({ request }) => {
+      urls.push(request.url);
+      return HttpResponse.json(page([invoice({ paid_at: null })]));
+    }),
+  );
+  renderDashboard();
+
+  await screen.findByTestId('tile-active-permits');
+  expect(urls).toHaveLength(1);
+  expect(new URL(urls[0]).searchParams.get('application_id')).toBeNull();
+});
+
 test('the fourth tile counts down to the soonest expiry, not to a field inspection', async () => {
   mockBackend({
     permits: [

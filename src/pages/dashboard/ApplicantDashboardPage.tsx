@@ -19,14 +19,7 @@ import {
   reviewStats,
   seasonalPayments,
 } from './metrics';
-import {
-  billedApplicationIds,
-  useActivityTypes,
-  useContourNumbers,
-  useInvoicesFor,
-  useMyApplications,
-  useMyPermits,
-} from './queries';
+import { useActivityTypes, useContourNumbers, useMyApplications, useMyPermits, useOwnInvoices } from './queries';
 
 /** The window the dynamics chart draws — six months is what fits an axis on a
  *  phone without the labels colliding, and it is the span a seasonal permit
@@ -62,7 +55,8 @@ export function ApplicantDashboardPage() {
   const applicationItems = useMemo(() => applications.data?.items ?? [], [applications.data]);
   const permitItems = useMemo(() => permits.data?.items ?? [], [permits.data]);
 
-  const invoices = useInvoicesFor(billedApplicationIds(applicationItems));
+  const ownInvoices = useOwnInvoices();
+  const invoices = useMemo(() => ownInvoices.data ?? [], [ownInvoices.data]);
 
   const contourIds = useMemo(
     () => [...new Set(permitItems.filter((item) => item.status === 'active').map((item) => item.contour_id))],

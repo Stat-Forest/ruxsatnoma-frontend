@@ -119,6 +119,18 @@ export const NAVIGATION: NavItem[] = [
   { to: '/', labelKey: 'nav.dashboard', icon: Home },
   { to: '/my/applications', labelKey: 'nav.myApplications', permission: 'applications.create', noSuperuser: true, icon: FileText },
   { to: '/my/permits', labelKey: 'nav.myPermits', permission: 'applications.create', noSuperuser: true, icon: Award },
+  // Stage 11 (ruling R6, Oybek: «мои платежи только для заявителя»): the
+  // citizen's invoices and refunds. Gated on `applications.create` — granted
+  // to the `applicant` role ALONE (migration 0015), so it is "is an
+  // applicant" without a role field on `NavItem`; the same code
+  // `my/applications/new` gates on. Unlike the two ownership-scoped entries
+  // above, this one is hidden from staff on purpose: for an accountant
+  // `GET /invoices` is the whole register, and a page called "my payments"
+  // showing it would be honest and misleading at once. `noSuperuser: true`
+  // for the same reason the two entries above carry it (see `NavItem.
+  // noSuperuser`): `permission` alone never excludes the superuser, since
+  // `/auth/me` hands `sys_admin` every code in the registry.
+  { to: '/my/payments', labelKey: 'nav.myPayments', permission: 'applications.create', noSuperuser: true, icon: Wallet },
   {
     to: '/applications',
     labelKey: 'nav.applications',
