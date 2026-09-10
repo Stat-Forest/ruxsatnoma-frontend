@@ -23,6 +23,7 @@ import { FormField, Input, Select, Textarea } from '../../../components/ui/FormC
 import { Modal } from '../../../components/ui/Overlay';
 import { Alert } from '../../../components/ui/Feedback';
 import { StatusBadge } from '../../../components/ui/StatusBadge';
+import { ExportXlsxButton } from '../../../components/ui/ExportXlsxButton';
 import { ApiError } from '../../../api/errors';
 import { useApiErrorText } from '../../../i18n/useApiErrorText';
 import { useLanguage } from '../../../i18n/useT';
@@ -100,14 +101,17 @@ export function RecipientsPage() {
           <h1 className="text-lg md:text-xl font-bold text-[#1A1F24] tracking-tight">{L.pageTitle}</h1>
           <p className="text-xs md:text-sm text-[#5A646D] mt-1 max-w-2xl">{L.pageSubtitle}</p>
         </div>
-        <Button
-          variant="primary"
-          size="sm"
-          leftIcon={<Plus className="w-3.5 h-3.5" />}
-          onClick={() => setFormTarget({ id: null })}
-        >
-          {L.create}
-        </Button>
+        <div className="flex items-center gap-2">
+          <ExportXlsxButton path="/api/v1/payments/recipients" query={{}} />
+          <Button
+            variant="primary"
+            size="sm"
+            leftIcon={<Plus className="w-3.5 h-3.5" />}
+            onClick={() => setFormTarget({ id: null })}
+          >
+            {L.create}
+          </Button>
+        </div>
       </div>
 
       {missingPayme.length > 0 && (

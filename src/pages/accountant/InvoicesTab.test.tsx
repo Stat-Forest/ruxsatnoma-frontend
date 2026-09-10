@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { fireEvent, render, screen, within } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { setupServer } from 'msw/node';
@@ -343,6 +343,56 @@ test('filing a manual confirmation uploads the document first, then files it, an
   expect(accountantApi.uploadFile).toHaveBeenCalledWith(expect.objectContaining({ name: 'payment-order.pdf' }));
   expect(filedBody).toMatchObject({ invoice_id: INVOICE_PENDING, amount: '2060000.00', bank_doc_file_id: 'file-1' });
   expect(typeof (filedBody as { amount: unknown }).amount).toBe('string');
+});
+
+test('the Excel button asks the server for the export with the applied filters, never paging the list itself', async () => {
+  const user = userEvent.setup();
+  const listCalls: string[] = [];
+  let exportUrl: URL | null = null;
+  server.use(
+    http.get('*/api/v1/invoices', ({ request }) => {
+      listCalls.push(request.url);
+      return HttpResponse.json({ items: [invoice()], total: 1, page: 1, page_size: 20 });
+    }),
+    http.get('*/api/v1/invoices/export.xlsx', ({ request }) => {
+      exportUrl = new URL(request.url);
+      return HttpResponse.text('xlsx-bytes', {
+        headers: {
+          'Content-Disposition': 'attachment; filename="hisoblar-2026-09-11.xlsx"',
+          'X-Export-Total': '1',
+          'X-Export-Rows': '1',
+          'X-Export-Truncated': 'false',
+        },
+      });
+    }),
+  );
+
+  // jsdom's URL has no createObjectURL/revokeObjectURL — assigned directly
+  // (never `vi.stubGlobal('URL', {...})`, which would replace the
+  // constructor itself and break MSW's own `new URL(request.url)` parsing).
+  const createObjectURL = vi.fn().mockReturnValue('blob:mock');
+  const revokeObjectURL = vi.fn();
+  URL.createObjectURL = createObjectURL;
+  URL.revokeObjectURL = revokeObjectURL;
+  const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+
+  renderTab();
+  await screen.findByText('INV-2026-000123');
+  const listCallsBefore = listCalls.length;
+
+  await user.selectOptions(screen.getByLabelText('Holati'), 'paid');
+  await vi.waitFor(() => expect(listCalls.length).toBeGreaterThan(listCallsBefore));
+  const listCallsAfterFilter = listCalls.length;
+
+  await user.click(screen.getByTestId('export-xlsx'));
+
+  await waitFor(() => expect(createObjectURL).toHaveBeenCalled());
+  expect(clickSpy).toHaveBeenCalled();
+  expect(listCalls.length).toBe(listCallsAfterFilter); // the export never re-fetches the list
+  expect(exportUrl!.searchParams.get('status')).toBe('paid');
+  expect(exportUrl!.searchParams.get('lang')).toBe('uz_latn');
+  expect(exportUrl!.searchParams.has('limit')).toBe(false);
+  expect(exportUrl!.searchParams.has('offset')).toBe(false);
 });
 
 test('status translates properly in all 5 languages (uz_latn, uz_cyrl, ru, en, kaa)', async () => {

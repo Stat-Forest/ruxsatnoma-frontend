@@ -1,6 +1,6 @@
 import { afterAll, afterEach, beforeAll, expect, test, vi } from 'vitest';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { render, screen, within } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { setupServer } from 'msw/node';
@@ -77,6 +77,46 @@ test('lists receivers with their rule and shows what the leshoz gets', async () 
   expect(screen.getByText('50%')).toBeInTheDocument();
   expect(screen.getByText('10%')).toBeInTheDocument();
   expect(screen.getByTestId('leshoz-remainder')).toHaveTextContent('40%');
+});
+
+test('the Excel button asks the server for the export, never paging the directory itself', async () => {
+  mockList(TWO_ROWS);
+  const listCalls: string[] = [];
+  let exportUrl: URL | null = null;
+  server.use(
+    http.get('*/api/v1/payments/recipients', ({ request }) => {
+      listCalls.push(request.url);
+      return HttpResponse.json(page(TWO_ROWS));
+    }),
+    http.get('*/api/v1/payments/recipients/export.xlsx', ({ request }) => {
+      exportUrl = new URL(request.url);
+      return HttpResponse.text('xlsx-bytes', {
+        headers: {
+          'Content-Disposition': 'attachment; filename="qabul-qiluvchilar-2026-09-11.xlsx"',
+          'X-Export-Total': '2',
+          'X-Export-Rows': '2',
+          'X-Export-Truncated': 'false',
+        },
+      });
+    }),
+  );
+  const createObjectURL = vi.fn().mockReturnValue('blob:mock');
+  URL.createObjectURL = createObjectURL;
+  URL.revokeObjectURL = vi.fn();
+  const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+
+  const { user } = renderPage();
+  await screen.findByText('Davlat byudjeti');
+  const listCallsBefore = listCalls.length;
+
+  await user.click(screen.getByTestId('export-xlsx'));
+
+  await waitFor(() => expect(createObjectURL).toHaveBeenCalled());
+  expect(clickSpy).toHaveBeenCalled();
+  expect(listCalls.length).toBe(listCallsBefore); // the export never re-fetches the directory
+  expect(exportUrl!.searchParams.get('lang')).toBe('uz_latn');
+  expect(exportUrl!.searchParams.has('page')).toBe(false);
+  expect(exportUrl!.searchParams.has('page_size')).toBe(false);
 });
 
 test('the leshoz row shows only the plain percentage when no fixed receiver is active', async () => {

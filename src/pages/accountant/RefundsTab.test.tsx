@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { render, screen, within } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { setupServer } from 'msw/node';
@@ -296,4 +296,46 @@ test('the approve-by-id panel approves a refund purely by its id, with no row ev
 
   expect(approveBody).toEqual({ resolution: 'returned', comment: null });
   expect(await within(panel).findByText(/qaytarildi\.$/)).toBeInTheDocument();
+});
+
+test('the Excel button asks the server for the export with the applied status filter, never paging the register itself', async () => {
+  const user = userEvent.setup();
+  const listCalls: string[] = [];
+  let exportUrl: URL | null = null;
+  server.use(
+    http.get('*/api/v1/refunds', ({ request }) => {
+      listCalls.push(request.url);
+      return HttpResponse.json({ items: [refund()], total: 1, page: 1, page_size: 100 });
+    }),
+    http.get('*/api/v1/refunds/export.xlsx', ({ request }) => {
+      exportUrl = new URL(request.url);
+      return HttpResponse.text('xlsx-bytes', {
+        headers: {
+          'Content-Disposition': 'attachment; filename="qaytarishlar-2026-09-11.xlsx"',
+          'X-Export-Total': '1',
+          'X-Export-Rows': '1',
+          'X-Export-Truncated': 'false',
+        },
+      });
+    }),
+  );
+  const createObjectURL = vi.fn().mockReturnValue('blob:mock');
+  URL.createObjectURL = createObjectURL;
+  URL.revokeObjectURL = vi.fn();
+  const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+
+  renderTab(['payments.view']);
+  await screen.findByTestId(`refund-row-${REFUND_ID}`);
+  await user.selectOptions(screen.getByRole('combobox'), 'in_review');
+  const listCallsAfterFilter = listCalls.length;
+
+  await user.click(screen.getByTestId('export-xlsx'));
+
+  await waitFor(() => expect(createObjectURL).toHaveBeenCalled());
+  expect(clickSpy).toHaveBeenCalled();
+  expect(listCalls.length).toBe(listCallsAfterFilter); // the export never re-fetches the register
+  expect(exportUrl!.searchParams.get('status')).toBe('in_review');
+  expect(exportUrl!.searchParams.get('lang')).toBe('uz_latn');
+  expect(exportUrl!.searchParams.has('limit')).toBe(false);
+  expect(exportUrl!.searchParams.has('offset')).toBe(false);
 });
