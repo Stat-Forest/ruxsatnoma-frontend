@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { render, screen, within } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router';
 import { http, HttpResponse } from 'msw';
@@ -164,4 +164,55 @@ test('with no invoiced application the modal says why it cannot file', async () 
 
   expect(within(screen.getByRole('dialog')).getByText(/Hisob-fakturasi bor ariza topilmadi/)).toBeInTheDocument();
   expect(within(screen.getByRole('dialog')).getByRole('button', { name: 'Yuborish' })).toBeDisabled();
+});
+
+test('a modal opened before the applications and reasons resolve still files the first of each once they arrive', async () => {
+  let requestBody: unknown;
+  mockBackend({});
+  server.use(
+    // The two lists the modal derives its default selection from answer late
+    // — opening the modal right after the refunds list renders must not
+    // freeze `applicationId`/`basisItemId` at '' once these resolve.
+    http.get('*/api/v1/invoices', async () => {
+      await new Promise((resolve) => setTimeout(resolve, 150));
+      return HttpResponse.json(
+        page([
+          {
+            id: 'i-1',
+            number: 'INV-1',
+            application_id: APP_ONE,
+            status: 'paid',
+            amount: '150000.00',
+            issued_at: '2026-09-01T09:00:00Z',
+            due_at: '2026-09-11T09:00:00Z',
+            paid_at: '2026-09-02T09:00:00Z',
+            calculation_id: null,
+            recipients: null,
+            settled_by_benefit: false,
+          },
+        ]),
+      );
+    }),
+    http.get('*/api/v1/refs/classifiers/refund_reasons/items', async () => {
+      await new Promise((resolve) => setTimeout(resolve, 150));
+      return HttpResponse.json(REASONS);
+    }),
+    http.post('*/api/v1/refunds', async ({ request }) => {
+      requestBody = await request.json();
+      return HttpResponse.json(refund({}), { status: 201 });
+    }),
+  );
+  const user = userEvent.setup();
+  renderTab();
+
+  await screen.findByText('Qaytarish soʻrovlari yoʻq.');
+  await user.click(screen.getByRole('button', { name: 'Qaytarish soʻrash' }));
+
+  const dialog = screen.getByRole('dialog');
+  await within(dialog).findByRole('option', { name: /RX-2026-000010/ });
+  const submit = within(dialog).getByRole('button', { name: 'Yuborish' });
+  await waitFor(() => expect(submit).not.toBeDisabled());
+  await user.click(submit);
+
+  expect(requestBody).toEqual({ application_id: APP_ONE, basis_item_id: RF01, comment: null });
 });

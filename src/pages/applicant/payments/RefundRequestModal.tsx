@@ -37,10 +37,17 @@ export function RefundRequestModal({
   const t = useT();
   const { lang } = useLanguage();
   const errorText = useApiErrorText();
-  const [applicationId, setApplicationId] = useState(applications[0]?.id ?? '');
-  const [basisItemId, setBasisItemId] = useState(reasons[0]?.id ?? '');
+  const [applicationId, setApplicationId] = useState('');
+  const [basisItemId, setBasisItemId] = useState('');
   const [comment, setComment] = useState('');
   const mutation = useRequestRefund();
+
+  // The two lists (applications, reasons) may still be loading when the
+  // modal opens — the state above starts empty on purpose, not from
+  // `applications[0]?.id`, which would freeze at '' forever once the props
+  // arrive later. Re-derive the effective value on every render instead.
+  const chosenApplicationId = applicationId || applications[0]?.id || '';
+  const chosenBasisItemId = basisItemId || reasons[0]?.id || '';
 
   const error =
     mutation.error instanceof ApiError
@@ -51,7 +58,7 @@ export function RefundRequestModal({
         ? t('myPayments.refunds.requestFailed')
         : null;
 
-  const canFile = applications.length > 0 && reasons.length > 0 && applicationId !== '' && basisItemId !== '';
+  const canFile = applications.length > 0 && reasons.length > 0 && chosenApplicationId !== '' && chosenBasisItemId !== '';
 
   return (
     <Modal
@@ -69,7 +76,7 @@ export function RefundRequestModal({
             isLoading={mutation.isPending}
             onClick={() =>
               mutation.mutate(
-                { application_id: applicationId, basis_item_id: basisItemId, comment: comment.trim() || null },
+                { application_id: chosenApplicationId, basis_item_id: chosenBasisItemId, comment: comment.trim() || null },
                 {
                   onSuccess: () => {
                     onSent();
@@ -89,7 +96,7 @@ export function RefundRequestModal({
         <FormField label={t('myPayments.refunds.applicationLabel')} required htmlFor="refund-application">
           <Select
             id="refund-application"
-            value={applicationId}
+            value={chosenApplicationId}
             onChange={(e) => setApplicationId(e.target.value)}
             disabled={applications.length === 0}
             options={applications.map((item) => ({
@@ -101,7 +108,7 @@ export function RefundRequestModal({
         <FormField label={t('myPayments.refunds.basisLabel')} required htmlFor="refund-basis">
           <Select
             id="refund-basis"
-            value={basisItemId}
+            value={chosenBasisItemId}
             onChange={(e) => setBasisItemId(e.target.value)}
             options={reasons.map((item) => ({ value: item.id, label: pickName(item.name, lang) }))}
           />
