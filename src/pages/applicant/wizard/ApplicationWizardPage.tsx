@@ -35,6 +35,8 @@ import { fromApplicationChecks } from '../checkTypeLabels';
 import { ChecksList } from './ChecksList';
 import { ContourPicker, type PickedContour } from './ContourPicker';
 import { PricePreviewPanel } from './PricePreviewPanel';
+import { OccupancyCalendar } from './OccupancyCalendar';
+import { isIsoDateInWindows, type SeasonWindow } from './seasonCalendar';
 import {
   buildMockSignature,
   EimzoError,
@@ -180,6 +182,22 @@ export function ApplicationWizardPage() {
   const [quantity, setQuantity] = useState('');
   const [items, setItems] = useState<LivestockRow[]>([]);
   const [benefitCategoryItemId, setBenefitCategoryItemId] = useState('');
+  // #179: shown only for a benefit category whose classifier item carries
+  // `props.requires_certificate = true`, and required before the request
+  // ever leaves the browser — the backend refuses submission without it
+  // (`ERR-APP-003`, `details.reason = "benefit_certificate_required"`), and
+  // that refusal must never be how the applicant first learns of it.
+  const [benefitCertificateNo, setBenefitCertificateNo] = useState('');
+  const [certificateTouched, setCertificateTouched] = useState(false);
+  // #177: the effective season windows and minimum term, read by
+  // `OccupancyCalendar` (through `GET /activity-seasons/effective`, the SAME
+  // resolution the blocking check itself uses) and handed back here so the
+  // native date inputs below can be constrained by the identical numbers
+  // rather than a second, possibly-drifted reading of the same dictionary.
+  const [seasonInfo, setSeasonInfo] = useState<{ windows: SeasonWindow[]; minTermDays: number | null }>({
+    windows: [],
+    minTermDays: null,
+  });
   const [precheckResult, setPrecheckResult] = useState<PrecheckOut | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [signing, setSigning] = useState(false);
@@ -252,11 +270,18 @@ export function ApplicationWizardPage() {
       setItems(card.items.map((i) => ({ key: i.id, livestockTypeId: i.livestock_type_id, headCount: String(i.head_count) })));
     }
     if (card?.benefit_category_item_id) setBenefitCategoryItemId(card.benefit_category_item_id);
+    if (card?.benefit_certificate_no) setBenefitCertificateNo(card.benefit_certificate_no);
   }
 
   const activityCode = activityTypesQuery.data?.find((a) => a.id === activityTypeId)?.code;
   const isGrazing = activityCode === GRAZING_CODE;
   const quantityUnit = activityTypesQuery.data?.find((a) => a.id === activityTypeId)?.quantity_unit;
+
+  // #179: the flag lives on the classifier item, not on the application —
+  // `ClassifierItemOut.props` is a free-form `dict`, so this is the one
+  // place that reads it as a boolean.
+  const selectedBenefitItem = benefitCategoriesQuery.data?.find((b) => b.id === benefitCategoryItemId);
+  const requiresCertificate = selectedBenefitItem?.props?.['requires_certificate'] === true;
 
   function invalidateCard() {
     if (applicationId) void queryClient.invalidateQueries({ queryKey: ['wizard-card', applicationId] });
@@ -323,7 +348,16 @@ export function ApplicationWizardPage() {
     setSubmitError(null);
     setActivityTypeId(id);
     await ensureDraftAndPatchActivity(id);
-    goToStep(2);
+    // TWO clicks, not one (Oybek, 2026-09-10, after trying the one-click
+    // version on the stand): the first click SELECTS and stays put, a second
+    // click on the SAME card moves on. A single click that both chose and
+    // navigated gave no moment to see what had been chosen, and misreading
+    // one card for its neighbour cost a step back every time. Clicking a
+    // DIFFERENT card selects that one instead of advancing — otherwise
+    // correcting a misclick would carry the applicant forward on the wrong
+    // activity, which is the very thing this change exists to prevent.
+    // The footer's "Next" button still works, and always did.
+    if (activityTypeId === id) goToStep(2);
   }
 
   async function goNext() {
@@ -352,6 +386,11 @@ export function ApplicationWizardPage() {
         body.quantity = quantity;
       }
       body.benefit_category_item_id = benefitCategoryItemId || null;
+      // #179: sent only while the CURRENTLY chosen category actually
+      // requires one — switching to a category that doesn't clears it
+      // server-side too, rather than leaving a stale number attached to an
+      // unrelated claim.
+      body.benefit_certificate_no = requiresCertificate ? benefitCertificateNo.trim() || null : null;
       await patchMutation.mutateAsync(body);
       goToStep(4);
       return;
@@ -473,6 +512,35 @@ export function ApplicationWizardPage() {
     if (isoDaySpan(periodFrom, periodTo) > MAX_PERIOD_DAYS) return copy.tooLong;
     return null;
   }, [periodFrom, periodTo, lang]);
+
+  // #177: the effective season windows and minimum term — read through
+  // `OccupancyCalendar` (`onSeasonInfo`, this file's own `seasonInfo` state)
+  // rather than a second query here, so there is exactly one reading of
+  // "what season applies" to ever disagree with the check. A date outside
+  // every window is refused IN THE FIELD, same as the reversed/too-long
+  // pair above, rather than surfacing only from the calendar's disabled
+  // day cells — a value typed directly into the native input, bypassing the
+  // calendar entirely, still gets caught here.
+  const seasonError = useMemo(() => {
+    if (!periodFrom || !periodTo) return null;
+    if (seasonInfo.windows.length === 0) return null;
+    const bothInSeason =
+      isIsoDateInWindows(periodFrom, seasonInfo.windows) && isIsoDateInWindows(periodTo, seasonInfo.windows);
+    return bothInSeason ? null : t('wizard.step2.seasonOutOfRange');
+  }, [periodFrom, periodTo, seasonInfo.windows, t]);
+
+  const minTermError = useMemo(() => {
+    if (!periodFrom || !periodTo || !seasonInfo.minTermDays) return null;
+    if (isoDaySpan(periodFrom, periodTo) < seasonInfo.minTermDays) {
+      return t('wizard.step2.minTermNotice').replace('{days}', String(seasonInfo.minTermDays));
+    }
+    return null;
+  }, [periodFrom, periodTo, seasonInfo.minTermDays, t]);
+
+  const combinedPeriodError = periodError ?? seasonError ?? minTermError;
+  const minTermNotice = seasonInfo.minTermDays
+    ? t('wizard.step2.minTermNotice').replace('{days}', String(seasonInfo.minTermDays))
+    : null;
 
   // Each input constrains the other via native `min`/`max`, so most invalid
   // pairs are impossible to pick in the first place rather than merely
@@ -617,7 +685,8 @@ export function ApplicationWizardPage() {
               label={t('wizard.step2.periodTo')}
               required
               htmlFor="period-to"
-              error={periodError ?? undefined}
+              error={combinedPeriodError ?? undefined}
+              helperText={!combinedPeriodError && minTermNotice ? minTermNotice : undefined}
             >
               <Input
                 id="period-to"
@@ -629,6 +698,23 @@ export function ApplicationWizardPage() {
               />
             </FormField>
           </div>
+
+          {/* T10 (#177): the three-colour occupancy calendar, constrained
+              to the effective season and showing the minimum term — the
+              same numbers the two `FormField`s above validate against. */}
+          {contour && activityTypeId && (
+            <OccupancyCalendar
+              contourId={contour.id}
+              activityTypeId={activityTypeId}
+              periodFrom={periodFrom}
+              periodTo={periodTo}
+              onSelectRange={(from, to) => {
+                setPeriodFrom(from);
+                setPeriodTo(to);
+              }}
+              onSeasonInfo={setSeasonInfo}
+            />
+          )}
         </section>
       )}
 
@@ -698,6 +784,26 @@ export function ApplicationWizardPage() {
                     { value: '', label: t('wizard.step3.noBenefit') },
                     ...benefitCategoriesQuery.data.map((b) => ({ value: b.id, label: pickName(b.name, lang) })),
                   ]}
+                />
+              </FormField>
+            )}
+
+            {/* #179: shown only for a category whose classifier item carries
+                `props.requires_certificate = true` — filled in here, before
+                the backend's own refusal (`ERR-APP-003`,
+                `benefit_certificate_required`) ever has a chance to fire. */}
+            {requiresCertificate && (
+              <FormField
+                label={t('wizard.step3.certificateNumber')}
+                required
+                htmlFor="benefit-certificate-no"
+                error={certificateTouched && !benefitCertificateNo.trim() ? t('wizard.step3.certificateNumberRequired') : undefined}
+              >
+                <Input
+                  id="benefit-certificate-no"
+                  value={benefitCertificateNo}
+                  onChange={(e) => setBenefitCertificateNo(e.target.value)}
+                  onBlur={() => setCertificateTouched(true)}
                 />
               </FormField>
             )}
@@ -826,9 +932,14 @@ export function ApplicationWizardPage() {
               isLoading={createMutation.isPending || patchMutation.isPending}
               disabled={
                 (step === 1 && !activityTypeId) ||
-                (step === 2 && (!contour || !periodFrom || !periodTo || !!periodError)) ||
+                (step === 2 && (!contour || !periodFrom || !periodTo || !!combinedPeriodError)) ||
                 (step === 3 && !isGrazing && !quantity) ||
-                (step === 3 && isGrazing && items.filter((i) => i.livestockTypeId && i.headCount).length === 0)
+                (step === 3 && isGrazing && items.filter((i) => i.livestockTypeId && i.headCount).length === 0) ||
+                // #179: the certificate number must be filled in before the
+                // wizard moves on — the backend's own refusal
+                // (`ERR-APP-003`, `benefit_certificate_required`) must never
+                // be how the applicant first learns it was needed.
+                (step === 3 && requiresCertificate && !benefitCertificateNo.trim())
               }
               onClick={goNext}
               className="cursor-pointer font-bold"
