@@ -91,6 +91,23 @@ function formatIsoDate(value: string): string {
   return y && m && d ? `${d}.${m}.${y}` : value;
 }
 
+/**
+ * Stage 10, F1 — a handful of `ERR-APP-001` `details.missing` field names get
+ * a human label instead of the raw snake_case one, the same reasoning as
+ * `ERR-VAL-001`'s `reason` switch: `rules_accepted` (ruling #184) is normally
+ * unreachable through the UI (the sign button stays disabled until the
+ * checkbox is ticked), but a defensive server refusal must still read as a
+ * sentence, not a field name the applicant never typed anywhere.
+ */
+const FIELD_LABELS: Record<'ru' | 'uz_latn', Record<string, string>> = {
+  ru: { rules_accepted: '«Согласен с правилами»' },
+  uz_latn: { rules_accepted: '«Qoidalar bilan tanishdim»' },
+};
+
+function missingFieldLabels(lang: 'ru' | 'uz_latn', missing: string[]): string {
+  return missing.map((field) => FIELD_LABELS[lang][field] ?? field).join(', ');
+}
+
 const ru: Record<string, ErrorCopy> = {
   'ERR-AUTH-001': 'Неверный логин или пароль.',
   'ERR-AUTH-002': 'Сессия истекла. Войдите снова.',
@@ -110,7 +127,7 @@ const ru: Record<string, ErrorCopy> = {
   'ERR-APP-001': (details) => {
     const missing = strList(details, 'missing');
     return missing.length
-      ? `Не заполнено обязательное поле: ${missing.join(', ')}.`
+      ? `Не заполнено обязательное поле: ${missingFieldLabels('ru', missing)}.`
       : 'Не заполнено обязательное поле.';
   },
   'ERR-APP-002': (details) => {
@@ -119,7 +136,23 @@ const ru: Record<string, ErrorCopy> = {
       ? `Активная заявка №${number} на пересекающийся период уже существует.`
       : 'Активная заявка на пересекающийся период уже существует.';
   },
-  'ERR-APP-003': 'Неполный комплект документов.',
+  // Ruling #181: the certificate number is now mandatory for EVERY benefit
+  // category, and checked against the Beekeeping Union's own register at
+  // filing — `required`/`unknown`/`not_yours` are the three ways that check
+  // can refuse a claim; anything else (e.g. a missing supporting document)
+  // keeps the generic sentence, unchanged from before this stage.
+  'ERR-APP-003': (details) => {
+    switch (str(details, 'reason')) {
+      case 'benefit_certificate_required':
+        return 'Не указан номер справки/свидетельства для выбранной льготной категории.';
+      case 'benefit_certificate_unknown':
+        return 'Такой номер справки/свидетельства не найден в реестре.';
+      case 'benefit_certificate_not_yours':
+        return 'Этот номер справки/свидетельства зарегистрирован на другое лицо.';
+      default:
+        return 'Неполный комплект документов.';
+    }
+  },
   // Stage 10, F2 (rulings #181/#182): `decision.approve` refuses with these
   // two `reason`s when the leshoz's own benefit-claim verify/reject pair
   // has not cleared the application yet — `DecisionPanel`'s own disabled
@@ -183,7 +216,24 @@ const ru: Record<string, ErrorCopy> = {
   'ERR-REP-001': 'Конфликт состояния отчёта. Обновите страницу.',
   'ERR-REP-002': 'Отчёт не проходит логические проверки.',
   'ERR-REP-003': 'Форма отчёта не может быть использована.',
-  'ERR-SIGN-001': 'Ошибка подписания.',
+  // Ruling #183: a simple (no-envelope) signature is allowed only for a
+  // citizen filing for themselves with a known PINFL — everyone else keeps
+  // ERI. `signature_invalid`/`package_changed` are the real-mode envelope
+  // refusals, named here the same way `ERR-VAL-001` names its own reasons.
+  'ERR-SIGN-001': (details) => {
+    switch (str(details, 'reason')) {
+      case 'simple_signature_not_allowed':
+        return 'Простая подпись без ключа допустима только для гражданина, подающего заявку от своего имени — для этой заявки нужна электронная цифровая подпись (ЭЦП).';
+      case 'signer_pinfl_unknown':
+        return 'Не удалось определить ПИНФЛ подписанта — обратитесь в поддержку.';
+      case 'signature_invalid':
+        return 'Электронная подпись не прошла проверку.';
+      case 'package_changed':
+        return 'Данные заявки изменились после формирования пакета — обновите страницу и попробуйте снова.';
+      default:
+        return 'Ошибка подписания.';
+    }
+  },
   'ERR-SIGN-002': 'Эта подпись уже проставлена.',
   'ERR-SIGN-003': 'Не хватает подписей.',
   'ERR-SIGN-004': 'Конфликт состояния сертификата или подписи. Повторите попытку.',
@@ -241,7 +291,7 @@ const uz_latn: Record<string, ErrorCopy> = {
   'ERR-APP-001': (details) => {
     const missing = strList(details, 'missing');
     return missing.length
-      ? `Majburiy maydon to'ldirilmagan: ${missing.join(', ')}.`
+      ? `Majburiy maydon to'ldirilmagan: ${missingFieldLabels('uz_latn', missing)}.`
       : "Majburiy maydon to'ldirilmagan.";
   },
   'ERR-APP-002': (details) => {
@@ -250,7 +300,23 @@ const uz_latn: Record<string, ErrorCopy> = {
       ? `${number}-sonli faol ariza kesishuvchi davr uchun allaqachon mavjud.`
       : 'Kesishuvchi davr uchun faol ariza allaqachon mavjud.';
   },
-  'ERR-APP-003': "Hujjatlar to'plami to'liq emas.",
+  // Ruling #181: the certificate number is now mandatory for EVERY benefit
+  // category, and checked against the Beekeeping Union's own register at
+  // filing — `required`/`unknown`/`not_yours` are the three ways that check
+  // can refuse a claim; anything else (e.g. a missing supporting document)
+  // keeps the generic sentence, unchanged from before this stage.
+  'ERR-APP-003': (details) => {
+    switch (str(details, 'reason')) {
+      case 'benefit_certificate_required':
+        return "Tanlangan imtiyoz toifasi uchun guvohnoma/ma'lumotnoma raqami ko'rsatilmagan.";
+      case 'benefit_certificate_unknown':
+        return "Bunday guvohnoma/ma'lumotnoma raqami reyestrda topilmadi.";
+      case 'benefit_certificate_not_yours':
+        return "Bu guvohnoma/ma'lumotnoma raqami boshqa shaxsga ro'yxatga olingan.";
+      default:
+        return "Hujjatlar to'plami to'liq emas.";
+    }
+  },
   // Stage 10, F2 (rulings #181/#182) — see the `ru` entry above for why.
   'ERR-APP-004': (details) => {
     switch (str(details, 'reason')) {
@@ -310,7 +376,24 @@ const uz_latn: Record<string, ErrorCopy> = {
   'ERR-REP-001': "Hisobot holati bo'yicha ziddiyat. Sahifani yangilang.",
   'ERR-REP-002': "Hisobot mantiqiy tekshiruvlardan o'tmadi.",
   'ERR-REP-003': "Hisobot shakli ishlatib bo'lmaydi.",
-  'ERR-SIGN-001': 'Imzolashda xatolik yuz berdi.',
+  // Ruling #183: a simple (no-envelope) signature is allowed only for a
+  // citizen filing for themselves with a known PINFL — everyone else keeps
+  // ERI. `signature_invalid`/`package_changed` are the real-mode envelope
+  // refusals, named here the same way `ERR-VAL-001` names its own reasons.
+  'ERR-SIGN-001': (details) => {
+    switch (str(details, 'reason')) {
+      case 'simple_signature_not_allowed':
+        return "Kalitsiz oddiy imzo faqat o'zi uchun ariza topshirayotgan fuqaroga ruxsat etilgan — bu ariza uchun elektron raqamli imzo (ERI) kerak.";
+      case 'signer_pinfl_unknown':
+        return "Imzolovchining JSHSHIR raqami aniqlanmadi — qo'llab-quvvatlash xizmatiga murojaat qiling.";
+      case 'signature_invalid':
+        return "Elektron imzo tekshiruvdan o'tmadi.";
+      case 'package_changed':
+        return "Ariza ma'lumotlari paket shakllantirilgandan keyin o'zgargan — sahifani yangilab, qaytadan urining.";
+      default:
+        return 'Imzolashda xatolik yuz berdi.';
+    }
+  },
   'ERR-SIGN-002': "Bu imzo allaqachon qo'yilgan.",
   'ERR-SIGN-003': 'Imzolar yetarli emas.',
   'ERR-SIGN-004': "Sertifikat yoki imzo holati bo'yicha ziddiyat. Qaytadan urining.",

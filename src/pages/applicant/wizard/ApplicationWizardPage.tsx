@@ -18,6 +18,7 @@ import {
   createApplicationDraft,
   getApplicationCard,
   getApplicationPackage,
+  getSiteSettings,
   listActivityTypes,
   listClassifierItems,
   listLivestockTypes,
@@ -182,13 +183,19 @@ export function ApplicationWizardPage() {
   const [quantity, setQuantity] = useState('');
   const [items, setItems] = useState<LivestockRow[]>([]);
   const [benefitCategoryItemId, setBenefitCategoryItemId] = useState('');
-  // #179: shown only for a benefit category whose classifier item carries
-  // `props.requires_certificate = true`, and required before the request
-  // ever leaves the browser — the backend refuses submission without it
-  // (`ERR-APP-003`, `details.reason = "benefit_certificate_required"`), and
-  // that refusal must never be how the applicant first learns of it.
+  // Ruling #181: the certificate number is mandatory for EVERY benefit
+  // category now — there is no per-item `requires_certificate` switch any
+  // more — required before the request ever leaves the browser, the same
+  // reason as before: the backend's own refusal (`ERR-APP-003`,
+  // `details.reason = "benefit_certificate_required"`) must never be how the
+  // applicant first learns of it.
   const [benefitCertificateNo, setBenefitCertificateNo] = useState('');
   const [certificateTouched, setCertificateTouched] = useState(false);
+  // Set only from a submit refusal (`ERR-APP-003`,
+  // `benefit_certificate_required/unknown/not_yours`) — `handleSignAndSubmit`
+  // sends the applicant back to step 3 and shows the server's own reason
+  // right at this field, rather than only in the step-5 banner.
+  const [benefitCertificateServerError, setBenefitCertificateServerError] = useState<string | null>(null);
   // #177: the effective season windows and minimum term, read by
   // `OccupancyCalendar` (through `GET /activity-seasons/effective`, the SAME
   // resolution the blocking check itself uses) and handed back here so the
@@ -201,6 +208,12 @@ export function ApplicationWizardPage() {
   const [precheckResult, setPrecheckResult] = useState<PrecheckOut | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [signing, setSigning] = useState(false);
+  // Ruling #184: mandatory before ANY signature, self or legal alike — the
+  // sign button stays disabled until this is ticked. Never persisted: the
+  // applicant accepts it fresh at the moment of signing, not once and
+  // forever, the same reading `applications.rules_accepted_at` — written
+  // from the server clock at THIS submit, never carried over from a draft.
+  const [rulesAccepted, setRulesAccepted] = useState(false);
 
   // Ruling #113: the address requisite is gated at SUBMIT, not at
   // registration. It belongs to the applicant the filing is FOR — the
@@ -235,6 +248,9 @@ export function ApplicationWizardPage() {
     queryFn: () => listClassifierItems('benefit_categories'),
   });
   const docTypesQuery = useQuery({ queryKey: ['classifier-items', 'doc_types'], queryFn: () => listClassifierItems('doc_types') });
+  // Ruling #184: anonymous, the same read the landing footer already makes —
+  // `rules_url` is what the step-5 checkbox links to.
+  const siteSettingsQuery = useQuery({ queryKey: ['site-settings'], queryFn: getSiteSettings });
 
   const cardQuery = useQuery({
     queryKey: ['wizard-card', applicationId],
@@ -261,6 +277,16 @@ export function ApplicationWizardPage() {
   if (hydratedForId.current !== cardQuery.data?.id) {
     hydratedForId.current = cardQuery.data?.id;
     const card = cardQuery.data;
+    // Resuming a draft must restore WHO it is filed for, not just what it
+    // asks for — the last step's self/legal branch (ruling #183) reads the
+    // local `onBehalf` state, which otherwise defaults to 'self' regardless
+    // of how the draft was actually created.
+    if (card?.on_behalf === 'legal') {
+      setOnBehalf('legal');
+      setRepresentationApplicantId(card.applicant_id);
+    } else if (card?.on_behalf === 'self') {
+      setOnBehalf('self');
+    }
     if (card?.activity_type_id) setActivityTypeId(card.activity_type_id);
     if (card?.contour_id) setContour({ id: card.contour_id, number: card.contour_id, areaHa: card.requested_area_ha });
     if (card?.period_from) setPeriodFrom(card.period_from);
@@ -277,11 +303,20 @@ export function ApplicationWizardPage() {
   const isGrazing = activityCode === GRAZING_CODE;
   const quantityUnit = activityTypesQuery.data?.find((a) => a.id === activityTypeId)?.quantity_unit;
 
-  // #179: the flag lives on the classifier item, not on the application —
-  // `ClassifierItemOut.props` is a free-form `dict`, so this is the one
-  // place that reads it as a boolean.
-  const selectedBenefitItem = benefitCategoriesQuery.data?.find((b) => b.id === benefitCategoryItemId);
-  const requiresCertificate = selectedBenefitItem?.props?.['requires_certificate'] === true;
+  // Ruling #181: every one of the seven benefit categories needs a
+  // certificate number and a supporting document — there is no
+  // `props.requires_certificate` switch to read any more. Simply: a category
+  // is chosen, or it isn't.
+  const requiresCertificate = benefitCategoryItemId !== '';
+  // The `doc_types` item the certificate document is filed under
+  // (`benefit_proof`, migration `0024`) — looked up by CODE, never by list
+  // position (the exact bug `respond_info`'s own fix wave, docs/status.md,
+  // exists to avoid repeating here).
+  const benefitProofDocTypeId = docTypesQuery.data?.find((d) => d.code === 'benefit_proof')?.id;
+  const hasBenefitProofDoc =
+    !requiresCertificate ||
+    !benefitProofDocTypeId ||
+    (cardQuery.data?.documents ?? []).some((d) => d.doc_type_item_id === benefitProofDocTypeId);
 
   function invalidateCard() {
     if (applicationId) void queryClient.invalidateQueries({ queryKey: ['wizard-card', applicationId] });
@@ -469,18 +504,26 @@ export function ApplicationWizardPage() {
         await precheckMutation.mutateAsync();
         return;
       }
-      const packageBytes = await getApplicationPackage(applicationId);
-      // Fix wave, finding 2: real mode DETACHED, over the exact bytes
-      // `GET .../package` just served — `POST .../submit` verifies through
-      // `signatures.service.sign()` -> `verify_detached` against them
-      // (`applications/router.py::get_application_package`'s own docstring:
-      // "the client signs exactly these"). No PINFL to type in beyond the
-      // identity check above; the certificate the citizen picks in E-IMZO
-      // carries it.
-      const pkcs7 = isEimzoMock()
-        ? await buildMockSignature({ documentBytes: packageBytes, pinfl: applicant.pinfl, fullName: applicant.name })
-        : await signDocument(new Uint8Array(packageBytes));
-      await submitApplication(applicationId, pkcs7);
+      // Ruling #183: a citizen filing for themselves signs with a plain
+      // button — no envelope, no E-IMZO dialog at all. The applicant session
+      // already identifies them by PINFL (OneID/E-IMZO login, #32), so
+      // there is nothing left for this browser to produce.
+      if (onBehalf === 'self') {
+        await submitApplication(applicationId, { rules_accepted: true });
+      } else {
+        const packageBytes = await getApplicationPackage(applicationId);
+        // Fix wave, finding 2: real mode DETACHED, over the exact bytes
+        // `GET .../package` just served — `POST .../submit` verifies through
+        // `signatures.service.sign()` -> `verify_detached` against them
+        // (`applications/router.py::get_application_package`'s own docstring:
+        // "the client signs exactly these"). No PINFL to type in beyond the
+        // identity check above; the certificate the citizen picks in E-IMZO
+        // carries it.
+        const pkcs7 = isEimzoMock()
+          ? await buildMockSignature({ documentBytes: packageBytes, pinfl: applicant.pinfl, fullName: applicant.name })
+          : await signDocument(new Uint8Array(packageBytes));
+        await submitApplication(applicationId, { pkcs7, rules_accepted: true });
+      }
       // The one navigation the leave-guard below must let through without
       // asking — it fires right after a successful submit, when there is
       // nothing left to lose. A ref, not state: `navigate()` runs in the
@@ -488,6 +531,22 @@ export function ApplicationWizardPage() {
       skipLeaveGuardRef.current = true;
       navigate(`/my/applications/${applicationId}`);
     } catch (err) {
+      // Ruling #181: a benefit-certificate refusal is a FIELD error, not a
+      // banner — the wizard sends the applicant back to step 3, where the
+      // certificate number actually lives, rather than leaving them on step
+      // 5 staring at a sentence about a field they cannot see.
+      const reason = err instanceof ApiError ? (err.details as { reason?: string } | undefined)?.reason : undefined;
+      if (
+        err instanceof ApiError &&
+        err.code === 'ERR-APP-003' &&
+        (reason === 'benefit_certificate_required' ||
+          reason === 'benefit_certificate_unknown' ||
+          reason === 'benefit_certificate_not_yours')
+      ) {
+        setBenefitCertificateServerError(errorText(err));
+        setStep(3);
+        return;
+      }
       setSubmitError(
         err instanceof EimzoError || isProviderUnreachable(err)
           ? t(eimzoErrorMessageKey(err))
@@ -788,21 +847,31 @@ export function ApplicationWizardPage() {
               </FormField>
             )}
 
-            {/* #179: shown only for a category whose classifier item carries
-                `props.requires_certificate = true` — filled in here, before
-                the backend's own refusal (`ERR-APP-003`,
-                `benefit_certificate_required`) ever has a chance to fire. */}
+            {/* Ruling #181: shown for EVERY chosen category, no per-item
+                switch — filled in here, before the backend's own refusal
+                (`ERR-APP-003`, `benefit_certificate_required`) ever has a
+                chance to fire. `benefitCertificateServerError` is set only
+                by a submit-time refusal (`unknown`/`not_yours`), which the
+                wizard cannot catch client-side — shown at this same field
+                rather than only in the step-5 banner. */}
             {requiresCertificate && (
               <FormField
                 label={t('wizard.step3.certificateNumber')}
                 required
                 htmlFor="benefit-certificate-no"
-                error={certificateTouched && !benefitCertificateNo.trim() ? t('wizard.step3.certificateNumberRequired') : undefined}
+                error={
+                  (certificateTouched && !benefitCertificateNo.trim()
+                    ? t('wizard.step3.certificateNumberRequired')
+                    : undefined) ?? benefitCertificateServerError ?? undefined
+                }
               >
                 <Input
                   id="benefit-certificate-no"
                   value={benefitCertificateNo}
-                  onChange={(e) => setBenefitCertificateNo(e.target.value)}
+                  onChange={(e) => {
+                    setBenefitCertificateNo(e.target.value);
+                    setBenefitCertificateServerError(null);
+                  }}
                   onBlur={() => setCertificateTouched(true)}
                 />
               </FormField>
@@ -820,6 +889,14 @@ export function ApplicationWizardPage() {
       {step === 4 && (
         <section className="bg-white border border-[#E4E7EA] rounded-2xl p-6 shadow-xs space-y-4">
           <h2 className="text-sm font-bold text-[#1A1F24] uppercase tracking-wider">{t('wizard.step4.heading')}</h2>
+          {/* Ruling #181: the benefit's supporting document is mandatory
+              exactly like the certificate number — filed under the
+              `benefit_proof` doc type, same as any other attachment. */}
+          {requiresCertificate && (
+            <Alert variant={hasBenefitProofDoc ? 'success' : 'warning'}>
+              {hasBenefitProofDoc ? t('wizard.step4.benefitProofOk') : t('wizard.step4.benefitProofRequired')}
+            </Alert>
+          )}
           <DocumentsStep
             docTypes={docTypesQuery.data ?? []}
             documents={cardQuery.data?.documents ?? []}
@@ -889,10 +966,52 @@ export function ApplicationWizardPage() {
           )}
 
           <div className="bg-white border border-[#E4E7EA] rounded-2xl p-6 shadow-xs space-y-3">
-            <h2 className="text-sm font-bold text-[#1A1F24] uppercase tracking-wider">{t('wizard.step5.eriTitle')}</h2>
+            <h2 className="text-sm font-bold text-[#1A1F24] uppercase tracking-wider">
+              {onBehalf === 'self' ? t('wizard.step5.signTitle') : t('wizard.step5.eriTitle')}
+            </h2>
             <p className="text-xs text-[#5A646D]">
-              {t('wizard.step5.eriDesc')}
+              {onBehalf === 'self' ? t('wizard.step5.signDesc') : t('wizard.step5.eriDesc')}
             </p>
+
+            {/* Ruling #184: mandatory before ANY signature — self or legal
+                alike. `rules_url` comes from the same anonymous read the
+                landing footer uses; the link opens in a new tab so ticking
+                the box never loses the wizard's own state. */}
+            <div className="flex items-start gap-2.5">
+              <input
+                id="rules-accepted"
+                type="checkbox"
+                checked={rulesAccepted}
+                onChange={(e) => setRulesAccepted(e.target.checked)}
+                className="w-5 h-5 mt-0.5 accent-[#2E7D4F] border-[#767F87] rounded cursor-pointer"
+              />
+              <label htmlFor="rules-accepted" className="text-xs text-[#1A1F24] cursor-pointer select-none">
+                {(() => {
+                  const [before, after] = t('wizard.step5.rulesCheckboxLabel').split('{rules}');
+                  const rulesUrl = siteSettingsQuery.data?.rules_url;
+                  return (
+                    <>
+                      {before}
+                      {rulesUrl ? (
+                        <a
+                          href={rulesUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={(e) => e.stopPropagation()}
+                          className="underline text-[#2E7D4F] font-semibold"
+                        >
+                          {t('wizard.step5.rulesLinkText')}
+                        </a>
+                      ) : (
+                        t('wizard.step5.rulesLinkText')
+                      )}
+                      {after}
+                    </>
+                  );
+                })()}
+              </label>
+            </div>
+
             {submitError && (
               <Alert variant="danger" title={t('wizard.step5.notSubmittedTitle')}>
                 {submitError}
@@ -906,14 +1025,17 @@ export function ApplicationWizardPage() {
               disabled={
                 hasBlockingCheck ||
                 !precheckResult ||
-                (needsAddress && !addressSaved && !address.trim())
+                (needsAddress && !addressSaved && !address.trim()) ||
+                !rulesAccepted
               }
               onClick={handleSignAndSubmit}
               className="cursor-pointer font-bold"
             >
               {needsAddress && !addressSaved
                 ? t('wizard.step5.saveAddressAndCalc')
-                : t('wizard.step5.signAndSubmit')}
+                : onBehalf === 'self'
+                  ? t('wizard.step5.signApplication')
+                  : t('wizard.step5.signAndSubmit')}
             </Button>
           </div>
         </section>
@@ -935,11 +1057,14 @@ export function ApplicationWizardPage() {
                 (step === 2 && (!contour || !periodFrom || !periodTo || !!combinedPeriodError)) ||
                 (step === 3 && !isGrazing && !quantity) ||
                 (step === 3 && isGrazing && items.filter((i) => i.livestockTypeId && i.headCount).length === 0) ||
-                // #179: the certificate number must be filled in before the
-                // wizard moves on — the backend's own refusal
+                // Ruling #181: the certificate number must be filled in
+                // before the wizard moves on — the backend's own refusal
                 // (`ERR-APP-003`, `benefit_certificate_required`) must never
                 // be how the applicant first learns it was needed.
-                (step === 3 && requiresCertificate && !benefitCertificateNo.trim())
+                (step === 3 && requiresCertificate && !benefitCertificateNo.trim()) ||
+                // Same reasoning for the supporting document (`benefit_proof`),
+                // checked once step 4 is reached.
+                (step === 4 && !hasBenefitProofDoc)
               }
               onClick={goNext}
               className="cursor-pointer font-bold"
