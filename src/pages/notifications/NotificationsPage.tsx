@@ -1,12 +1,16 @@
 import { useState } from 'react';
-import { Bell, Loader2 } from 'lucide-react';
+import { Link } from 'react-router';
+import { ArrowUpRight, Bell, Check, Loader2 } from 'lucide-react';
 import { Button } from '../../components/ui/button';
 import { Pagination, Tabs } from '../../components/ui/Navigation';
+import { useAuth } from '../../auth/useAuth';
 import { useLanguage, useT } from '../../i18n/useT';
 import { useApiErrorText } from '../../i18n/useApiErrorText';
 import { ApiError } from '../../api/errors';
 import { useMarkAllNotificationsRead, useMarkNotificationRead, useNotifications } from './queries';
 import { formatDateTime } from './format';
+import { notificationTarget } from './target';
+import { TransitionChips } from './TransitionChips';
 import { translateNotification, translateNotificationSubject } from './translateNotification';
 
 const PAGE_SIZE = 20;
@@ -24,10 +28,17 @@ type Filter = 'all' | 'unread';
  * (`['notifications', 'unread-count']`) `AppShell.tsx`'s header badge polls
  * — see `queries.ts` — so the badge count drops immediately, not on its
  * next 30-second refetch.
+ *
+ * A row is a link to what it is about (`target.ts` — the citizen's card or
+ * the staff one, by permission); opening an unread row marks it read on the
+ * way. The "from -> to" chips under the text come from
+ * `params.status_from`/`status_to` (`TransitionChips.tsx`).
  */
 export function NotificationsPage() {
   const t = useT();
   const { lang } = useLanguage();
+  const { me } = useAuth();
+  const held = { permissions: me?.permissions ?? [], is_superuser: me?.is_superuser ?? false };
   const errorText = useApiErrorText();
   const [filter, setFilter] = useState<Filter>('all');
   const [page, setPage] = useState(1);
@@ -114,15 +125,10 @@ export function NotificationsPage() {
 
       {items.length > 0 && (
         <ul className="bg-white border border-[#E4E7EA] rounded-2xl divide-y divide-[#E4E7EA] overflow-hidden">
-          {items.map((n) => (
-            <li
-              key={n.id}
-              data-testid={`notification-${n.id}`}
-              className={`p-3.5 sm:p-4 flex flex-col sm:flex-row sm:items-start justify-between gap-3 transition-colors ${
-                n.read_at ? '' : 'bg-[#F0F7F1] border-l-4 border-l-[#2E7D4F]'
-              }`}
-            >
-              <div className="min-w-0 flex-1">
+          {items.map((n) => {
+            const target = notificationTarget(n, held);
+            const body = (
+              <>
                 <div className="flex items-center gap-2 mb-1 flex-wrap">
                   {n.subject && (
                     <p className="text-sm font-semibold text-[#1A1F24]">
@@ -136,24 +142,60 @@ export function NotificationsPage() {
                   )}
                 </div>
                 <p className="text-sm text-[#1A1F24] break-words">{translateNotification(n.text, lang)}</p>
+                <TransitionChips
+                  objectType={n.object_type}
+                  params={n.params}
+                  lang={lang}
+                  testId={`notification-transition-${n.id}`}
+                />
                 <p className="text-xs text-[#5A646D] mt-1">{formatDateTime(n.created_at)}</p>
-              </div>
-              {!n.read_at && (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  data-testid={`mark-read-${n.id}`}
-                  disabled={markRead.isPending}
-                  isLoading={markRead.isPending && markRead.variables === n.id}
-                  onClick={() => markRead.mutate(n.id)}
-                  className="shrink-0 self-end sm:self-auto w-full sm:w-auto justify-center"
-                >
-                  {t('cabinet.notifications.markRead')}
-                </Button>
-              )}
-            </li>
-          ))}
+              </>
+            );
+            return (
+              <li
+                key={n.id}
+                data-testid={`notification-${n.id}`}
+                className={`p-3.5 sm:p-4 flex items-start justify-between gap-3 transition-colors ${
+                  n.read_at ? '' : 'bg-[#F0F7F1] border-l-4 border-l-[#2E7D4F]'
+                } ${target ? 'hover:bg-[#F8F9FA]' : ''}`}
+              >
+                {target ? (
+                  <Link
+                    to={target}
+                    data-testid={`notification-link-${n.id}`}
+                    // Fire-and-forget: the card is what the click is for, and
+                    // the badge/list invalidation in `queries.ts` catches up
+                    // on its own. A failure here only leaves the row unread.
+                    onClick={() => {
+                      if (!n.read_at) markRead.mutate(n.id);
+                    }}
+                    className="min-w-0 flex-1 flex items-start justify-between gap-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2E7D4F] rounded-md"
+                  >
+                    <div className="min-w-0 flex-1">{body}</div>
+                    <ArrowUpRight className="w-4 h-4 mt-0.5 text-[#9AA3AB] shrink-0" aria-hidden="true" />
+                  </Link>
+                ) : (
+                  <div className="min-w-0 flex-1">{body}</div>
+                )}
+                {!n.read_at && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    data-testid={`mark-read-${n.id}`}
+                    aria-label={t('cabinet.notifications.markRead')}
+                    title={t('cabinet.notifications.markRead')}
+                    disabled={markRead.isPending}
+                    isLoading={markRead.isPending && markRead.variables === n.id}
+                    onClick={() => markRead.mutate(n.id)}
+                    className="shrink-0 !px-2 rounded-full"
+                  >
+                    {!(markRead.isPending && markRead.variables === n.id) && <Check className="w-4 h-4" aria-hidden="true" />}
+                  </Button>
+                )}
+              </li>
+            );
+          })}
         </ul>
       )}
 
