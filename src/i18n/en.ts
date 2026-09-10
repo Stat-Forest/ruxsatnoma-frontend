@@ -1564,6 +1564,7 @@ export const en = {
   'search.filters.query': 'Search query',
   'search.filters.queryPlaceholder': 'Number, Full name, Phone',
   'search.filters.status': 'Status',
+  'search.filters.allStatuses': 'All statuses',
   'search.filters.organization': 'Organization',
   'search.filters.allOrganizations': 'All organizations',
   'search.filters.activityType': 'Activity type',

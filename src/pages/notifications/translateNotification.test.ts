@@ -154,6 +154,85 @@ describe('translateNotification', () => {
     });
   });
 
+  describe('Payment confirmed and permit notice (Image 2)', () => {
+    const rawCyrillic =
+      'RX-2026-000005 аризаси бўйича 2200000.00 сўм тўлов тасдиқланди. Рухсатномани расмийлаштиринг.';
+
+    it('translates to en', () => {
+      expect(translateNotification(rawCyrillic, 'en')).toBe(
+        'Payment of 2200000.00 UZS confirmed for application RX-2026-000005. Issue the permit.',
+      );
+    });
+
+    it('translates to ru', () => {
+      expect(translateNotification(rawCyrillic, 'ru')).toBe(
+        'По заявке RX-2026-000005 подтверждена оплата 2200000.00 сум. Оформите разрешение.',
+      );
+    });
+
+    it('translates to uz_latn', () => {
+      expect(translateNotification(rawCyrillic, 'uz_latn')).toBe(
+        "RX-2026-000005 arizasi bo'yicha 2200000.00 so'm to'lov tasdiqlandi. Ruxsatnomani rasmiylashtiring.",
+      );
+    });
+
+    it('translates to uz_cyrl', () => {
+      expect(translateNotification(rawCyrillic, 'uz_cyrl')).toBe(
+        'RX-2026-000005 аризаси бўйича 2200000.00 сўм тўлов тасдиқланди. Рухсатномани расмийлаштиринг.',
+      );
+    });
+
+    it('translates to kaa', () => {
+      expect(translateNotification(rawCyrillic, 'kaa')).toBe(
+        'RX-2026-000005 arzası boyınsha 2200000.00 sum tólem tastıyıqlandı. Ruxsatnamanı rásmiylestiriń.',
+      );
+    });
+
+    it('translates from english to other languages', () => {
+      const rawEn = 'Payment of 2200000.00 UZS confirmed for application RX-2026-000005. Issue the permit.';
+      expect(translateNotification(rawEn, 'ru')).toBe(
+        'По заявке RX-2026-000005 подтверждена оплата 2200000.00 сум. Оформите разрешение.',
+      );
+      expect(translateNotification(rawEn, 'uz_latn')).toBe(
+        "RX-2026-000005 arizasi bo'yicha 2200000.00 so'm to'lov tasdiqlandi. Ruxsatnomani rasmiylashtiring.",
+      );
+    });
+
+    it('handles unicode curly apostrophe (U+2019)', () => {
+      const curlyApostrophe =
+        'RX-2026-000005 arizasi bo\u2019yicha 2200000.00 so\u2019m to\u2019lov tasdiqlandi. Ruxsatnomani rasmiylashtiring.';
+      expect(translateNotification(curlyApostrophe, 'en')).toBe(
+        'Payment of 2200000.00 UZS confirmed for application RX-2026-000005. Issue the permit.',
+      );
+    });
+
+    it('handles leading Ariza/Ариза prefix and Cyrillic without diacritics', () => {
+      const leadingAriza =
+        'Ариза RX-2026-000005 буйича 2200000.00 сум тулов тасдикланди. Рухсатномани расмийлаштиринг.';
+      expect(translateNotification(leadingAriza, 'en')).toBe(
+        'Payment of 2200000.00 UZS confirmed for application RX-2026-000005. Issue the permit.',
+      );
+    });
+
+    it('handles Russian alternative word order (Оплата по заявке...)', () => {
+      const russianAlt =
+        'Оплата по заявке RX-2026-000005 подтверждена на сумму 2200000.00 сум. Оформите разрешение.';
+      expect(translateNotification(russianAlt, 'en')).toBe(
+        'Payment of 2200000.00 UZS confirmed for application RX-2026-000005. Issue the permit.',
+      );
+    });
+
+    it('handles payment confirmed without amount or permit notice', () => {
+      const noAmt = 'RX-2026-000005 аризаси бўйича тўлов тасдиқланди.';
+      expect(translateNotification(noAmt, 'en')).toBe(
+        'Payment confirmed for application RX-2026-000005.',
+      );
+      expect(translateNotification(noAmt, 'ru')).toBe(
+        'По заявке RX-2026-000005 подтверждена оплата.',
+      );
+    });
+  });
+
   describe('translateNotificationSubject', () => {
     it('translates known subject terms', () => {
       expect(translateNotificationSubject('Ariza beruvchi', 'en')).toBe('Applicant');
@@ -170,6 +249,11 @@ describe('translateNotification', () => {
       expect(translateNotificationSubject('Toʻlov eʼlon qilindi', 'ru')).toBe('Выставлен счет на оплату');
       expect(translateNotificationSubject('Toʻlov eʼlon qilindi', 'uz_cyrl')).toBe('Тўлов эълон қилинди');
       expect(translateNotificationSubject('Toʻlov eʼlon qilindi', 'kaa')).toBe('Tólem daǵaza etildi');
+
+      expect(translateNotificationSubject('Toʻlov tasdiqlandi', 'en')).toBe('Payment confirmed');
+      expect(translateNotificationSubject('Toʻlov tasdiqlandi', 'ru')).toBe('Оплата подтверждена');
+      expect(translateNotificationSubject('Toʻlov tasdiqlandi', 'uz_cyrl')).toBe('Тўлов тасдиқланди');
+      expect(translateNotificationSubject('Toʻlov tasdiqlandi', 'kaa')).toBe('Tólem tastıyıqlandı');
 
       expect(translateNotificationSubject('Ariza qabul qilindi', 'en')).toBe('Application accepted');
       expect(translateNotificationSubject('Ruxsatnoma bekor qilindi', 'en')).toBe('Permit cancelled');

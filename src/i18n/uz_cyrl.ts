@@ -1785,6 +1785,7 @@ export const uz_cyrl = {
   'search.filters.query': "Сўров",
   'search.filters.queryPlaceholder': "Рақам, Ф.И.Ш., телефон",
   'search.filters.status': "Ҳолат",
+  'search.filters.allStatuses': "Барча ҳолатлар",
   'search.filters.organization': "Ташкилот",
   'search.filters.allOrganizations': "Барча ташкилотлар",
   'search.filters.activityType': "Фаолият тури",

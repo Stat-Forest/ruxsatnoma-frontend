@@ -1783,6 +1783,7 @@ export const uz_latn = {
   'search.filters.query': "Soʻrov",
   'search.filters.queryPlaceholder': "Raqam, F.I.Sh., telefon",
   'search.filters.status': "Holat",
+  'search.filters.allStatuses': "Barcha holatlar",
   'search.filters.organization': "Tashkilot",
   'search.filters.allOrganizations': "Barcha tashkilotlar",
   'search.filters.activityType': "Faoliyat turi",
