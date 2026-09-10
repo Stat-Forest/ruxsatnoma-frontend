@@ -73,7 +73,7 @@ export const en = {
   'login.firstTime': 'New to the portal?',
   'login.firstTimeHint': 'Registration happens through OneID on your first sign-in — no separate account is needed.',
   'login.verifyWithoutLogin': 'Verify a permit without signing in',
-  'login.footerCopyright': '© 2026 State Committee for Forestry. All rights reserved.',
+  'login.footerCopyright': '© 2026 Agency for Forestry and Greenery Development, Combating Desertification. All rights reserved.',
   'login.footerHelp': 'Help',
   'login.footerContacts': 'Contacts',
   'login.footerDocuments': 'Documents',

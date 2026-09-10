@@ -1570,7 +1570,7 @@ export const kaa = {
   'login.firstTime': 'Portalda birinshi ret?',
   'login.firstTimeHint': 'Dizimnen ótiw birinshi kiriwde OneID arqalı ámelge asırıladı — ayrıqsha esap kerek emes.',
   'login.verifyWithoutLogin': 'Ruxsatnamanı kirmesten tekseriw',
-  'login.footerCopyright': '© 2026 Orman xojalıǵı mámleketlik komiteti. Barlıq huqıqlar qorǵalǵan.',
+  'login.footerCopyright': '© 2026 Orman hám jasıl aymaqlardı kóbeytiw, shólistanıwǵa qarsı gúresiw agentligi. Barlıq huqıqlar qorǵalǵan.',
   'login.footerHelp': 'Járdem',
   'login.footerContacts': 'Baylanıs',
   'login.footerDocuments': 'Hújjetler',

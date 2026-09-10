@@ -82,7 +82,7 @@ export const uz_latn = {
   'login.firstTime': 'Portalda birinchi marta?',
   'login.firstTimeHint': 'Roʻyxatdan oʻtish birinchi kirishda OneID orqali amalga oshiriladi — alohida hisob kerak emas.',
   'login.verifyWithoutLogin': 'Ruxsatnomani kirmasdan tekshirish',
-  'login.footerCopyright': '© 2026 Oʻrmon xoʻjaligi davlat qoʻmitasi. Barcha huquqlar himoyalangan.',
+  'login.footerCopyright': '© 2026 Oʻrmon va yashil hududlarni koʻpaytirish, choʻllanishga qarshi kurashish agentligi. Barcha huquqlar himoyalangan.',
   'login.footerHelp': 'Yordam',
   'login.footerContacts': 'Aloqa',
   'login.footerDocuments': 'Hujjatlar',

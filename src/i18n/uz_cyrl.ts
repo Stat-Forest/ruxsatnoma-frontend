@@ -112,7 +112,7 @@ export const uz_cyrl = {
   'login.firstTime': 'Порталда биринчи марта?',
   'login.firstTimeHint': 'Рўйхатдан ўтиш биринчи киришда OneID орқали амалга оширилади — алоҳида ҳисоб керак эмас.',
   'login.verifyWithoutLogin': 'Рухсатномани кирмасдан текшириш',
-  'login.footerCopyright': '© 2026 Ўрмон хўжалиги давлат қўмитаси. Барча ҳуқуқлар ҳимояланган.',
+  'login.footerCopyright': '© 2026 Ўрмон ва яшил ҳудудларни кўпайтириш, чўлланишга қарши курашиш агентлиги. Барча ҳуқуқлар ҳимояланган.',
   'login.footerHelp': 'Ёрдам',
   'login.footerContacts': 'Алоқа',
   'login.footerDocuments': 'Ҳужжатлар',

@@ -78,7 +78,7 @@ export const ru = {
   'login.firstTime': 'Впервые на портале?',
   'login.firstTimeHint': 'Регистрация проходит через OneID при первом входе — отдельный аккаунт не нужен.',
   'login.verifyWithoutLogin': 'Проверить разрешение без входа',
-  'login.footerCopyright': '© 2026 Государственный комитет лесного хозяйства. Все права защищены.',
+  'login.footerCopyright': '© 2026 Агентство по увеличению лесных и зелёных зон, борьбе с опустыниванием. Все права защищены.',
   'login.footerHelp': 'Помощь',
   'login.footerContacts': 'Контакты',
   'login.footerDocuments': 'Документы',
