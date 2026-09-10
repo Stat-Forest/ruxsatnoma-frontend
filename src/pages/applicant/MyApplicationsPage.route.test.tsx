@@ -127,10 +127,21 @@ test('the superuser cannot reach /my/applications either', async () => {
   expect(screen.queryByText(/Mening arizalarim/)).not.toBeInTheDocument();
 });
 
+// Refused all the same, but the wizard's refusal is a redirect to the
+// dashboard, not the «no right to this page» notice: the public landing
+// links every visitor to this path from its "Ariza topshirish" buttons,
+// signed in as whatever they are (`RequireAuth`'s `forbidden` prop).
 test('nor the wizard behind its «New application» button', async () => {
-  server.use(http.get('*/auth/me', () => HttpResponse.json(SYSADMIN_ME)));
+  server.use(
+    http.get('*/auth/me', () => HttpResponse.json(SYSADMIN_ME)),
+    http.get('*/api/v1/permits', () => HttpResponse.json(page([]))),
+    http.get('*/api/v1/invoices', () => HttpResponse.json(page([]))),
+  );
   arriveAt('/my/applications/new');
   render(<App />);
 
-  await waitFor(() => expect(screen.getByTestId('forbidden')).toBeInTheDocument());
+  await waitFor(() => expect(window.location.pathname).toBe('/'));
+  expect(await screen.findByTestId('app-shell')).toBeInTheDocument();
+  expect(screen.queryByTestId('forbidden')).not.toBeInTheDocument();
+  expect(screen.queryByText(/Yangi ariza/)).not.toBeInTheDocument();
 });

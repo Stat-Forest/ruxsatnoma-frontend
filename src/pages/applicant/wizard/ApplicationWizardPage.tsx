@@ -165,6 +165,19 @@ interface PendingDocRow {
 // and `benefit_categories` items without their uuids ever colliding.
 const BENEFIT_OPTION_PREFIX = 'benefit:';
 
+/** `norms._check_benefit_claim`'s refusal of a category the chosen activity's
+ *  tariffs do not carry (ruling #181's activity scoping). Step 4 no longer
+ *  offers such a category, so this is the safety net for what the list could
+ *  not know — a category re-scoped after it was loaded — named as what it is
+ *  and pointed at step 4, rather than the generic «check failed». */
+function isUnknownBenefitCode(error: unknown): boolean {
+  return (
+    error instanceof ApiError &&
+    error.code === 'ERR-VAL-001' &&
+    (error.details as { reason?: string } | undefined)?.reason === 'unknown_benefit_code'
+  );
+}
+
 /**
  * B7 — the application wizard, the core of the system. Drives the real API
  * chain end to end: `POST /applications` (DRAFT) -> `PATCH` (contour, period,
@@ -204,7 +217,9 @@ export function ApplicationWizardPage() {
   // the quantities: a category is chosen as one more "document type" in the
   // same select as the attachments, because to the citizen the claim IS the
   // certificate they attach — one row, its number, its file.
-  const [benefitCategoryItemId, setBenefitCategoryItemId] = useState('');
+  // The RAW claim — what the citizen picked, or what a resumed draft
+  // carried; `benefitCategoryItemId` below is the one every consumer reads.
+  const [claimedBenefitCategoryItemId, setClaimedBenefitCategoryItemId] = useState('');
   // Ruling #181: the certificate number is mandatory for EVERY benefit
   // category now — there is no per-item `requires_certificate` switch any
   // more — required before the request ever leaves the browser, the same
@@ -321,13 +336,42 @@ export function ApplicationWizardPage() {
     if (card && card.items.length > 0) {
       setItems(card.items.map((i) => ({ key: i.id, livestockTypeId: i.livestock_type_id, headCount: String(i.head_count) })));
     }
-    if (card?.benefit_category_item_id) setBenefitCategoryItemId(card.benefit_category_item_id);
+    if (card?.benefit_category_item_id) setClaimedBenefitCategoryItemId(card.benefit_category_item_id);
     if (card?.benefit_certificate_no) setBenefitCertificateNo(card.benefit_certificate_no);
   }
 
   const activityCode = activityTypesQuery.data?.find((a) => a.id === activityTypeId)?.code;
   const isGrazing = activityCode === GRAZING_CODE;
   const quantityUnit = activityTypesQuery.data?.find((a) => a.id === activityTypeId)?.quantity_unit;
+
+  // Ruling #181 scopes every benefit category to ONE activity — the item's
+  // own `props.activity` (`apiary` for the Union member, `recreation` for
+  // the six VMQ 278 ¶12 categories) — and `norms._check_benefit_claim`
+  // refuses a category claimed on any other activity as `ERR-VAL-001`/
+  // `unknown_benefit_code`. Met on the dev stand: a haymaking draft with
+  // `persons_with_disabilities` claimed, and step 5's pre-check answering
+  // only «check failed», with nothing for the citizen to point at. So step
+  // 4 offers the chosen activity's categories alone; an item with no
+  // `props.activity` is offered everywhere (nothing scopes it).
+  const applicableBenefitCategories = useMemo(
+    () =>
+      (benefitCategoriesQuery.data ?? []).filter((b) => {
+        const activity = (b.props as { activity?: unknown } | undefined)?.activity;
+        return typeof activity !== 'string' || activity === activityCode;
+      }),
+    [benefitCategoriesQuery.data, activityCode],
+  );
+  // A claim that no longer fits — the activity changed on step 1 after it
+  // was picked, or a draft resumed from before this filter — reads as NO
+  // claim: the certificate is not asked, and the next step-4 PATCH sends
+  // null rather than carrying it into a pre-check that can only refuse it.
+  // Derived, never synced: while the list is still loading there is nothing
+  // to judge the claim against, so it is kept as is.
+  const benefitCategoryItemId =
+    benefitCategoriesQuery.data === undefined ||
+    applicableBenefitCategories.some((b) => b.id === claimedBenefitCategoryItemId)
+      ? claimedBenefitCategoryItemId
+      : '';
 
   // Ruling #181: every one of the seven benefit categories needs a
   // certificate number — there is no `props.requires_certificate` switch to
@@ -461,7 +505,11 @@ export function ApplicationWizardPage() {
       });
       goToStep(5);
       setPrecheckResult(null);
-      await precheckMutation.mutateAsync();
+      // `mutate`, not `mutateAsync`: nothing here awaits the result, and a
+      // refused pre-check (a 400 on the input, `precheck`'s own docstring)
+      // is shown from the mutation's state on step 5 — as an unhandled
+      // rejection out of the button's click handler it was only noise.
+      precheckMutation.mutate();
       return;
     }
   }
@@ -884,14 +932,14 @@ export function ApplicationWizardPage() {
           ) : (
             <DocumentsStep
               docTypes={docTypesQuery.data ?? []}
-              benefitCategories={benefitCategoriesQuery.data ?? []}
+              benefitCategories={applicableBenefitCategories}
               benefitProofDocTypeId={benefitProofDocTypeId}
               documents={cardQuery.data?.documents ?? []}
               rows={docRows}
               onRowsChange={setDocRows}
               benefitCategoryItemId={benefitCategoryItemId}
               onBenefitCategoryChange={(id) => {
-                setBenefitCategoryItemId(id);
+                setClaimedBenefitCategoryItemId(id);
                 if (!id) {
                   setBenefitCertificateNo('');
                   setCertificateTouched(false);
@@ -931,7 +979,9 @@ export function ApplicationWizardPage() {
             )}
             {precheckMutation.isError && (
               <Alert variant="danger">
-                {errorText(precheckMutation.error, t('wizard.step5.checkError'))}
+                {isUnknownBenefitCode(precheckMutation.error)
+                  ? t('wizard.step5.benefitNotForActivity')
+                  : errorText(precheckMutation.error, t('wizard.step5.checkError'))}
               </Alert>
             )}
             {precheckResult && (

@@ -1,10 +1,11 @@
-import { Link } from 'react-router';
+import { Link, useNavigate } from 'react-router';
 import { FileText } from 'lucide-react';
 import { useLanguage } from '../../../i18n/useT';
 import { formatDate, formatDecimal, formatPermitNumber } from '../format';
 import { PERMIT_STATUS_STYLE, getPermitStatusLabel } from '../statusMeta';
 import { useActivityTypeName, useOrganizationName } from '../useRefsLookup';
 import type { PermitOut } from '../queries';
+import { CLICKABLE_ROW_CLASS, clickableRowProps } from '../../../lib/rowClick';
 
 const PERMIT_CARD_I18N = {
   uz_latn: {
@@ -41,9 +42,13 @@ export function PermitCard({ permit }: { permit: PermitOut }) {
   const activityName = useActivityTypeName(permit.activity_type_id, lang);
   const organizationName = useOrganizationName(permit.organization_id, lang);
   const area = formatDecimal(permit.area_ha);
+  const navigate = useNavigate();
 
   return (
-    <div className="bg-white border border-[#E4E7EA] rounded-2xl p-4 sm:p-6 shadow-xs hover:shadow-md transition-shadow space-y-3 sm:space-y-4 flex flex-col justify-between">
+    <div
+      {...clickableRowProps(() => navigate(`/my/permits/${permit.id}`))}
+      className={`bg-white border border-[#E4E7EA] rounded-2xl p-4 sm:p-6 shadow-xs hover:shadow-md transition-shadow space-y-3 sm:space-y-4 flex flex-col justify-between ${CLICKABLE_ROW_CLASS}`}
+    >
       <div className="space-y-2.5 sm:space-y-3">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <span className="text-base sm:text-lg font-bold font-mono text-[#1A1F24] break-all">

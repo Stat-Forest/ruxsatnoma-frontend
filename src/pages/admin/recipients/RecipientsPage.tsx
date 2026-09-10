@@ -31,6 +31,7 @@ import { pickName } from '../../applicant/format';
 import type { PaymentRecipientIn, PaymentRecipientOut, RecipientKind } from './api';
 import { useLabels, type RecipientLabels } from './labels';
 import { useCreateRecipient, usePatchRecipient, useRecipientsList } from './queries';
+import { CLICKABLE_ROW_CLASS, clickableRowProps } from '../../../lib/rowClick';
 
 /** `50.00` -> `"50%"`, `12.50` -> `"12.5%"` — trailing zeros trimmed, the
  *  same reading `formatMoney` gives a whole so'm amount. */
@@ -154,7 +155,12 @@ export function RecipientsPage() {
             </thead>
             <tbody>
               {sorted.map((row) => (
-                <tr key={row.id} className="border-t border-[#E4E7EA]" data-testid={`recipient-row-${row.id}`}>
+                <tr
+                  key={row.id}
+                  {...clickableRowProps(() => setFormTarget({ id: row.id }))}
+                  className={`border-t border-[#E4E7EA] hover:bg-[#F8F9FA] ${CLICKABLE_ROW_CLASS}`}
+                  data-testid={`recipient-row-${row.id}`}
+                >
                   <td className="px-4 py-3 font-semibold text-[#1A1F24]">{pickName(row.name, lang)}</td>
                   <td className="px-4 py-3 font-mono">
                     {row.kind === 'percent' ? formatPercent(row.percent ?? 0) : formatMoney(row.fixed_amount)}

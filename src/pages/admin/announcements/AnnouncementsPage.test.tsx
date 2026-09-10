@@ -500,3 +500,19 @@ test.each(['uz_latn', 'uz_cyrl', 'ru', 'en', 'kaa'] as const)(
   },
 );
 
+
+test('a click anywhere on an announcement row opens its editor; an archived row stays plain', async () => {
+  mockBackend();
+  server.use(
+    http.get('*/api/v1/admin/announcements/:id', () => HttpResponse.json(announcement({ id: DRAFT }))),
+  );
+  const user = userEvent.setup();
+  renderPage();
+
+  const archivedRow = await screen.findByTestId(`announcement-row-${ARCHIVED}`);
+  expect(archivedRow).not.toHaveAttribute('tabindex');
+
+  const draftRow = screen.getByTestId(`announcement-row-${DRAFT}`);
+  await user.click(within(draftRow).getByTestId('announcement-status'));
+  expect(await screen.findByRole('heading', { name: 'Eʼlonni tahrirlash' })).toBeInTheDocument();
+});

@@ -15,6 +15,7 @@ import { childKindsOf, visibleRows, type OrgNode } from './hierarchy';
 import type { Labels } from './labels';
 import { pickName } from '../../applicant/format';
 import type { UiLanguage } from '../../../i18n/context';
+import { CLICKABLE_ROW_CLASS, clickableRowProps } from '../../../lib/rowClick';
 
 const KIND_ICON: Record<string, typeof Landmark> = {
   agency: Landmark,
@@ -51,12 +52,13 @@ function OrganizationRow({ node, collapsed, labels, lang, onToggle, onEdit, onAr
 
   return (
     <li
+      {...clickableRowProps(() => onEdit(org))}
       role="treeitem"
       aria-level={depth + 1}
       aria-expanded={hasChildren ? !collapsed : undefined}
       data-testid={`org-row-${org.id}`}
       data-depth={depth}
-      className={`flex items-start gap-2 py-2.5 pr-2 border-b border-[#E4E7EA] last:border-b-0 hover:bg-[#F8F9FA] ${
+      className={`flex items-start gap-2 py-2.5 pr-2 border-b border-[#E4E7EA] last:border-b-0 hover:bg-[#F8F9FA] ${CLICKABLE_ROW_CLASS} ${
         archived ? 'opacity-60' : ''
       }`}
       style={{ paddingLeft: 8 + depth * 16 }}

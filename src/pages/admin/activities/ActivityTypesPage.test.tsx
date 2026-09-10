@@ -43,7 +43,7 @@
  * per-row disambiguation the switch query below already relies on.
  */
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { setupServer } from 'msw/node';
@@ -458,4 +458,14 @@ test('offers no way to add a new activity type — the catalog is fixed by law (
   renderPage();
   await screen.findByText(/chorva mollarini boqish/i);
   expect(screen.queryByRole('button', { name: /qoʻshish|add/i })).not.toBeInTheDocument();
+});
+
+test('a click anywhere on an activity card opens its editor; the switch inside keeps its own click', async () => {
+  mockList();
+  const user = userEvent.setup();
+  renderPage();
+
+  const card = await screen.findByTestId('activity-row-grazing');
+  await user.click(within(card).getByText(/Muddat/));
+  expect(await screen.findByLabelText(/tavsif \(uz\)/i)).toBeInTheDocument();
 });

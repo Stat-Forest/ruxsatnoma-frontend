@@ -6,7 +6,7 @@ import { useAuth } from './useAuth';
 import { ChangePasswordForm } from '../pages/admin/profile/ChangePasswordForm';
 import { CompleteRegistrationGate } from '../pages/cabinet/registration/CompleteRegistrationGate';
 
-function FullPageSpinner() {
+export function FullPageSpinner() {
   return (
     <div className="min-h-screen flex items-center justify-center" role="status" aria-label="Yuklanmoqda">
       <div className="w-8 h-8 border-4 border-[#E4E7EA] border-t-[#2E7D4F] rounded-full animate-spin" />
@@ -33,11 +33,22 @@ function BlockingNotice({ testId, message }: { testId: string; message: string }
 export function RequireAuth({
   permission,
   noSuperuser,
+  forbidden = 'refuse',
   children,
 }: {
   permission?: string | readonly string[];
   /** The superuser is refused outright (`NavItem.noSuperuser`). */
   noSuperuser?: boolean;
+  /**
+   * What a signed-in user the gate refuses gets. `'refuse'` (the default)
+   * is the honest answer to a URL somebody typed: the page exists and this
+   * account may not open it. `'home'` is for a route the PUBLIC site links
+   * every visitor to regardless of role — the wizard behind "Ariza
+   * topshirish" — where a leshoz inspector clicking a button the landing
+   * showed them is not probing anything, and a refusal reads as a broken
+   * site. They are sent to the dashboard instead.
+   */
+  forbidden?: 'refuse' | 'home';
   children: ReactNode;
 }) {
   const { me, loading, authError } = useAuth();
@@ -100,7 +111,7 @@ export function RequireAuth({
   // disagreed with its own menu entry would either show a link that
   // refuses, or hide a page the user may open.
   if (!satisfies(permission, me, noSuperuser)) {
-    return <Forbidden />;
+    return forbidden === 'home' ? <Navigate to="/" replace /> : <Forbidden />;
   }
 
   return <>{children}</>;

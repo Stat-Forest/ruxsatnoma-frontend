@@ -615,3 +615,12 @@ test.each([
   expect(leshoz).toHaveTextContent(expectedName);
   expect(screen.getByRole('heading', { level: 1, name: labels['page.title'] })).toBeInTheDocument();
 });
+
+test('a click anywhere on an organisation row opens its editor; the expand toggle keeps its own click', async () => {
+  server.use(...refsHandlers(), ...adminHandlers());
+  const { user } = renderPage();
+
+  const rowEl = await screen.findByTestId(`org-row-${LESHOZ_A}`);
+  await user.click(within(rowEl).getByTestId('org-kind'));
+  expect(await screen.findByTestId('field-name-uz_latn')).toBeInTheDocument();
+});

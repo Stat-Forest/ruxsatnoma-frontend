@@ -7,7 +7,7 @@
  */
 import type { ReactNode } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { setupServer } from 'msw/node';
@@ -266,4 +266,19 @@ test('archiving a published row removes its own archive action on refetch', asyn
   await user.click(screen.getByTestId('norm-transition-confirm'));
 
   await waitFor(() => expect(screen.queryByTestId(`norm-row-archive-${row.id}`)).not.toBeInTheDocument());
+});
+
+test('a click anywhere on an editable norm row opens the form; a published row stays plain', async () => {
+  const user = userEvent.setup();
+  const rows = [norm({ status: 'draft' }), norm({ status: 'published' })];
+  mockList(rows);
+  renderTab();
+  await findTableLoaded();
+
+  // Row 0 is the header; the data rows keep the fixture order.
+  const [, draft, published] = screen.getAllByRole('row');
+  expect(published).not.toHaveAttribute('tabindex');
+
+  await user.click(within(draft).getAllByRole('cell')[0]);
+  expect(await screen.findByTestId('norm-form')).toBeInTheDocument();
 });

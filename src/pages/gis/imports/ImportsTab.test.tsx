@@ -315,3 +315,55 @@ test("F12c — clicking a row's own Ochish opens its detail, the same as the id 
   expect(detail).toHaveTextContent('gis.imports.status.done');
   expect(detail).toHaveTextContent('7');
 });
+
+test('a click anywhere on an import row opens its detail, not only its Ochish', async () => {
+  server.use(
+    ...referenceHandlers(),
+    http.get('*/api/v1/gis/imports', () =>
+      HttpResponse.json({
+        items: [
+          {
+            id: 'import-4',
+            layer_id: 'layer-contours',
+            organization_id: 'org-1',
+            file_id: 'file-1',
+            approval_doc_id: 'doc-1',
+            format: 'geojson',
+            status: 'done',
+            attribute_map: {},
+            stats: { created: 7, warnings: [] },
+            error_report: null,
+            created_at: '2026-09-05T10:00:00Z',
+            finished_at: '2026-09-05T10:00:05Z',
+          },
+        ],
+        total: 1,
+        page: 1,
+        page_size: 20,
+      }),
+    ),
+    http.get('*/api/v1/gis/imports/import-4', () =>
+      HttpResponse.json({
+        id: 'import-4',
+        layer_id: 'layer-contours',
+        organization_id: 'org-1',
+        file_id: 'file-1',
+        approval_doc_id: 'doc-1',
+        format: 'geojson',
+        status: 'done',
+        attribute_map: {},
+        stats: { created: 7, warnings: [] },
+        error_report: null,
+        created_at: '2026-09-05T10:00:00Z',
+        finished_at: '2026-09-05T10:00:05Z',
+      }),
+    ),
+  );
+  const user = userEvent.setup();
+  renderTab([]);
+
+  const row = await screen.findByTestId('import-row-import-4');
+  await user.click(within(row).getByText('geojson'));
+
+  expect(await screen.findByTestId('import-detail')).toHaveTextContent('gis.imports.status.done');
+});

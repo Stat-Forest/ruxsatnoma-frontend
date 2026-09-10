@@ -325,3 +325,15 @@ test.each(['uz_latn', 'ru'] as const)('no untranslated key reaches the screen in
   // would render as itself. This screen must be reading only `labels.ts`.
   expect(document.body.textContent).not.toMatch(/\b(nav|dash|common)\.[a-z]/i);
 });
+
+test('a click anywhere on a scheduled item opens its editor; an in-force item stays plain', async () => {
+  mockBackend(() => [RJ_01, RJ_09_SCHEDULED]);
+  renderPage();
+
+  const active = await row(ACTIVE_ID);
+  expect(active).not.toHaveAttribute('tabindex');
+
+  const scheduled = await row(SCHEDULED_ID);
+  await userEvent.click(within(scheduled).getAllByText(/./)[0]);
+  expect(await screen.findByTestId('field-name-uz')).toBeInTheDocument();
+});

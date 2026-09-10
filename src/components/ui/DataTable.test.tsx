@@ -105,3 +105,16 @@ test('without onRowClick a row is neither focusable nor a pointer target', () =>
   expect(row).not.toHaveAttribute('tabindex');
   expect(row.className).not.toContain('cursor-pointer');
 });
+
+test('rowClickable turns the row click off per row, leaving that row plain', async () => {
+  const user = userEvent.setup();
+  const onRowClick = vi.fn();
+  render(<DataTable columns={columns} data={rows} onRowClick={onRowClick} rowClickable={(row) => row.id === 1} />);
+
+  await user.click(screen.getByText('Apple'));
+  expect(onRowClick).not.toHaveBeenCalled();
+  expect(screen.getByText('Apple').closest('tr')).not.toHaveAttribute('tabindex');
+
+  await user.click(screen.getByText('Banana'));
+  expect(onRowClick).toHaveBeenCalledWith(rows[0]);
+});

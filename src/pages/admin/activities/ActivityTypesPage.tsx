@@ -50,6 +50,7 @@ import { useApiErrorText } from '../../../i18n/useApiErrorText';
 import { useLanguage, useT } from '../../../i18n/useT';
 import { pickName } from '../../applicant/format';
 import { listActivityTypes, updateActivityType, type ActivityTypeOut, type ActivityTypePatch } from './api';
+import { CLICKABLE_ROW_CLASS, clickableRowProps } from '../../../lib/rowClick';
 
 const QUERY_KEY = ['admin', 'activity-types'];
 
@@ -245,8 +246,9 @@ export function ActivityTypesPage() {
             return (
               <li
                 key={row.id}
+                {...clickableRowProps(() => openEdit(row))}
                 data-testid={`activity-row-${row.code}`}
-                className="rounded-2xl border border-[#E4E7EA] bg-white p-4 flex flex-wrap items-start justify-between gap-4"
+                className={`rounded-2xl border border-[#E4E7EA] bg-white p-4 flex flex-wrap items-start justify-between gap-4 hover:bg-[#F8F9FA] ${CLICKABLE_ROW_CLASS}`}
               >
                 <div className="flex items-start gap-3 min-w-[220px]">
                   <Switch

@@ -41,6 +41,10 @@ export interface DataTableProps<T extends { id: string | number }> {
   /** Opens the row's record from a click anywhere on it (see `lib/rowClick`);
    * the row's own links, buttons and checkboxes keep their own clicks. */
   onRowClick?: (row: T) => void;
+  /** With `onRowClick`: which rows actually open (default all). A row this
+   * refuses is plain — no pointer, no focus stop — rather than one that
+   * swallows the click. */
+  rowClickable?: (row: T) => boolean;
   pagination?: {
     currentPage: number;
     totalPages: number;
@@ -61,6 +65,7 @@ export function DataTable<T extends { id: string | number }>({
   onSelectionChange,
   actions,
   onRowClick,
+  rowClickable,
   pagination,
   className = '',
 }: DataTableProps<T>) {
@@ -201,7 +206,8 @@ export function DataTable<T extends { id: string | number }>({
             ) : (
               sortedData.map((row) => {
                 const isSelected = selectedIds.includes(row.id);
-                const rowProps = onRowClick ? clickableRowProps(() => onRowClick(row)) : undefined;
+                const rowProps =
+                  onRowClick && (rowClickable?.(row) ?? true) ? clickableRowProps(() => onRowClick(row)) : undefined;
                 return (
                   <tr
                     key={row.id}

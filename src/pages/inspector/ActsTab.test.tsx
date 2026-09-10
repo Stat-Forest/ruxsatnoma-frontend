@@ -156,3 +156,13 @@ test('"New inspection" navigates to /inspections/acts/new with no query params',
   const landed = await screen.findByTestId('landed');
   expect(landed.textContent).toBe('/inspections/acts/new');
 });
+
+test('a click anywhere on an act card opens the act, not only its Open button', async () => {
+  const user = userEvent.setup();
+  renderActsTab([act()]);
+  const card = (await screen.findByText('inspector.acts.openButton')).closest('div.bg-white')!;
+  await user.click(card);
+
+  const landed = await screen.findByTestId('landed');
+  expect(landed.textContent).toBe(`/inspections/acts/${ACT_ID}`);
+});

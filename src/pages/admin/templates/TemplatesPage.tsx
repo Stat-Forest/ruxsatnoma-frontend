@@ -199,6 +199,7 @@ export function TemplatesPage() {
           isLoading={list.isLoading}
           emptyTitle={L.emptyTitle}
           emptyDescription={L.emptyDescription}
+          onRowClick={(row) => setEditing(row)}
           actions={(row) => (
             <div className="flex items-center gap-1">
               <button

@@ -315,6 +315,11 @@ export function ParamsTab({ active }: { active: boolean }) {
   const rows = list.data?.items ?? [];
   const totalPages = list.data ? Math.max(1, Math.ceil(list.data.total / PAGE_SIZE)) : 1;
 
+  // Editing is draft-only (brief: PATCH on a published row answers
+  // `not_draft`) — a published row shows no edit control at all, never one
+  // that fails when pressed, and does not open on a row click either.
+  const canEditRow = (row: RuleParameterOut) => row.status === 'draft' && canManage;
+
   const columns: Column<RuleParameterOut>[] = [
     {
       key: 'code',
@@ -448,11 +453,10 @@ export function ParamsTab({ active }: { active: boolean }) {
             onPageChange: setPage,
             totalRecords: list.data?.total,
           }}
+          onRowClick={(row) => setFormTarget(row)}
+          rowClickable={canEditRow}
           actions={(row) => {
-            // Editing is draft-only (brief: PATCH on a published row answers
-            // `not_draft`) — a published row shows no edit control at all,
-            // never one that fails when pressed.
-            const canEdit = row.status === 'draft' && canManage;
+            const canEdit = canEditRow(row);
             const canPublishRow = row.status === 'draft' && canPublishRoute;
             const canArchiveThis = canArchiveRow(row, me);
             if (!canEdit && !canPublishRow && !canArchiveThis) return null;
