@@ -5,6 +5,7 @@ import { Inbox, Loader2, Plus, Search } from 'lucide-react';
 import { Button } from '../../components/ui/button';
 import { FormField, Input, Select } from '../../components/ui/FormControls';
 import { DataTable, type Column } from '../../components/ui/DataTable';
+import { ExportXlsxButton } from '../../components/ui/ExportXlsxButton';
 import { Pagination } from '../../components/ui/Navigation';
 import { StatusBadge } from '../../components/ui/StatusBadge';
 import { listActivityTypes, listApplications, type ApplicationOut, type ApplicationStatus } from './api';
@@ -133,16 +134,19 @@ export function MyApplicationsPage() {
     return map;
   }, [activityTypesQuery.data, lang]);
 
+  // The one query object both the list and the Excel export send (stage 13):
+  // the export is `/api/v1/applications/export.xlsx` in the owner's own scope,
+  // and `ExportXlsxButton` strips the paging keys itself.
+  const listQuery = {
+    page,
+    page_size: PAGE_SIZE,
+    status: status || undefined,
+    activity_type_id: activityTypeId || undefined,
+    number: number || undefined,
+  };
   const applicationsQuery = useQuery({
     queryKey: ['my-applications', { page, status, activityTypeId, number }],
-    queryFn: () =>
-      listApplications({
-        page,
-        page_size: PAGE_SIZE,
-        status: status || undefined,
-        activity_type_id: activityTypeId || undefined,
-        number: number || undefined,
-      }),
+    queryFn: () => listApplications(listQuery),
     placeholderData: (prev) => prev,
   });
 
@@ -248,6 +252,9 @@ export function MyApplicationsPage() {
             ]}
           />
         </FormField>
+        <div className="sm:col-span-2 lg:col-span-3 flex justify-end">
+          <ExportXlsxButton path="/api/v1/applications" query={listQuery} />
+        </div>
       </div>
 
       {/* Mobile card view (< md) */}
