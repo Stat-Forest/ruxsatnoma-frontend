@@ -293,6 +293,181 @@ export const TERM_TRANSLATIONS: Record<string, Record<string, string>> = {
     uz_cyrl: 'Бош ўрмончи',
     kaa: 'Bas toǵayshı',
   },
+  'bosh oʻrmonbegi': {
+    uz_latn: "Bosh oʻrmonbegi",
+    ru: 'Главный лесничий',
+    en: 'Chief forester',
+    uz_cyrl: 'Бош ўрмонбеги',
+    kaa: 'Bas tokaýshı',
+  },
+  "bosh o'rmonbegi": {
+    uz_latn: "Bosh o'rmonbegi",
+    ru: 'Главный лесничий',
+    en: 'Chief forester',
+    uz_cyrl: 'Бош ўрмонбеги',
+    kaa: 'Bas tokaýshı',
+  },
+  'bosh ormonbegi': {
+    uz_latn: "Bosh o'rmonbegi",
+    ru: 'Главный лесничий',
+    en: 'Chief forester',
+    uz_cyrl: 'Бош ўрмонбеги',
+    kaa: 'Bas tokaýshı',
+  },
+  'бош ўрмонбеги': {
+    uz_latn: "Bosh o'rmonbegi",
+    ru: 'Главный лесничий',
+    en: 'Chief forester',
+    uz_cyrl: 'Бош ўрмонбеги',
+    kaa: 'Bas tokaýshı',
+  },
+  'бош урмонбеги': {
+    uz_latn: "Bosh o'rmonbegi",
+    ru: 'Главный лесничий',
+    en: 'Chief forester',
+    uz_cyrl: 'Бош ўрмонбеги',
+    kaa: 'Bas tokaýshı',
+  },
+  'bas ormanbegi': {
+    uz_latn: "Bosh o'rmonbegi",
+    ru: 'Главный лесничий',
+    en: 'Chief forester',
+    uz_cyrl: 'Бош ўрмонбеги',
+    kaa: 'Bas tokaýshı',
+  },
+  'demo chief forester (burchmulla dox)': {
+    uz_latn: "Demo Bosh o'rmonbegi (Burchmulla DO'X)",
+    ru: 'Демо Главный лесничий (Бурчмуллинский лесхоз)',
+    en: 'Demo Chief Forester (Burchmulla Forestry)',
+    uz_cyrl: 'Демо Бош ўрмонбеги (Бурчмулла ДЎХ)',
+    kaa: 'Demo Bas tokaýshı (Burchmulla TOX)',
+  },
+  'demo chief forester (burchmulla forestry)': {
+    uz_latn: "Demo Bosh o'rmonbegi (Burchmulla DO'X)",
+    ru: 'Демо Главный лесничий (Бурчмуллинский лесхоз)',
+    en: 'Demo Chief Forester (Burchmulla Forestry)',
+    uz_cyrl: 'Демо Бош ўрмонбеги (Бурчмулла ДЎХ)',
+    kaa: 'Demo Bas tokaýshı (Burchmulla TOX)',
+  },
+  "demo bosh o'rmonbegi (burchmulla do'x)": {
+    uz_latn: "Demo Bosh o'rmonbegi (Burchmulla DO'X)",
+    ru: 'Демо Главный лесничий (Бурчмуллинский лесхоз)',
+    en: 'Demo Chief Forester (Burchmulla Forestry)',
+    uz_cyrl: 'Демо Бош ўрмонбеги (Бурчмулла ДЎХ)',
+    kaa: 'Demo Bas tokaýshı (Burchmulla TOX)',
+  },
+  'demo bosh oʻrmonbegi (burchmulla doʻx)': {
+    uz_latn: "Demo Bosh oʻrmonbegi (Burchmulla DOʻX)",
+    ru: 'Демо Главный лесничий (Бурчмуллинский лесхоз)',
+    en: 'Demo Chief Forester (Burchmulla Forestry)',
+    uz_cyrl: 'Демо Бош ўрмонбеги (Бурчмулла ДЎХ)',
+    kaa: 'Demo Bas tokaýshı (Burchmulla TOX)',
+  },
+  'demo bosh ormonbegi (burchmulla dox)': {
+    uz_latn: "Demo Bosh o'rmonbegi (Burchmulla DO'X)",
+    ru: 'Демо Главный лесничий (Бурчмуллинский лесхоз)',
+    en: 'Demo Chief Forester (Burchmulla Forestry)',
+    uz_cyrl: 'Демо Бош ўрмонбеги (Бурчмулла ДЎХ)',
+    kaa: 'Demo Bas tokaýshı (Burchmulla TOX)',
+  },
+  'демо главный лесничий (бурчмуллинский лесхоз)': {
+    uz_latn: "Demo Bosh o'rmonbegi (Burchmulla DO'X)",
+    ru: 'Демо Главный лесничий (Бурчмуллинский лесхоз)',
+    en: 'Demo Chief Forester (Burchmulla Forestry)',
+    uz_cyrl: 'Демо Бош ўрмонбеги (Бурчмулла ДЎХ)',
+    kaa: 'Demo Bas tokaýshı (Burchmulla TOX)',
+  },
+  'демо бош ўрмонбеги (бурчмулла дўх)': {
+    uz_latn: "Demo Bosh o'rmonbegi (Burchmulla DO'X)",
+    ru: 'Демо Главный лесничий (Бурчмуллинский лесхоз)',
+    en: 'Demo Chief Forester (Burchmulla Forestry)',
+    uz_cyrl: 'Демо Бош ўрмонбеги (Бурчмулла ДЎХ)',
+    kaa: 'Demo Bas tokaýshı (Burchmulla TOX)',
+  },
+  'демо бош урмонбеги (бурчмулла дух)': {
+    uz_latn: "Demo Bosh o'rmonbegi (Burchmulla DO'X)",
+    ru: 'Демо Главный лесничий (Бурчмуллинский лесхоз)',
+    en: 'Demo Chief Forester (Burchmulla Forestry)',
+    uz_cyrl: 'Демо Бош ўрмонбеги (Бурчмулла ДЎХ)',
+    kaa: 'Demo Bas tokaýshı (Burchmulla TOX)',
+  },
+  'demo bas tokaýshı (burchmulla tox)': {
+    uz_latn: "Demo Bosh o'rmonbegi (Burchmulla DO'X)",
+    ru: 'Демо Главный лесничий (Бурчмуллинский лесхоз)',
+    en: 'Demo Chief Forester (Burchmulla Forestry)',
+    uz_cyrl: 'Демо Бош ўрмонбеги (Бурчмулла ДЎХ)',
+    kaa: 'Demo Bas tokaýshı (Burchmulla TOX)',
+  },
+  'demo bas toǵayshı (burchmulla tox)': {
+    uz_latn: "Demo Bosh o'rmonbegi (Burchmulla DO'X)",
+    ru: 'Демо Главный лесничий (Бурчмуллинский лесхоз)',
+    en: 'Demo Chief Forester (Burchmulla Forestry)',
+    uz_cyrl: 'Демо Бош ўрмонбеги (Бурчмулла ДЎХ)',
+    kaa: 'Demo Bas tokaýshı (Burchmulla TOX)',
+  },
+  'demo chief forester': {
+    uz_latn: "Demo Bosh o'rmonbegi",
+    ru: 'Демо Главный лесничий',
+    en: 'Demo Chief Forester',
+    uz_cyrl: 'Демо Бош ўрмонбеги',
+    kaa: 'Demo Bas tokaýshı',
+  },
+  "demo bosh o'rmonbegi": {
+    uz_latn: "Demo Bosh o'rmonbegi",
+    ru: 'Демо Главный лесничий',
+    en: 'Demo Chief Forester',
+    uz_cyrl: 'Демо Бош ўрмонбеги',
+    kaa: 'Demo Bas tokaýshı',
+  },
+  'demo bosh oʻrmonbegi': {
+    uz_latn: "Demo Bosh oʻrmonbegi",
+    ru: 'Демо Главный лесничий',
+    en: 'Demo Chief Forester',
+    uz_cyrl: 'Демо Бош ўрмонбеги',
+    kaa: 'Demo Bas tokaýshı',
+  },
+  'demo bosh ormonbegi': {
+    uz_latn: "Demo Bosh o'rmonbegi",
+    ru: 'Демо Главный лесничий',
+    en: 'Demo Chief Forester',
+    uz_cyrl: 'Демо Бош ўрмонбеги',
+    kaa: 'Demo Bas tokaýshı',
+  },
+  'демо главный лесничий': {
+    uz_latn: "Demo Bosh o'rmonbegi",
+    ru: 'Демо Главный лесничий',
+    en: 'Demo Chief Forester',
+    uz_cyrl: 'Демо Бош ўрмонбеги',
+    kaa: 'Demo Bas tokaýshı',
+  },
+  'демо бош ўрмонбеги': {
+    uz_latn: "Demo Bosh o'rmonbegi",
+    ru: 'Демо Главный лесничий',
+    en: 'Demo Chief Forester',
+    uz_cyrl: 'Демо Бош ўрмонбеги',
+    kaa: 'Demo Bas tokaýshı',
+  },
+  'демо бош урмонбеги': {
+    uz_latn: "Demo Bosh o'rmonbegi",
+    ru: 'Демо Главный лесничий',
+    en: 'Demo Chief Forester',
+    uz_cyrl: 'Демо Бош ўрмонбеги',
+    kaa: 'Demo Bas tokaýshı',
+  },
+  'demo bas tokaýshı': {
+    uz_latn: "Demo Bosh o'rmonbegi",
+    ru: 'Демо Главный лесничий',
+    en: 'Demo Chief Forester',
+    uz_cyrl: 'Демо Бош ўрмонбеги',
+    kaa: 'Demo Bas tokaýshı',
+  },
+  'demo bas toǵayshı': {
+    uz_latn: "Demo Bosh o'rmonbegi",
+    ru: 'Демо Главный лесничий',
+    en: 'Demo Chief Forester',
+    uz_cyrl: 'Демо Бош ўрмонбеги',
+    kaa: 'Demo Bas tokaýshı',
+  },
 
   'leshoz_head': {
     uz_latn: "O'rmon xo'jaligi rahbari",
@@ -1633,6 +1808,13 @@ export const TERM_TRANSLATIONS: Record<string, Record<string, string>> = {
     uz_cyrl: 'Бурчмулла ДЎХ',
     kaa: 'Burchmulla TOX',
   },
+  'burchmulla dox': {
+    uz_latn: "Burchmulla DO'X",
+    ru: 'Бурчмуллинский лесхоз',
+    en: 'Burchmulla forestry',
+    uz_cyrl: 'Бурчмулла ДЎХ',
+    kaa: 'Burchmulla TOX',
+  },
   'бурчмулла дўх': {
     uz_latn: "Burchmulla DO'X",
     ru: 'Бурчмуллинский лесхоз',
@@ -1647,6 +1829,21 @@ export const TERM_TRANSLATIONS: Record<string, Record<string, string>> = {
     uz_cyrl: 'Бурчмулла ДЎХ',
     kaa: 'Burchmulla TOX',
   },
+  'burchmulla forestry': {
+    uz_latn: "Burchmulla DO'X",
+    ru: 'Бурчмуллинский лесхоз',
+    en: 'Burchmulla forestry',
+    uz_cyrl: 'Бурчмулла ДЎХ',
+    kaa: 'Burchmulla TOX',
+  },
+  'burchmulla tox': {
+    uz_latn: "Burchmulla DO'X",
+    ru: 'Бурчмуллинский лесхоз',
+    en: 'Burchmulla forestry',
+    uz_cyrl: 'Бурчмулла ДЎХ',
+    kaa: 'Burchmulla TOX',
+  },
+
 
   // --- GIS Layers & Geodata --------------------------------------------------
   'apiaries': {
@@ -2246,5 +2443,43 @@ export function translateTerm(value: string | null | undefined, lang: string): s
   if (mapping && mapping[lang]) {
     return mapping[lang];
   }
+
+  // Dynamic compound term decomposition (e.g. "Demo Chief Forester (Burchmulla DOX)")
+  const demoPrefixMatch = trimmed.match(/^(demo|демо)\s+(.*)$/i);
+  if (demoPrefixMatch) {
+    const isCyrillicTarget = lang === 'ru' || lang === 'uz_cyrl';
+    const localizedDemo = isCyrillicTarget ? 'Демо' : 'Demo';
+    const rest = demoPrefixMatch[2].trim();
+
+    // Check if rest contains parentheses e.g. "role (org)"
+    const parenMatch = rest.match(/^(.*?)\s*\((.*?)\)$/);
+    if (parenMatch) {
+      const rolePart = parenMatch[1].trim();
+      const orgPart = parenMatch[2].trim();
+      const translatedRole = translateTerm(rolePart, lang);
+      const translatedOrg = translateTerm(orgPart, lang);
+      if (translatedRole !== rolePart || translatedOrg !== orgPart) {
+        return `${localizedDemo} ${translatedRole} (${translatedOrg})`;
+      }
+    }
+
+    const translatedRest = translateTerm(rest, lang);
+    if (translatedRest !== rest) {
+      return `${localizedDemo} ${translatedRest}`;
+    }
+  }
+
+  // Dynamic compound without "demo" e.g. "Chief Forester (Burchmulla DOX)"
+  const parenMatch = trimmed.match(/^(.*?)\s*\((.*?)\)$/);
+  if (parenMatch) {
+    const rolePart = parenMatch[1].trim();
+    const orgPart = parenMatch[2].trim();
+    const translatedRole = translateTerm(rolePart, lang);
+    const translatedOrg = translateTerm(orgPart, lang);
+    if (translatedRole !== rolePart || translatedOrg !== orgPart) {
+      return `${translatedRole} (${translatedOrg})`;
+    }
+  }
+
   return value;
 }

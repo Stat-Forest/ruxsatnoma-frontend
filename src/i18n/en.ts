@@ -325,6 +325,10 @@ export const en = {
   'cabinet.profile.activeAccount': 'Active account',
   'cabinet.profile.passwordSubtitle': 'Use a new and strong password to keep your account secure',
   'cabinet.profile.contactsSubtitle': 'Phone and email information associated with your account',
+  'cabinet.profile.superuser': 'Superuser',
+  'cabinet.profile.currentLang': 'English',
+  'cabinet.profile.codePlaceholder': '6-digit code',
+  'cabinet.profile.emailPlaceholder': 'email@example.com',
 
   'accountant.common.loading': 'Loading…',
   'accountant.common.copy': 'Copy',

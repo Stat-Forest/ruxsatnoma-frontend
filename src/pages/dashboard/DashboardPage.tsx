@@ -1,4 +1,5 @@
 import { useAuth } from '../../auth/useAuth';
+import { useT } from '../../i18n/useT';
 import { ApplicantDashboardPage } from './ApplicantDashboardPage';
 import { ChiefForesterDashboardPage } from './ChiefForesterDashboardPage';
 import { LeadershipDashboardPage } from './LeadershipDashboardPage';
@@ -19,11 +20,12 @@ import { StaffDashboardPage } from './StaffDashboardPage';
  */
 export function DashboardPage() {
   const { me } = useAuth();
+  const t = useT();
 
   if (me?.role.code === 'applicant') return <ApplicantDashboardPage />;
   if (me?.role.code === 'leadership') return <LeadershipDashboardPage />;
   if (me?.role.code === 'chief_forester') return <ChiefForesterDashboardPage />;
   if (me?.is_superuser || me?.permissions.includes('dashboard.view')) return <StaffDashboardPage />;
 
-  return <div data-testid="dashboard-page">Bosh sahifa</div>;
+  return <div data-testid="dashboard-page">{t('nav.dashboard')}</div>;
 }

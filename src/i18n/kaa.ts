@@ -276,6 +276,10 @@ export const kaa = {
   'cabinet.profile.activeAccount': 'Aktiv esap',
   'cabinet.profile.passwordSubtitle': 'Esabıńız qawipsizligin támiyinlew ushın jańa hám bekkem paroldan paydalanıń',
   'cabinet.profile.contactsSubtitle': 'Esabıńızǵa biriktirilgen telefon hám elektron pochta maǵlıwmatları',
+  'cabinet.profile.superuser': 'Superpaydalanıwshı',
+  'cabinet.profile.currentLang': 'Qaraqalpaqsha',
+  'cabinet.profile.codePlaceholder': '6 xanalı kod',
+  'cabinet.profile.emailPlaceholder': 'pochta@misal.uz',
 
   'accountant.common.loading': 'Júklenbekte…',
   'accountant.common.copy': 'Kóshirip alıw',

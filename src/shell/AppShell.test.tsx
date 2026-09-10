@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { setupServer } from 'msw/node';
@@ -200,4 +200,39 @@ test('clicking the user profile in the header navigates to /profile', async () =
   expect(profileLink).toHaveAttribute('href', '/profile');
   await userEvent.click(profileLink);
   expect(await screen.findByTestId('profile-page')).toBeInTheDocument();
+});
+
+test('chief forester role name translates in header when language changes to Russian', async () => {
+  window.matchMedia = mockMatchMedia({ '(min-width: 768px)': true });
+  server.use(
+    http.get('*/auth/me', () =>
+      HttpResponse.json({
+        ...ME,
+        user: {
+          ...ME.user,
+          id: '22222222-2222-2222-2222-222222222222',
+          full_name: 'Demo Chief Forester (Burchmulla DOX)',
+          language: 'uz_latn',
+        },
+        role: { code: 'chief_forester', name: { uz_latn: "Bosh o'rmonbegi" } },
+      }),
+    ),
+    http.put('*/auth/me/language', () => HttpResponse.json({ language: 'ru' })),
+    http.get('*/refs/organizations', () => HttpResponse.json([])),
+    http.get('*/gis/*', () => HttpResponse.json([])),
+    http.get('*/permits', () => HttpResponse.json({ items: [], total: 0, page: 1, page_size: 10 })),
+  );
+
+  await renderShell();
+  const profileLink = await screen.findByTestId('header-profile-link');
+  expect(within(profileLink).getByText("Bosh o'rmonbegi")).toBeInTheDocument();
+
+  // Switch to Russian
+  await userEvent.click(screen.getByTestId('language-trigger'));
+  await userEvent.click(screen.getByRole('menuitemradio', { name: /Русский/ }));
+
+  await waitFor(() => {
+    expect(within(profileLink).getByText('Главный лесничий')).toBeInTheDocument();
+    expect(within(profileLink).getByText('Демо Главный лесничий (Бурчмуллинский лесхоз)')).toBeInTheDocument();
+  });
 });

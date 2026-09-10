@@ -401,6 +401,10 @@ export const uz_cyrl = {
   'cabinet.profile.activeAccount': 'Фаол ҳисоб',
   'cabinet.profile.passwordSubtitle': 'Ҳисобингиз хавфсизлигини таъминлаш учун янги ва мустаҳкам паролдан фойдаланинг',
   'cabinet.profile.contactsSubtitle': 'Ҳисобингизга бириктирилган телефон ва электрон почта маълумотлари',
+  'cabinet.profile.superuser': 'Суперфойдаланувчи',
+  'cabinet.profile.currentLang': 'Ўзбекча',
+  'cabinet.profile.codePlaceholder': '6 хонали код',
+  'cabinet.profile.emailPlaceholder': 'почта@мисол.уз',
 
   // Track F3 — accountant's workspace (G1–G5), `src/pages/accountant/`.
   'accountant.common.loading': 'Юкланмоқда…',

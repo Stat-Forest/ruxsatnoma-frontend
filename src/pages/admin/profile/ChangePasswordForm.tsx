@@ -34,7 +34,7 @@ const ALL_RULES: PolicyRule[] = ['length', 'uppercase', 'lowercase', 'digit', 's
  */
 export function ChangePasswordForm({ onChanged }: { onChanged: () => void }) {
   const { lang } = useLanguage();
-  const t = LABELS[lang];
+  const t = LABELS[lang] ?? LABELS.uz_latn;
 
   const [oldPassword, setOldPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
