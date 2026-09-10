@@ -8,7 +8,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter } from 'react-router';
+import { MemoryRouter, useLocation } from 'react-router';
 import { http, HttpResponse } from 'msw';
 import { setupServer } from 'msw/node';
 import { AuthContext } from '../../auth/AuthContext';
@@ -72,6 +72,11 @@ beforeAll(() => server.listen({ onUnhandledRequest: 'error' }));
 afterEach(() => server.resetHandlers());
 afterAll(() => server.close());
 
+function LocationProbe() {
+  const location = useLocation();
+  return <div data-testid="current-location">{location.pathname}</div>;
+}
+
 function renderTasksTab(tasks: TaskOut[]) {
   server.use(
     http.get('*/api/v1/inspections/tasks', () =>
@@ -86,6 +91,7 @@ function renderTasksTab(tasks: TaskOut[]) {
         <I18nContext.Provider value={i18n}>
           <AuthContext.Provider value={authValue()}>
             <TasksTab active />
+            <LocationProbe />
           </AuthContext.Provider>
         </I18nContext.Provider>
       </QueryClientProvider>
@@ -129,4 +135,12 @@ test('clicking Start calls the start route and the task list refreshes', async (
 test('the empty state renders when there are no tasks', async () => {
   renderTasksTab([]);
   expect(await screen.findByText('inspector.tasks.empty')).toBeInTheDocument();
+});
+
+test('a click anywhere on a task card opens the task, not only its Open button', async () => {
+  const user = userEvent.setup();
+  renderTasksTab([task()]);
+
+  await user.click(await screen.findByText(/inspector.tasks.dueAtLabel/));
+  expect(screen.getByTestId('current-location')).toHaveTextContent(`/inspections/tasks/${task().id}`);
 });

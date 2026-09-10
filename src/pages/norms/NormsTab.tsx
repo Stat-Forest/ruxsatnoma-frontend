@@ -166,6 +166,8 @@ export function NormsTab({ active }: { active: boolean }) {
     approve.reset();
   }
 
+  const canEditRow = (row: NormOut) => (NORM_EDITABLE_STATUSES as readonly string[]).includes(row.status) && canManage;
+
   const columns: Column<NormOut>[] = [
     {
       key: 'contour_id',
@@ -274,8 +276,10 @@ export function NormsTab({ active }: { active: boolean }) {
           emptyTitle={t('norms.norms.emptyTitle')}
           emptyDescription={t('norms.norms.emptyDescription')}
           pagination={{ currentPage: page, totalPages, onPageChange: setPage, totalRecords: list.data?.total }}
+          onRowClick={(row) => setFormTarget(row)}
+          rowClickable={canEditRow}
           actions={(row) => {
-            const canEdit = (NORM_EDITABLE_STATUSES as readonly string[]).includes(row.status) && canManage;
+            const canEdit = canEditRow(row);
             const specs = me == null ? [] : actionsFor(row.status).filter((spec) => satisfies(spec.permission, me));
             if (!canEdit && specs.length === 0) return null;
             return (

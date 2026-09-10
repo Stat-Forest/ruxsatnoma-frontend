@@ -290,3 +290,12 @@ test('deactivating a receiver sends active: false', async () => {
   await vi.waitFor(() => expect(patchedBody).not.toBeNull());
   expect(patchedBody).toMatchObject({ active: false });
 });
+
+test('a click anywhere on a receiver row opens its editor', async () => {
+  mockList(TWO_ROWS);
+  const { user } = renderPage();
+
+  const row = await screen.findByTestId(`recipient-row-${AGENCY}`);
+  await user.click(within(row).getAllByRole('cell')[0]);
+  expect(await screen.findByTestId('recipient-percent')).toBeInTheDocument();
+});

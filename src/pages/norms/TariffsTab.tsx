@@ -208,6 +208,8 @@ export function TariffsTab({ active }: { active: boolean }) {
     return found ? pickLocalizedName(found.name, lang) || found.code : id;
   }
 
+  const canEditRow = (row: TariffOut) => row.status === 'draft' && canManage;
+
   const columns: Column<TariffOut>[] = [
     {
       key: 'activity_type_id',
@@ -358,8 +360,10 @@ export function TariffsTab({ active }: { active: boolean }) {
             onPageChange: setPage,
             totalRecords: list.data?.total,
           }}
+          onRowClick={(row) => setFormTarget(row)}
+          rowClickable={canEditRow}
           actions={(row) => {
-            const canEdit = row.status === 'draft' && canManage;
+            const canEdit = canEditRow(row);
             const canPublishRow = row.status === 'draft' && canPublishRoute;
             const canArchiveThis = canArchiveRow(row, me);
             if (!canEdit && !canPublishRow && !canArchiveThis) return null;

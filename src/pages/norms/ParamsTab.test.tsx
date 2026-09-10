@@ -505,3 +505,14 @@ test('ruling R3: publishing a row edited THIS session warns; a row never touched
   await screen.findByTestId('publish-confirm-dialog');
   expect(screen.queryByTestId('publish-self-warning')).not.toBeInTheDocument();
 });
+
+test('a click anywhere on a draft parameter row opens its form', async () => {
+  const user = userEvent.setup();
+  mockList([param({ code: 'coef_sb:qoramol', status: 'draft' })]);
+  renderTab();
+  await findTableLoaded();
+
+  // The code also names the row's edit control; the plain cell is the <td>.
+  await user.click(screen.getAllByText('coef_sb:qoramol').find((el) => el.tagName === 'TD' || el.closest('td') && !el.closest('button'))!);
+  expect(await screen.findByTestId('rp-value')).toBeInTheDocument();
+});

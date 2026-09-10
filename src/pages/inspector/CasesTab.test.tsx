@@ -221,3 +221,12 @@ test('clearing the applicant filter navigates back to the unfiltered cases tab',
 
   expect(await screen.findByTestId('current-location')).toHaveTextContent('/inspections?tab=cases');
 });
+
+test('a click anywhere on a case card opens the case, not only its Open button', async () => {
+  const user = userEvent.setup();
+  renderCasesTab([caseOut()]);
+  await user.click(await screen.findByText(caseOut().number));
+
+  const landed = await screen.findByTestId('landed');
+  expect(landed.textContent).toBe(`/inspections/cases/${CASE_ID}`);
+});

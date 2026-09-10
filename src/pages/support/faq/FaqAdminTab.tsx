@@ -18,6 +18,7 @@ import { pickName } from '../format';
 import type { FaqOut, FaqStatus } from './api';
 import { FaqFormModal } from './FaqFormModal';
 import { useFaqAdmin, usePatchFaq } from './queries';
+import { CLICKABLE_ROW_CLASS, clickableRowProps } from '../../../lib/rowClick';
 
 const FAQ_STATUSES: FaqStatus[] = ['draft', 'published', 'archived'];
 
@@ -111,7 +112,13 @@ export function FaqAdminTab() {
                 </tr>
               ) : (
                 items.map((item) => (
-                  <tr key={item.id} data-testid={`faq-admin-row-${item.id}`} data-status={item.status} className="align-top hover:bg-[#F8F9FA]">
+                  <tr
+                    key={item.id}
+                    {...clickableRowProps(() => setEditing({ faq: item }))}
+                    data-testid={`faq-admin-row-${item.id}`}
+                    data-status={item.status}
+                    className={`align-top hover:bg-[#F8F9FA] ${CLICKABLE_ROW_CLASS}`}
+                  >
                     <td className="p-3">
                       <span className="block max-w-[320px] truncate text-[#1A1F24]" title={pickName(item.question, lang)}>
                         {pickName(item.question, lang)}

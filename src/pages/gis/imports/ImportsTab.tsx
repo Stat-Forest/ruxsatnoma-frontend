@@ -23,6 +23,7 @@ import {
 } from '../queries';
 import { recentImports, rememberImport } from './localImports';
 import { ChecksReport } from '../contours/ChecksReport';
+import { CLICKABLE_ROW_CLASS, clickableRowProps } from '../../../lib/rowClick';
 
 const CONTOURS_MANAGE = 'gis.contours.manage';
 const CONTOURS_APPROVE = 'gis.contours.approve';
@@ -389,7 +390,12 @@ function ImportsListPanel({ t, onOpen }: { t: (key: string) => string; onOpen: (
             </thead>
             <tbody>
               {listQuery.data!.items.map((row) => (
-                <tr key={row.id} className="border-t border-[#E4E7EA]" data-testid={`import-row-${row.id}`}>
+                <tr
+                  key={row.id}
+                  {...clickableRowProps(() => onOpen(row.id))}
+                  className={`border-t border-[#E4E7EA] hover:bg-[#F8F9FA] ${CLICKABLE_ROW_CLASS}`}
+                  data-testid={`import-row-${row.id}`}
+                >
                   <td className="px-4 py-2 font-mono">{formatDateTime(row.created_at)}</td>
                   <td className="px-4 py-2">
                     <span className="rounded-full border border-[#E4E7EA] bg-[#F8F9FA] px-2 py-0.5 font-semibold text-[#1A1F24]">

@@ -185,6 +185,10 @@ export function BeekeepersPage() {
         emptyTitle={t('beekeepers.empty')}
         emptyDescription=""
         pagination={{ currentPage: page, totalPages, onPageChange: setPage, totalRecords: total }}
+        onRowClick={(row) => {
+          setEditing(row);
+          setFormMode('edit');
+        }}
       />
 
       {formMode && (

@@ -11,6 +11,7 @@ import { ApiError } from '../../api/errors';
 import { useApiErrorText } from '../../i18n/useApiErrorText';
 import { formatDate } from './format';
 import { useStartTask, useTasksList, type TaskOut } from './queries';
+import { CLICKABLE_ROW_CLASS, clickableRowProps } from '../../lib/rowClick';
 
 const PAGE_SIZE = 20;
 
@@ -69,7 +70,10 @@ function TaskCard({ task }: { task: TaskOut }) {
   const reference = referenceLine(task, t);
 
   return (
-    <div className="bg-white border border-[#E4E7EA] rounded-2xl p-4 shadow-xs space-y-2">
+    <div
+      {...clickableRowProps(() => navigate(`/inspections/tasks/${task.id}`))}
+      className={`bg-white border border-[#E4E7EA] rounded-2xl p-4 shadow-xs space-y-2 ${CLICKABLE_ROW_CLASS}`}
+    >
       <div className="flex items-start justify-between gap-2">
         <div>
           <p className="font-bold text-[#1A1F24]">{labelOr(KIND_LABEL_KEY, task.kind, t)}</p>

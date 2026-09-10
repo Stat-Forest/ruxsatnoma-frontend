@@ -391,3 +391,13 @@ test('the screen speaks Russian when the session does', async () => {
   expect(within(row).getByRole('button', { name: 'Вернуть в очередь' })).toBeInTheDocument();
   expect(screen.getByRole('button', { name: /Входящие ошибки/ })).toBeInTheDocument();
 });
+
+test('a click anywhere on an outbox row opens the details view', async () => {
+  mockBackend({ outbox: [outboxMessage()] });
+  const user = userEvent.setup();
+  renderPage();
+
+  const row = await screen.findByTestId(`outbox-row-${DEAD_MESSAGE}`);
+  await user.click(within(row).getAllByRole('cell')[0]);
+  expect(await screen.findByTestId('details-modal')).toBeInTheDocument();
+});
