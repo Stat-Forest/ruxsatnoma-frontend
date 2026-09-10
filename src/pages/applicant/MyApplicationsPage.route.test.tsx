@@ -98,3 +98,36 @@ test('the applicant (holding applications.create) reaches the list normally', as
   expect(screen.getByText('Yangi ariza topshirish')).toBeInTheDocument();
   expect(screen.queryByTestId('forbidden')).not.toBeInTheDocument();
 });
+
+// Found on the dev stand, 2026-09-10, right after the gate above landed:
+// `admin` (sys_admin) still opened this list — with all 22 applications in
+// the system under the heading «My applications», next to the staff
+// «Applications» — and its «New application» button, for an account with
+// no applicant profile behind it. `RequireAuth`'s superuser bypass passed
+// the gate without reading the code; the citizen's own cabinet is the one
+// place that bypass must not open.
+const SYSADMIN_ME = {
+  ...STAFF_ME,
+  user: { ...STAFF_ME.user, id: '33333333-3333-3333-3333-333333333333', full_name: 'Admin Test', login: 'admin' },
+  role: { code: 'sys_admin', name: { uz_cyrl: 'Tizim administratori' } },
+  permissions: [],
+  is_superuser: true,
+};
+
+test('the superuser cannot reach /my/applications either', async () => {
+  server.use(http.get('*/auth/me', () => HttpResponse.json(SYSADMIN_ME)));
+  arriveAt('/my/applications');
+  render(<App />);
+
+  await waitFor(() => expect(screen.getByTestId('forbidden')).toBeInTheDocument());
+  expect(screen.queryByText(/Yangi ariza topshirish/)).not.toBeInTheDocument();
+  expect(screen.queryByText(/Mening arizalarim/)).not.toBeInTheDocument();
+});
+
+test('nor the wizard behind its «New application» button', async () => {
+  server.use(http.get('*/auth/me', () => HttpResponse.json(SYSADMIN_ME)));
+  arriveAt('/my/applications/new');
+  render(<App />);
+
+  await waitFor(() => expect(screen.getByTestId('forbidden')).toBeInTheDocument());
+});

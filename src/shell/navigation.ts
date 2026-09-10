@@ -41,16 +41,33 @@ export type NavItem = {
    * approval the workflow waits on, while the page itself handled him fine.
    */
   permission?: string | readonly string[];
+  /**
+   * `permission` must be HELD, not merely bypassed: `is_superuser` does not
+   * stand in for it. Everywhere else the superuser passing every gate is the
+   * whole point of the flag (`RequireAuth.tsx`) — but the citizen's own
+   * cabinet (`/my/*`) is a screen about the caller's own records, and the
+   * superuser has none: the dev stand of 2026-09-10 showed `admin` a list of
+   * every application in the system under the heading «My applications»,
+   * next to the staff «Applications», plus a «New application» button for
+   * an account with no applicant profile behind it. `routes.tsx` carries the
+   * flag onto the route the same way it carries `permission`, so the menu
+   * and the gate cannot disagree.
+   */
+  strict?: true;
   icon: ComponentType<{ className?: string }>;
 };
 
-/** True when `held` satisfies `required` — any one of them, or no requirement. */
+/**
+ * True when `held` satisfies `required` — any one of them, or no requirement.
+ * `strict` switches off the superuser bypass: see `NavItem.strict`.
+ */
 export function satisfies(
   required: string | readonly string[] | undefined,
   held: { permissions: string[]; is_superuser: boolean },
+  strict = false,
 ): boolean {
   if (!required) return true;
-  if (held.is_superuser) return true;
+  if (held.is_superuser && !strict) return true;
   const needed = typeof required === 'string' ? [required] : required;
   return needed.some((code) => held.permissions.includes(code));
 }
@@ -87,11 +104,14 @@ export function satisfies(
  * card behind an existing application (`my/applications/:id`, `routes.tsx`)
  * stays ungated — a representative or a role reading a specific record by id
  * is a different question from seeing the whole list and its create button.
+ * Both entries are `strict`: the code has to be held for real, because the
+ * superuser bypass is exactly what put `admin` on this screen the same day
+ * (see `NavItem.strict`).
  */
 export const NAVIGATION: NavItem[] = [
   { to: '/', labelKey: 'nav.dashboard', icon: Home },
-  { to: '/my/applications', labelKey: 'nav.myApplications', permission: 'applications.create', icon: FileText },
-  { to: '/my/permits', labelKey: 'nav.myPermits', permission: 'applications.create', icon: Award },
+  { to: '/my/applications', labelKey: 'nav.myApplications', permission: 'applications.create', strict: true, icon: FileText },
+  { to: '/my/permits', labelKey: 'nav.myPermits', permission: 'applications.create', strict: true, icon: Award },
   {
     to: '/applications',
     labelKey: 'nav.applications',
@@ -236,5 +256,5 @@ export const NAVIGATION: NavItem[] = [
  * reference's `lib/permissions.ts` does it) cannot express either.
  */
 export function visibleNav(me: { permissions: string[]; is_superuser: boolean }): NavItem[] {
-  return NAVIGATION.filter((item) => satisfies(item.permission, me));
+  return NAVIGATION.filter((item) => satisfies(item.permission, me, item.strict));
 }
