@@ -176,7 +176,7 @@ test('filing a request sends the chosen application, the classifier item ID (nev
   const urls: string[] = [];
   mockBackend({
     invoices: [
-      { id: 'i-1', number: 'INV-1', application_id: APP_ONE, status: 'paid', amount: '150000.00', issued_at: '2026-09-01T09:00:00Z', due_at: '2026-09-11T09:00:00Z', paid_at: '2026-09-02T09:00:00Z', calculation_id: null, recipients: null, settled_by_benefit: false },
+      { id: 'i-1', number: 'INV-1', application_id: APP_ONE, status: 'paid', amount: '150000.00', issued_at: '2026-09-01T09:00:00Z', due_at: '2026-09-11T09:00:00Z', paid_at: '2026-09-02T09:00:00Z', calculation_id: null, recipients: null, settled_without_payment: false },
     ],
   });
   server.use(
@@ -209,7 +209,7 @@ test('filing a request sends the chosen application, the classifier item ID (nev
 test('the application select offers only applications that carry an invoice', async () => {
   mockBackend({
     invoices: [
-      { id: 'i-2', number: 'INV-2', application_id: APP_TWO, status: 'pending', amount: '1.00', issued_at: '2026-09-01T09:00:00Z', due_at: '2026-09-11T09:00:00Z', paid_at: null, calculation_id: null, recipients: null, settled_by_benefit: false },
+      { id: 'i-2', number: 'INV-2', application_id: APP_TWO, status: 'pending', amount: '1.00', issued_at: '2026-09-01T09:00:00Z', due_at: '2026-09-11T09:00:00Z', paid_at: null, calculation_id: null, recipients: null, settled_without_payment: false },
     ],
   });
   const user = userEvent.setup();
@@ -256,7 +256,7 @@ test('a modal opened before the applications and reasons resolve still files the
             paid_at: '2026-09-02T09:00:00Z',
             calculation_id: null,
             recipients: null,
-            settled_by_benefit: false,
+            settled_without_payment: false,
           },
         ]),
       );

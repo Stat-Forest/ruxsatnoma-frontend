@@ -24,7 +24,7 @@ function invoice(overrides: Record<string, unknown>) {
     due_at: '2026-09-11T09:00:00Z',
     paid_at: null,
     recipients: null,
-    settled_by_benefit: false,
+    settled_without_payment: false,
     ...overrides,
   };
 }

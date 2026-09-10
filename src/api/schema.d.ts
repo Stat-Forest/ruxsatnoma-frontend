@@ -386,6 +386,28 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/refs/organizations/export.xlsx": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Export Organizations Xlsx
+         * @description `GET /refs/organizations` as a spreadsheet (stage 13, ruling #204):
+         *     the same filters, no permission code and no zone filtering (ruling 10),
+         *     every matching row up to the configured cap.
+         */
+        get: operations["export_organizations_xlsx_api_v1_refs_organizations_export_xlsx_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/refs/activity-types": {
         parameters: {
             query?: never;
@@ -646,6 +668,30 @@ export interface paths {
         put?: never;
         /** Create User */
         post: operations["create_user_api_v1_admin_users_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/users/export.xlsx": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Export Users Xlsx
+         * @description `GET /admin/users` as a spreadsheet (stage 13, ruling #204): the same
+         *     filters, the same view-vs-manage scope, every matching row up to the
+         *     configured cap. Declared before `/admin/users/{user_id}` on purpose —
+         *     `export.xlsx` is not a UUID, and the 422 the UUID parser would answer is
+         *     a worse error than a 404.
+         */
+        get: operations["export_users_xlsx_api_v1_admin_users_export_xlsx_get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -979,6 +1025,29 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/announcements/export.xlsx": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Export Announcements Xlsx
+         * @description `GET /admin/announcements` as a spreadsheet (stage 13, ruling #204):
+         *     the same filter, the same permission gate, every matching row up to the
+         *     configured cap. Declared before `/admin/announcements/{announcement_id}`
+         *     on purpose.
+         */
+        get: operations["export_announcements_xlsx_api_v1_admin_announcements_export_xlsx_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/announcements/{announcement_id}": {
         parameters: {
             query?: never;
@@ -1043,6 +1112,29 @@ export interface paths {
         put?: never;
         /** Create Legal Document */
         post: operations["create_legal_document_api_v1_admin_legal_documents_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/legal-documents/export.xlsx": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Export Legal Documents Xlsx
+         * @description `GET /admin/legal-documents` as a spreadsheet (stage 13, ruling
+         *     #204): the same filter, the same permission gate, every matching row up
+         *     to the configured cap. Declared before `/admin/legal-documents/{doc_id}`
+         *     on purpose.
+         */
+        get: operations["export_legal_documents_xlsx_api_v1_admin_legal_documents_export_xlsx_get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -1230,6 +1322,29 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/integrations/outbox/export.xlsx": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Export Outbox Xlsx
+         * @description `GET /admin/integrations/outbox` as a spreadsheet (stage 13, ruling
+         *     #204): the same filters, the same view-or-manage gate, every matching
+         *     row up to the configured cap. `payload` is never exported — same
+         *     withholding `OutboxMessageOut` already applies to the JSON response.
+         */
+        get: operations["export_outbox_xlsx_api_v1_admin_integrations_outbox_export_xlsx_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/integrations/outbox/{message_id}/requeue": {
         parameters: {
             query?: never;
@@ -1256,6 +1371,29 @@ export interface paths {
         };
         /** List Dead Letters */
         get: operations["list_dead_letters_api_v1_admin_integrations_dead_letters_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/integrations/dead-letters/export.xlsx": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Export Dead Letters Xlsx
+         * @description `GET /admin/integrations/dead-letters` as a spreadsheet (stage 13,
+         *     ruling #204): the same filter, the same view-or-manage gate, every
+         *     matching row up to the configured cap. `payload` is never exported —
+         *     same withholding `DeadLetterOut` already applies to the JSON response.
+         */
+        get: operations["export_dead_letters_xlsx_api_v1_admin_integrations_dead_letters_export_xlsx_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1357,6 +1495,29 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/notification-templates/export.xlsx": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Export Templates Xlsx
+         * @description `GET /admin/notification-templates` as a spreadsheet (stage 13,
+         *     ruling #204): the same filters, the same permission gate, every
+         *     matching row up to the configured cap. Declared before
+         *     `/admin/notification-templates/{template_id}` on purpose.
+         */
+        get: operations["export_templates_xlsx_api_v1_admin_notification_templates_export_xlsx_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/notification-templates/{template_id}": {
         parameters: {
             query?: never;
@@ -1435,6 +1596,28 @@ export interface paths {
         };
         /** List Notifications */
         get: operations["list_notifications_api_v1_notifications_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/notifications/export.xlsx": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Export Notifications Xlsx
+         * @description `GET /notifications` as a spreadsheet (stage 13, ruling #204): the
+         *     caller's own inbox, the same `unread` filter, every matching row up to
+         *     the configured cap. Declared before `/{notification_id}` on purpose.
+         */
+        get: operations["export_notifications_xlsx_api_v1_notifications_export_xlsx_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1658,6 +1841,30 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/gis/imports/export.xlsx": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Export Imports Xlsx
+         * @description `GET /gis/imports` as a spreadsheet (stage 13, ruling #204): the same
+         *     filters, the same zone scoping and permission gate, every matching row
+         *     up to the configured cap. Declared before `/imports/{import_id}` on
+         *     purpose — `export.xlsx` is not a UUID, and the 422 the UUID parser
+         *     would answer is a worse error than a 404.
+         */
+        get: operations["export_imports_xlsx_api_v1_gis_imports_export_xlsx_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/gis/imports/{import_id}": {
         parameters: {
             query?: never;
@@ -1756,6 +1963,31 @@ export interface paths {
         put?: never;
         /** Create Contour */
         post: operations["create_contour_api_v1_gis_contours_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/gis/contours/export.xlsx": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Export Contours Xlsx
+         * @description `GET /gis/contours` as a spreadsheet (stage 13, ruling #204): the
+         *     same filters, the same zone scoping, every matching row up to the
+         *     configured cap. NO geometry — this is an attributes register, exactly
+         *     like the list it mirrors. Declared before `/contours/{contour_id}` on
+         *     purpose — `export.xlsx` is not a UUID, and the 422 the UUID parser
+         *     would answer is a worse error than a 404.
+         */
+        get: operations["export_contours_xlsx_api_v1_gis_contours_export_xlsx_get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -2032,6 +2264,30 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/rule-parameters/export.xlsx": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Export Parameters Xlsx
+         * @description `GET /rule-parameters` as a spreadsheet (stage 13, ruling #204): the
+         *     same filters, every matching row up to the configured cap. Declared
+         *     before `POST /rule-parameters` for consistency with every other export
+         *     route, though nothing here collides with a path parameter (there is no
+         *     `GET /rule-parameters/{id}`).
+         */
+        get: operations["export_parameters_xlsx_api_v1_rule_parameters_export_xlsx_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/rule-parameters/{parameter_id}": {
         parameters: {
             query?: never;
@@ -2101,6 +2357,31 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/tariffs/export.xlsx": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Export Tariffs Xlsx
+         * @description `GET /tariffs` as a spreadsheet (stage 13, ruling #204): the same
+         *     filters (`activity_code` resolved the same way `list_tariffs` resolves
+         *     it), every matching row up to the configured cap. Declared before
+         *     `POST /tariffs` for consistency with every other export route, though
+         *     nothing here collides with a path parameter (there is no
+         *     `GET /tariffs/{id}`).
+         */
+        get: operations["export_tariffs_xlsx_api_v1_tariffs_export_xlsx_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/tariffs/{tariff_id}": {
         parameters: {
             query?: never;
@@ -2164,6 +2445,29 @@ export interface paths {
         put?: never;
         /** Create Norm */
         post: operations["create_norm_api_v1_norms_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/norms/export.xlsx": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Export Norms Xlsx
+         * @description `GET /norms` as a spreadsheet (stage 13, ruling #204): the same
+         *     filters, every matching row up to the configured cap. Declared before
+         *     `/norms/{norm_id}` on purpose — `export.xlsx` is not a UUID, and the 422
+         *     the UUID parser would answer is a worse error than a 404.
+         */
+        get: operations["export_norms_xlsx_api_v1_norms_export_xlsx_get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -2476,6 +2780,28 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/certificates/export.xlsx": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Export Certificates Xlsx
+         * @description `GET /certificates` as a spreadsheet (stage 13, ruling #204): the
+         *     caller's own bound certificates, exactly as the list route scopes them
+         *     (ruling R2) — no filters of its own, none on the list either.
+         */
+        get: operations["export_certificates_xlsx_api_v1_certificates_export_xlsx_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/certificates/{certificate_id}": {
         parameters: {
             query?: never;
@@ -2527,6 +2853,29 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/signatures/export.xlsx": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Export Signatures Xlsx
+         * @description `GET /signatures` as a spreadsheet (stage 13, ruling #204): the same
+         *     filters, the same ownership/oversight check (ruling R2 —
+         *     `service.list_signatures_page`, the exact function the list route
+         *     calls), every matching row up to the configured cap.
+         */
+        get: operations["export_signatures_xlsx_api_v1_signatures_export_xlsx_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/signatures/{signature_id}/reverify": {
         parameters: {
             query?: never;
@@ -2563,6 +2912,28 @@ export interface paths {
         put?: never;
         /** Create Beekeeper */
         post: operations["create_beekeeper_api_v1_beekeepers_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/beekeepers/export.xlsx": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Export Beekeepers Xlsx
+         * @description `GET /beekeepers` as a spreadsheet (stage 13, ruling #204): the same
+         *     filters, the same scope (ruling R2 — no zone here, ruling #182's single
+         *     central role), every matching row up to the configured cap.
+         */
+        get: operations["export_beekeepers_xlsx_api_v1_beekeepers_export_xlsx_get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -2832,6 +3203,33 @@ export interface paths {
          *     (ruling 22) and refused here as an unknown field.
          */
         patch: operations["patch_application_api_v1_applications__application_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/applications/export.xlsx": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Export Applications Xlsx
+         * @description `GET /applications` as a spreadsheet (stage 13, ruling #204): the same
+         *     filters, the same scope through the same service call, every matching
+         *     row up to `register_export_max_rows` — past it the file is cut and the
+         *     `X-Export-*` headers say so.
+         *
+         *     Declared BEFORE `/applications/{application_id}` on purpose: FastAPI
+         *     matches in declaration order, and after the card route this path would
+         *     be a 422 from the UUID parser rather than an export.
+         */
+        get: operations["export_applications_xlsx_api_v1_applications_export_xlsx_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/api/v1/applications/{application_id}/documents": {
@@ -3432,6 +3830,31 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/invoices/export.xlsx": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Export Invoices Xlsx
+         * @description `GET /invoices` as a spreadsheet (stage 13, ruling #204): the same
+         *     scope and filters `list_invoices_for_actor` gives the caller, every
+         *     matching row up to the configured cap. Declared BEFORE
+         *     `/invoices/{invoice_id}` on purpose — `export.xlsx` is not a UUID, and
+         *     the 422 the path parser would answer is a worse error than a 404
+         *     (FastAPI matches routes in declaration order).
+         */
+        get: operations["export_invoices_xlsx_api_v1_invoices_export_xlsx_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/invoices/{invoice_id}": {
         parameters: {
             query?: never;
@@ -3541,6 +3964,30 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/payments/bank-statements/export.xlsx": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Export Bank Statements Xlsx
+         * @description `GET /payments/bank-statements` as a spreadsheet (stage 13, ruling
+         *     #204): the same `payments.view` gate and the same `?status=` filter,
+         *     every matching import up to the configured cap. Declared BEFORE
+         *     `/bank-statements/{statement_id}` on purpose — `export.xlsx` is not a
+         *     UUID, and the two share the same path-segment count.
+         */
+        get: operations["export_bank_statements_xlsx_api_v1_payments_bank_statements_export_xlsx_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/payments/bank-statements/{statement_id}": {
         parameters: {
             query?: never;
@@ -3589,6 +4036,28 @@ export interface paths {
          *     this is the same fact seen from the register a human actually reads.
          */
         get: operations["list_reconciliations_api_v1_payments_reconciliations_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/payments/reconciliations/export.xlsx": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Export Reconciliations Xlsx
+         * @description `GET /payments/reconciliations` as a spreadsheet (stage 13, ruling
+         *     #204): the same `payments.view` gate, the same default (`open`) and
+         *     `?status=` filter, every matching row up to the configured cap.
+         */
+        get: operations["export_reconciliations_xlsx_api_v1_payments_reconciliations_export_xlsx_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3660,6 +4129,29 @@ export interface paths {
          *     in the same register `GET /payments/reconciliations` serves.
          */
         post: operations["file_manual_confirmation_api_v1_payments_manual_confirmations_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/payments/manual-confirmations/export.xlsx": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Export Manual Confirmations Xlsx
+         * @description `GET /payments/manual-confirmations` as a spreadsheet (stage 13,
+         *     ruling #204): the same maker-or-checker gate, the same default
+         *     (`pending_check`) and `?status=` filter, every matching row up to the
+         *     configured cap.
+         */
+        get: operations["export_manual_confirmations_xlsx_api_v1_payments_manual_confirmations_export_xlsx_get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -3765,6 +4257,30 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/payments/allocations/export.xlsx": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Export Allocations Xlsx
+         * @description `GET /payments/allocations` as a spreadsheet (stage 13, ruling
+         *     #204): the same `payments.view` gate, the same `invoice_id`-or-period
+         *     selection (including the route's own `ERR-VAL-001` when neither or a
+         *     reversed period is given), every matching row up to the configured
+         *     cap.
+         */
+        get: operations["export_allocations_xlsx_api_v1_payments_allocations_export_xlsx_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/payments/recipients": {
         parameters: {
             query?: never;
@@ -3777,6 +4293,30 @@ export interface paths {
         put?: never;
         /** Create Recipient */
         post: operations["create_recipient_api_v1_payments_recipients_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/payments/recipients/export.xlsx": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Export Recipients Xlsx
+         * @description `GET /payments/recipients` as a spreadsheet (stage 13, ruling
+         *     #204): the same read gate (`payments.view` or
+         *     `payments.recipients.manage`), the whole directory (active and
+         *     inactive alike, exactly like the list — ruling #157) up to the
+         *     configured cap.
+         */
+        get: operations["export_recipients_xlsx_api_v1_payments_recipients_export_xlsx_get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -3831,6 +4371,13 @@ export interface paths {
          *     with a `suggestion_reason` instead — a hint is never a reason to refuse
          *     filing (ruling 2). `components` is always `[]` here — nothing has been
          *     submitted yet.
+         *
+         *     Stage 11 fix wave: the 201 echo goes through `_refund_out` too, the
+         *     same `staff` predicate `get_refund`/`list_refunds` use — a citizen
+         *     filing their own refund must not read the accountant's hint back off
+         *     the very response that confirms their filing. `components` stays `[]`
+         *     either way (nothing has been submitted yet), so this only ever changes
+         *     `suggested_amount`/`suggestion_reason` for a non-staff filer.
          */
         post: operations["request_refund_api_v1_refunds_post"];
         delete?: never;
@@ -3885,6 +4432,31 @@ export interface paths {
          *     own remainder, done inside `refund_components_out` rather than here).
          */
         post: operations["approve_refund_api_v1_refunds__refund_id__approve_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/refunds/export.xlsx": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Export Refunds Xlsx
+         * @description `GET /refunds` as a spreadsheet (stage 13, ruling #204): the same
+         *     reader set as the list (staff see their zone, a citizen their own rows
+         *     with the accountant's fields blanked — stage 11, ruling R3), the same
+         *     `application_id`/`?status=` filters, every matching row up to the cap.
+         *     Declared BEFORE `/refunds/{refund_id}` on purpose — `export.xlsx` is
+         *     not a UUID, and the two share the same path-segment count.
+         */
+        get: operations["export_refunds_xlsx_api_v1_refunds_export_xlsx_get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -4034,6 +4606,31 @@ export interface paths {
          *     `tests/test_code_conventions.py::test_every_integer_query_parameter_carries_an_upper_bound`.
          */
         get: operations["list_permits_api_v1_permits_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/permits/export.xlsx": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Export Permits Xlsx
+         * @description `GET /permits` as a spreadsheet (stage 13, ruling #204): the same
+         *     filters, the same scope, every matching row up to the configured cap.
+         *
+         *     Declared before `/permits/{permit_id}` on purpose: `export.xlsx` is not a
+         *     UUID and the 422 the path parser would answer there is a worse error than
+         *     the 404 a real unmatched id deserves.
+         */
+        get: operations["export_permits_xlsx_api_v1_permits_export_xlsx_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -4364,6 +4961,28 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/ratings/export.xlsx": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Export Ratings Xlsx
+         * @description The comment feed as a spreadsheet (stage 13, ruling #204): the same
+         *     period and the same two optional filters, the same zone through the
+         *     same service call, and ruling #141's anonymity by construction.
+         */
+        get: operations["export_ratings_xlsx_api_v1_admin_ratings_export_xlsx_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/public/permits/check": {
         parameters: {
             query?: never;
@@ -4439,6 +5058,29 @@ export interface paths {
         put?: never;
         /** Create Task */
         post: operations["create_task_api_v1_inspections_tasks_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/inspections/tasks/export.xlsx": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Export Tasks Xlsx
+         * @description `GET /tasks` as a spreadsheet (stage 13, ruling #204): the same scope,
+         *     the same filter, every matching row up to the configured cap. Declared
+         *     before `/tasks/{task_id}` on purpose — `export.xlsx` is not a UUID, and
+         *     a 404 here beats the 422 the UUID parser would otherwise answer.
+         */
+        get: operations["export_tasks_xlsx_api_v1_inspections_tasks_export_xlsx_get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -4531,6 +5173,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/inspections/acts/export.xlsx": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Export Acts Xlsx
+         * @description `GET /acts` as a spreadsheet — same scope, same filter, declared
+         *     before `/acts/{act_id}` for the same reason `export_tasks_xlsx` is.
+         */
+        get: operations["export_acts_xlsx_api_v1_inspections_acts_export_xlsx_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/inspections/acts/{act_id}": {
         parameters: {
             query?: never;
@@ -4598,6 +5261,28 @@ export interface paths {
          *     cases against that applicant, never another oblast's.
          */
         get: operations["list_cases_api_v1_inspections_cases_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/inspections/cases/export.xlsx": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Export Cases Xlsx
+         * @description `GET /cases` as a spreadsheet — same scope, same filters (`status`,
+         *     `applicant_id` — ruling R8, finding F3), declared before `/cases/{case_id}`
+         *     for the same reason `export_tasks_xlsx` is.
+         */
+        get: operations["export_cases_xlsx_api_v1_inspections_cases_export_xlsx_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -4743,6 +5428,28 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/reports/forms/export.xlsx": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Export Report Forms Xlsx
+         * @description `GET /reports/forms` as a spreadsheet (stage 13, ruling #204).
+         *     Declared before `/forms/{form_id}` on purpose — a UUID path parser
+         *     would otherwise answer this literal path with a worse error than a 404.
+         */
+        get: operations["export_report_forms_xlsx_api_v1_reports_forms_export_xlsx_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/reports/forms/{form_id}": {
         parameters: {
             query?: never;
@@ -4806,6 +5513,31 @@ export interface paths {
         put?: never;
         /** Create Report */
         post: operations["create_report_api_v1_reports_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/reports/export.xlsx": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Export Reports Xlsx
+         * @description `GET /reports` as a spreadsheet (stage 13, ruling #204): the same
+         *     filters, the same zone (ruling R2: `service.list_reports`, the exact
+         *     function the list route calls), every matching row up to the configured
+         *     cap. Declared before `/{report_id}` on purpose — a UUID path parser
+         *     would otherwise answer this literal path with a worse error than a 404.
+         *     `GET /{report_id}/export.xlsx` (the per-report data export) is untouched.
+         */
+        get: operations["export_reports_xlsx_api_v1_reports_export_xlsx_get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -5009,6 +5741,28 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/oversight/risk-indicators/export.xlsx": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Export Risk Indicators Xlsx
+         * @description `GET /oversight/risk-indicators` as a spreadsheet (stage 13, ruling
+         *     #204): the same filters, the same zone scope, every matching row up to
+         *     the configured cap. Declared right after the list route.
+         */
+        get: operations["export_risk_indicators_xlsx_api_v1_oversight_risk_indicators_export_xlsx_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/oversight/events": {
         parameters: {
             query?: never;
@@ -5023,6 +5777,27 @@ export interface paths {
          *     legally significant event this system has produced.
          */
         get: operations["list_events_api_v1_oversight_events_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/oversight/events/export.xlsx": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Export Events Xlsx
+         * @description `GET /oversight/events` as a spreadsheet (stage 13, ruling #204).
+         *     Declared right after the list route.
+         */
+        get: operations["export_events_xlsx_api_v1_oversight_events_export_xlsx_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -5278,6 +6053,30 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/public/appeals/export.xlsx": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Export Appeals Xlsx
+         * @description `GET /admin/public/appeals` as a spreadsheet (stage 13, ruling #204):
+         *     the same filter, the same permission gate, every matching row up to the
+         *     configured cap. Declared before `/appeals/{appeal_id}` on purpose — a
+         *     path `export.xlsx` is not a UUID, but the 422 the UUID parser would
+         *     otherwise answer is a worse error than a 404.
+         */
+        get: operations["export_appeals_xlsx_api_v1_admin_public_appeals_export_xlsx_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/public/appeals/{appeal_id}": {
         parameters: {
             query?: never;
@@ -5358,6 +6157,29 @@ export interface paths {
         put?: never;
         /** Create Ticket */
         post: operations["create_ticket_api_v1_help_tickets_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/help/tickets/export.xlsx": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Export Tickets Xlsx
+         * @description `GET /tickets` as a spreadsheet (stage 13, ruling #204): the same
+         *     scope, the same filter, every matching row up to the configured cap.
+         *     Declared before `/tickets/{ticket_id}` on purpose — `export.xlsx` is not
+         *     a UUID, and a 404 here beats the 422 the UUID parser would answer.
+         */
+        get: operations["export_tickets_xlsx_api_v1_help_tickets_export_xlsx_get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -5467,6 +6289,29 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/help/faq/export.xlsx": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Export Faq Xlsx
+         * @description `GET /admin/help/faq` as a spreadsheet (stage 13, ruling #204): the
+         *     same permission, the same filter, the whole (unpaged) list truncated to
+         *     the cap in Python. Declared before `/{faq_id}` on purpose — that sibling
+         *     is a PATCH, not a GET, but the convention holds regardless.
+         */
+        get: operations["export_faq_xlsx_api_v1_admin_help_faq_export_xlsx_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/help/faq/{faq_id}": {
         parameters: {
             query?: never;
@@ -5493,6 +6338,30 @@ export interface paths {
         };
         /** Search */
         get: operations["search_api_v1_search_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/search/export.xlsx": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Export Search Xlsx
+         * @description `GET /search` as a spreadsheet — the same filters, the same zone
+         *     (ruling R2: `service._rows_for`, the exact function `search()` itself
+         *     calls), every matching row up to the configured cap. The PLAIN register
+         *     export (ruling #204) beside the prosecutor's watermarked `POST
+         *     /search/exports` (С22) — that route is untouched.
+         */
+        get: operations["export_search_xlsx_api_v1_search_export_xlsx_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -5599,6 +6468,29 @@ export interface paths {
         };
         /** List Archive Items */
         get: operations["list_archive_items_api_v1_archive_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/archive/export.xlsx": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Export Archive Xlsx
+         * @description `GET /archive` as a spreadsheet (stage 13, ruling #204): the same
+         *     filters, the same zone, every matching row up to the configured cap.
+         *     Declared before `/archive/{item_id}` on purpose — a UUID path parser
+         *     would otherwise answer this literal path with a worse error than a 404.
+         */
+        get: operations["export_archive_xlsx_api_v1_archive_export_xlsx_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -9133,10 +10025,10 @@ export interface components {
             /** Recipients */
             recipients?: components["schemas"]["InvoiceRecipientOut"][] | null;
             /**
-             * Settled By Benefit
+             * Settled Without Payment
              * @default false
              */
-            settled_by_benefit: boolean;
+            settled_without_payment: boolean;
         };
         /**
          * InvoiceRecipientOut
@@ -11715,6 +12607,12 @@ export interface components {
          *     read it from); every other route leaves it `[]`, not because the data
          *     would be wrong there but because no other handler reads the invoice's
          *     snapshot today — a real absence, not a hidden default.
+         *
+         *     Stage 11: for a non-staff reader, `refunds_router._refund_out` blanks
+         *     `suggested_amount`/`suggestion_reason` always, `components`/
+         *     `available_sources` always, and `comment` too once the refund has left
+         *     `requested` — this schema carries the field, the router decides what a
+         *     given actor actually receives in it.
          */
         RefundOut: {
             /**
@@ -14283,6 +15181,41 @@ export interface operations {
             };
         };
     };
+    export_organizations_xlsx_api_v1_refs_organizations_export_xlsx_get: {
+        parameters: {
+            query?: {
+                lang?: "uz_latn" | "ru";
+                parent_id?: string | null;
+                kind?: string | null;
+                region_id?: string | null;
+                status?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     activity_types_api_v1_refs_activity_types_get: {
         parameters: {
             query?: never;
@@ -14804,6 +15737,42 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["UserCreatedOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    export_users_xlsx_api_v1_admin_users_export_xlsx_get: {
+        parameters: {
+            query?: {
+                lang?: "uz_latn" | "ru";
+                role_code?: string | null;
+                status?: string | null;
+                organization_id?: string | null;
+                region_id?: string | null;
+                q?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
                 };
             };
             /** @description Validation Error */
@@ -15522,6 +16491,38 @@ export interface operations {
             };
         };
     };
+    export_announcements_xlsx_api_v1_admin_announcements_export_xlsx_get: {
+        parameters: {
+            query?: {
+                lang?: "uz_latn" | "ru";
+                status?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     admin_get_announcement_api_v1_admin_announcements__announcement_id__get: {
         parameters: {
             query?: never;
@@ -15703,6 +16704,38 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["LegalDocumentAdminOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    export_legal_documents_xlsx_api_v1_admin_legal_documents_export_xlsx_get: {
+        parameters: {
+            query?: {
+                lang?: "uz_latn" | "ru";
+                status?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
                 };
             };
             /** @description Validation Error */
@@ -16067,6 +17100,39 @@ export interface operations {
             };
         };
     };
+    export_outbox_xlsx_api_v1_admin_integrations_outbox_export_xlsx_get: {
+        parameters: {
+            query?: {
+                lang?: "uz_latn" | "ru";
+                status?: string | null;
+                destination?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     requeue_outbox_message_api_v1_admin_integrations_outbox__message_id__requeue_post: {
         parameters: {
             query?: never;
@@ -16118,6 +17184,38 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Page_DeadLetterOut_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    export_dead_letters_xlsx_api_v1_admin_integrations_dead_letters_export_xlsx_get: {
+        parameters: {
+            query?: {
+                lang?: "uz_latn" | "ru";
+                status?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
                 };
             };
             /** @description Validation Error */
@@ -16272,6 +17370,40 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TemplateOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    export_templates_xlsx_api_v1_admin_notification_templates_export_xlsx_get: {
+        parameters: {
+            query?: {
+                lang?: "uz_latn" | "ru";
+                event_code?: string | null;
+                channel?: string | null;
+                status?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
                 };
             };
             /** @description Validation Error */
@@ -16442,6 +17574,38 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Page_NotificationOut_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    export_notifications_xlsx_api_v1_notifications_export_xlsx_get: {
+        parameters: {
+            query?: {
+                lang?: "uz_latn" | "ru";
+                unread?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
                 };
             };
             /** @description Validation Error */
@@ -16875,6 +18039,38 @@ export interface operations {
             };
         };
     };
+    export_imports_xlsx_api_v1_gis_imports_export_xlsx_get: {
+        parameters: {
+            query?: {
+                lang?: "uz_latn" | "ru";
+                status?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     get_import_api_v1_gis_imports__import_id__get: {
         parameters: {
             query?: never;
@@ -17053,6 +18249,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ContourOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    export_contours_xlsx_api_v1_gis_contours_export_xlsx_get: {
+        parameters: {
+            query?: {
+                lang?: "uz_latn" | "ru";
+                organization_id?: string | null;
+                bbox?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
                 };
             };
             /** @description Validation Error */
@@ -17667,6 +18896,39 @@ export interface operations {
             };
         };
     };
+    export_parameters_xlsx_api_v1_rule_parameters_export_xlsx_get: {
+        parameters: {
+            query?: {
+                lang?: "uz_latn" | "ru";
+                code?: string | null;
+                status?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     update_parameter_api_v1_rule_parameters__parameter_id__patch: {
         parameters: {
             query?: never;
@@ -17833,6 +19095,41 @@ export interface operations {
             };
         };
     };
+    export_tariffs_xlsx_api_v1_tariffs_export_xlsx_get: {
+        parameters: {
+            query?: {
+                lang?: "uz_latn" | "ru";
+                activity_code?: string | null;
+                activity_type_id?: string | null;
+                on_date?: string | null;
+                status?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     update_tariff_api_v1_tariffs__tariff_id__patch: {
         parameters: {
             query?: never;
@@ -17985,6 +19282,40 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["NormOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    export_norms_xlsx_api_v1_norms_export_xlsx_get: {
+        parameters: {
+            query?: {
+                lang?: "uz_latn" | "ru";
+                contour_id?: string | null;
+                activity_type_id?: string | null;
+                status?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
                 };
             };
             /** @description Validation Error */
@@ -18688,6 +20019,37 @@ export interface operations {
             };
         };
     };
+    export_certificates_xlsx_api_v1_certificates_export_xlsx_get: {
+        parameters: {
+            query?: {
+                lang?: "uz_latn" | "ru";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     delete_certificate_api_v1_certificates__certificate_id__delete: {
         parameters: {
             query?: never;
@@ -18739,6 +20101,40 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Page_SignatureOut_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    export_signatures_xlsx_api_v1_signatures_export_xlsx_get: {
+        parameters: {
+            query: {
+                object_type: string;
+                object_id: string;
+                lang?: "uz_latn" | "ru";
+                kind?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
                 };
             };
             /** @description Validation Error */
@@ -18837,6 +20233,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["BeekeeperOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    export_beekeepers_xlsx_api_v1_beekeepers_export_xlsx_get: {
+        parameters: {
+            query?: {
+                lang?: "uz_latn" | "ru";
+                q?: string | null;
+                status?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
                 };
             };
             /** @description Validation Error */
@@ -19239,6 +20668,44 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ApplicationOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    export_applications_xlsx_api_v1_applications_export_xlsx_get: {
+        parameters: {
+            query?: {
+                lang?: "uz_latn" | "ru";
+                status?: ("SUBMITTED" | "IN_REVIEW" | "PENDING_INFO" | "RETURNED" | "APPROVED" | "INVOICED" | "PAID" | "PERMIT_ISSUED" | "REJECTED" | "CANCELLED" | "EXPIRED_UNPAID" | "CLOSED" | "ARCHIVED") | null;
+                activity_type_id?: string | null;
+                contour_id?: string | null;
+                applicant_id?: string | null;
+                number?: string | null;
+                period_from?: string | null;
+                period_to?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
                 };
             };
             /** @description Validation Error */
@@ -19885,6 +21352,39 @@ export interface operations {
             };
         };
     };
+    export_invoices_xlsx_api_v1_invoices_export_xlsx_get: {
+        parameters: {
+            query?: {
+                lang?: "uz_latn" | "ru";
+                application_id?: string | null;
+                status?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     get_invoice_api_v1_invoices__invoice_id__get: {
         parameters: {
             query?: never;
@@ -20051,6 +21551,38 @@ export interface operations {
             };
         };
     };
+    export_bank_statements_xlsx_api_v1_payments_bank_statements_export_xlsx_get: {
+        parameters: {
+            query?: {
+                lang?: "uz_latn" | "ru";
+                status?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     get_bank_statement_api_v1_payments_bank_statements__statement_id__get: {
         parameters: {
             query?: {
@@ -20105,6 +21637,38 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Page_ReconciliationOut_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    export_reconciliations_xlsx_api_v1_payments_reconciliations_export_xlsx_get: {
+        parameters: {
+            query?: {
+                lang?: "uz_latn" | "ru";
+                status?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
                 };
             };
             /** @description Validation Error */
@@ -20219,6 +21783,38 @@ export interface operations {
             };
         };
     };
+    export_manual_confirmations_xlsx_api_v1_payments_manual_confirmations_export_xlsx_get: {
+        parameters: {
+            query?: {
+                lang?: "uz_latn" | "ru";
+                status?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     confirm_manual_confirmation_api_v1_payments_manual_confirmations__confirmation_id__confirm_post: {
         parameters: {
             query?: never;
@@ -20320,6 +21916,40 @@ export interface operations {
             };
         };
     };
+    export_allocations_xlsx_api_v1_payments_allocations_export_xlsx_get: {
+        parameters: {
+            query?: {
+                lang?: "uz_latn" | "ru";
+                invoice_id?: string | null;
+                period_from?: string | null;
+                period_to?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_recipients_api_v1_payments_recipients_get: {
         parameters: {
             query?: {
@@ -20372,6 +22002,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PaymentRecipientOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    export_recipients_xlsx_api_v1_payments_recipients_export_xlsx_get: {
+        parameters: {
+            query?: {
+                lang?: "uz_latn" | "ru";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
                 };
             };
             /** @description Validation Error */
@@ -20557,6 +22218,39 @@ export interface operations {
             };
         };
     };
+    export_refunds_xlsx_api_v1_refunds_export_xlsx_get: {
+        parameters: {
+            query?: {
+                lang?: "uz_latn" | "ru";
+                application_id?: string | null;
+                status?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     get_refund_api_v1_refunds__refund_id__get: {
         parameters: {
             query?: never;
@@ -20699,6 +22393,43 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Page_PermitOut_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    export_permits_xlsx_api_v1_permits_export_xlsx_get: {
+        parameters: {
+            query?: {
+                lang?: "uz_latn" | "ru";
+                status?: ("pending_signatures" | "active" | "suspended" | "revoked" | "expired" | "archived") | null;
+                applicant_id?: string | null;
+                contour_id?: string | null;
+                organization_id?: string | null;
+                series?: string | null;
+                number?: number | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
                 };
             };
             /** @description Validation Error */
@@ -21151,6 +22882,41 @@ export interface operations {
             };
         };
     };
+    export_ratings_xlsx_api_v1_admin_ratings_export_xlsx_get: {
+        parameters: {
+            query: {
+                period_from: string;
+                period_to: string;
+                lang?: "uz_latn" | "ru";
+                organization_id?: string | null;
+                activity_type_id?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     check_permit_api_v1_public_permits_check_get: {
         parameters: {
             query?: {
@@ -21291,6 +23057,38 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TaskOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    export_tasks_xlsx_api_v1_inspections_tasks_export_xlsx_get: {
+        parameters: {
+            query?: {
+                lang?: "uz_latn" | "ru";
+                status?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
                 };
             };
             /** @description Validation Error */
@@ -21498,6 +23296,38 @@ export interface operations {
             };
         };
     };
+    export_acts_xlsx_api_v1_inspections_acts_export_xlsx_get: {
+        parameters: {
+            query?: {
+                lang?: "uz_latn" | "ru";
+                result?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     get_act_api_v1_inspections_acts__act_id__get: {
         parameters: {
             query?: never;
@@ -21655,6 +23485,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Page_CaseOut_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    export_cases_xlsx_api_v1_inspections_cases_export_xlsx_get: {
+        parameters: {
+            query?: {
+                lang?: "uz_latn" | "ru";
+                status?: string | null;
+                applicant_id?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
                 };
             };
             /** @description Validation Error */
@@ -21967,6 +23830,38 @@ export interface operations {
             };
         };
     };
+    export_report_forms_xlsx_api_v1_reports_forms_export_xlsx_get: {
+        parameters: {
+            query?: {
+                lang?: "uz_latn" | "ru";
+                status?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     get_form_api_v1_reports_forms__form_id__get: {
         parameters: {
             query?: never;
@@ -22115,6 +24010,40 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ReportOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    export_reports_xlsx_api_v1_reports_export_xlsx_get: {
+        parameters: {
+            query?: {
+                lang?: "uz_latn" | "ru";
+                organization_id?: string | null;
+                status?: string | null;
+                form_id?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
                 };
             };
             /** @description Validation Error */
@@ -22489,6 +24418,44 @@ export interface operations {
             };
         };
     };
+    export_risk_indicators_xlsx_api_v1_oversight_risk_indicators_export_xlsx_get: {
+        parameters: {
+            query?: {
+                lang?: "uz_latn" | "ru";
+                code?: ("RI-01" | "RI-02" | "RI-03" | "RI-04" | "RI-05" | "RI-06" | "RI-07" | "RI-08" | "RI-09" | "RI-10" | "RI-11" | "RI-12" | "RI-13" | "RI-14" | "RI-15") | null;
+                level?: ("low" | "medium" | "high" | "critical") | null;
+                status?: ("new" | "in_review" | "closed") | null;
+                object_type?: string | null;
+                object_id?: string | null;
+                period_from?: string | null;
+                period_to?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_events_api_v1_oversight_events_get: {
         parameters: {
             query?: {
@@ -22512,6 +24479,41 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Page_OversightEventOut_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    export_events_xlsx_api_v1_oversight_events_export_xlsx_get: {
+        parameters: {
+            query?: {
+                lang?: "uz_latn" | "ru";
+                event_type?: string | null;
+                object_type?: string | null;
+                period_from?: string | null;
+                period_to?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
                 };
             };
             /** @description Validation Error */
@@ -22861,6 +24863,38 @@ export interface operations {
             };
         };
     };
+    export_appeals_xlsx_api_v1_admin_public_appeals_export_xlsx_get: {
+        parameters: {
+            query?: {
+                lang?: "uz_latn" | "ru";
+                status?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     get_appeal_api_v1_admin_public_appeals__appeal_id__get: {
         parameters: {
             query?: never;
@@ -23046,6 +25080,38 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TicketOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    export_tickets_xlsx_api_v1_help_tickets_export_xlsx_get: {
+        parameters: {
+            query?: {
+                lang?: "uz_latn" | "ru";
+                status?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
                 };
             };
             /** @description Validation Error */
@@ -23286,6 +25352,38 @@ export interface operations {
             };
         };
     };
+    export_faq_xlsx_api_v1_admin_help_faq_export_xlsx_get: {
+        parameters: {
+            query?: {
+                lang?: "uz_latn" | "ru";
+                status?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     update_faq_api_v1_admin_help_faq__faq_id__patch: {
         parameters: {
             query?: never;
@@ -23346,6 +25444,43 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Page_SearchResultOut_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    export_search_xlsx_api_v1_search_export_xlsx_get: {
+        parameters: {
+            query: {
+                kind: "applications" | "permits";
+                lang?: "uz_latn" | "ru";
+                q?: string | null;
+                status?: string | null;
+                organization_id?: string | null;
+                activity_type_id?: string | null;
+                series?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
                 };
             };
             /** @description Validation Error */
@@ -23643,6 +25778,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Page_ArchiveItemOut_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    export_archive_xlsx_api_v1_archive_export_xlsx_get: {
+        parameters: {
+            query?: {
+                lang?: "uz_latn" | "ru";
+                object_type?: ("application" | "permit") | null;
+                status?: ("stored" | "verified") | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
                 };
             };
             /** @description Validation Error */
