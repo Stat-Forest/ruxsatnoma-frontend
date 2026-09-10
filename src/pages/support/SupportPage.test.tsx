@@ -16,7 +16,7 @@ import { setupServer } from 'msw/node';
 import { AuthContext } from '../../auth/AuthContext';
 import type { AuthContextValue } from '../../auth/AuthContext';
 import { stubAuthActions } from '../../auth/testAuthActions';
-import { DICTIONARIES, I18nContext } from '../../i18n/context';
+import { DICTIONARIES, I18nContext, type UiLanguage } from '../../i18n/context';
 import { SupportPage } from './SupportPage';
 
 const server = setupServer(
@@ -56,12 +56,12 @@ function authValue(permissions: string[], isSuperuser = false): AuthContextValue
   };
 }
 
-function renderPage(permissions: string[], isSuperuser = false) {
+function renderPage(permissions: string[], isSuperuser = false, lang: UiLanguage = 'ru') {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
   const i18n = {
-    lang: 'ru' as const,
-    backendLang: 'ru' as const,
-    t: (key: string) => (DICTIONARIES.ru as Record<string, string>)[key] ?? key,
+    lang,
+    backendLang: lang,
+    t: (key: string) => (DICTIONARIES[lang] as Record<string, string>)[key] ?? key,
     setLanguage: async () => {},
   };
   return render(
@@ -127,3 +127,67 @@ test('clicking a tab actually swaps the rendered body', async () => {
   expect(await screen.findByRole('button', { name: 'Новое обращение' })).toBeInTheDocument();
   expect(screen.queryByText('Часто задаваемые вопросы')).not.toBeInTheDocument();
 });
+
+test('renders support contact cards with phone, email, and telegram', () => {
+  renderPage([]);
+  expect(screen.getByTestId('support-contact-cards')).toBeInTheDocument();
+  expect(screen.getByText('+998 71 200 11 00')).toBeInTheDocument();
+  expect(screen.getByText('support@ruxsatnoma.uz')).toBeInTheDocument();
+  expect(screen.getByText('@ruxsatnoma_support')).toBeInTheDocument();
+});
+
+test.each(['uz_latn', 'uz_cyrl', 'ru', 'en', 'kaa'] as const)(
+  'ensures 100%% 5-language localization in SupportPage for %s',
+  async (lang) => {
+    const dict = DICTIONARIES[lang] as Record<string, string>;
+    const user = userEvent.setup();
+    const { unmount } = renderPage(['help.faq.manage', 'public.appeals.manage'], false, lang);
+
+    // Page Title & Subtitle
+    expect(await screen.findByRole('heading', { level: 1 })).toHaveTextContent(dict['support.page.title']);
+    expect(screen.getByText(dict['support.page.subtitle'])).toBeInTheDocument();
+
+    // Contact cards
+    expect(screen.getByText(dict['support.contact.phoneTitle'])).toBeInTheDocument();
+    expect(screen.getByText(dict['support.contact.phoneHours'])).toBeInTheDocument();
+    expect(screen.getByText(dict['support.contact.emailTitle'])).toBeInTheDocument();
+    expect(screen.getByText(dict['support.contact.emailHint'])).toBeInTheDocument();
+    expect(screen.getByText(dict['support.contact.telegramTitle'])).toBeInTheDocument();
+    expect(screen.getByText(dict['support.contact.telegramHint'])).toBeInTheDocument();
+
+    // Tabs
+    const faqTab = screen.getByRole('button', { name: dict['support.tabs.faq'] });
+    const faqAdminTab = screen.getByRole('button', { name: dict['support.tabs.faqAdmin'] });
+    const ticketsTab = screen.getByRole('button', { name: dict['support.tabs.tickets'] });
+    const appealsTab = screen.getByRole('button', { name: dict['support.tabs.appeals'] });
+    expect(faqTab).toBeInTheDocument();
+    expect(faqAdminTab).toBeInTheDocument();
+    expect(ticketsTab).toBeInTheDocument();
+    expect(appealsTab).toBeInTheDocument();
+
+    // Default tab: FAQ Reader
+    expect(screen.getByRole('heading', { level: 2, name: dict['support.faq.reader.title'] })).toBeInTheDocument();
+    expect(screen.getByText(dict['support.faq.reader.subtitle'])).toBeInTheDocument();
+
+    // Switch to Tickets tab
+    await user.click(ticketsTab);
+    expect(await screen.findByRole('heading', { level: 2, name: dict['support.tickets.title'] })).toBeInTheDocument();
+    expect(screen.getByText(dict['support.tickets.subtitle'])).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: dict['support.tickets.newTicket'] })).toBeInTheDocument();
+
+    // Switch to FAQ Admin tab
+    await user.click(faqAdminTab);
+    expect(await screen.findByRole('heading', { level: 2, name: dict['support.faq.admin.title'] })).toBeInTheDocument();
+    expect(screen.getByText(dict['support.faq.admin.subtitle'])).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: dict['support.faq.admin.create'] })).toBeInTheDocument();
+
+    // Switch to Appeals tab
+    await user.click(appealsTab);
+    expect(await screen.findByRole('heading', { level: 2, name: dict['support.appeals.title'] })).toBeInTheDocument();
+    expect(screen.getByText(dict['support.appeals.subtitle'])).toBeInTheDocument();
+
+    unmount();
+  },
+);
+
+

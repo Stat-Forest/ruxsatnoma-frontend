@@ -4,9 +4,9 @@
  * dictionaries are owned by the shell and edited by every parallel track at
  * once, so a screen built in its own worktree carries its own strings.
  *
- * `ru` is typed against `uz_latn`'s key set, so a key added to one and
- * forgotten in the other is a compile error rather than a Latin string
- * appearing mid-sentence in the Russian UI.
+ * All languages are typed against `uz_latn`'s key set, so a key added to one and
+ * forgotten in another is a compile error rather than a fallback string
+ * appearing mid-sentence in the UI.
  */
 
 export const uz_latn = {
@@ -84,6 +84,11 @@ export const uz_latn = {
   actionResetPassword: 'Parolni tiklash',
   actionResetMfa: 'MFA ni tiklash',
   actionsTitle: 'Amallar',
+
+  // — stage 7.6 (ruling R3/#138, finding F4): the refusal names what is held
+  openWorkTitle: 'Foydalanuvchida tugallanmagan ish bor — avval uni boshqasiga topshiring:',
+  openWorkKindApplications: 'Arizalar',
+  openWorkKindInspectionTasks: 'Tekshiruv topshiriqlari',
 
   // — create / edit form
   createTitle: 'Yangi foydalanuvchi',
@@ -182,7 +187,9 @@ export const uz_latn = {
   grantsSelected: 'Belgilangan',
 } as const;
 
-export const ru: Record<keyof typeof uz_latn, string> = {
+export type UsersLabels = Record<keyof typeof uz_latn, string>;
+
+export const ru: UsersLabels = {
   pageTitle: 'Пользователи',
   pageSubtitle: 'Сотрудники системы, их зона видимости и права',
   create: 'Новый пользователь',
@@ -251,6 +258,10 @@ export const ru: Record<keyof typeof uz_latn, string> = {
   actionResetPassword: 'Сбросить пароль',
   actionResetMfa: 'Сбросить MFA',
   actionsTitle: 'Действия',
+
+  openWorkTitle: 'У пользователя есть незавершённая работа — сначала передайте её другому исполнителю:',
+  openWorkKindApplications: 'Заявки',
+  openWorkKindInspectionTasks: 'Задания по проверке',
 
   createTitle: 'Новый пользователь',
   createSubtitle: 'Учётная запись сотрудника. Граждане здесь не создаются.',
@@ -343,10 +354,511 @@ export const ru: Record<keyof typeof uz_latn, string> = {
   grantsSelected: 'Отмечено',
 };
 
-export type UsersLabels = typeof uz_latn;
+export const uz_cyrl: UsersLabels = {
+  pageTitle: 'Фойдаланувчилар',
+  pageSubtitle: 'Тизим ходимлари, уларнинг кўриш зонаси ва ҳуқуқлари',
+  create: 'Янги фойдаланувчи',
+
+  statTotal: 'Жами фойдаланувчи',
+  statActive: 'Фаол',
+  statBlocked: 'Блокланган',
+  statSessions: 'Фаол сеанслар',
+  statsFailed: 'Ҳисоблагичлар юкланмади.',
+
+  filterQuery: 'Қидирув',
+  filterQueryPlaceholder: 'Логин, Ф.И.Ш. ёки ЖШШИР',
+  filterQueryHint: 'Битта майдон — логин, Ф.И.Ш. ва ЖШШИР бўйича қидиради',
+  filterRole: 'Рол',
+  filterStatus: 'Ҳолати',
+  filterOrganization: 'Ташкилот',
+  filterRegion: 'Ҳудуд',
+  filterAll: 'Барчаси',
+  apply: 'Қўллаш',
+  reset: 'Тиклаш',
+
+  colFullName: 'Ф.И.Ш.',
+  colLogin: 'Логин',
+  colRole: 'Рол',
+  colOrganization: 'Ташкилот',
+  colStatus: 'Ҳолати',
+  colActions: 'Амаллар',
+  openCard: 'Карта',
+  loading: 'Юкланмоқда...',
+  empty: 'Фильтр бўйича фойдаланувчи топилмади.',
+  loadFailed: 'Фойдаланувчилар рўйхати юкланмади.',
+  noValue: '—',
+  wholeRepublic: 'Бутун республика',
+
+  statusActive: 'Фаол',
+  statusBlocked: 'Блокланган',
+  statusDeleted: 'Ўчирилган',
+
+  cardTitle: 'Фойдаланувчи картаси',
+  cardLoading: 'Карта юкланмоқда...',
+  cardFailed: 'Фойдаланувчи маълумотлари юкланмади.',
+  tabInfo: 'Маълумот',
+  tabSessions: 'Сеанслар',
+  tabGrants: 'Шахсий ҳуқуқлар',
+  close: 'Ёпиш',
+
+  fieldLogin: 'Логин',
+  fieldFullName: 'Ф.И.Ш.',
+  fieldPinfl: 'ЖШШИР',
+  fieldPosition: 'Лавозими',
+  fieldRole: 'Рол',
+  fieldOrganization: 'Ташкилот',
+  fieldRegion: 'Ҳудуд',
+  fieldDistrict: 'Туман',
+  fieldPhone: 'Телефон',
+  fieldEmail: 'Электрон почта',
+  fieldStatus: 'Ҳолати',
+  fieldCreatedAt: 'Яратилган',
+  fieldLastLogin: 'Охирги кириш',
+  mustChangePassword: 'Паролни алмаштириши шарт',
+
+  actionEdit: 'Таҳрирлаш',
+  actionBlock: 'Блоклаш',
+  actionUnblock: 'Блокдан чиқариш',
+  actionDelete: 'Ўчириш',
+  actionResetPassword: 'Паролни тиклаш',
+  actionResetMfa: 'MFA ни тиклаш',
+  actionsTitle: 'Амаллар',
+
+  openWorkTitle: 'Фойдаланувчида тугалланмаган иш бор — аввал уни бошқасига топширинг:',
+  openWorkKindApplications: 'Аризалар',
+  openWorkKindInspectionTasks: 'Текширув топшириқлари',
+
+  createTitle: 'Янги фойдаланувчи',
+  createSubtitle: 'Ходим ҳисоби. Фуқаролар бу ерда яратилмайди.',
+  editTitle: 'Фойдаланувчини таҳрирлаш',
+  editSubtitle: 'Фақат ўзгартирилган майдонлар юборилади.',
+  formLogin: 'Логин',
+  formFullName: 'Ф.И.Ш.',
+  formRole: 'Рол',
+  formRoleHint:
+    'Фуқаролар (applicant) OneID ёки E-IMZO орқали рўйхатдан ўтади — бу ерда яратилмайди.',
+  formPinfl: 'ЖШШИР',
+  formPinflHint: '14 та рақам',
+  formPosition: 'Лавозими',
+  formSelect: 'Танланг',
+  save: 'Сақлаш',
+  cancel: 'Бекор қилиш',
+  saving: 'Сақланмоқда...',
+  nothingChanged: 'Ҳеч нарса ўзгартирилмади.',
+  errRequired: 'Тўлдирилиши шарт',
+  errPinfl: 'ЖШШИР 14 та рақамдан иборат бўлиши керак',
+  saveFailed: 'Сақлаб бўлмади.',
+
+  zoneTitle: 'Кўриш зонаси',
+  zoneWarning:
+    'Зона майдонлари фойдаланувчи НИМАНИ кўришини белгилайди. Бўш қолдириш — бетараф ҳолат эмас: ташкилот кўрсатилмаса, фойдаланувчи танланган ҳудуддаги БАРЧА ўрмон хўжаликларини кўради; учала майдон ҳам бўш бўлса — бутун республика маълумотларини кўради.',
+  zoneOrganization: 'Ташкилот',
+  zoneRegion: 'Ҳудуд',
+  zoneDistrict: 'Туман',
+  zoneDistrictHint: 'Аввал ҳудуд танланади — туманлар шу ҳудуд бўйича фильтрланади.',
+  zoneDistrictDisabled: 'Аввал ҳудудни танланг',
+
+  blockTitle: 'Фойдаланувчини блоклаш',
+  blockReason: 'Сабаб',
+  blockReasonHint: 'Сабаб аудит журналига ёзилади ва ўчирилмайди.',
+  blockReasonRequired: 'Блоклаш сабабини кўрсатинг — усиз амал бажарилмайди.',
+  blockConfirm: 'Блоклаш',
+  blockFailed: 'Блоклаб бўлмади.',
+
+  confirmUnblockTitle: 'Блокдан чиқарилсинми?',
+  confirmUnblockBody: 'Фойдаланувчи тизимга қайта кира олади.',
+  confirmDeleteTitle: 'Фойдаланувчи ўчирилсинми?',
+  confirmDeleteBody:
+    'Ёзув сақланади, ҳолати «Ўчирилган» бўлади ва фойдаланувчи тизимга кира олмайди.',
+  confirmResetPasswordTitle: 'Парол тиклансинми?',
+  confirmResetPasswordBody:
+    'Янги бир марталик парол яратилади ва фақат бир марта кўрсатилади. Эски парол дарҳол ишламай қолади.',
+  confirmResetMfaTitle: 'MFA тиклансинми?',
+  confirmResetMfaBody:
+    'Янги TOTP ҳаволаси яратилади ва фақат бир марта кўрсатилади. Эски аутентификатор ишламай қолади.',
+  confirm: 'Тасдиқлаш',
+  actionFailed: 'Амални бажариб бўлмади.',
+
+  secretTitle: 'Бу маълумот фақат БИР МАРТА кўрсатилади',
+  secretIntro:
+    'Сервер бу қийматларни бошқа ҳеч қачон кўрсатмайди. Ҳозир нусха олинг ва фойдаланувчига хавфсиз йўл билан етказинг. Йўқотилса — ягона чора қайта тиклаш.',
+  secretPassword: 'Бир марталик парол',
+  secretPasswordHint: 'Фойдаланувчи биринчи киришда уни алмаштириши шарт.',
+  secretTotp: 'TOTP ҳаволаси (аутентификатор учун)',
+  secretTotpHint:
+    'Ҳаволани аутентификатор иловасига қўлда киритинг ёки нусхалаб юборинг — QR код бу ерда чизилмайди.',
+  copy: 'Нусхалаш',
+  copied: 'Нусхаланди',
+  copyFailed: 'Нусхалаб бўлмади — матнни қўлда белгиланг.',
+  secretAck: 'Сақлаб олдим',
+  secretAckHint: 'Панел фақат шу тугма босилганда ёпилади.',
+
+  sessionsTitle: 'Фаол сеанслар',
+  sessionsHint: 'Ҳар бир қатор — битта қурилмадаги очиқ сеанс.',
+  sessionCreated: 'Бошланган',
+  sessionLastSeen: 'Охирги фаоллик',
+  sessionExpires: 'Амал қилиш муддати',
+  sessionIp: 'IP',
+  sessionDevice: 'Қурилма',
+  sessionRevoke: 'Тугатиш',
+  sessionRevokeAll: 'Барча сеансларни тугатиш',
+  sessionsEmpty: 'Очиқ сеанс йўқ.',
+  sessionsFailed: 'Сеанслар юкланмади.',
+  sessionsRevoked: 'Сеанс тугатилди.',
+  sessionsRevokeFailed: 'Сеансни тугатиб бўлмади.',
+
+  grantsTitle: 'Шахсий ҳуқуқлар',
+  grantsNotice:
+    'Бу рўйхат — РОЛ ҳуқуқларига ҚЎШИМЧА равишда берилган ҳуқуқлар. Бу фойдаланувчининг тўлиқ ҳуқуқлари эмас: рол берган ҳуқуқлар бу ерда белгиланмайди ва бу ердан олиб ташланмайди.',
+  grantsRoleHint: 'Рол ҳуқуқлари «Роллар» экранида бошқарилади.',
+  grantsSave: 'Ҳуқуқларни сақлаш',
+  grantsSaved: 'Шахсий ҳуқуқлар сақланди.',
+  grantsFailed: 'Ҳуқуқлар юкланмади.',
+  grantsSaveFailed: 'Ҳуқуқларни сақлаб бўлмади.',
+  grantsEmpty: 'Ҳуқуқлар рўйхати бўш.',
+  grantsSelected: 'Белгиланган',
+};
+
+export const en: UsersLabels = {
+  pageTitle: 'Users',
+  pageSubtitle: 'System staff, their visibility zone and permissions',
+  create: 'New user',
+
+  statTotal: 'Total users',
+  statActive: 'Active',
+  statBlocked: 'Blocked',
+  statSessions: 'Active sessions',
+  statsFailed: 'Failed to load counters.',
+
+  filterQuery: 'Search',
+  filterQueryPlaceholder: 'Login, Full Name or PINFL',
+  filterQueryHint: 'Single field — searches by login, full name and PINFL',
+  filterRole: 'Role',
+  filterStatus: 'Status',
+  filterOrganization: 'Organization',
+  filterRegion: 'Region',
+  filterAll: 'All',
+  apply: 'Apply',
+  reset: 'Reset',
+
+  colFullName: 'Full Name',
+  colLogin: 'Login',
+  colRole: 'Role',
+  colOrganization: 'Organization',
+  colStatus: 'Status',
+  colActions: 'Actions',
+  openCard: 'Card',
+  loading: 'Loading...',
+  empty: 'No users found matching the filter.',
+  loadFailed: 'Failed to load user list.',
+  noValue: '—',
+  wholeRepublic: 'Entire republic',
+
+  statusActive: 'Active',
+  statusBlocked: 'Blocked',
+  statusDeleted: 'Deleted',
+
+  cardTitle: 'User Card',
+  cardLoading: 'Loading card...',
+  cardFailed: 'Failed to load user data.',
+  tabInfo: 'Information',
+  tabSessions: 'Sessions',
+  tabGrants: 'Personal Permissions',
+  close: 'Close',
+
+  fieldLogin: 'Login',
+  fieldFullName: 'Full Name',
+  fieldPinfl: 'PINFL',
+  fieldPosition: 'Position',
+  fieldRole: 'Role',
+  fieldOrganization: 'Organization',
+  fieldRegion: 'Region',
+  fieldDistrict: 'District',
+  fieldPhone: 'Phone',
+  fieldEmail: 'Email',
+  fieldStatus: 'Status',
+  fieldCreatedAt: 'Created',
+  fieldLastLogin: 'Last login',
+  mustChangePassword: 'Must change password',
+
+  actionEdit: 'Edit',
+  actionBlock: 'Block',
+  actionUnblock: 'Unblock',
+  actionDelete: 'Delete',
+  actionResetPassword: 'Reset password',
+  actionResetMfa: 'Reset MFA',
+  actionsTitle: 'Actions',
+
+  openWorkTitle: 'User has open work — reassign it to another user first:',
+  openWorkKindApplications: 'Applications',
+  openWorkKindInspectionTasks: 'Inspection tasks',
+
+  createTitle: 'New User',
+  createSubtitle: 'Staff account. Citizens are not created here.',
+  editTitle: 'Edit User',
+  editSubtitle: 'Only modified fields will be sent.',
+  formLogin: 'Login',
+  formFullName: 'Full Name',
+  formRole: 'Role',
+  formRoleHint:
+    'Citizens (applicant) register via OneID or E-IMZO — they are not created here.',
+  formPinfl: 'PINFL',
+  formPinflHint: '14 digits',
+  formPosition: 'Position',
+  formSelect: 'Select',
+  save: 'Save',
+  cancel: 'Cancel',
+  saving: 'Saving...',
+  nothingChanged: 'Nothing has changed.',
+  errRequired: 'Required field',
+  errPinfl: 'PINFL must be 14 digits',
+  saveFailed: 'Failed to save.',
+
+  zoneTitle: 'Visibility Zone',
+  zoneWarning:
+    'Zone fields determine WHAT the user sees. Leaving empty is not a neutral state: without an organization, the user sees ALL forestry enterprises in the selected region; if all three fields are empty — data of the entire republic.',
+  zoneOrganization: 'Organization',
+  zoneRegion: 'Region',
+  zoneDistrict: 'District',
+  zoneDistrictHint: 'Region is selected first — districts are filtered by it.',
+  zoneDistrictDisabled: 'Select a region first',
+
+  blockTitle: 'Block User',
+  blockReason: 'Reason',
+  blockReasonHint: 'The reason is recorded in the audit log and cannot be deleted.',
+  blockReasonRequired: 'Specify a block reason — the action cannot be performed without it.',
+  blockConfirm: 'Block',
+  blockFailed: 'Failed to block user.',
+
+  confirmUnblockTitle: 'Unblock user?',
+  confirmUnblockBody: 'The user will be able to log in to the system again.',
+  confirmDeleteTitle: 'Delete user?',
+  confirmDeleteBody:
+    'The record is preserved, the status becomes "Deleted", and system access is revoked.',
+  confirmResetPasswordTitle: 'Reset password?',
+  confirmResetPasswordBody:
+    'A new one-time password will be generated and shown only once. The old password will stop working immediately.',
+  confirmResetMfaTitle: 'Reset MFA?',
+  confirmResetMfaBody:
+    'A new TOTP link will be generated and shown only once. The old authenticator will stop working.',
+  confirm: 'Confirm',
+  actionFailed: 'Failed to perform action.',
+
+  secretTitle: 'This information is shown ONLY ONCE',
+  secretIntro:
+    'The server will never show these values again. Copy them now and deliver them to the user securely. If lost, the only remedy is resetting again.',
+  secretPassword: 'One-time password',
+  secretPasswordHint: 'The user must change it on first login.',
+  secretTotp: 'TOTP link (for authenticator)',
+  secretTotpHint:
+    'Enter the link into an authenticator app manually or copy it — a QR code is not generated here.',
+  copy: 'Copy',
+  copied: 'Copied',
+  copyFailed: 'Failed to copy — select the text manually.',
+  secretAck: 'I have saved this information',
+  secretAckHint: 'The panel closes only when this button is clicked.',
+
+  sessionsTitle: 'Active Sessions',
+  sessionsHint: 'Each row represents an active session on a single device.',
+  sessionCreated: 'Started',
+  sessionLastSeen: 'Last active',
+  sessionExpires: 'Expires at',
+  sessionIp: 'IP',
+  sessionDevice: 'Device',
+  sessionRevoke: 'Terminate',
+  sessionRevokeAll: 'Terminate all sessions',
+  sessionsEmpty: 'No open sessions.',
+  sessionsFailed: 'Failed to load sessions.',
+  sessionsRevoked: 'Session terminated.',
+  sessionsRevokeFailed: 'Failed to terminate session.',
+
+  grantsTitle: 'Personal Permissions',
+  grantsNotice:
+    'This list contains permissions granted IN ADDITION to ROLE permissions. This is not the complete set of user permissions: role permissions are not checked here and cannot be revoked from here.',
+  grantsRoleHint: 'Role permissions are managed on the "Roles" screen.',
+  grantsSave: 'Save Permissions',
+  grantsSaved: 'Personal permissions saved.',
+  grantsFailed: 'Failed to load permissions.',
+  grantsSaveFailed: 'Failed to save permissions.',
+  grantsEmpty: 'Permission list is empty.',
+  grantsSelected: 'Selected',
+};
+
+export const kaa: UsersLabels = {
+  pageTitle: 'Paydalanıwshılar',
+  pageSubtitle: 'Sistema xızmetkerleri, olardıń kóriw zonası hám huqıqları',
+  create: 'Jańa paydalanıwshı',
+
+  statTotal: 'Jámi paydalanıwshı',
+  statActive: 'Aktiv',
+  statBlocked: 'Bloklanǵan',
+  statSessions: 'Aktiv seanslar',
+  statsFailed: 'Esaplaǵıshlar júklenbedi.',
+
+  filterQuery: 'İzlew',
+  filterQueryPlaceholder: 'Login, F.I.SH. yamasa PINFL',
+  filterQueryHint: 'Bir maydan — login, F.I.SH. hám PINFL boyınsha izleydi',
+  filterRole: 'Rol',
+  filterStatus: 'Jaǵdayı',
+  filterOrganization: 'Shólkem',
+  filterRegion: 'Wálayat',
+  filterAll: 'Barlıǵı',
+  apply: 'Qollaw',
+  reset: 'Tiklew',
+
+  colFullName: 'F.I.SH.',
+  colLogin: 'Login',
+  colRole: 'Rol',
+  colOrganization: 'Shólkem',
+  colStatus: 'Jaǵdayı',
+  colActions: 'Ámeller',
+  openCard: 'Karta',
+  loading: 'Júklenbekte...',
+  empty: 'Filtr boyınsha paydalanıwshı tabılmadı.',
+  loadFailed: 'Paydalanıwshılar dizimi júklenbedi.',
+  noValue: '—',
+  wholeRepublic: 'Pútkil respublika',
+
+  statusActive: 'Aktiv',
+  statusBlocked: 'Bloklanǵan',
+  statusDeleted: 'Óshirilgen',
+
+  cardTitle: 'Paydalanıwshı kartası',
+  cardLoading: 'Karta júklenbekte...',
+  cardFailed: 'Paydalanıwshı maǵlıwmatları júklenbedi.',
+  tabInfo: 'Maǵlıwmat',
+  tabSessions: 'Seanslar',
+  tabGrants: 'Jeke huqıqlar',
+  close: 'Jabıw',
+
+  fieldLogin: 'Login',
+  fieldFullName: 'F.I.SH.',
+  fieldPinfl: 'PINFL',
+  fieldPosition: 'Lawazımı',
+  fieldRole: 'Rol',
+  fieldOrganization: 'Shólkem',
+  fieldRegion: 'Wálayat',
+  fieldDistrict: 'Rayon',
+  fieldPhone: 'Telefon',
+  fieldEmail: 'Elektron pochta',
+  fieldStatus: 'Jaǵdayı',
+  fieldCreatedAt: 'Jaratılǵan',
+  fieldLastLogin: 'Aqırǵı kiriw',
+  mustChangePassword: 'Paroldi almastırıwı shárt',
+
+  actionEdit: 'Dúzetiw',
+  actionBlock: 'Bloklaw',
+  actionUnblock: 'Bloktan shıǵarıw',
+  actionDelete: 'Óshiriw',
+  actionResetPassword: 'Paroldi tiklew',
+  actionResetMfa: 'MFA ni tiklew',
+  actionsTitle: 'Ámeller',
+
+  openWorkTitle: 'Paydalanıwshıda tamamlanbaǵan jumıs bar — aldın onı basqasına tapsırıń:',
+  openWorkKindApplications: 'Arzalar',
+  openWorkKindInspectionTasks: 'Tekseriw tapsırmaları',
+
+  createTitle: 'Jańa paydalanıwshı',
+  createSubtitle: 'Xızmetker esabı. Puqaralar bul jerde jaratılmaydı.',
+  editTitle: 'Paydalanıwshını dúzetiw',
+  editSubtitle: 'Tek ózgertilgen maydanlar jiberiledi.',
+  formLogin: 'Login',
+  formFullName: 'F.I.SH.',
+  formRole: 'Rol',
+  formRoleHint:
+    'Puqaralar (applicant) OneID yamasa E-IMZO arqalı dizimnen ótedi — bul jerde jaratılmaydı.',
+  formPinfl: 'PINFL',
+  formPinflHint: '14 san',
+  formPosition: 'Lawazımı',
+  formSelect: 'Saylań',
+  save: 'Saqlaw',
+  cancel: 'Biykar etiw',
+  saving: 'Saqlanbaqta...',
+  nothingChanged: 'Hesh nárse ózgertilmedi.',
+  errRequired: 'Toltırılıwı shárt',
+  errPinfl: 'PINFL 14 sandan ibarat bolıwı kerek',
+  saveFailed: 'Saqlap bolmadı.',
+
+  zoneTitle: 'Kóriw zonası',
+  zoneWarning:
+    'Zona maydonları paydalanıwshı NENI kóretuǵının belgileydi. Bos qaldırıw — biytárep jaǵday emes: shólkem kórsetilmese, paydalanıwshı saylanǵan wálayattaǵı BARLIQ toǵay xojalıqların kóredi; úsh maydan da bos bolsa — pútkil respublika maǵlıwmatların kóredi.',
+  zoneOrganization: 'Shólkem',
+  zoneRegion: 'Wálayat',
+  zoneDistrict: 'Rayon',
+  zoneDistrictHint: 'Dáslep wálayat saylanadı — rayonlar sol wálayat boyınsha filtrlenedi.',
+  zoneDistrictDisabled: 'Aldın wálayattı saylań',
+
+  blockTitle: 'Paydalanıwshını bloklaw',
+  blockReason: 'Sebep',
+  blockReasonHint: 'Sebep audit jurnalına jazıladı hám óshirilmeydi.',
+  blockReasonRequired: 'Bloklaw sebebin kórsetiń — usız ámel orınlanbaydı.',
+  blockConfirm: 'Bloklaw',
+  blockFailed: 'Bloklap bolmadı.',
+
+  confirmUnblockTitle: 'Bloktan shıǵarılsınba?',
+  confirmUnblockBody: 'Paydalanıwshı sistemaǵa qaytadan kire aladı.',
+  confirmDeleteTitle: 'Paydalanıwshı óshirilsinbe?',
+  confirmDeleteBody:
+    'Jazba saqlanadı, jaǵdayı «Óshirilgen» boladı hám paydalanıwshı sistemaǵa kire almaydı.',
+  confirmResetPasswordTitle: 'Parol tiklensinbe?',
+  confirmResetPasswordBody:
+    'Jańa bir martalıq parol jaratıladı hám tek bir márte kórsetiledi. Eski parol dárhal islemey qaladı.',
+  confirmResetMfaTitle: 'MFA tiklensinbe?',
+  confirmResetMfaBody:
+    'Jańa TOTP siltemesi jaratıladı hám tek bir márte kórsetiledi. Eski autentifikator islemey qaladı.',
+  confirm: 'Tastıyıqlaw',
+  actionFailed: 'Ámeldi orınlap bolmadı.',
+
+  secretTitle: 'Bul maǵlıwmat tek BIR MÁRTE kórsetiledi',
+  secretIntro:
+    'Server bul mánislerdi basqa hesh qashan kórsetpeydi. Házir kóshirip alıń hám paydalanıwshıǵa qáwipsiz jol menen jetkiziń. Joǵaltılsa — jalǵız shara qaytadan tiklew.',
+  secretPassword: 'Bir martalıq parol',
+  secretPasswordHint: 'Paydalanıwshı birinshi kiriwde onı almastırıwı shárt.',
+  secretTotp: 'TOTP siltemesi (autentifikator ushın)',
+  secretTotpHint:
+    'Siltemeni autentifikator qosımshasına qol menen kiritiń yamasa kóshirip jiberiń — QR-kod bul jerde sızılmaydı.',
+  copy: 'Kóshirip alıw',
+  copied: 'Kóshirip alındı',
+  copyFailed: 'Kóshirip alıp bolmadı — tekstti qol menen belgileń.',
+  secretAck: 'Saqlap aldım',
+  secretAckHint: 'Panel tek usı túyme basılǵanda jabıladı.',
+
+  sessionsTitle: 'Aktiv seanslar',
+  sessionsHint: 'Hár bir qatar — bir qurılmadaǵı ashıq seans.',
+  sessionCreated: 'Baslanǵan',
+  sessionLastSeen: 'Aqırǵı belsendilik',
+  sessionExpires: 'Ámel etiw múddeti',
+  sessionIp: 'IP',
+  sessionDevice: 'Qurılma',
+  sessionRevoke: 'Juwmaqlaw',
+  sessionRevokeAll: 'Barlıq seanslardı juwmaqlaw',
+  sessionsEmpty: 'Ashıq seans joq.',
+  sessionsFailed: 'Seanslar júklenbedi.',
+  sessionsRevoked: 'Seans juwmaqlandı.',
+  sessionsRevokeFailed: 'Seanstı juwmaqlap bolmadı.',
+
+  grantsTitle: 'Jeke huqıqlar',
+  grantsNotice:
+    'Bul dizim — ROL huqıqlarına QOSÍMCHA túrde berilgen huqıqlar. Bul paydalanıwshınıń tolıq huqıqları emes: rol bergen huqıqlar bul jerde belgilenbeydi hám bul jerden alıp taslanbaydı.',
+  grantsRoleHint: 'Rol huqıqları «Roller» ekranında basqarıladı.',
+  grantsSave: 'Huqıqlardı saqlaw',
+  grantsSaved: 'Jeke huqıqlar saqlandı.',
+  grantsFailed: 'Huqıqlar júklenbedi.',
+  grantsSaveFailed: 'Huqıqlardı saqlap bolmadı.',
+  grantsEmpty: 'Huqıqlar dizimi bos.',
+  grantsSelected: 'Belgilengen',
+};
 
 import type { UiLanguage } from '../../../i18n/context';
 
-export function labelsFor(lang: UiLanguage | string): Record<keyof typeof uz_latn, string> {
-  return lang === 'ru' ? ru : uz_latn;
+export const LABELS: Record<UiLanguage, UsersLabels> = {
+  uz_latn,
+  uz_cyrl,
+  ru,
+  en,
+  kaa,
+};
+
+export function labelsFor(lang: UiLanguage | string): UsersLabels {
+  return (LABELS as Record<string, UsersLabels>)[lang] ?? uz_latn;
 }

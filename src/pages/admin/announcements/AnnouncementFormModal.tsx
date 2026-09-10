@@ -22,6 +22,10 @@ interface FormState {
   body: Record<BackendLanguage, string>;
   roleCodes: string[];
   regionIds: string[];
+  /** `public_on_landing` — the public site, not an audience. The backend
+   *  refuses the two together, so the form disables each side while the other
+   *  is set rather than letting the operator discover it as a 422. */
+  publicOnLanding: boolean;
   publishFrom: string;
   publishTo: string;
 }
@@ -31,7 +35,15 @@ function emptyLanguages(): Record<BackendLanguage, string> {
 }
 
 function emptyForm(): FormState {
-  return { title: emptyLanguages(), body: emptyLanguages(), roleCodes: [], regionIds: [], publishFrom: '', publishTo: '' };
+  return {
+    title: emptyLanguages(),
+    body: emptyLanguages(),
+    roleCodes: [],
+    regionIds: [],
+    publicOnLanding: false,
+    publishFrom: '',
+    publishTo: '',
+  };
 }
 
 /** `title`/`body` arrive as untyped jsonb maps, so each language is read
@@ -53,6 +65,7 @@ function formFrom(row: AnnouncementAdminOut): FormState {
     body: readLanguages(row.body),
     roleCodes,
     regionIds,
+    publicOnLanding: row.public_on_landing,
     publishFrom: row.publish_from?.slice(0, 10) ?? '',
     publishTo: row.publish_to?.slice(0, 10) ?? '',
   };
@@ -186,6 +199,7 @@ function AnnouncementForm({ announcementId, initial, roles, regions, lang, L, on
       title,
       body,
       audience: buildAudience(form),
+      public_on_landing: form.publicOnLanding,
       publish_from: form.publishFrom || null,
       publish_to: form.publishTo || null,
     };
@@ -197,6 +211,7 @@ function AnnouncementForm({ announcementId, initial, roles, regions, lang, L, on
 
   const roleCodes = roles.map((role) => role.code);
   const regionIds = regions.map((region) => region.id);
+  const hasAudience = form.roleCodes.length > 0 || form.regionIds.length > 0;
 
   return (
     <Modal
@@ -279,10 +294,23 @@ function AnnouncementForm({ announcementId, initial, roles, regions, lang, L, on
           </FormField>
         </div>
 
+        <div className="rounded-2xl border border-[#E4E7EA] p-4 space-y-2" data-testid="public-toggle">
+          <h4 className="text-xs font-bold uppercase tracking-wider text-[#5A646D]">{L.publicSection}</h4>
+          <Checkbox
+            label={L.publicToggle}
+            checked={form.publicOnLanding}
+            disabled={hasAudience}
+            onChange={() => setForm((f) => ({ ...f, publicOnLanding: !f.publicOnLanding }))}
+          />
+          <p className="text-xs text-[#5A646D]">{hasAudience ? L.publicBlockedByAudience : L.publicHint}</p>
+        </div>
+
         <div className="rounded-2xl border border-[#E4E7EA] p-4 space-y-4" data-testid="audience-picker">
           <div>
             <h4 className="text-xs font-bold uppercase tracking-wider text-[#5A646D]">{L.colAudience}</h4>
-            <p className="text-xs text-[#5A646D] mt-1">{L.audienceHint}</p>
+            <p className="text-xs text-[#5A646D] mt-1">
+              {form.publicOnLanding ? L.audienceBlockedByPublic : L.audienceHint}
+            </p>
           </div>
           <fieldset className="space-y-2">
             <legend className="text-xs font-semibold text-[#1A1F24] mb-1">{L.audienceRoles}</legend>
@@ -291,6 +319,7 @@ function AnnouncementForm({ announcementId, initial, roles, regions, lang, L, on
                 key={role.id}
                 label={pickName(role.name, lang) || role.code}
                 checked={form.roleCodes.includes(role.code)}
+                disabled={form.publicOnLanding}
                 onChange={() => setForm((f) => ({ ...f, roleCodes: toggle(f.roleCodes, role.code, roleCodes) }))}
               />
             ))}
@@ -302,6 +331,7 @@ function AnnouncementForm({ announcementId, initial, roles, regions, lang, L, on
                 key={region.id}
                 label={pickName(region.name, lang) || region.code}
                 checked={form.regionIds.includes(region.id)}
+                disabled={form.publicOnLanding}
                 onChange={() => setForm((f) => ({ ...f, regionIds: toggle(f.regionIds, region.id, regionIds) }))}
               />
             ))}

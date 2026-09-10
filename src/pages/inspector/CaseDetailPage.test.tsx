@@ -55,6 +55,7 @@ function caseOut(over: Partial<CaseCardOut> = {}): CaseCardOut {
     created_at: '2026-09-01T10:05:00+05:00',
     history: [{ id: 'h1', from_status: null, to_status: 'opened', changed_by: null, occurred_at: '2026-09-01T10:05:00+05:00', note: null }],
     appeals: [],
+    prior_cases_count: 0,
     ...over,
   };
 }
@@ -244,4 +245,22 @@ test('a load failure renders an error, not a crash', async () => {
   );
 
   expect(await screen.findByText("Bu amal uchun sizda huquq yo'q.")).toBeInTheDocument();
+});
+
+// --- Stage 7.6 (ruling R8/#138, finding F3): the repeat-violation count ----
+
+test('prior_cases_count renders the REAL count as a link into the filtered case list', async () => {
+  renderPage(caseOut({ status: 'opened', prior_cases_count: 3 }), ['inspections.cases.manage']);
+
+  const link = await screen.findByTestId('prior-cases-link');
+  expect(link).toHaveTextContent('3');
+  expect(link.closest('a')).toHaveAttribute('href', `/inspections?tab=cases&applicant_id=${APPLICANT_ID}`);
+});
+
+test('a case with no prior history shows the number 0, not a link (nothing to filter into)', async () => {
+  renderPage(caseOut({ status: 'opened', prior_cases_count: 0 }), ['inspections.cases.manage']);
+
+  await screen.findByText('CASE-2026-0001');
+  expect(screen.queryByTestId('prior-cases-link')).not.toBeInTheDocument();
+  expect(screen.getByText('0')).toBeInTheDocument();
 });

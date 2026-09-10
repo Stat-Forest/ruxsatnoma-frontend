@@ -22,6 +22,8 @@ import { afterAll, afterEach, beforeAll, expect, test, vi } from 'vitest';
 import { AuthContext, type AuthContextValue } from '../../auth/AuthContext';
 import { stubAuthActions } from '../../auth/testAuthActions';
 import { DICTIONARIES, I18nContext } from '../../i18n/context';
+import * as eimzo from '../../lib/eimzo';
+import { reportDocumentJson } from './reportDocument';
 import { ReportLifecyclePanel } from './ReportLifecyclePanel';
 import type { ReportOut } from './api';
 
@@ -179,9 +181,9 @@ test('submit refused with ERR-REP-002 renders every row violation', async () => 
   await user.click(await screen.findByTestId('confirm-dialog-confirm'));
 
   const violations = await screen.findByTestId('submit-violations');
-  expect(violations).toHaveTextContent('Row 1');
+  expect(violations).toHaveTextContent('Qator 1');
   expect(violations).toHaveTextContent('Toʻlangan summa hisoblangan summadan koʻp');
-  expect(violations).toHaveTextContent('Row 2');
+  expect(violations).toHaveTextContent('Qator 2');
   expect(violations).toHaveTextContent('Davr tugashi boshlanishidan oldin');
 });
 
@@ -203,4 +205,64 @@ test('sign refused server-side with ERR-SIGN-001 renders the signer message', as
 
   await waitFor(() => expect(screen.getByTestId('confirm-dialog-error')).toBeInTheDocument());
   expect(screen.getByTestId('confirm-dialog-error')).toHaveTextContent('Faqat shu oʻrmon xoʻjaligi rahbari imzolashi mumkin');
+});
+
+// Finding 2 (review of stage 5.2): this call site was still hardwired to the
+// mock builder, bypassing the mock/real switch entirely — real mode signs
+// DETACHED, over the exact canonical bytes `reports/service.py::sign_report`
+// hashes server-side.
+test('real mode: no PINFL box, and sign calls signDocument over the canonical report bytes (DETACHED)', async () => {
+  vi.spyOn(eimzo, 'isEimzoMock').mockReturnValue(false);
+  const signDocumentSpy = vi.spyOn(eimzo, 'signDocument').mockResolvedValue('REAL-PKCS7');
+  const user = userEvent.setup();
+  let sentPkcs7 = '';
+  server.use(
+    http.post(`*/api/v1/reports/${REPORT_ID}/sign`, async ({ request }) => {
+      sentPkcs7 = ((await request.json()) as { pkcs7: string }).pkcs7;
+      return HttpResponse.json(report({ status: 'head_approved' }));
+    }),
+  );
+  const reportOut = report({ status: 'submitted' });
+  renderPanel(reportOut, authValue('executor_head', ['reports.sign'], ORG_ID));
+
+  await user.click(await screen.findByTestId('report-action-sign'));
+  expect(screen.queryByPlaceholderText('31708860250017')).not.toBeInTheDocument();
+  await user.click(screen.getByTestId('confirm-dialog-confirm'));
+
+  await waitFor(() => expect(sentPkcs7).toBe('REAL-PKCS7'));
+  expect(signDocumentSpy).toHaveBeenCalledTimes(1);
+  const expectedJson = reportDocumentJson({
+    reportId: reportOut.id,
+    formId: reportOut.form_id,
+    organizationId: reportOut.organization_id,
+    periodStart: reportOut.period_start,
+    periodEnd: reportOut.period_end,
+    versionNo: reportOut.version_no,
+    data: reportOut.data,
+  });
+  const signedBytes = signDocumentSpy.mock.calls[0][0];
+  expect(new TextDecoder().decode(signedBytes)).toBe(expectedJson);
+});
+
+test('a real-mode signing failure shows a distinct message and never reaches the sign mutation', async () => {
+  vi.spyOn(eimzo, 'isEimzoMock').mockReturnValue(false);
+  vi.spyOn(eimzo, 'signDocument').mockRejectedValue(new eimzo.EimzoPasswordError());
+  const user = userEvent.setup();
+  let called = false;
+  server.use(
+    http.post(`*/api/v1/reports/${REPORT_ID}/sign`, () => {
+      called = true;
+      return HttpResponse.json(report({ status: 'head_approved' }));
+    }),
+  );
+  renderPanel(report({ status: 'submitted' }), authValue('executor_head', ['reports.sign'], ORG_ID));
+
+  await user.click(await screen.findByTestId('report-action-sign'));
+  await user.click(screen.getByTestId('confirm-dialog-confirm'));
+
+  await waitFor(() => expect(screen.getByTestId('confirm-dialog-error')).toBeInTheDocument());
+  expect(screen.getByTestId('confirm-dialog-error')).toHaveTextContent(
+    DICTIONARIES.uz_latn[eimzo.EIMZO_ERROR_MESSAGE_KEYS.wrong_password as keyof (typeof DICTIONARIES)['uz_latn']],
+  );
+  expect(called).toBe(false);
 });

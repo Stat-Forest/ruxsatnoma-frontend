@@ -316,31 +316,43 @@ export function getEntryTypeLabel(entryType: string, lang: string = 'uz_latn'): 
   return table[entryType] || ENTRY_TYPE_LABEL[entryType] || entryType;
 }
 
-/** `allocations.target` (`ALLOCATION_TARGETS`) — the 50/50 split's own two
- *  named halves, plus `other` for a refund's third bucket. */
+/** `allocations.target` (`ALLOCATION_TARGETS`, now `recipient`/`other`/
+ *  `receiver` — the old hard-coded 50/50 `budget` half is retired, and the
+ *  migration that removed it rewrote every historical row that carried it,
+ *  so it can never appear again). `recipient` is the leshoz's own remainder
+ *  row; `receiver` is a configured `payment_recipients` row — this generic
+ *  label is only the FALLBACK for one, `InvoiceDetailDrawer.tsx`'s
+ *  `LedgerSection` prefers that row's own `recipient_name` so three
+ *  different receivers render as three distinguishable rows, not three
+ *  identical "receiver" ones; `other` is a refund's third bucket. */
 export const ALLOCATION_TARGET_LABEL_I18N: Record<string, Record<string, string>> = {
   uz_latn: {
-    recipient: 'Ijrochi (lesxoz)',
+    recipient: 'Ijrochi (leshoz)',
+    receiver: 'Qabul qiluvchi',
     budget: 'Davlat byudjeti',
     other: 'Boshqa',
   },
   uz_cyrl: {
     recipient: 'Ижрочи (лесхоз)',
+    receiver: 'Қабул қилувчи',
     budget: 'Давлат бюджети',
     other: 'Бошқа',
   },
   ru: {
     recipient: 'Исполнитель (лесхоз)',
+    receiver: 'Получатель',
     budget: 'Государственный бюджет',
     other: 'Другое',
   },
   en: {
     recipient: 'Executor (forestry)',
+    receiver: 'Recipient',
     budget: 'State budget',
     other: 'Other',
   },
   kaa: {
     recipient: 'Atqarıwshı (lesxoz)',
+    receiver: 'Qabıllawshı',
     budget: 'Mámleketlik byudjet',
     other: 'Basqa',
   },

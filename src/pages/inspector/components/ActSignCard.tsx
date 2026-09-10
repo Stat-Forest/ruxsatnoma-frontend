@@ -18,7 +18,7 @@ import { Button } from '../../../components/ui/button';
 import { FormField, Input, Select } from '../../../components/ui/FormControls';
 import { ApiError } from '../../../api/errors';
 import { useApiErrorText } from '../../../i18n/useApiErrorText';
-import { buildMockSignature, PINFL_PATTERN } from '../../../lib/eimzoMock';
+import { buildMockSignature, eimzoErrorMessageKey, isEimzoMock, PINFL_PATTERN, signDocument } from '../../../lib/eimzo';
 import { pickLocalizedName } from '../format';
 import { actPackageBytes } from '../actPackage';
 import { useSignAct, useViolationTypes, type ActCardOut, type ActOut } from '../queries';
@@ -40,6 +40,11 @@ export function ActSignCard({ act, onSigned }: ActSignCardProps) {
   const [violationTypeId, setViolationTypeId] = useState('');
   const [pinfl, setPinfl] = useState('');
   const [pinflTouched, setPinflTouched] = useState(false);
+  // Real mode only: `signDocument` runs BEFORE `signAct.mutate`, so its own
+  // failure never reaches `signAct.error`/`apiError` below — the same split
+  // `PermitSignaturesPanel.tsx`/`PermitLifecyclePanel.tsx` make.
+  const [eimzoErrorKey, setEimzoErrorKey] = useState<string | null>(null);
+  const [signing, setSigning] = useState(false);
 
   const violationTypesQuery = useViolationTypes();
   const signAct = useSignAct(act.id);
@@ -47,18 +52,22 @@ export function ActSignCard({ act, onSigned }: ActSignCardProps) {
   // `service.py::sign_act` — mandatory exactly when the act's own `result`
   // is `'violation'`, never otherwise (`ERR-VAL-001 violation_type_required`).
   const requiresViolationType = act.result === 'violation';
-  const pinflValid = PINFL_PATTERN.test(pinfl);
+  // Mock mode only — a real certificate carries the signer's identity, no
+  // PINFL box to validate (task 10's own rule, `ActSignCard`'s equivalent
+  // named in the brief).
+  const pinflValid = !isEimzoMock() || PINFL_PATTERN.test(pinfl);
   // `pinflValid` is deliberately NOT part of `canSubmit` — the same choice
   // `SignDecisionModal.tsx`/`PermitLifecyclePanel.tsx` make: with it here, a
   // blank PINFL would simply disable the button with no explanation. It
   // stays clickable so `handleSign` runs its own check and says why.
-  const canSubmit = (!requiresViolationType || violationTypeId !== '') && !signAct.isPending;
+  const canSubmit = (!requiresViolationType || violationTypeId !== '') && !signAct.isPending && !signing;
 
   async function handleSign() {
-    if (!pinflValid) {
+    if (isEimzoMock() && !PINFL_PATTERN.test(pinfl)) {
       setPinflTouched(true);
       return;
     }
+    setEimzoErrorKey(null);
     const documentBytes = actPackageBytes({
       id: act.id,
       inspectorId: act.inspector_id,
@@ -68,7 +77,30 @@ export function ActSignCard({ act, onSigned }: ActSignCardProps) {
       facts: act.facts,
       result: act.result,
     });
-    const pkcs7 = await buildMockSignature({ pinfl, documentBytes, fullName: me?.user.full_name });
+    let pkcs7: string;
+    if (isEimzoMock()) {
+      pkcs7 = await buildMockSignature({ pinfl, documentBytes, fullName: me?.user.full_name });
+    } else {
+      // Real mode: DETACHED — `sign_act` verifies against the exact
+      // canonical bytes above (`actPackage.ts`'s own docstring), no PINFL
+      // to type in, the signer's certificate carries that identity.
+      setSigning(true);
+      try {
+        pkcs7 = await signDocument(new Uint8Array(documentBytes));
+      } catch (err) {
+        // Important 3 (review of stage 5.2): this used to render a message
+        // only for `EimzoError`/`isProviderUnreachable` and otherwise
+        // `return` bare, so anything else (the timestamp route's own rate
+        // limit, ERR-AUTH-002, a network blip) vanished — the button
+        // stopped spinning and nothing appeared. `eimzoErrorMessageKey`
+        // already has a generic fallback for anything it does not
+        // recognize, so the guard bought nothing but a silent failure.
+        setEimzoErrorKey(eimzoErrorMessageKey(err));
+        return;
+      } finally {
+        setSigning(false);
+      }
+    }
     signAct.mutate(
       { pkcs7, violation_type_item_id: requiresViolationType ? violationTypeId : undefined },
       { onSuccess: onSigned },
@@ -98,20 +130,28 @@ export function ActSignCard({ act, onSigned }: ActSignCardProps) {
         </FormField>
       )}
 
-      <FormField
-        label={t('inspector.actForm.sign.pinflLabel')}
-        required
-        error={pinflTouched && !pinflValid ? t('inspector.actForm.sign.pinflError') : undefined}
-      >
-        <Input
-          touchSize
-          inputMode="numeric"
-          value={pinfl}
-          onChange={(e) => setPinfl(e.target.value.replace(/\D/g, '').slice(0, 14))}
-          onBlur={() => setPinflTouched(true)}
-          placeholder="31708860250017"
-        />
-      </FormField>
+      {isEimzoMock() && (
+        <FormField
+          label={t('inspector.actForm.sign.pinflLabel')}
+          required
+          error={pinflTouched && !pinflValid ? t('inspector.actForm.sign.pinflError') : undefined}
+        >
+          <Input
+            touchSize
+            inputMode="numeric"
+            value={pinfl}
+            onChange={(e) => setPinfl(e.target.value.replace(/\D/g, '').slice(0, 14))}
+            onBlur={() => setPinflTouched(true)}
+            placeholder="31708860250017"
+          />
+        </FormField>
+      )}
+
+      {eimzoErrorKey && (
+        <div className="p-3 bg-[#FEF2F2] border border-[#FCA5A5] rounded-xl text-xs text-[#991B1B]" role="alert">
+          <p>{t(eimzoErrorKey)}</p>
+        </div>
+      )}
 
       {apiError && (
         <div className="p-3 bg-[#FEF2F2] border border-[#FCA5A5] rounded-xl text-xs text-[#991B1B]" role="alert">
@@ -125,7 +165,7 @@ export function ActSignCard({ act, onSigned }: ActSignCardProps) {
         variant="primary"
         fullWidth
         disabled={!canSubmit}
-        isLoading={signAct.isPending}
+        isLoading={signAct.isPending || signing}
         leftIcon={<PenTool className="w-4 h-4" />}
         onClick={() => void handleSign()}
       >

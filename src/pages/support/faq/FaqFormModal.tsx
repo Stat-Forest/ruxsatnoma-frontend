@@ -179,14 +179,14 @@ export function FaqFormModal({ faq, onClose }: FaqFormModalProps) {
       subtitle={t('support.faq.admin.formLangHint')}
       maxWidth="2xl"
       footer={
-        <>
-          <Button variant="outline" size="sm" onClick={onClose}>
+        <div className="flex w-full flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+          <Button variant="outline" size="sm" onClick={onClose} className="w-full sm:w-auto">
             {t('support.common.cancel')}
           </Button>
-          <Button variant="primary" size="sm" onClick={submit} isLoading={pending}>
+          <Button variant="primary" size="sm" onClick={submit} isLoading={pending} className="w-full sm:w-auto">
             {t('support.common.save')}
           </Button>
-        </>
+        </div>
       }
     >
       <div className="space-y-4">

@@ -6,7 +6,7 @@
  * success; this test pins that behaviour at the component the walkthrough
  * actually watched so a future regression here fails loudly.
  */
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { setupServer } from 'msw/node';
@@ -16,6 +16,7 @@ import { AuthContext } from '../../../auth/AuthContext';
 import type { AuthContextValue } from '../../../auth/AuthContext';
 import { stubAuthActions } from '../../../auth/testAuthActions';
 import { I18nContext } from '../../../i18n/context';
+import * as eimzo from '../../../lib/eimzo';
 import { DecisionPanel } from './DecisionPanel';
 import type { ApplicationCardOut } from '../queries';
 
@@ -38,6 +39,14 @@ function card(over: Partial<ApplicationCardOut> = {}): ApplicationCardOut {
     channel: 'portal',
     kind: 'new',
     benefit_category_item_id: null,
+    // Ruling #179 (stage 9): a benefit claim now carries its certificate and
+    // the verification it is waiting on — required by the schema, so every
+    // fixture states them rather than leaning on `undefined`.
+    benefit_certificate_no: null,
+    benefit_verification_status: 'not_required' as const,
+    benefit_verified_by: null,
+    benefit_verified_at: null,
+    benefit_rejection_reason: null,
     rejection_reason_item_id: null,
     assigned_org_id: null,
     assigned_user_id: 'u0000000-0000-4000-8000-000000000001',
@@ -138,4 +147,65 @@ test('approving moves the card past IN_REVIEW without a manual reload', async ()
   expect(
     client.getQueryState(['staff', 'application', 'a1000000-0000-4000-8000-000000000001'])?.isInvalidated,
   ).toBe(true);
+});
+
+// Finding 2 (review of stage 5.2): `SignDecisionModal` was still hardwired
+// to the mock builder, bypassing the mock/real switch entirely — this
+// reaches the same `signatures.service.sign()` path (DETACHED) as the
+// permit/act/report call sites task 10 already migrated.
+test('real mode: no PINFL box, and approve calls signDocument over the exact package bytes (DETACHED)', async () => {
+  vi.spyOn(eimzo, 'isEimzoMock').mockReturnValue(false);
+  const signDocumentSpy = vi.spyOn(eimzo, 'signDocument').mockResolvedValue('REAL-PKCS7');
+  const user = userEvent.setup();
+  let sentPkcs7 = '';
+  server.use(
+    http.get('*/api/v1/applications/:id/package', () => new HttpResponse(new Uint8Array([1, 2, 3]).buffer)),
+    http.post('*/api/v1/applications/:id/approve', async ({ request }) => {
+      sentPkcs7 = ((await request.json()) as { pkcs7: string }).pkcs7;
+      return HttpResponse.json({ status: 'INVOICED', forwarded_to_organization: null });
+    }),
+  );
+
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
+  const initial = card({ status: 'IN_REVIEW' });
+  client.setQueryData(['staff', 'application', initial.id], initial);
+  renderPanel(initial, client);
+
+  await user.click(screen.getByText('Tasdiqlash'));
+  expect(screen.queryByPlaceholderText('31207854315218')).not.toBeInTheDocument();
+  const submitButton = await screen.findByText('Tasdiqlash va imzolash');
+  await waitFor(() => expect(submitButton.closest('button')).toBeEnabled());
+  await user.click(submitButton);
+
+  await waitFor(() => expect(sentPkcs7).toBe('REAL-PKCS7'));
+  expect(signDocumentSpy).toHaveBeenCalledTimes(1);
+  const signedBytes = signDocumentSpy.mock.calls[0][0];
+  expect(Array.from(signedBytes)).toEqual([1, 2, 3]);
+});
+
+test('a real-mode signing failure shows a distinct message and never reaches the approve mutation', async () => {
+  vi.spyOn(eimzo, 'isEimzoMock').mockReturnValue(false);
+  vi.spyOn(eimzo, 'signDocument').mockRejectedValue(new eimzo.EimzoPasswordError());
+  const user = userEvent.setup();
+  let called = false;
+  server.use(
+    http.get('*/api/v1/applications/:id/package', () => new HttpResponse(new Uint8Array([1, 2, 3]).buffer)),
+    http.post('*/api/v1/applications/:id/approve', () => {
+      called = true;
+      return HttpResponse.json({ status: 'INVOICED', forwarded_to_organization: null });
+    }),
+  );
+
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
+  const initial = card({ status: 'IN_REVIEW' });
+  client.setQueryData(['staff', 'application', initial.id], initial);
+  renderPanel(initial, client);
+
+  await user.click(screen.getByText('Tasdiqlash'));
+  const submitButton = await screen.findByText('Tasdiqlash va imzolash');
+  await waitFor(() => expect(submitButton.closest('button')).toBeEnabled());
+  await user.click(submitButton);
+
+  expect(await screen.findByText(eimzo.EIMZO_ERROR_MESSAGE_KEYS.wrong_password)).toBeInTheDocument();
+  expect(called).toBe(false);
 });

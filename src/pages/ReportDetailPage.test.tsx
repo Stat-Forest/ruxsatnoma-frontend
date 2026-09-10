@@ -189,3 +189,17 @@ test('confirming Revise navigates the URL to the NEW report id, the old one neve
   await waitFor(() => expect(router.state.location.pathname).toBe(`/reports/${NEW_ID}`));
   expect(await screen.findByTestId('report-parent-link')).toHaveAttribute('href', `/reports/${REPORT_ID}`);
 });
+
+test('renders report history and audit log', async () => {
+  server.use(
+    http.get(`*/api/v1/reports/${REPORT_ID}`, () =>
+      HttpResponse.json(report({ status: 'submitted', submitted_at: '2026-02-05T10:00:00Z' })),
+    ),
+  );
+
+  renderDetail(REPORT_ID, authValue('executor_staff', [], ORG_ID));
+
+  expect(await screen.findByTestId('report-history')).toBeInTheDocument();
+  expect(screen.getByText('Tarix va audit')).toBeInTheDocument();
+});
+

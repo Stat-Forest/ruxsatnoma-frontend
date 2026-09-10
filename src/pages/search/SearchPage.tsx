@@ -15,17 +15,18 @@
  * `"<series> № <000000>"`, built in SQL) — rendered as-is, never
  * reformatted here.
  */
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router';
 import { Save, Search as SearchIcon, Trash2 } from 'lucide-react';
 import { ApiError } from '../../api/errors';
 import { Button } from '../../components/ui/button';
 import { DataTable, type Column } from '../../components/ui/DataTable';
 import { FormField, Input, Select } from '../../components/ui/FormControls';
+import { Drawer } from '../../components/ui/Overlay';
 import { useLanguage, useT } from '../../i18n/useT';
 import { pickLocalizedName } from '../permits/format';
-import { statusLabel, type ApplicationStatus } from '../staff/format';
-import { getPermitStatusLabel } from '../permits/statusMeta';
+import { statusLabel, STATUS_LABELS_I18N, type ApplicationStatus } from '../staff/format';
+import { getPermitStatusLabel, PERMIT_STATUS_LABEL_I18N } from '../permits/statusMeta';
 import { useActivityTypes, useLeshozOrganizations } from './refs';
 import { SearchExportPanel } from './SearchExportPanel';
 import { useCreateSavedFilter, useDeleteSavedFilter, useSavedFilters, useSearchResults } from './queries';
@@ -59,13 +60,65 @@ export function SearchPage() {
   const createProfile = useCreateSavedFilter();
   const deleteProfile = useDeleteSavedFilter();
 
+  const statusOptions = useMemo(() => {
+    if (kind === 'applications') {
+      return [
+        { value: '', label: t('search.filters.allStatuses') },
+        ...(Object.keys(STATUS_LABELS_I18N.uz_latn) as ApplicationStatus[]).map((value) => ({
+          value,
+          label: statusLabel(value, lang),
+        })),
+      ];
+    }
+    return [
+      { value: '', label: t('search.filters.allStatuses') },
+      ...Object.keys(PERMIT_STATUS_LABEL_I18N.uz_latn).map((value) => ({
+        value,
+        label: getPermitStatusLabel(value, lang),
+      })),
+    ];
+  }, [kind, lang, t]);
+
+  const currentStatusValue = useMemo(() => {
+    const s = draft.status.trim();
+    if (!s) return '';
+    if (kind === 'applications') {
+      const match = (Object.keys(STATUS_LABELS_I18N.uz_latn) as ApplicationStatus[]).find(
+        (k) => k.toLowerCase() === s.toLowerCase(),
+      );
+      return match ?? draft.status;
+    }
+    const match = Object.keys(PERMIT_STATUS_LABEL_I18N.uz_latn).find(
+      (k) => k.toLowerCase() === s.toLowerCase(),
+    );
+    return match ?? draft.status;
+  }, [draft.status, kind]);
+
+  // Auto-apply text filters with debounce so typing immediately filters
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setApplied((prev) => {
+        if (prev.q === draft.q && prev.series === draft.series) return prev;
+        setPage(1);
+        return { ...prev, q: draft.q, series: draft.series };
+      });
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [draft.q, draft.series]);
+
+  const normalizedStatus = applied.status.trim()
+    ? kind === 'applications'
+      ? applied.status.trim().toUpperCase()
+      : applied.status.trim().toLowerCase()
+    : undefined;
+
   const results = useSearchResults({
     kind,
-    q: applied.q || undefined,
-    status: applied.status || undefined,
+    q: applied.q.trim() || undefined,
+    status: normalizedStatus,
     organization_id: applied.organization_id || undefined,
     activity_type_id: kind === 'applications' ? applied.activity_type_id || undefined : undefined,
-    series: kind === 'permits' ? applied.series || undefined : undefined,
+    series: kind === 'permits' ? applied.series.trim() || undefined : undefined,
     page,
     page_size: PAGE_SIZE,
   });
@@ -102,7 +155,16 @@ export function SearchPage() {
     const name = savingName.trim();
     if (!name) return;
     createProfile.mutate(
-      { name, kind, params: { ...applied } },
+      {
+        name,
+        kind,
+        params: {
+          ...applied,
+          q: applied.q.trim(),
+          series: applied.series.trim(),
+          status: normalizedStatus ?? '',
+        },
+      },
       {
         onSuccess: () => {
           setSavingName('');
@@ -112,18 +174,35 @@ export function SearchPage() {
     );
   }
 
+  const [selectedRow, setSelectedRow] = useState<SearchResultOut | null>(null);
+
   const columns: Column<SearchResultOut>[] = [
     {
       key: 'number',
       header: t('search.col.number'),
-      accessor: (row) => (
-        <Link
-          to={row.kind === 'applications' ? `/applications/${row.id}` : `/permits/${row.id}`}
-          className="font-mono font-semibold text-[#2E7D4F] hover:underline"
-        >
-          {row.number ?? row.id.slice(0, 8)}
-        </Link>
-      ),
+      accessor: (row) => {
+        const isNoOrgOrDraft =
+          row.kind === 'applications' && (!row.organization_id || row.status?.toUpperCase() === 'DRAFT');
+        if (isNoOrgOrDraft) {
+          return (
+            <button
+              type="button"
+              onClick={() => setSelectedRow(row)}
+              className="font-mono font-semibold text-[#2E7D4F] hover:underline text-left cursor-pointer"
+            >
+              {row.number || row.id.slice(0, 8)}
+            </button>
+          );
+        }
+        return (
+          <Link
+            to={row.kind === 'applications' ? `/applications/${row.id}` : `/permits/${row.id}`}
+            className="font-mono font-semibold text-[#2E7D4F] hover:underline"
+          >
+            {row.number || row.id.slice(0, 8)}
+          </Link>
+        );
+      },
     },
     {
       key: 'status',
@@ -137,8 +216,12 @@ export function SearchPage() {
       key: 'organization',
       header: t('search.col.organization'),
       accessor: (row) => {
-        const org = organizations.data?.items.find((o) => o.id === row.organization_id);
-        return org ? pickLocalizedName(org.name, lang) : (row.organization_id?.slice(0, 8) ?? '—');
+        const org = row.organization_id
+          ? organizations.data?.items.find((o) => o.id === row.organization_id)
+          : undefined;
+        return org
+          ? pickLocalizedName(org.name, lang)
+          : (row.organization_id ? row.organization_id.slice(0, 8) : '—');
       },
     },
     { key: 'applicant', header: t('search.col.applicant'), accessor: (row) => row.applicant_name ?? '—' },
@@ -163,8 +246,12 @@ export function SearchPage() {
             aria-selected={kind === k}
             data-testid={`search-kind-${k}`}
             onClick={() => {
-              setKind(k);
-              setPage(1);
+              if (kind !== k) {
+                setKind(k);
+                setDraft(EMPTY_DRAFT);
+                setApplied(EMPTY_DRAFT);
+                setPage(1);
+              }
             }}
             className={`rounded-full border px-4 py-1.5 text-sm font-semibold transition-colors ${
               kind === k
@@ -177,7 +264,13 @@ export function SearchPage() {
         ))}
       </div>
 
-      <div className="bg-white border border-[#E4E7EA] rounded-2xl p-5 shadow-xs space-y-3">
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          applyFilters();
+        }}
+        className="bg-white border border-[#E4E7EA] rounded-2xl p-5 shadow-xs space-y-3"
+      >
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 items-end">
           <FormField label={t('search.filters.query')}>
             <Input
@@ -187,12 +280,26 @@ export function SearchPage() {
             />
           </FormField>
           <FormField label={t('search.filters.status')}>
-            <Input value={draft.status} onChange={(e) => setDraft((d) => ({ ...d, status: e.target.value }))} />
+            <Select
+              value={currentStatusValue}
+              onChange={(e) => {
+                const val = e.target.value;
+                setDraft((d) => ({ ...d, status: val }));
+                setApplied((a) => ({ ...a, status: val }));
+                setPage(1);
+              }}
+              options={statusOptions}
+            />
           </FormField>
           <FormField label={t('search.filters.organization')}>
             <Select
               value={draft.organization_id}
-              onChange={(e) => setDraft((d) => ({ ...d, organization_id: e.target.value }))}
+              onChange={(e) => {
+                const val = e.target.value;
+                setDraft((d) => ({ ...d, organization_id: val }));
+                setApplied((a) => ({ ...a, organization_id: val }));
+                setPage(1);
+              }}
               options={[
                 { value: '', label: t('search.filters.allOrganizations') },
                 ...(organizations.data?.items ?? []).map((org) => ({
@@ -206,7 +313,12 @@ export function SearchPage() {
             <FormField label={t('search.filters.activityType')}>
               <Select
                 value={draft.activity_type_id}
-                onChange={(e) => setDraft((d) => ({ ...d, activity_type_id: e.target.value }))}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setDraft((d) => ({ ...d, activity_type_id: val }));
+                  setApplied((a) => ({ ...a, activity_type_id: val }));
+                  setPage(1);
+                }}
                 options={[
                   { value: '', label: t('search.filters.allActivityTypes') },
                   ...(activityTypes.data ?? []).map((a) => ({ value: a.id, label: pickLocalizedName(a.name, lang) })),
@@ -225,6 +337,7 @@ export function SearchPage() {
         </div>
         <div className="flex flex-wrap justify-end gap-2">
           <Button
+            type="button"
             variant="outline"
             size="sm"
             leftIcon={<Save className="w-3.5 h-3.5" />}
@@ -232,19 +345,36 @@ export function SearchPage() {
           >
             {t('search.profiles.saveCurrent')}
           </Button>
-          <Button variant="outline" size="sm" onClick={resetFilters}>
+          <Button type="button" variant="outline" size="sm" onClick={resetFilters}>
             {t('search.actions.reset')}
           </Button>
-          <Button variant="primary" size="sm" leftIcon={<SearchIcon className="w-3.5 h-3.5" />} onClick={applyFilters}>
+          <Button
+            type="submit"
+            variant="primary"
+            size="sm"
+            leftIcon={<SearchIcon className="w-3.5 h-3.5" />}
+          >
             {t('search.actions.search')}
           </Button>
         </div>
         {isSaving && (
           <div className="flex items-end gap-2 border-t border-[#E4E7EA] pt-3" data-testid="save-profile-row">
             <FormField label={t('search.profiles.namePlaceholder')} className="flex-1">
-              <Input value={savingName} onChange={(e) => setSavingName(e.target.value)} maxLength={200} />
+              <Input
+                value={savingName}
+                onChange={(e) => setSavingName(e.target.value)}
+                maxLength={200}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    saveCurrentAsProfile();
+                  }
+                }}
+              />
             </FormField>
             <Button
+              type="button"
               variant="primary"
               size="sm"
               isLoading={createProfile.isPending}
@@ -254,7 +384,7 @@ export function SearchPage() {
             >
               {t('search.profiles.saveConfirm')}
             </Button>
-            <Button variant="outline" size="sm" onClick={() => setIsSaving(false)}>
+            <Button type="button" variant="outline" size="sm" onClick={() => setIsSaving(false)}>
               {t('search.profiles.saveCancel')}
             </Button>
           </div>
@@ -266,7 +396,7 @@ export function SearchPage() {
               : t('search.error')}
           </p>
         )}
-      </div>
+      </form>
 
       {(profiles.data?.length ?? 0) > 0 && (
         <div className="flex flex-wrap items-center gap-2" data-testid="saved-profiles">
@@ -315,13 +445,89 @@ export function SearchPage() {
       <SearchExportPanel
         kind={kind}
         filters={{
-          q: applied.q || undefined,
-          status: applied.status || undefined,
+          q: applied.q.trim() || undefined,
+          status: normalizedStatus,
           organization_id: applied.organization_id || undefined,
           activity_type_id: kind === 'applications' ? applied.activity_type_id || undefined : undefined,
-          series: kind === 'permits' ? applied.series || undefined : undefined,
+          series: kind === 'permits' ? applied.series.trim() || undefined : undefined,
         }}
       />
+
+      <Drawer
+        isOpen={!!selectedRow}
+        onClose={() => setSelectedRow(null)}
+        title={t('search.detail.title')}
+      >
+        {selectedRow && (
+          <div className="space-y-4 text-sm" data-testid="search-detail-drawer">
+            {(!selectedRow.organization_id || selectedRow.status?.toUpperCase() === 'DRAFT') && (
+              <div className="p-3.5 bg-[#FFFBEB] border border-[#FDE68A] rounded-xl text-xs text-[#92400E] leading-relaxed">
+                {t('search.detail.noOrgDraftNotice')}
+              </div>
+            )}
+
+            <div className="divide-y divide-[#E4E7EA] rounded-xl border border-[#E4E7EA] bg-[#F8F9FA] px-4">
+              <div className="flex justify-between py-2.5">
+                <span className="text-xs text-[#5A646D]">{t('search.col.number')}</span>
+                <span className="font-mono font-semibold text-[#1A1F24]">
+                  {selectedRow.number || selectedRow.id.slice(0, 8)}
+                </span>
+              </div>
+              <div className="flex justify-between py-2.5">
+                <span className="text-xs text-[#5A646D]">{t('search.detail.kind')}</span>
+                <span className="font-medium text-[#1A1F24]">
+                  {selectedRow.kind === 'applications' ? t('archive.typeApplication') : t('archive.typePermit')}
+                </span>
+              </div>
+              <div className="flex justify-between py-2.5">
+                <span className="text-xs text-[#5A646D]">{t('search.col.status')}</span>
+                <span>
+                  {selectedRow.kind === 'applications'
+                    ? statusLabel(selectedRow.status as ApplicationStatus, lang)
+                    : getPermitStatusLabel(selectedRow.status, lang)}
+                </span>
+              </div>
+              <div className="flex justify-between py-2.5">
+                <span className="text-xs text-[#5A646D]">{t('search.col.organization')}</span>
+                <span className="font-medium text-[#1A1F24]">
+                  {(() => {
+                    const org = selectedRow.organization_id
+                      ? organizations.data?.items.find((o) => o.id === selectedRow.organization_id)
+                      : undefined;
+                    return org
+                      ? pickLocalizedName(org.name, lang)
+                      : (selectedRow.organization_id ? selectedRow.organization_id.slice(0, 8) : t('search.detail.noOrg'));
+                  })()}
+                </span>
+              </div>
+              <div className="flex justify-between py-2.5">
+                <span className="text-xs text-[#5A646D]">{t('search.col.applicant')}</span>
+                <span className="font-medium text-[#1A1F24]">{selectedRow.applicant_name ?? '—'}</span>
+              </div>
+              <div className="flex justify-between py-2.5">
+                <span className="text-xs text-[#5A646D]">{t('search.col.createdAt')}</span>
+                <span className="text-xs text-[#5A646D]">
+                  {selectedRow.created_at ? new Date(selectedRow.created_at).toLocaleString() : '—'}
+                </span>
+              </div>
+            </div>
+
+            <div className="pt-2 flex justify-end gap-2">
+              {selectedRow.organization_id && (
+                <Link
+                  to={selectedRow.kind === 'applications' ? `/applications/${selectedRow.id}` : `/permits/${selectedRow.id}`}
+                  className="inline-flex items-center justify-center rounded-lg font-medium text-xs px-3 py-2 bg-[#2E7D4F] text-white hover:bg-[#23653F] transition-colors"
+                >
+                  {t('search.detail.openCard')}
+                </Link>
+              )}
+              <Button variant="secondary" onClick={() => setSelectedRow(null)}>
+                {t('search.detail.close')}
+              </Button>
+            </div>
+          </div>
+        )}
+      </Drawer>
     </div>
   );
 }

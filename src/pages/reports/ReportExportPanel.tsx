@@ -51,14 +51,15 @@ export function ReportExportPanel({ reportId }: { reportId: string }) {
   }
 
   return (
-    <div className="bg-white border border-[#E4E7EA] rounded-2xl p-6 shadow-xs font-sans space-y-4">
+    <div className="bg-white border border-[#E4E7EA] rounded-2xl p-4 sm:p-6 shadow-xs font-sans space-y-4">
       <h2 className="text-base font-bold text-[#1A1F24] border-b border-[#E4E7EA] pb-3">
         {t('reports.export.panelTitle')}
       </h2>
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-col sm:flex-row gap-2">
         <Button
           variant="outline"
           size="sm"
+          className="w-full sm:w-auto"
           isLoading={pending === 'xlsx'}
           leftIcon={<Download className="h-4 w-4" />}
           data-testid="report-export-xlsx"
@@ -69,6 +70,7 @@ export function ReportExportPanel({ reportId }: { reportId: string }) {
         <Button
           variant="outline"
           size="sm"
+          className="w-full sm:w-auto"
           isLoading={pending === 'pdf'}
           leftIcon={<Download className="h-4 w-4" />}
           data-testid="report-export-pdf"

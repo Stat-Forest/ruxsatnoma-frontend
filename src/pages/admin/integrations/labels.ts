@@ -167,14 +167,248 @@ export const ru: Record<keyof typeof uz_latn, string> = {
   totalRecords: 'записей',
 };
 
+export const uz_cyrl: Record<keyof typeof uz_latn, string> = {
+  title: 'Интеграциялар: навбат ва хатолар',
+  subtitle:
+    'Чиқувчи хабарлар навбати (outbox) ва қабул қилинмаган кирувчи хабарлар (DLQ). Бу ердаги амаллар ҳақиқий етказиб беришга таъсир қилади.',
+
+  tabOutbox: 'Чиқувчи навбат',
+  tabDeadLetters: 'Кирувчи хатолар (DLQ)',
+
+  filterStatus: 'Ҳолати',
+  filterStatusAll: 'Барчаси',
+  filterDestination: 'Йўналиш (destination)',
+  filterDestinationPlaceholder: 'sms_otp',
+  filterApply: 'Қўллаш',
+  filterReset: 'Тиклаш',
+
+  colDestination: 'Йўналиш',
+  colStatus: 'Ҳолати',
+  colAttempts: 'Уринишлар',
+  colNextAttempt: 'Кейинги уриниш',
+  colCreated: 'Яратилган',
+  colDelivered: 'Етказилган',
+  colCorrelation: 'Correlation ID',
+  colLastError: 'Охирги хато',
+  colSource: 'Манба',
+  colError: 'Хато',
+  colReceived: 'Қабул қилинган',
+  colProcessedBy: 'Ким кўриб чиқди',
+  colProcessedAt: 'Кўриб чиқилган',
+  colActions: 'Амаллар',
+
+  outboxStatusPending: 'Навбатда',
+  outboxStatusDelivering: 'Юборилмоқда',
+  outboxStatusDelivered: 'Етказилди',
+  outboxStatusDead: 'Етказилмади',
+
+  letterStatusNew: 'Янги',
+  letterStatusReprocessed: 'Қайта ишланган',
+  letterStatusDiscarded: 'Рад этилган',
+
+  actionDetails: 'Батафсил',
+  actionRequeue: 'Навбатга қайтариш',
+  actionDiscard: 'Рад этиш',
+  actionCancel: 'Бекор қилиш',
+  actionClose: 'Ёпиш',
+
+  requeueOnlyDead: 'Фақат “Етказилмади” ҳолатидаги хабарни қайтариш мумкин',
+  discardOnlyNew: 'Фақат “Янги” хат рад этилади',
+  requeueNoPermission: 'Навбатга қайтариш учун ҳуқуқ етарли эмас (admin.integrations.manage)',
+  discardNoPermission: 'Рад этиш учун ҳуқуқ етарли эмас (admin.integrations.manage)',
+
+  detailsOutboxTitle: 'Чиқувчи хабар',
+  detailsLetterTitle: 'Кирувчи хато хати',
+  detailsRecord: 'Ёзув (API қайтарган барча майдонлар)',
+  detailsError: 'Хато матни',
+  detailsNoError: 'Хато қайд этилмаган.',
+  detailsPayloadWithheld:
+    'Хабар танаси (payload) API орқали берилмайди: у бир марталик SMS-кодларни сақлаши мумкин, шунинг учун backend уни рўйхатдан ҳам, карточкадан ҳам олиб ташлайди. Танани кўриш учун базага мурожаат қилинг.',
+
+  requeueTitle: 'Хабарни навбатга қайтариш',
+  requeueLead: 'Қуйидаги хабар қайта юборишга қўйилади, уринишлар ҳисоби нолга тушади:',
+  requeueConfirm: 'Ҳа, навбатга қайтарилсин',
+
+  discardTitle: 'Кирувчи хатни рад этиш',
+  discardLead: 'Қуйидаги хат “рад этилган” деб белгиланади:',
+  discardIrreversible:
+    'Бу амални ортга қайтариб бўлмайди: хат қайта ишланмайди ва навбатга қайтмайди. Сизнинг исмингиз ва вақт ёзувда қолади.',
+  discardConfirm: 'Ҳа, рад этилсин',
+
+  stateLoading: 'Юкланмоқда...',
+  stateEmptyOutbox: 'Фильтр бўйича хабар топилмади.',
+  stateEmptyLetters: 'Фильтр бўйича хат топилмади.',
+  stateListFailed: 'Рўйхат юкланмади.',
+  stateActionFailed: 'Амал бажарилмади.',
+
+  fieldId: 'ID',
+  totalRecords: 'ёзув',
+};
+
+export const en: Record<keyof typeof uz_latn, string> = {
+  title: 'Integrations: Queue and errors',
+  subtitle:
+    'Outbox message queue and inbound dead letters (DLQ). Actions here affect live deliveries.',
+
+  tabOutbox: 'Outbox queue',
+  tabDeadLetters: 'Dead letters (DLQ)',
+
+  filterStatus: 'Status',
+  filterStatusAll: 'All',
+  filterDestination: 'Destination',
+  filterDestinationPlaceholder: 'sms_otp',
+  filterApply: 'Apply',
+  filterReset: 'Reset',
+
+  colDestination: 'Destination',
+  colStatus: 'Status',
+  colAttempts: 'Attempts',
+  colNextAttempt: 'Next attempt',
+  colCreated: 'Created',
+  colDelivered: 'Delivered',
+  colCorrelation: 'Correlation ID',
+  colLastError: 'Last error',
+  colSource: 'Source',
+  colError: 'Error',
+  colReceived: 'Received',
+  colProcessedBy: 'Processed by',
+  colProcessedAt: 'Processed at',
+  colActions: 'Actions',
+
+  outboxStatusPending: 'Pending',
+  outboxStatusDelivering: 'Delivering',
+  outboxStatusDelivered: 'Delivered',
+  outboxStatusDead: 'Dead',
+
+  letterStatusNew: 'New',
+  letterStatusReprocessed: 'Reprocessed',
+  letterStatusDiscarded: 'Discarded',
+
+  actionDetails: 'Details',
+  actionRequeue: 'Requeue',
+  actionDiscard: 'Discard',
+  actionCancel: 'Cancel',
+  actionClose: 'Close',
+
+  requeueOnlyDead: 'Only messages with "Dead" status can be requeued',
+  discardOnlyNew: 'Only "New" letters can be discarded',
+  requeueNoPermission: 'Insufficient permissions to requeue (admin.integrations.manage)',
+  discardNoPermission: 'Insufficient permissions to discard (admin.integrations.manage)',
+
+  detailsOutboxTitle: 'Outbound message',
+  detailsLetterTitle: 'Inbound dead letter',
+  detailsRecord: 'Record (all fields returned by API)',
+  detailsError: 'Error text',
+  detailsNoError: 'No error recorded.',
+  detailsPayloadWithheld:
+    'Message payload is not exposed via API: it may contain one-time SMS codes, so the backend strips it from both list and card. Inspect the database directly to view payload.',
+
+  requeueTitle: 'Requeue message',
+  requeueLead: 'The following message will be scheduled for retry with attempt counter reset to zero:',
+  requeueConfirm: 'Yes, requeue',
+
+  discardTitle: 'Discard inbound letter',
+  discardLead: 'The following letter will be marked as "discarded":',
+  discardIrreversible:
+    'This action cannot be undone: the letter will not be reprocessed or returned to the queue. Your name and timestamp will remain in the record.',
+  discardConfirm: 'Yes, discard',
+
+  stateLoading: 'Loading...',
+  stateEmptyOutbox: 'No messages match the filter.',
+  stateEmptyLetters: 'No letters match the filter.',
+  stateListFailed: 'Failed to load list.',
+  stateActionFailed: 'Action failed.',
+
+  fieldId: 'ID',
+  totalRecords: 'records',
+};
+
+export const kaa: Record<keyof typeof uz_latn, string> = {
+  title: 'Integraciyalar: gezek hám qátelikler',
+  subtitle:
+    'Shıǵıwshı xabarlar gezegi (outbox) hám qabıl etilmegen kirisiwshi xabarlar (DLQ). Bul jerdegi ámeller haqıyqıy jetkerip beriwge tásir etedi.',
+
+  tabOutbox: 'Shıǵıwshı gezek',
+  tabDeadLetters: 'Kirisiwshi qátelikler (DLQ)',
+
+  filterStatus: 'Jaǵdayı',
+  filterStatusAll: 'Barlıǵı',
+  filterDestination: 'Baǵdar (destination)',
+  filterDestinationPlaceholder: 'sms_otp',
+  filterApply: 'Qollaw',
+  filterReset: 'Qayta tiklew',
+
+  colDestination: 'Baǵdar',
+  colStatus: 'Jaǵdayı',
+  colAttempts: 'Umtılıslar',
+  colNextAttempt: 'Keyingi umtılıs',
+  colCreated: 'Jaratılǵan',
+  colDelivered: 'Jetkerilgen',
+  colCorrelation: 'Correlation ID',
+  colLastError: 'Aqırǵı qátelik',
+  colSource: 'Derek',
+  colError: 'Qátelik',
+  colReceived: 'Qabıl etilgen',
+  colProcessedBy: 'Kim kórip shıqtı',
+  colProcessedAt: 'Kórip shıǵılǵan',
+  colActions: 'Amallar',
+
+  outboxStatusPending: 'Gezekte',
+  outboxStatusDelivering: 'Jiberilmekte',
+  outboxStatusDelivered: 'Jetkerildi',
+  outboxStatusDead: 'Jetkerilmedi',
+
+  letterStatusNew: 'Jańa',
+  letterStatusReprocessed: 'Qayta islengen',
+  letterStatusDiscarded: 'Biykar etilgen',
+
+  actionDetails: 'Tolıq',
+  actionRequeue: 'Gezekke qaytarıw',
+  actionDiscard: 'Biykar etiw',
+  actionCancel: 'Biykar etiw',
+  actionClose: 'Jabıw',
+
+  requeueOnlyDead: 'Tek “Jetkerilmedi” jaǵdayındaǵı xabardı qaytarıw múmkin',
+  discardOnlyNew: 'Tek “Jańa” xat biykar etiledi',
+  requeueNoPermission: 'Gezekke qaytarıw ushın huqıq jetkiliksiz (admin.integrations.manage)',
+  discardNoPermission: 'Biykar etiw ushın huqıq jetkiliksiz (admin.integrations.manage)',
+
+  detailsOutboxTitle: 'Shıǵıwshı xabar',
+  detailsLetterTitle: 'Kirisiwshi qátelik xatı',
+  detailsRecord: 'Jazba (API qaytarǵan barlıq maydanlar)',
+  detailsError: 'Qátelik teksti',
+  detailsNoError: 'Qátelik dizimge alınbaǵan.',
+  detailsPayloadWithheld:
+    'Xabar denesi (payload) API arqalı berilmeydi: ol bir mártelik SMS-kodlardı saqlawı múmkin, sonlıqtan backend onı dizimnen de, kartochkadan da alıp taslaydı. Deneni kóriw ushın bazaǵa múrájat etiń.',
+
+  requeueTitle: 'Xabardı gezekke qaytarıw',
+  requeueLead: 'Tómendegi xabar qayta jiberiwge qoyıladı, umtılıslar esabı nolge túsedi:',
+  requeueConfirm: 'Awa, gezekke qaytarılsın',
+
+  discardTitle: 'Kirisiwshi xattı biykar etiw',
+  discardLead: 'Tómendegi xat “biykar etilgen” dep belgilenedi:',
+  discardIrreversible:
+    'Bul ámeldi artqa qaytarıp bolmaydı: xat qayta islenbeydi hám gezekke qaytpaydı. Sizdiń atıńız hám waqıt jazbada qaladı.',
+  discardConfirm: 'Awa, biykar etilsin',
+
+  stateLoading: 'Júklenbekte...',
+  stateEmptyOutbox: 'Filtr boyınsha xabar tabılmadı.',
+  stateEmptyLetters: 'Filtr boyınsha xat tabılmadı.',
+  stateListFailed: 'Dizim júklenbedi.',
+  stateActionFailed: 'Ámel orınlanbadı.',
+
+  fieldId: 'ID',
+  totalRecords: 'jazba',
+};
+
 export type IntegrationsLabels = typeof uz_latn;
 
 export const LABELS: Record<UiLanguage, IntegrationsLabels> = {
   uz_latn,
   ru,
-  uz_cyrl: uz_latn,
-  kaa: uz_latn,
-  en: uz_latn,
+  uz_cyrl,
+  kaa,
+  en,
 };
 
 /**

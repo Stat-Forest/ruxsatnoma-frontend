@@ -46,6 +46,37 @@ const SETTINGS = [
   },
 ];
 
+/** The ten public-site keys `stage-8-api`'s Task 1 appends to `SETTING_SPECS`,
+ *  in the order it appends them (nine `site_*` keys, then one `public_*`
+ *  key) — used to check that the H7 screen groups them sensibly rather than
+ *  merely rendering each with the right editor. */
+const SEASON_WINDOWS_KEY = 'site_season_windows';
+const CONTOUR_KEY = 'public_permit_contour_enabled';
+const SITE_SETTINGS = [
+  { key: 'site_contact_phone', value: '+998 71 207 88 77', default: '+998 71 207 88 77', description: 'Public site: hotline number', overridden: false },
+  { key: 'site_contact_email', value: 'urmoninfo@gmail.com', default: 'urmoninfo@gmail.com', description: 'Public site: contact e-mail', overridden: false },
+  { key: 'site_contact_address_uz', value: '', default: '', description: 'Public site: address, Latin Uzbek', overridden: false },
+  { key: 'site_contact_address_ru', value: '', default: '', description: 'Public site: address, Russian', overridden: false },
+  { key: 'site_contact_hours_uz', value: 'Dushanba – juma, 9:00 – 18:00', default: 'Dushanba – juma, 9:00 – 18:00', description: 'Public site: working hours, Latin Uzbek', overridden: false },
+  { key: 'site_contact_hours_ru', value: 'Понедельник – пятница, 9:00 – 18:00', default: 'Понедельник – пятница, 9:00 – 18:00', description: 'Public site: working hours, Russian', overridden: false },
+  { key: 'site_social_telegram', value: '', default: '', description: 'Public site: Telegram channel URL', overridden: false },
+  { key: 'site_social_youtube', value: '', default: '', description: 'Public site: YouTube channel URL', overridden: false },
+  {
+    key: SEASON_WINDOWS_KEY,
+    value: { grazing: [4, 5, 6, 7, 8, 9, 10, 11] },
+    default: { grazing: [4, 5, 6, 7, 8, 9, 10, 11] },
+    description: 'Public site: provisional season windows per activity, months 1-12',
+    overridden: false,
+  },
+  {
+    key: CONTOUR_KEY,
+    value: false,
+    default: false,
+    description: 'Publish the permit contour on the anonymous check page (#174)',
+    overridden: false,
+  },
+];
+
 const server = setupServer();
 beforeAll(() => server.listen({ onUnhandledRequest: 'error' }));
 afterEach(() => server.resetHandlers());
@@ -55,7 +86,7 @@ function mockList(settings: unknown[] = SETTINGS) {
   server.use(http.get('*/api/v1/admin/settings', () => HttpResponse.json(settings)));
 }
 
-function renderPage(lang: 'uz_latn' | 'ru' = 'uz_latn') {
+function renderPage(lang: 'uz_latn' | 'uz_cyrl' | 'ru' | 'en' | 'kaa' = 'uz_latn') {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
   const i18n = { lang, backendLang: lang, t: (key: string) => key, setLanguage: async () => {} };
   return render(
@@ -250,7 +281,7 @@ test('a failed load says so instead of showing an empty list', async () => {
   expect(await screen.findByTestId('settings-error')).toBeInTheDocument();
 });
 
-test.each(['uz_latn', 'ru'] as const)('the copy is complete in %s', async (lang) => {
+test.each(['uz_latn', 'uz_cyrl', 'ru', 'en', 'kaa'] as const)('the copy is complete in %s', async (lang) => {
   mockList();
   renderPage(lang);
 
@@ -258,4 +289,36 @@ test.each(['uz_latn', 'ru'] as const)('the copy is complete in %s', async (lang)
   const expected = LABELS[lang];
   expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(expected.title);
   expect(screen.getByTestId(`setting-save-${BOOL_KEY}`)).toHaveTextContent(expected.save);
+  expect(within(await row(BOOL_KEY)).getByText(expected.overridden)).toBeInTheDocument();
+  expect(within(await row(STRING_KEY)).getByText(expected.atDefault)).toBeInTheDocument();
+});
+
+test('the nine public-site keys land in one group, separate from the unrelated contour flag', async () => {
+  mockList([...SETTINGS, ...SITE_SETTINGS]);
+  renderPage();
+
+  const siteGroup = await screen.findByRole('group', { name: /site/i });
+  // Eight strings plus the JSON textarea for the season windows.
+  expect(within(siteGroup).getAllByRole('textbox').length).toBeGreaterThanOrEqual(8);
+  expect(within(siteGroup).getByTestId(`setting-${SEASON_WINDOWS_KEY}`)).toBeInTheDocument();
+  // `public_permit_contour_enabled` shares no prefix with `site_*` and must
+  // not be swept into the same group just because it ships alongside them.
+  expect(within(siteGroup).queryByTestId(`setting-${CONTOUR_KEY}`)).not.toBeInTheDocument();
+
+  const publicGroup = await screen.findByRole('group', { name: /public/i });
+  expect(within(publicGroup).getByTestId(`setting-${CONTOUR_KEY}`)).toBeInTheDocument();
+  expect(within(publicGroup).getByRole('checkbox')).toBeInTheDocument();
+});
+
+test('the season windows editor names its shape, instead of the generic JSON hint', async () => {
+  mockList([...SETTINGS, ...SITE_SETTINGS]);
+  renderPage();
+
+  const seasonRow = await row(SEASON_WINDOWS_KEY);
+  expect(within(seasonRow).getByText(L.seasonWindowsHint)).toBeInTheDocument();
+  expect(within(seasonRow).queryByText(L.jsonHint)).not.toBeInTheDocument();
+
+  // A JSON setting outside `site_season_windows` still gets the generic hint.
+  const otherJsonRow = await row(JSON_KEY);
+  expect(within(otherJsonRow).getByText(L.jsonHint)).toBeInTheDocument();
 });

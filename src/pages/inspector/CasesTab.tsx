@@ -6,6 +6,14 @@
  * `TasksTab.tsx`/`ActsTab.tsx` already are. Read-only list: the case
  * decision/appeal/close actions live on the case detail page (task 7),
  * gated there on `inspections.cases.manage`.
+ *
+ * Stage 7.6 (ruling R8/#138, finding F3): an optional `applicantId` narrows
+ * this SAME list to one applicant's repeat-violation history —
+ * `CaseDetailPage`'s `prior_cases_count` links here rather than opening a
+ * second list screen with its own pagination and zone-scoped query to keep
+ * in step with this one. The backend runs `applicant_id` INSIDE
+ * `_case_scope`, so a zoned viewer still sees only their own zone's cases
+ * against that applicant — this tab does not additionally narrow anything.
  */
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
@@ -93,17 +101,32 @@ function CaseRow({ caseItem }: { caseItem: CaseOut }) {
   );
 }
 
-export function CasesTab({ active }: { active: boolean }) {
+export function CasesTab({ active, applicantId }: { active: boolean; applicantId?: string }) {
   const t = useT();
+  const navigate = useNavigate();
   const errorText = useApiErrorText();
   const [status, setStatus] = useState<CaseStatusFilter>('');
   const [page, setPage] = useState(1);
 
-  const list = useCasesList({ status: status || undefined, page, page_size: PAGE_SIZE }, { enabled: active });
+  const list = useCasesList(
+    { status: status || undefined, applicant_id: applicantId, page, page_size: PAGE_SIZE },
+    { enabled: active },
+  );
   const totalPages = list.data ? Math.max(1, Math.ceil(list.data.total / PAGE_SIZE)) : 1;
 
   return (
     <div className="space-y-4" data-testid="inspector-cases-tab">
+      {applicantId && (
+        <div
+          className="flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-[#BFD9CB] bg-[#EFF7F1] px-4 py-3 text-sm text-[#1A1F24]"
+          data-testid="cases-applicant-filter-banner"
+        >
+          <span>{t('inspector.cases.filteredByApplicant')}</span>
+          <Button size="sm" variant="ghost" onClick={() => navigate('/inspections?tab=cases')}>
+            {t('inspector.cases.clearApplicantFilter')}
+          </Button>
+        </div>
+      )}
       <div className="max-w-xs">
         <Select
           touchSize

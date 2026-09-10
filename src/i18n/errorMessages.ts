@@ -46,6 +46,51 @@ function strList(details: ErrorDetails, key: string): string[] {
   return Array.isArray(value) ? value.filter((v): v is string => typeof v === 'string') : [];
 }
 
+/** A `Decimal` quantity the backend serializes as a numeric STRING
+ *  (`norms.calculator.jsonable`: `Decimal` -> `str`, never `float`, so money
+ *  and norm quantities round-trip exactly) — read as that string or as a
+ *  plain JSON number, and trimmed of a trailing-zero tail the way every
+ *  other quantity display in this app already is (`ChecksList.tsx`'s own
+ *  `trimSbNumber`, duplicated here rather than imported across the module
+ *  boundary between `i18n/` and `pages/applicant/`). */
+function decimal(details: ErrorDetails, key: string): string | undefined {
+  const value = details?.[key];
+  if (typeof value !== 'number' && typeof value !== 'string') return undefined;
+  const raw = String(value);
+  if (raw.length === 0) return undefined;
+  const trimmed = raw.includes('.') ? raw.replace(/0+$/, '').replace(/\.$/, '') : raw;
+  return (trimmed || '0').replace('.', ',');
+}
+
+/** `norms.checks.first_blocking_error` wraps the WHOLE check list under
+ *  `details.checks` (one shape shared by every `ERR-NORM-00x` code, not
+ *  specific to the limit check), so the numbers a capacity refusal carries —
+ *  `requested`/`capacity`/`remaining` (or grazing's own `used_sb`/`max_sb`/
+ *  `remaining_sb`), and `reason: "exclusive_occupied"` — live on the failing
+ *  entry's OWN `details`, not at the top level. Falls back to `details`
+ *  itself in case a future caller raises `ERR-NORM-002` directly with the
+ *  numbers already at the top level. */
+function limitDetails(details: ErrorDetails): ErrorDetails {
+  const checks = details?.checks;
+  if (Array.isArray(checks)) {
+    const failing = checks.find(
+      (c) =>
+        c &&
+        typeof c === 'object' &&
+        (c as Record<string, unknown>).check === 'limit' &&
+        (c as Record<string, unknown>).result === 'fail',
+    ) as Record<string, unknown> | undefined;
+    const nested = failing?.details;
+    if (nested && typeof nested === 'object') return nested as ErrorDetails;
+  }
+  return details;
+}
+
+function formatIsoDate(value: string): string {
+  const [y, m, d] = value.slice(0, 10).split('-');
+  return y && m && d ? `${d}.${m}.${y}` : value;
+}
+
 const ru: Record<string, ErrorCopy> = {
   'ERR-AUTH-001': 'Неверный логин или пароль.',
   'ERR-AUTH-002': 'Сессия истекла. Войдите снова.',
@@ -86,7 +131,24 @@ const ru: Record<string, ErrorCopy> = {
   'ERR-GIS-005': 'Конфликт состояния GIS-объекта. Обновите страницу.',
   'ERR-GIS-006': 'Части не образуют точное разделение исходного контура.',
   'ERR-NORM-001': 'На контуре нет утверждённой нормы.',
-  'ERR-NORM-002': 'Превышен остаток лимита.',
+  'ERR-NORM-002': (details) => {
+    const limit = limitDetails(details);
+    if (str(limit, 'reason') === 'exclusive_occupied') {
+      const until = str(limit, 'free_from') ?? str(limit, 'until') ?? str(limit, 'occupied_until') ?? str(limit, 'available_from');
+      return until
+        ? `Контур занят до ${formatIsoDate(until)}. Новое разрешение возможно только после этой даты.`
+        : 'Контур занят на весь запрошенный период.';
+    }
+    const unit = str(limit, 'unit');
+    const suffix = (value: string) => (unit ? `${value} ${unit}` : value);
+    const requested = decimal(limit, 'requested') ?? decimal(limit, 'used_sb');
+    const capacity = decimal(limit, 'capacity') ?? decimal(limit, 'max_sb');
+    const remaining = decimal(limit, 'remaining') ?? decimal(limit, 'remaining_sb');
+    if (requested === undefined || capacity === undefined) return 'Превышен остаток лимита.';
+    return remaining !== undefined
+      ? `Запрошено ${suffix(requested)} — превышает доступный лимит ${suffix(capacity)} (свободный остаток — ${suffix(remaining)}).`
+      : `Запрошено ${suffix(requested)} — превышает доступный лимит ${suffix(capacity)}.`;
+  },
   'ERR-NORM-003': 'Период не соответствует сезону или ротации.',
   'ERR-NORM-004': 'Не задан параметр расчёта.',
   'ERR-NORM-005': 'Конфликт состояния или периода нормы. Обновите страницу.',
@@ -122,7 +184,18 @@ const ru: Record<string, ErrorCopy> = {
       ? `Слишком много запросов. Повторите через ${retry} с.`
       : 'Слишком много запросов. Повторите попытку позже.';
   },
-  'ERR-VAL-001': 'Ошибка проверки введённых данных.',
+  'ERR-VAL-001': (details) => {
+    switch (str(details, 'reason')) {
+      case 'period_reversed':
+        return 'Дата окончания периода не может быть раньше даты начала.';
+      case 'period_too_long':
+        return 'Запрошенный период превышает допустимый максимум (5 лет).';
+      case 'quantity_required':
+        return 'Не указано количество (объём) для выбранного вида деятельности.';
+      default:
+        return 'Ошибка проверки введённых данных.';
+    }
+  },
   'ERR-PUB-001': 'Недопустимый переход статуса обращения. Обновите страницу.',
   'ERR-HELP-001': 'Действие недоступно для текущего статуса обращения в поддержку.',
   'ERR-SRCH-001': 'Профиль поиска с таким именем уже существует.',
@@ -173,7 +246,24 @@ const uz_latn: Record<string, ErrorCopy> = {
   'ERR-GIS-005': "GIS obyekti holati bo'yicha ziddiyat. Sahifani yangilang.",
   'ERR-GIS-006': "Bo'laklar boshlang'ich konturni aniq ajratib bermaydi.",
   'ERR-NORM-001': "Konturda tasdiqlangan me'yor yo'q.",
-  'ERR-NORM-002': "Limit qoldig'i oshib ketdi.",
+  'ERR-NORM-002': (details) => {
+    const limit = limitDetails(details);
+    if (str(limit, 'reason') === 'exclusive_occupied') {
+      const until = str(limit, 'free_from') ?? str(limit, 'until') ?? str(limit, 'occupied_until') ?? str(limit, 'available_from');
+      return until
+        ? `Kontur ${formatIsoDate(until)} sanasigacha band. Yangi ruxsatnoma faqat shu sanadan keyin mumkin.`
+        : "Kontur so'ralgan davr uchun band.";
+    }
+    const unit = str(limit, 'unit');
+    const suffix = (value: string) => (unit ? `${value} ${unit}` : value);
+    const requested = decimal(limit, 'requested') ?? decimal(limit, 'used_sb');
+    const capacity = decimal(limit, 'capacity') ?? decimal(limit, 'max_sb');
+    const remaining = decimal(limit, 'remaining') ?? decimal(limit, 'remaining_sb');
+    if (requested === undefined || capacity === undefined) return "Limit qoldig'i oshib ketdi.";
+    return remaining !== undefined
+      ? `So'ralgan ${suffix(requested)} — ruxsat etilgan ${suffix(capacity)} chegaradan oshib ketmoqda (erkin qoldiq — ${suffix(remaining)}).`
+      : `So'ralgan ${suffix(requested)} — ruxsat etilgan ${suffix(capacity)} chegaradan oshib ketmoqda.`;
+  },
   'ERR-NORM-003': 'Davr mavsum yoki rotatsiyaga mos kelmaydi.',
   'ERR-NORM-004': 'Hisoblash parametri belgilanmagan.',
   'ERR-NORM-005': "Me'yor holati yoki davri bo'yicha ziddiyat. Sahifani yangilang.",
@@ -209,7 +299,18 @@ const uz_latn: Record<string, ErrorCopy> = {
       ? `So'rovlar soni juda ko'p. ${retry} soniyadan so'ng qayta urining.`
       : "So'rovlar soni juda ko'p. Birozdan so'ng qayta urining.";
   },
-  'ERR-VAL-001': "Kiritilgan ma'lumotlarni tekshirishda xatolik.",
+  'ERR-VAL-001': (details) => {
+    switch (str(details, 'reason')) {
+      case 'period_reversed':
+        return 'Davr tugash sanasi boshlanish sanasidan oldin bo\'lishi mumkin emas.';
+      case 'period_too_long':
+        return "So'ralgan davr ruxsat etilgan maksimal muddatdan (5 yil) oshib ketdi.";
+      case 'quantity_required':
+        return "Tanlangan faoliyat turi uchun miqdor (hajm) ko'rsatilmagan.";
+      default:
+        return "Kiritilgan ma'lumotlarni tekshirishda xatolik.";
+    }
+  },
   'ERR-PUB-001': "Murojaat holatini bunday o'zgartirib bo'lmaydi. Sahifani yangilang.",
   'ERR-HELP-001': "Qo'llab-quvvatlash murojaatining joriy holati uchun bu amal mavjud emas.",
   'ERR-SRCH-001': 'Bunday nomli qidiruv profili allaqachon mavjud.',

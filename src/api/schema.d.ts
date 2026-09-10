@@ -82,7 +82,14 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Login */
+        /**
+         * Login
+         * @description Password step — and, while `mfa_enabled` is off, the whole login.
+         *
+         *     With the switch off there is no second step to send the client to: the
+         *     session is opened here and its cookies ride this response, exactly as
+         *     /auth/mfa/verify would have set them.
+         */
         post: operations["login_api_v1_auth_login_post"];
         delete?: never;
         options?: never;
@@ -394,6 +401,28 @@ export interface paths {
         options?: never;
         head?: never;
         patch?: never;
+        trace?: never;
+    };
+    "/api/v1/refs/activity-types/{activity_type_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Update Activity Type
+         * @description Ruling #139: the only write the hard catalog offers. `admin.classifiers.manage`,
+         *     the same grant the other reference edits carry — this router's own module-level
+         *     `get_current_user` dependency is a read gate and is not enough for a write.
+         */
+        patch: operations["update_activity_type_api_v1_refs_activity_types__activity_type_id__patch"];
         trace?: never;
     };
     "/api/v1/refs/livestock-types": {
@@ -1002,6 +1031,188 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/legal-documents": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Legal Documents */
+        get: operations["list_legal_documents_api_v1_admin_legal_documents_get"];
+        put?: never;
+        /** Create Legal Document */
+        post: operations["create_legal_document_api_v1_admin_legal_documents_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/legal-documents/{doc_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Legal Document */
+        get: operations["get_legal_document_api_v1_admin_legal_documents__doc_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Patch Legal Document */
+        patch: operations["patch_legal_document_api_v1_admin_legal_documents__doc_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/admin/legal-documents/{doc_id}/publish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Publish Legal Document */
+        post: operations["publish_legal_document_api_v1_admin_legal_documents__doc_id__publish_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/legal-documents/{doc_id}/archive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Archive Legal Document */
+        post: operations["archive_legal_document_api_v1_admin_legal_documents__doc_id__archive_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/public/legal-documents": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Public Legal Documents */
+        get: operations["list_public_legal_documents_api_v1_public_legal_documents_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/public/legal-documents/{doc_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Public Legal Document */
+        get: operations["get_public_legal_document_api_v1_public_legal_documents__doc_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/public/legal-documents/{doc_id}/file": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Download Public Legal Document
+         * @description The document is addressed by ITS id, not the file's: `GET /files/{id}`
+         *     needs a session, so without this route a public document's own PDF would be
+         *     a link the visitor cannot open.
+         */
+        get: operations["download_public_legal_document_api_v1_public_legal_documents__doc_id__file_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/public/announcements": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Landing Announcements */
+        get: operations["list_landing_announcements_api_v1_public_announcements_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/public/announcements/{announcement_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Landing Announcement */
+        get: operations["get_landing_announcement_api_v1_public_announcements__announcement_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/public/announcements/{announcement_id}/files/{file_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Download Landing File
+         * @description The attachment is addressed THROUGH its announcement — `GET /files/{id}`
+         *     needs a session, so without this route a public announcement's own PDF would
+         *     be a link the visitor cannot open.
+         */
+        get: operations["download_landing_file_api_v1_public_announcements__announcement_id__files__file_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/integrations/outbox": {
         parameters: {
             query?: never;
@@ -1064,6 +1275,64 @@ export interface paths {
         put?: never;
         /** Discard Dead Letter */
         post: operations["discard_dead_letter_api_v1_admin_integrations_dead_letters__letter_id__discard_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/eimzo/timestamp": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Eimzo Timestamp
+         * @description Attaches a trusted timestamp to an already-produced PKCS#7 signature
+         *     (plan ruling R5): without one, the only evidence of WHEN a document was
+         *     signed is the signer's own computer clock, and a permit is a legal
+         *     document with a validity period. Any signed-in caller may reach this --
+         *     it attaches no meaning to the document, only a time -- so no permission
+         *     code gates it beyond being authenticated at all.
+         *
+         *     A provider refusal surfaces as its own registered `ERR-INT-001`/
+         *     `ERR-INT-002` (503/502), never a 500, with the provider's own machine-
+         *     readable `provider_status`/`reason` in `error.details` when it answered
+         *     at all (stage 3.8 ruling 9).
+         */
+        post: operations["eimzo_timestamp_api_v1_eimzo_timestamp_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/eimzo/health": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Eimzo Health
+         * @description `sys_admin` only. `EIMZO_HEALTH` is registered but granted to nobody
+         *     (`integrations.permissions`'s own docstring) -- the superuser bypass in
+         *     `auth.deps._authorize` (decision #41 ruling 2) is what actually gates
+         *     this, the same shape `applications.assign` uses.
+         *
+         *     Proxies `/ping` and `/info` so an administrator can see whether the VPN
+         *     is up and when the key expires, without shell access to the server. A
+         *     provider outage surfaces as `ERR-INT-001`/`ERR-INT-002`, never a 500 --
+         *     an administrator checking this route needs to see the real failure.
+         */
+        get: operations["eimzo_health_api_v1_eimzo_health_get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -1728,6 +1997,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/gis/contours/{contour_id}/occupancy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Occupancy */
+        get: operations["get_occupancy_api_v1_gis_contours__contour_id__occupancy_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/rule-parameters": {
         parameters: {
             query?: never;
@@ -2004,6 +2290,59 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/activity-seasons": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Activity Seasons */
+        get: operations["list_activity_seasons_api_v1_activity_seasons_get"];
+        put?: never;
+        /** Create Activity Season */
+        post: operations["create_activity_season_api_v1_activity_seasons_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/activity-seasons/effective": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Effective Season */
+        get: operations["effective_season_api_v1_activity_seasons_effective_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/activity-seasons/{activity_season_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Activity Season */
+        get: operations["get_activity_season_api_v1_activity_seasons__activity_season_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update Activity Season */
+        patch: operations["update_activity_season_api_v1_activity_seasons__activity_season_id__patch"];
+        trace?: never;
+    };
     "/api/v1/calculations/preview": {
         parameters: {
             query?: never;
@@ -2203,6 +2542,106 @@ export interface paths {
          *     with a URL of its own a client would GET again.
          */
         post: operations["reverify_signature_api_v1_signatures__signature_id__reverify_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/applications/benefit-verifications": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Benefit Claims
+         * @description Every application carrying a certificate-bearing benefit claim,
+         *     country-wide — this role's whole surface (ruling #179).
+         *
+         *     `verification_status`, when given, narrows to exactly that value;
+         *     `not_required` is a valid value of the wire enum but can never match a
+         *     row this office is allowed to see (`repo.CERTIFICATE_BEARING_STATUSES`
+         *     excludes it), so passing it answers an EMPTY page rather than a 422 —
+         *     `GET /applications`'s own "entitled to nothing gets an empty page, never
+         *     a 403" rule, restated here for a filter instead of the caller's identity.
+         */
+        get: operations["list_benefit_claims_api_v1_applications_benefit_verifications_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/applications/benefit-verifications/{application_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Benefit Claim
+         * @description The claim plus its supporting document(s) — everything the office
+         *     needs to decide.
+         *
+         *     404 `ERR-SYS-003` for an id that does not exist AND for a real
+         *     application carrying no certificate-bearing claim — the same answer,
+         *     because anything else would make this route an application-existence
+         *     oracle for a document full of personal data (`benefit_verification.py`'s
+         *     own module docstring).
+         */
+        get: operations["get_benefit_claim_api_v1_applications_benefit_verifications__application_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/applications/benefit-verifications/{application_id}/verify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Verify Benefit Claim
+         * @description `pending -> verified`. 404 `ERR-SYS-003` on the same two cases as the
+         *     read above; 409 `ERR-APP-004` (`reason="not_pending"`) if this claim was
+         *     already decided.
+         */
+        post: operations["verify_benefit_claim_api_v1_applications_benefit_verifications__application_id__verify_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/applications/benefit-verifications/{application_id}/reject": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Reject Benefit Claim
+         * @description `pending -> rejected`, with `payload.reason` MANDATORY at the wire
+         *     (`BenefitClaimRejectIn`, `min_length=1`) — a 422 `ERR-VAL-001` for a
+         *     missing or blank one, before this ever reaches the service. Same 404/409
+         *     shape as `verify_benefit_claim` otherwise.
+         */
+        post: operations["reject_benefit_claim_api_v1_applications_benefit_verifications__application_id__reject_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2920,7 +3359,23 @@ export interface paths {
         put?: never;
         /**
          * Create Pay Intent
-         * @description `Idempotency-Key` is MANDATORY (3.4's mechanism, ruling: ours, on our
+         * @description Refuses with, in the order the guards run: **`ERR-SYS-003`** (404) when
+         *     the invoice does not exist, its application does not, **or the caller may
+         *     not act on it** — the three are deliberately indistinguishable, so a
+         *     stranger cannot probe which invoice ids exist; **`ERR-PAY-004`** (409) when
+         *     the invoice is not `pending`; **`ERR-PAY-002`** when it is past `due_at`;
+         *     and **`ERR-PAY-007`** (409) when the split cannot be routed at the provider
+         *     — some receiver frozen onto this invoice has no `payme_account_id`, so
+         *     under decision #160 the payment is refused rather than taken onto the
+         *     Agency's cashbox for somebody to move by hand. `details.missing` names the
+         *     offending receivers by `position` only; the names are in the server log,
+         *     not in a body a citizen reads.
+         *
+         *     These codes are listed here because a route's docstring is the only thing
+         *     that carries them into the served OpenAPI — `ERR-PAY-007` was invisible to
+         *     anyone reading the schema until this sentence existed.
+         *
+         *     `Idempotency-Key` is MANDATORY (3.4's mechanism, ruling: ours, on our
          *     own route — never on `/webhooks/payme`, which has Payme's own). `ctx`
          *     is declared after `actor` (mirrors `gis/imports_router.py::create_import`)
          *     so the SAME `get_current_user` call both depend on is resolved once;
@@ -3007,12 +3462,13 @@ export interface paths {
          *     totals named in `comment` — `statement_service._period_reconciliation`).
          *
          *     This register answers ONE question: did the money arrive against an
-         *     invoice. It never answers whether each half of the 50/50 split reached
-         *     its own account — the budget's account number is in no table at all
-         *     (`tz/12` #15), so at least half of every `allocations` row has
-         *     `account = NULL`; `matcher.py`'s module docstring gives the same
-         *     limitation for the matching side, and this is the same fact seen from
-         *     the register a human actually reads.
+         *     invoice. It never answers whether a configured receiver's own wallet,
+         *     or the leshoz's own remainder, actually reached its account — a
+         *     `payment_recipients` row is a Payme WALLET, never a bank account, so
+         *     every receiver row's `allocations.account` is structurally `NULL`, and
+         *     the leshoz's own account may be missing too (`tz/12` #15); `matcher.py`'s
+         *     module docstring gives the same limitation for the matching side, and
+         *     this is the same fact seen from the register a human actually reads.
          */
         get: operations["list_reconciliations_api_v1_payments_reconciliations_get"];
         put?: never;
@@ -3171,13 +3627,16 @@ export interface paths {
          *     incomplete range would miss (the lesson on a reversed date period).
          *
          *     **This route answers "did the money arrive against an invoice" — never
-         *     "did each half of the 50/50 split reach its own account"** (ruling 10,
-         *     the same limitation `GET /payments/reconciliations`'s own docstring
-         *     states): `account` is `null`, present on EVERY row, whenever that row
-         *     is the state budget's own half or names a leshoz with no account on
-         *     file (`tz/12` #15 — the state budget's account number is stored nowhere
-         *     in this system). A client renders that `null` as "settled outside the
-         *     system", never as a blank account number.
+         *     "did a configured receiver's own wallet, or the leshoz's own
+         *     remainder, actually reach its account"** (ruling 10, the same
+         *     limitation `GET /payments/reconciliations`'s own docstring states):
+         *     `account` is `null`, present on EVERY row, whenever that row names a
+         *     configured receiver (STRUCTURALLY — a `payment_recipients` row is a
+         *     Payme wallet, never a bank account, the seeded state-budget row
+         *     included) or names a leshoz with no account on file (`tz/12` #15). A
+         *     client renders that `null` as "settled outside the system", never as a
+         *     blank account number. `recipient_id`/`recipient_name` (task 8) name
+         *     WHICH configured receiver a `target="receiver"` row belongs to.
          */
         get: operations["list_allocations_api_v1_payments_allocations_get"];
         put?: never;
@@ -3186,6 +3645,41 @@ export interface paths {
         options?: never;
         head?: never;
         patch?: never;
+        trace?: never;
+    };
+    "/api/v1/payments/recipients": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Recipients */
+        get: operations["list_recipients_api_v1_payments_recipients_get"];
+        put?: never;
+        /** Create Recipient */
+        post: operations["create_recipient_api_v1_payments_recipients_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/payments/recipients/{recipient_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Patch Recipient */
+        patch: operations["patch_recipient_api_v1_payments_recipients__recipient_id__patch"];
         trace?: never;
     };
     "/api/v1/refunds": {
@@ -3198,7 +3692,17 @@ export interface paths {
         /**
          * List Refunds
          * @description The accountant's/rahbar's own register — every refund, optionally
-         *     narrowed by `application_id` or `status`.
+         *     narrowed by `application_id` or `status`. `components`/
+         *     `available_sources` stay `[]` on every row here, the same scope the old
+         *     `allocations`/`recipient_account`/`budget_account` fields had: a page of
+         *     up to 200 rows is not the place for a per-row extra query, and
+         *     `GET /refunds/{id}` is the single-item read built for it.
+         *
+         *     Widened to `PAYMENTS_VIEW` OR `PAYMENTS_CONFIRM` alongside `get_refund`
+         *     above (whole-branch review Important 3): this docstring already called
+         *     it the rahbar's own register too, and there is no other route through
+         *     which he could ever discover a refund's id to approve it — no
+         *     notification carries one today (`submit_refund_decision` sends none).
          */
         get: operations["list_refunds_api_v1_refunds_get"];
         put?: never;
@@ -3207,7 +3711,8 @@ export interface paths {
          * @description An applicant appeals their own application, or an accountant files on
          *     anyone's behalf (ruling 7). Always 201: `suggested_amount` may be `None`
          *     with a `suggestion_reason` instead — a hint is never a reason to refuse
-         *     filing (ruling 2).
+         *     filing (ruling 2). `components` is always `[]` here — nothing has been
+         *     submitted yet.
          */
         post: operations["request_refund_api_v1_refunds_post"];
         delete?: never;
@@ -3227,9 +3732,10 @@ export interface paths {
         put?: never;
         /**
          * Submit Refund Decision
-         * @description The accountant's own half (ruling 4): stores the figures, moves
-         *     `requested` -> `in_review`, touches no money. A breakdown that does not
-         *     sum to `final_amount` answers `ERR-VAL-001` here, before any write.
+         * @description The accountant's own half (ruling 4): stores the breakdown by source,
+         *     moves `requested` -> `in_review`, touches no money. A breakdown that
+         *     does not sum to `final_amount`, or that names the same source twice
+         *     (Override 1), answers `ERR-VAL-001` here, before any write.
          */
         post: operations["submit_refund_decision_api_v1_refunds__refund_id__submit_decision_post"];
         delete?: never;
@@ -3254,10 +3760,44 @@ export interface paths {
          *     `resolution="rejected"` writes nothing and moves it to `rejected`.
          *     Neither ever touches the invoice or the application (ruling 6).
          *
-         *     The response's `budget_account` is `None` on a `returned` approval by
-         *     design, not by omission (`tz/12` #15) — see `RefundOut`'s own docstring.
+         *     The response's `components` carries each source's own name and
+         *     resolved account (Override 3 — this used to read
+         *     `allocation.target == "budget"`, a value migration `0046` retired; the
+         *     generalised read is `component.recipient_id is None` for the leshoz's
+         *     own remainder, done inside `refund_components_out` rather than here).
          */
         post: operations["approve_refund_api_v1_refunds__refund_id__approve_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/refunds/{refund_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Refund
+         * @description The single-item read (stage 7.9 task 7): `available_sources` — the
+         *     invoice's own frozen split, so the accountant's/rahbar's own form
+         *     offers exactly the parties THIS payment was split between — and
+         *     `components`, whatever has already been submitted.
+         *
+         *     Gated on `PAYMENTS_VIEW` OR `PAYMENTS_CONFIRM` (whole-branch review
+         *     Important 3, fixed from `PAYMENTS_VIEW` alone): the rahbar
+         *     (`executor_head`, `payments.confirm`) is exactly who this docstring's
+         *     own "rahbar's own form" refers to, and under the narrower gate he could
+         *     reach `POST .../approve` (which returns `components` too) but not THIS
+         *     route — reading the breakdown only by committing to it. `available_
+         *     sources` existed for the actor it was unreachable to.
+         */
+        get: operations["get_refund_api_v1_refunds__refund_id__get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -3437,6 +3977,31 @@ export interface paths {
         get: operations["download_permit_pdf_api_v1_permits__permit_id__pdf_get"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/permits/{permit_id}/rating": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Rate Permit
+         * @description The citizen's verdict on their own issued permit, 1-5, once (ruling #140).
+         *
+         *     404 `ERR-SYS-003` for a stranger — the card's own answer, so this route is
+         *     not a permit-existence oracle. 403 `ERR-ACL-001` for a caller who can READ
+         *     the permit (a required signer, a `permits.view_any` holder) but is not its
+         *     holder. 409 `ERR-PERM-001` for a permit not yet issued, or already rated.
+         */
+        post: operations["rate_permit_api_v1_permits__permit_id__rating_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -3623,6 +4188,56 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/ratings/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Ratings Summary
+         * @description The overall average and count over the caller's own zone
+         *     (`app.core.abac.zone_filter`, all three axes: region, district AND
+         *     organization — never `organization_id` alone, the finding
+         *     `dashboard.repo.permits_kpi` already closed), plus the same pair broken
+         *     down by organization and by activity type. `organization_id`/
+         *     `activity_type_id` narrow the zone further; neither widens it.
+         */
+        get: operations["get_ratings_summary_api_v1_admin_ratings_summary_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/ratings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Ratings
+         * @description The anonymous comment feed: date, service, leshoz, score, text — never
+         *     who left it. Zone-scoped the same way the summary above is, and narrowable
+         *     by the same two optional filters — a screen that narrows the summary to
+         *     one leshoz must narrow this feed too, or the numbers above and the
+         *     comments below them describe different populations with nothing saying so
+         *     (final review, finding 3).
+         */
+        get: operations["list_ratings_api_v1_admin_ratings_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/public/permits/check": {
         parameters: {
             query?: never;
@@ -3755,6 +4370,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/inspections/tasks/{task_id}/reassign": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reassign Task */
+        post: operations["reassign_task_api_v1_inspections_tasks__task_id__reassign_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/inspections/acts": {
         parameters: {
             query?: never;
@@ -3832,7 +4464,13 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** List Cases */
+        /**
+         * List Cases
+         * @description `applicant_id` (ruling R8, finding F3): every case against ONE
+         *     violator, for anyone who may already see those cases — the filter runs
+         *     INSIDE `_case_scope`, so a leshoz head still sees only their own zone's
+         *     cases against that applicant, never another oblast's.
+         */
         get: operations["list_cases_api_v1_inspections_cases_get"];
         put?: never;
         post?: never;
@@ -5059,6 +5697,79 @@ export interface components {
             /** Result */
             result?: ("compliant" | "warning" | "violation") | null;
         };
+        /** ActivitySeasonIn */
+        ActivitySeasonIn: {
+            /**
+             * Organization Id
+             * Format: uuid
+             */
+            organization_id: string;
+            /**
+             * Activity Type Id
+             * Format: uuid
+             */
+            activity_type_id: string;
+            season?: components["schemas"]["Season"];
+            /** Min Term Days */
+            min_term_days?: number | null;
+        };
+        /** ActivitySeasonOut */
+        ActivitySeasonOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Organization Id
+             * Format: uuid
+             */
+            organization_id: string;
+            /**
+             * Activity Type Id
+             * Format: uuid
+             */
+            activity_type_id: string;
+            /** Season */
+            season: {
+                [key: string]: unknown;
+            };
+            /** Min Term Days */
+            min_term_days: number | null;
+            /**
+             * Created By
+             * Format: uuid
+             */
+            created_by: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /**
+         * ActivitySeasonPatch
+         * @description `organization_id`/`activity_type_id` are identity and stay out of this
+         *     patch, the same way `NormPatch` excludes `contour_id`/`activity_type_id`.
+         *
+         *     `min_term_days` backs a NULLABLE column — an explicit `null` clears the
+         *     minimum (no minimum enforced), the same `exclude_unset=True` idiom
+         *     `NormPatch.geobotanic_doc_id` already relies on. `season` backs a NOT
+         *     NULL column instead, so an explicit `null` here has no legal meaning —
+         *     to clear the windows a caller sends `{"windows": []}`, a real value, not
+         *     JSON `null` (same reasoning as `OrganizationPatch._reject_explicit_null_
+         *     gis_enabled`).
+         */
+        ActivitySeasonPatch: {
+            season?: components["schemas"]["Season"] | null;
+            /** Min Term Days */
+            min_term_days?: number | null;
+        };
         /** ActivityTypeOut */
         ActivityTypeOut: {
             /**
@@ -5076,6 +5787,28 @@ export interface components {
             quantity_unit: string;
             /** Status */
             status: string;
+            /** Description */
+            description: {
+                [key: string]: unknown;
+            } | null;
+            /** Processing Days */
+            processing_days: number;
+        };
+        /**
+         * ActivityTypePatch
+         * @description Ruling #139: presentation and the on/off switch. Never `code` (tariffs and
+         *     the calculator resolve by it) and never `quantity_unit` (a CHECK-constrained
+         *     enum the price arithmetic depends on).
+         */
+        ActivityTypePatch: {
+            name?: components["schemas"]["LocalizedName"] | null;
+            description?: components["schemas"]["LocalizedName"] | null;
+            /** Processing Days */
+            processing_days?: number | null;
+            /** Sort Order */
+            sort_order?: number | null;
+            /** Status */
+            status?: ("active" | "archived") | null;
         };
         /** AddRepresentationIn */
         AddRepresentationIn: {
@@ -5100,13 +5833,25 @@ export interface components {
          *     `service.record_reversal`) and `refund` (a returned refund's negative
          *     entries, `backoffice_service.approve_refund`) rows alike.
          *
-         *     **`account` is `null` whenever the row is the state budget's own half of
-         *     the 50/50 split, or names a leshoz with no account on file** (`tz/12`
-         *     #15, ruling 10 — the budget's account number is stored nowhere in this
-         *     system): declared here with no default and no `field_serializer` of its
-         *     own, so a `None` value serializes as JSON `null` — present on every
-         *     response, never omitted, never `""`. An accountant's UI must render that
-         *     as "settled outside the system", not as a blank account number.
+         *     **`account` is `null` for two different reasons that look identical on
+         *     the wire.** A row naming a configured receiver (`target="receiver"`) is
+         *     null STRUCTURALLY: `payment_recipients` identifies a Payme WALLET
+         *     (`payme_account_id`), never a bank account, so this column carries
+         *     nothing for any of them, the seeded state-budget row included. A row
+         *     naming the leshoz's own remainder (`target="recipient"`) is null only
+         *     when that organization's own `requisites` carries no `"account"` key
+         *     (`tz/12` #15) — declared here with no default and no `field_serializer`
+         *     of its own, so a `None` value serializes as JSON `null` — present on
+         *     every response, never omitted, never `""`. An accountant's UI must
+         *     render that as "settled outside the system", not as a blank account
+         *     number.
+         *
+         *     `recipient_id`/`recipient_name` (stage 7.9 task 8) name the configured
+         *     receiver a `target="receiver"` row belongs to — `None` for the leshoz's
+         *     own remainder (`recipient_id` mirrors the column directly; `target`
+         *     already says what a `None` id means here, so this schema does not
+         *     invent a leshoz label the way `RefundComponentOut` does for its own,
+         *     symmetric breakdown form).
          */
         AllocationOut: {
             /**
@@ -5123,6 +5868,12 @@ export interface components {
             transaction_id: string | null;
             /** Refund Id */
             refund_id: string | null;
+            /** Recipient Id */
+            recipient_id: string | null;
+            /** Recipient Name */
+            recipient_name?: {
+                [key: string]: unknown;
+            } | null;
             /** Entry Type */
             entry_type: string;
             /** Target */
@@ -5158,6 +5909,8 @@ export interface components {
             audience: {
                 [key: string]: unknown;
             } | null;
+            /** Public On Landing */
+            public_on_landing: boolean;
             /** Status */
             status: string;
             /** Publish From */
@@ -5182,12 +5935,44 @@ export interface components {
             title: components["schemas"]["LocalizedName"];
             body: components["schemas"]["LocalizedName"];
             audience?: components["schemas"]["AudienceIn"] | null;
+            /**
+             * Public On Landing
+             * @default false
+             */
+            public_on_landing: boolean;
             /** Publish From */
             publish_from?: string | null;
             /** Publish To */
             publish_to?: string | null;
             /** File Ids */
             file_ids?: string[] | null;
+        };
+        /**
+         * AnnouncementLandingOut
+         * @description What the anonymous public site gets (`0037`). Narrower than
+         *     `AnnouncementOut`, which is already visibility-filtered but still an
+         *     authenticated shape: no `publish_to` (an internal scheduling detail — the
+         *     window is enforced by the query, not read by the reader) and files carry no
+         *     `content_type`-driven behaviour beyond what the download route decides.
+         */
+        AnnouncementLandingOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Title */
+            title: {
+                [key: string]: unknown;
+            };
+            /** Body */
+            body: {
+                [key: string]: unknown;
+            };
+            /** Publish From */
+            publish_from: string | null;
+            /** Files */
+            files: components["schemas"]["FileRef"][];
         };
         /**
          * AnnouncementOut
@@ -5226,6 +6011,8 @@ export interface components {
             title?: components["schemas"]["LocalizedName"] | null;
             body?: components["schemas"]["LocalizedName"] | null;
             audience?: components["schemas"]["AudienceIn"] | null;
+            /** Public On Landing */
+            public_on_landing?: boolean | null;
             /** Publish From */
             publish_from?: string | null;
             /** Publish To */
@@ -5530,6 +6317,19 @@ export interface components {
             kind: "new" | "extension";
             /** Benefit Category Item Id */
             benefit_category_item_id: string | null;
+            /** Benefit Certificate No */
+            benefit_certificate_no: string | null;
+            /**
+             * Benefit Verification Status
+             * @enum {string}
+             */
+            benefit_verification_status: "not_required" | "pending" | "verified" | "rejected";
+            /** Benefit Verified By */
+            benefit_verified_by: string | null;
+            /** Benefit Verified At */
+            benefit_verified_at: string | null;
+            /** Benefit Rejection Reason */
+            benefit_rejection_reason: string | null;
             /** Rejection Reason Item Id */
             rejection_reason_item_id: string | null;
             /** Assigned Org Id */
@@ -5785,6 +6585,19 @@ export interface components {
             kind: "new" | "extension";
             /** Benefit Category Item Id */
             benefit_category_item_id: string | null;
+            /** Benefit Certificate No */
+            benefit_certificate_no: string | null;
+            /**
+             * Benefit Verification Status
+             * @enum {string}
+             */
+            benefit_verification_status: "not_required" | "pending" | "verified" | "rejected";
+            /** Benefit Verified By */
+            benefit_verified_by: string | null;
+            /** Benefit Verified At */
+            benefit_verified_at: string | null;
+            /** Benefit Rejection Reason */
+            benefit_rejection_reason: string | null;
             /** Rejection Reason Item Id */
             rejection_reason_item_id: string | null;
             /** Assigned Org Id */
@@ -5958,6 +6771,19 @@ export interface components {
             kind: "new" | "extension";
             /** Benefit Category Item Id */
             benefit_category_item_id: string | null;
+            /** Benefit Certificate No */
+            benefit_certificate_no: string | null;
+            /**
+             * Benefit Verification Status
+             * @enum {string}
+             */
+            benefit_verification_status: "not_required" | "pending" | "verified" | "rejected";
+            /** Benefit Verified By */
+            benefit_verified_by: string | null;
+            /** Benefit Verified At */
+            benefit_verified_at: string | null;
+            /** Benefit Rejection Reason */
+            benefit_rejection_reason: string | null;
             /** Rejection Reason Item Id */
             rejection_reason_item_id: string | null;
             /** Assigned Org Id */
@@ -6019,6 +6845,8 @@ export interface components {
             items?: components["schemas"]["ApplicationItemIn"][] | null;
             /** Benefit Category Item Id */
             benefit_category_item_id?: string | null;
+            /** Benefit Certificate No */
+            benefit_certificate_no?: string | null;
         };
         /**
          * ApplicationRejectIn
@@ -6256,6 +7084,154 @@ export interface components {
             /** Region Ids */
             region_ids?: string[] | null;
         };
+        /**
+         * AvailableSourceOut
+         * @description One row of `RefundOut.available_sources` — the invoice's OWN frozen
+         *     split (`payments.service.invoice_recipients`), so the accountant's form
+         *     offers exactly the parties THIS payment was split between, never a
+         *     fixed budget/recipient/other trio. The last row is always
+         *     `kind="remainder"`, `recipient_id=None` — the leshoz's own share,
+         *     mirroring `InvoiceRecipient`'s own "remainder always last" convention.
+         */
+        AvailableSourceOut: {
+            /** Recipient Id */
+            recipient_id: string | null;
+            /** Name */
+            name: {
+                [key: string]: unknown;
+            };
+            /** Kind */
+            kind: string;
+        };
+        /**
+         * BenefitClaimDetailOut
+         * @description `GET /applications/benefit-verifications/{id}` — the verifier's own
+         *     single-item read. `GET /applications/benefit-verifications` (the list)
+         *     answers `Page[ApplicationOut]` directly and needs no schema of its own:
+         *     every column this office cares about is already on that shape, including
+         *     the five ruling #179 added.
+         *
+         *     Deliberately NOT `ApplicationCardOut`: that shape is built by `service.
+         *     get_card`, which gates through `service._readable_application` — a
+         *     function this role never satisfies (it holds no `applications.view_any`
+         *     and, being central, no zone match either), so reusing it would 404 the
+         *     very role it is meant to serve. `documents` is the one thing beyond the
+         *     application's own columns this office needs on the DETAIL read (`tz/06`
+         *     §Льготы: the certificate's supporting file, attached through the ordinary
+         *     document mechanism — see `repo.list_documents`) — left off the list
+         *     response so paging the queue costs one query, not one plus N.
+         */
+        BenefitClaimDetailOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Number */
+            number: string | null;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "DRAFT" | "SUBMITTED" | "IN_REVIEW" | "PENDING_INFO" | "RETURNED" | "APPROVED" | "INVOICED" | "PAID" | "PERMIT_ISSUED" | "REJECTED" | "CANCELLED" | "EXPIRED_UNPAID" | "CLOSED" | "ARCHIVED";
+            /**
+             * Applicant Id
+             * Format: uuid
+             */
+            applicant_id: string;
+            /**
+             * Submitted By User Id
+             * Format: uuid
+             */
+            submitted_by_user_id: string;
+            /**
+             * On Behalf
+             * @enum {string}
+             */
+            on_behalf: "self" | "legal";
+            /** Representation Id */
+            representation_id: string | null;
+            /** Activity Type Id */
+            activity_type_id: string | null;
+            /** Contour Id */
+            contour_id: string | null;
+            /** Contour Version Id */
+            contour_version_id: string | null;
+            /** Requested Area Ha */
+            requested_area_ha: string | null;
+            /** Period From */
+            period_from: string | null;
+            /** Period To */
+            period_to: string | null;
+            /** Quantity */
+            quantity: string | null;
+            /**
+             * Channel
+             * @enum {string}
+             */
+            channel: "portal" | "mygov";
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "new" | "extension";
+            /** Benefit Category Item Id */
+            benefit_category_item_id: string | null;
+            /** Benefit Certificate No */
+            benefit_certificate_no: string | null;
+            /**
+             * Benefit Verification Status
+             * @enum {string}
+             */
+            benefit_verification_status: "not_required" | "pending" | "verified" | "rejected";
+            /** Benefit Verified By */
+            benefit_verified_by: string | null;
+            /** Benefit Verified At */
+            benefit_verified_at: string | null;
+            /** Benefit Rejection Reason */
+            benefit_rejection_reason: string | null;
+            /** Rejection Reason Item Id */
+            rejection_reason_item_id: string | null;
+            /** Assigned Org Id */
+            assigned_org_id: string | null;
+            /** Assigned User Id */
+            assigned_user_id: string | null;
+            /** Parent Application Id */
+            parent_application_id: string | null;
+            /** Sla Deadline At */
+            sla_deadline_at: string | null;
+            /** Submitted At */
+            submitted_at: string | null;
+            /** Decided At */
+            decided_at: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** Documents */
+            documents: components["schemas"]["ApplicationDocumentOut"][];
+        };
+        /**
+         * BenefitClaimRejectIn
+         * @description `POST /applications/benefit-verifications/{id}/reject` — the ONE field
+         *     ruling #179 requires: a reason, MANDATORY (`min_length=1`, the same gap
+         *     `ApplicationRejectIn.legal_basis` closes for the head's own rejection).
+         *
+         *     No `pkcs7` here, unlike `ApplicationRejectIn`/`ApplicationApproveIn`: a
+         *     benefit-certificate check is an administrative verification against a
+         *     paper registry, not a decision `tz/04` asks the state to sign — the same
+         *     reasoning `ApplicationReturnIn` states for itself.
+         */
+        BenefitClaimRejectIn: {
+            /** Reason */
+            reason: string;
+        };
         /** Body_create_bank_statement_api_v1_payments_bank_statements_post */
         Body_create_bank_statement_api_v1_payments_bank_statements_post: {
             /** File */
@@ -6394,7 +7370,10 @@ export interface components {
         /**
          * CaseCardOut
          * @description `GET /inspections/cases/{id}`: the case's own columns, FLAT, plus its
-         *     append-only timeline and any appeals filed against its decision.
+         *     append-only timeline, any appeals filed against its decision, and how
+         *     many of the SAME applicant's other cases already reached a decision
+         *     (ruling R8, `tz/04`'s "shows the history" half of the repeat-violation
+         *     line — the "suggests stricter" half is deliberately NOT built).
          */
         CaseCardOut: {
             /**
@@ -6447,6 +7426,8 @@ export interface components {
             history: components["schemas"]["CaseHistoryEntry"][];
             /** Appeals */
             appeals: components["schemas"]["AppealOut"][];
+            /** Prior Cases Count */
+            prior_cases_count: number;
         };
         /** CaseHistoryEntry */
         CaseHistoryEntry: {
@@ -6745,7 +7726,7 @@ export interface components {
             /** Email */
             email?: string | null;
             /** Otp Token */
-            otp_token: string;
+            otp_token?: string | null;
         };
         /**
          * ContourCardOut
@@ -6756,6 +7737,13 @@ export interface components {
          *     keeping its full 4-dp precision (`"0.0000"`, not `"0"`) is what makes it
          *     read as a real figure rather than a rounded-away one. `s_available_ha`/
          *     `over_allocated` — see `ContourListItem`'s own docstring, the same shape.
+         *
+         *     `geometry` is `None` (decision #178) for a version filed by requisites
+         *     alone, and also whenever the owning organization's `gis_enabled` switch
+         *     is off — `gis.service.contour_card`'s own docstring explains why the
+         *     switch wins even over a row that happens to carry real geometry. Every
+         *     other field is unaffected: this is the one place `gis_enabled` reaches,
+         *     not a second, degraded card.
          */
         ContourCardOut: {
             /**
@@ -6782,7 +7770,7 @@ export interface components {
             /** Geometry */
             geometry: {
                 [key: string]: unknown;
-            };
+            } | null;
             /** Occupied Ha */
             occupied_ha: string;
             /** S Available Ha */
@@ -7011,6 +7999,59 @@ export interface components {
              */
             issued_at: string;
         };
+        /**
+         * EffectiveSeasonOut
+         * @description `GET /activity-seasons/effective` — task 4's public read for the
+         *     wizard: what ACTUALLY applies after ruling #177's override resolves,
+         *     through the SAME function the blocking check itself calls
+         *     (`checks.resolve_effective_windows`), so a date picker built from this
+         *     can never disagree with the check that fires if the applicant ignores it.
+         *
+         *     `windows` is the raw JSONB list (`{"from": "MM-DD", "to": "MM-DD"}`
+         *     dicts), not `list[SeasonWindow]` — deliberately: a contour's norm may
+         *     predate `schemas.Season`'s edge validation (`checks._in_window`'s own
+         *     docstring), and re-validating its windows through `SeasonWindow` here
+         *     would turn a pre-existing row's already-tolerated malformed window into
+         *     a 500 on a READ endpoint, the opposite of the fail-closed-but-never-
+         *     crashing property this stage exists to preserve.
+         *
+         *     `season_source` says WHICH source won: `"norm"` (the contour's own,
+         *     overriding), `"activity_season"` (the leshoz dictionary, the fallback)
+         *     or `"none"` (neither states one — today's unchanged meaning, no
+         *     restriction at all). `min_term_source` is always `"activity_season"` or
+         *     `"none"`: the minimum term has no norm-level override (ruling #177 only
+         *     speaks of overriding the WINDOWS).
+         */
+        EffectiveSeasonOut: {
+            /**
+             * Activity Type Id
+             * Format: uuid
+             */
+            activity_type_id: string;
+            /**
+             * Organization Id
+             * Format: uuid
+             */
+            organization_id: string;
+            /** Contour Id */
+            contour_id: string | null;
+            /** Windows */
+            windows: {
+                [key: string]: unknown;
+            }[];
+            /**
+             * Season Source
+             * @enum {string}
+             */
+            season_source: "norm" | "activity_season" | "none";
+            /** Min Term Days */
+            min_term_days: number | null;
+            /**
+             * Min Term Source
+             * @enum {string}
+             */
+            min_term_source: "activity_season" | "none";
+        };
         /** EimzoChallengeOut */
         EimzoChallengeOut: {
             /** Challenge */
@@ -7020,6 +8061,16 @@ export interface components {
         EimzoLoginIn: {
             /** Signed Challenge */
             signed_challenge: string;
+        };
+        /** EimzoTimestampIn */
+        EimzoTimestampIn: {
+            /** Pkcs7 */
+            pkcs7: string;
+        };
+        /** EimzoTimestampOut */
+        EimzoTimestampOut: {
+            /** Pkcs7 */
+            pkcs7: string;
         };
         /** ExplanationIn */
         ExplanationIn: {
@@ -7556,6 +8607,38 @@ export interface components {
             due_at: string;
             /** Paid At */
             paid_at: string | null;
+            /** Recipients */
+            recipients?: components["schemas"]["InvoiceRecipientOut"][] | null;
+        };
+        /**
+         * InvoiceRecipientOut
+         * @description One row of an invoice's split, FROZEN at issuance
+         *     (`payments.models.InvoiceRecipient`, decision #158) — `InvoiceOut.
+         *     recipients`, ordered by `position`, the LAST row always the leshoz's
+         *     own remainder (`kind="remainder"`, `recipient_id=None`).
+         *
+         *     Carries the full frozen rule, not just the resulting `amount`: `kind`/
+         *     `percent`/`fixed_amount` are what a `payments.view` holder needs to see
+         *     WHY a share is what it is, the same fields `PaymentRecipientOut`
+         *     exposes for the live directory this snapshot was copied from.
+         */
+        InvoiceRecipientOut: {
+            /** Recipient Id */
+            recipient_id: string | null;
+            /** Name */
+            name: {
+                [key: string]: unknown;
+            };
+            /** Payme Account Id */
+            payme_account_id: string | null;
+            /** Kind */
+            kind: string;
+            /** Percent */
+            percent: string | null;
+            /** Fixed Amount */
+            fixed_amount: string | null;
+            /** Amount */
+            amount: string;
         };
         /** KpiOut */
         KpiOut: {
@@ -7571,6 +8654,7 @@ export interface components {
             rejections: components["schemas"]["RejectionRowOut"][];
             risk_indicators: components["schemas"]["RiskIndicatorsKpiOut"];
             inspections: components["schemas"]["InspectionsKpiOut"];
+            satisfaction: components["schemas"]["SatisfactionKpiOut"];
             /** Omitted */
             omitted: string[];
         };
@@ -7618,6 +8702,117 @@ export interface components {
             is_public?: boolean | null;
             /** Status */
             status?: string | null;
+        };
+        /** LegalDocumentAdminOut */
+        LegalDocumentAdminOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Title */
+            title: {
+                [key: string]: unknown;
+            };
+            /** Summary */
+            summary: {
+                [key: string]: unknown;
+            } | null;
+            /** Doc Number */
+            doc_number: string;
+            /**
+             * Adopted On
+             * Format: date
+             */
+            adopted_on: string;
+            /** Source Url */
+            source_url: string | null;
+            file: components["schemas"]["FileRef"] | null;
+            /** Status */
+            status: string;
+            /** Sort Order */
+            sort_order: number;
+            /**
+             * Created By
+             * Format: uuid
+             */
+            created_by: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+        };
+        /** LegalDocumentCreateIn */
+        LegalDocumentCreateIn: {
+            title: components["schemas"]["LocalizedName"];
+            summary?: components["schemas"]["LocalizedName"] | null;
+            /** Doc Number */
+            doc_number: string;
+            /**
+             * Adopted On
+             * Format: date
+             */
+            adopted_on: string;
+            /** Source Url */
+            source_url?: string | null;
+            /** File Id */
+            file_id?: string | null;
+            /**
+             * Sort Order
+             * @default 0
+             */
+            sort_order: number;
+        };
+        /**
+         * LegalDocumentOut
+         * @description What the anonymous site gets. No `status`, no `sort_order`, no
+         *     `created_by`: those are editorial bookkeeping, and the citizen gets what the
+         *     page prints. `file` is null for a document that lives only on lex.uz.
+         */
+        LegalDocumentOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Title */
+            title: {
+                [key: string]: unknown;
+            };
+            /** Summary */
+            summary: {
+                [key: string]: unknown;
+            } | null;
+            /** Doc Number */
+            doc_number: string;
+            /**
+             * Adopted On
+             * Format: date
+             */
+            adopted_on: string;
+            /** Source Url */
+            source_url: string | null;
+            file: components["schemas"]["FileRef"] | null;
+        };
+        /**
+         * LegalDocumentPatchIn
+         * @description All fields optional — only keys present in the request are touched
+         *     (`exclude_unset=True`), the convention `AnnouncementPatchIn` established.
+         */
+        LegalDocumentPatchIn: {
+            title?: components["schemas"]["LocalizedName"] | null;
+            summary?: components["schemas"]["LocalizedName"] | null;
+            /** Doc Number */
+            doc_number?: string | null;
+            /** Adopted On */
+            adopted_on?: string | null;
+            /** Source Url */
+            source_url?: string | null;
+            /** File Id */
+            file_id?: string | null;
+            /** Sort Order */
+            sort_order?: number | null;
         };
         /**
          * LivestockItemIn
@@ -7674,12 +8869,21 @@ export interface components {
             /** Password */
             password: string;
         };
-        /** LoginOut */
+        /**
+         * LoginOut
+         * @description Answer to the password step, in one of two shapes.
+         *
+         *     MFA on: `mfa_required` true, `mfa_token` set, `me` null — the client must
+         *     still call /auth/mfa/verify. MFA off (`mfa_enabled`): `mfa_required` false,
+         *     `mfa_token` null, `me` set — the session cookies are already on THIS
+         *     response and there is no second step to take.
+         */
         LoginOut: {
             /** Mfa Required */
             mfa_required: boolean;
             /** Mfa Token */
-            mfa_token: string;
+            mfa_token?: string | null;
+            me?: components["schemas"]["MeOut"] | null;
         };
         /**
          * ManualConfirmationIn
@@ -7853,6 +9057,8 @@ export interface components {
             activity_type_id: string;
             /** Yield C Per Ha */
             yield_c_per_ha?: number | string | null;
+            /** Capacity */
+            capacity?: number | string | null;
             season?: components["schemas"]["Season"] | null;
             rotation?: components["schemas"]["Rotation"] | null;
             /** Geobotanic Doc Id */
@@ -7884,6 +9090,8 @@ export interface components {
             activity_type_id: string;
             /** Yield C Per Ha */
             yield_c_per_ha: string | null;
+            /** Capacity */
+            capacity: string | null;
             /** Season */
             season: {
                 [key: string]: unknown;
@@ -7930,6 +9138,8 @@ export interface components {
         NormPatch: {
             /** Yield C Per Ha */
             yield_c_per_ha?: number | string | null;
+            /** Capacity */
+            capacity?: number | string | null;
             season?: components["schemas"]["Season"] | null;
             rotation?: components["schemas"]["Rotation"] | null;
             /** Geobotanic Doc Id */
@@ -7978,6 +9188,93 @@ export interface components {
             contour_count: number;
             /** Avg Occupied Pct */
             avg_occupied_pct: string | null;
+        };
+        /**
+         * OccupancyOut
+         * @description `GET /gis/contours/{id}/occupancy`. No applicant identity anywhere in
+         *     this shape — see `repo.active_permit_periods`'s own docstring for exactly
+         *     which three columns of `permits` this is built from.
+         *
+         *     `capacity`/`unit` are `None`/the activity's own unit respectively when
+         *     `exclusive` is true (ruling #176, Oybek's option a): no norm, or the
+         *     relevant column left unset, means the contour admits ONE active permit
+         *     for this activity and refuses the rest, not "unlimited" — `unit` still
+         *     names what a NON-exclusive answer would have been counted in, since it is
+         *     a property of the activity, not of this one contour's capacity.
+         *
+         *     `load_source` mirrors `norms.service.committed_load_sb`'s own idiom:
+         *     `"permits"` means the committed figures below come from a real read of
+         *     `permits`; `"none"` means they could not be resolved at all (today, only
+         *     a non-grazing CAPACITY contour — see this track's report for why) and
+         *     every sub-period's `committed` is a `0` placeholder, never a
+         *     measurement.
+         */
+        OccupancyOut: {
+            /**
+             * Contour Id
+             * Format: uuid
+             */
+            contour_id: string;
+            /**
+             * Activity Type Id
+             * Format: uuid
+             */
+            activity_type_id: string;
+            /**
+             * Period From
+             * Format: date
+             */
+            period_from: string;
+            /**
+             * Period To
+             * Format: date
+             */
+            period_to: string;
+            /** Capacity */
+            capacity: string | null;
+            /** Unit */
+            unit: string;
+            /** Exclusive */
+            exclusive: boolean;
+            /**
+             * Load Source
+             * @enum {string}
+             */
+            load_source: "permits" | "none";
+            /** Periods */
+            periods: components["schemas"]["OccupancySubPeriodOut"][];
+        };
+        /**
+         * OccupancySubPeriodOut
+         * @description One stretch of the requested window with one committed figure. Sub-
+         *     periods are contiguous and gapless: their `period_from`/`period_to` tile
+         *     `[period_from, period_to]` of the parent response exactly.
+         *
+         *     `committed`/`remaining` are `None` for an EXCLUSIVE contour (`result` is
+         *     `free`/`full` only there) — there is no capacity number to state a
+         *     remainder of, so a fabricated one is worse than none (`CLAUDE.md`:
+         *     "loudly wrong beats silently wrong").
+         */
+        OccupancySubPeriodOut: {
+            /**
+             * Period From
+             * Format: date
+             */
+            period_from: string;
+            /**
+             * Period To
+             * Format: date
+             */
+            period_to: string;
+            /** Committed */
+            committed: string | null;
+            /** Remaining */
+            remaining: string | null;
+            /**
+             * Result
+             * @enum {string}
+             */
+            result: "free" | "partial" | "full";
         };
         /** OneIdAuthorizeOut */
         OneIdAuthorizeOut: {
@@ -8086,10 +9383,14 @@ export interface components {
             };
             /** Status */
             status: string;
+            /** Gis Enabled */
+            gis_enabled: boolean;
         };
         /**
          * OrganizationIn
          * @description Create payload; `kind`/`parent_id` pairing is validated in the service (ruling 6).
+         *     `gis_enabled` defaults to the column's own `true` (decision #178) — most creates
+         *     never need to set it explicitly.
          */
         OrganizationIn: {
             /** Parent Id */
@@ -8112,6 +9413,11 @@ export interface components {
             requisites: {
                 [key: string]: unknown;
             };
+            /**
+             * Gis Enabled
+             * @default true
+             */
+            gis_enabled: boolean;
         };
         /**
          * OrganizationOut
@@ -8119,6 +9425,11 @@ export interface components {
          *     `requisites` (bank details) is deliberately excluded; the admin write surface
          *     (Task 5's `OrganizationAdminOut`, gated behind `admin.organizations.manage`)
          *     is where that belongs.
+         *
+         *     `gis_enabled` (decision #178) is here, not only on the admin shape: an
+         *     applicant picking a leshoz needs to know whether to expect a map before
+         *     ever reaching a gis route, and this is the one place every authenticated
+         *     caller already reads an organization's own row.
          */
         OrganizationOut: {
             /**
@@ -8144,8 +9455,15 @@ export interface components {
             district_id: string | null;
             /** Status */
             status: string;
+            /** Gis Enabled */
+            gis_enabled: boolean;
         };
-        /** OrganizationPatch */
+        /**
+         * OrganizationPatch
+         * @description `gis_enabled` (decision #178) is the central admin's switch: false means this
+         *     leshoz files contours by requisites and shows no map (`gis.service.contour_card`/
+         *     `contour_features_geojson` read it back).
+         */
         OrganizationPatch: {
             /** Parent Id */
             parent_id?: string | null;
@@ -8160,6 +9478,8 @@ export interface components {
             requisites?: {
                 [key: string]: unknown;
             } | null;
+            /** Gis Enabled */
+            gis_enabled?: boolean | null;
         };
         /** OtpRequestIn */
         OtpRequestIn: {
@@ -8265,6 +9585,17 @@ export interface components {
             /** Page Size */
             page_size: number;
         };
+        /** Page[ActivitySeasonOut] */
+        Page_ActivitySeasonOut_: {
+            /** Items */
+            items: components["schemas"]["ActivitySeasonOut"][];
+            /** Total */
+            total: number;
+            /** Page */
+            page: number;
+            /** Page Size */
+            page_size: number;
+        };
         /** Page[AllocationOut] */
         Page_AllocationOut_: {
             /** Items */
@@ -8280,6 +9611,17 @@ export interface components {
         Page_AnnouncementAdminOut_: {
             /** Items */
             items: components["schemas"]["AnnouncementAdminOut"][];
+            /** Total */
+            total: number;
+            /** Page */
+            page: number;
+            /** Page Size */
+            page_size: number;
+        };
+        /** Page[AnnouncementLandingOut] */
+        Page_AnnouncementLandingOut_: {
+            /** Items */
+            items: components["schemas"]["AnnouncementLandingOut"][];
             /** Total */
             total: number;
             /** Page */
@@ -8408,6 +9750,28 @@ export interface components {
             /** Page Size */
             page_size: number;
         };
+        /** Page[LegalDocumentAdminOut] */
+        Page_LegalDocumentAdminOut_: {
+            /** Items */
+            items: components["schemas"]["LegalDocumentAdminOut"][];
+            /** Total */
+            total: number;
+            /** Page */
+            page: number;
+            /** Page Size */
+            page_size: number;
+        };
+        /** Page[LegalDocumentOut] */
+        Page_LegalDocumentOut_: {
+            /** Items */
+            items: components["schemas"]["LegalDocumentOut"][];
+            /** Total */
+            total: number;
+            /** Page */
+            page: number;
+            /** Page Size */
+            page_size: number;
+        };
         /** Page[ManualConfirmationOut] */
         Page_ManualConfirmationOut_: {
             /** Items */
@@ -8474,10 +9838,32 @@ export interface components {
             /** Page Size */
             page_size: number;
         };
+        /** Page[PaymentRecipientOut] */
+        Page_PaymentRecipientOut_: {
+            /** Items */
+            items: components["schemas"]["PaymentRecipientOut"][];
+            /** Total */
+            total: number;
+            /** Page */
+            page: number;
+            /** Page Size */
+            page_size: number;
+        };
         /** Page[PermitOut] */
         Page_PermitOut_: {
             /** Items */
             items: components["schemas"]["PermitOut"][];
+            /** Total */
+            total: number;
+            /** Page */
+            page: number;
+            /** Page Size */
+            page_size: number;
+        };
+        /** Page[RatingCommentRow] */
+        Page_RatingCommentRow_: {
+            /** Items */
+            items: components["schemas"]["RatingCommentRow"][];
             /** Total */
             total: number;
             /** Page */
@@ -8677,6 +10063,105 @@ export interface components {
             /** Payment Url */
             payment_url: string;
         };
+        /**
+         * PaymentRecipientIn
+         * @description `POST /payments/recipients` (decisions #154, #157). Exactly ONE of
+         *     `percent`/`fixed_amount` may be set, matching `kind` — the DB CHECK
+         *     `rule_matches_kind` (migration `0045`) enforces the same rule, but a
+         *     client sending the wrong one should see a 422 here, never an
+         *     `IntegrityError` turned 500 (lesson: "A `response_model` mismatch is
+         *     invisible to ruff and pyright" sits beside this one — the schema is what
+         *     turns a database constraint into a client-facing error).
+         *
+         *     `active` is deliberately absent: every new row starts active (the
+         *     model's own default), and a row is deactivated afterwards through
+         *     `PATCH`, never created inactive — decision #157 makes deactivation, not
+         *     creation, the point where a row stops counting.
+         */
+        PaymentRecipientIn: {
+            name: components["schemas"]["LocalizedName"];
+            /** Payme Account Id */
+            payme_account_id?: string | null;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "percent" | "fixed";
+            /** Percent */
+            percent?: number | string | null;
+            /** Fixed Amount */
+            fixed_amount?: number | string | null;
+            /**
+             * Sort Order
+             * @default 0
+             */
+            sort_order: number;
+            /** Note */
+            note?: string | null;
+        };
+        /** PaymentRecipientOut */
+        PaymentRecipientOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Name */
+            name: {
+                [key: string]: unknown;
+            };
+            /** Payme Account Id */
+            payme_account_id: string | null;
+            /** Kind */
+            kind: string;
+            /** Percent */
+            percent: string | null;
+            /** Fixed Amount */
+            fixed_amount: string | null;
+            /** Active */
+            active: boolean;
+            /** Sort Order */
+            sort_order: number;
+            /** Note */
+            note: string | null;
+            /** Created By */
+            created_by: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /**
+         * PaymentRecipientPatch
+         * @description `PATCH /payments/recipients/{id}` — every field optional, only the
+         *     keys actually sent are touched (`exclude_unset=True`, the convention
+         *     `LegalDocumentPatchIn` established). `kind` is absent: it never changes
+         *     after creation, so `percent`/`fixed_amount` here always mean "the row's
+         *     OWN kind's own amount" — `recipients_service.update` refuses whichever
+         *     one does not match the row's `kind`, the same reasoning `_one_rule_only`
+         *     above enforces at creation.
+         */
+        PaymentRecipientPatch: {
+            name?: components["schemas"]["LocalizedName"] | null;
+            /** Payme Account Id */
+            payme_account_id?: string | null;
+            /** Percent */
+            percent?: number | string | null;
+            /** Fixed Amount */
+            fixed_amount?: number | string | null;
+            /** Sort Order */
+            sort_order?: number | null;
+            /** Note */
+            note?: string | null;
+            /** Active */
+            active?: boolean | null;
+        };
         /** PaymentsKpiOut */
         PaymentsKpiOut: {
             /** Invoiced Amount */
@@ -8838,6 +10323,7 @@ export interface components {
              * Format: date
              */
             document_date: string;
+            rating?: components["schemas"]["PermitRatingOut"] | null;
         };
         /**
          * PermitHistoryRow
@@ -8950,6 +10436,35 @@ export interface components {
             template_id: string | null;
             /** Issued At */
             issued_at: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+        };
+        /**
+         * PermitRatingIn
+         * @description `POST /permits/{id}/rating` — the citizen's verdict on a permit they
+         *     actually received (ruling #140). One per permit, checked by the service,
+         *     never left to `permit_ratings`'s own UNIQUE index.
+         */
+        PermitRatingIn: {
+            /** Score */
+            score: number;
+            /** Comment */
+            comment?: string | null;
+        };
+        /**
+         * PermitRatingOut
+         * @description One rating, exactly as `permit_ratings` stores it. No `permit_id`, no
+         *     applicant: ruling #141 keeps the author off every response built from this
+         *     table, and this is the shape every such response embeds.
+         */
+        PermitRatingOut: {
+            /** Score */
+            score: number;
+            /** Comment */
+            comment: string | null;
             /**
              * Created At
              * Format: date-time
@@ -9095,14 +10610,21 @@ export interface components {
         /**
          * PublicActivityTypeOut
          * @description A narrowed `admin.schemas.ActivityTypeOut` for `GET
-         *     /public/refs/activity-types`: only what a dropdown needs — `id`, `code`
-         *     (the front-end's own hook for "this is grazing", so it can decide whether
-         *     to render herd inputs) and `name`. Never `quantity_unit`/`status`, which
-         *     the general, authenticated `/refs/*` router already answers and this
-         *     anonymous surface has no reason to repeat. `name` carries whatever
-         *     languages the row has — `uz_latn` since migration `0032`'s backfill
-         *     (decision #90, closing `tz/12` #31's backend half) — returned as-is,
-         *     never invented.
+         *     /public/refs/activity-types`: only what the public catalog needs — `id`,
+         *     `code` (the front-end's own hook for "this is grazing", so it can decide
+         *     whether to render herd inputs), `name`, `description` and
+         *     `processing_days`. Never `quantity_unit`/`status`, which the general,
+         *     authenticated `/refs/*` router already answers and this anonymous
+         *     surface has no reason to repeat. `name` carries whatever languages the
+         *     row has — `uz_latn` since migration `0032`'s backfill (decision #90,
+         *     closing `tz/12` #31's backend half) — returned as-is, never invented.
+         *
+         *     `description`/`processing_days` ARE public (ruling #138), unlike
+         *     `quantity_unit`/`status` above: they are the shop-window copy — what the
+         *     landing site shows a citizen deciding which service to apply for — and
+         *     the landing is their only consumer. `description` may be NULL (a row
+         *     with no seeded copy yet, migration `0038`'s own docstring); `processing_days`
+         *     is DISPLAY ONLY, never the enforced deadline (`applications.service.SLA_DAYS`).
          */
         PublicActivityTypeOut: {
             /**
@@ -9116,6 +10638,12 @@ export interface components {
             name: {
                 [key: string]: unknown;
             };
+            /** Description */
+            description: {
+                [key: string]: unknown;
+            } | null;
+            /** Processing Days */
+            processing_days: number;
         };
         /**
          * PublicCheckCard
@@ -9324,6 +10852,86 @@ export interface components {
             message: string;
         };
         /**
+         * RatingCommentRow
+         * @description `GET /admin/ratings` — one row of the anonymous comment feed.
+         *
+         *     Ruling #141: date, service, leshoz, score, text. No applicant, no permit
+         *     number — anything that identifies WHO rated is absent by construction, not
+         *     filtered out at render time. `test_comments_never_name_the_author` asserts
+         *     this on the SERIALIZED body rather than on this class, on purpose: a field
+         *     added here later would pass a field-name check and still leak.
+         */
+        RatingCommentRow: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Score */
+            score: number;
+            /** Comment */
+            comment: string | null;
+            /** Organization Name */
+            organization_name: {
+                [key: string]: unknown;
+            };
+            /** Activity Type Name */
+            activity_type_name: {
+                [key: string]: unknown;
+            };
+        };
+        /**
+         * RatingsBreakdownRow
+         * @description One group of `GET /admin/ratings/summary`'s two breakdowns — exactly
+         *     one of `organization_id`/`activity_type_id` is set, depending on which
+         *     list this row sits in.
+         */
+        RatingsBreakdownRow: {
+            /** Organization Id */
+            organization_id?: string | null;
+            /** Activity Type Id */
+            activity_type_id?: string | null;
+            /** Name */
+            name: {
+                [key: string]: unknown;
+            };
+            /** Avg Score */
+            avg_score: string;
+            /** Count */
+            count: number;
+        };
+        /**
+         * RatingsSummaryOut
+         * @description `GET /admin/ratings/summary` — the overall average and count over the
+         *     caller's zone and the given period, plus the same pair broken down by
+         *     organization and by activity type. `avg_score`/`count` are both null-safe:
+         *     zero ratings in scope reads as `avg_score: null, count: 0`, never a 404 or
+         *     a division-by-zero — a summary has no row to refuse.
+         */
+        RatingsSummaryOut: {
+            /** Avg Score */
+            avg_score: string | null;
+            /** Count */
+            count: number;
+            /** By Organization */
+            by_organization: components["schemas"]["RatingsBreakdownRow"][];
+            /** By Activity Type */
+            by_activity_type: components["schemas"]["RatingsBreakdownRow"][];
+        };
+        /**
+         * ReassignIn
+         * @description `POST /inspections/tasks/{id}/reassign` (ruling R6): the handover — the
+         *     task keeps its id, its due date and its history, only `assigned_to`
+         *     changes.
+         */
+        ReassignIn: {
+            /**
+             * New Assignee Id
+             * Format: uuid
+             */
+            new_assignee_id: string;
+        };
+        /**
          * ReconciliationOut
          * @description One row of the discrepancy register (`GET /payments/reconciliations`) —
          *     either a per-line comparison (`statement_line_id` set) or a whole
@@ -9383,20 +10991,6 @@ export interface components {
             resolution_doc_id?: string | null;
         };
         /**
-         * RefundAllocationOut
-         * @description One ledger row `approve_refund` just wrote — what makes ruling 5's
-         *     NULL visible on the wire rather than only in the database (see
-         *     `RefundOut.budget_account`'s own docstring).
-         */
-        RefundAllocationOut: {
-            /** Target */
-            target: string;
-            /** Account */
-            account: string | null;
-            /** Amount */
-            amount: string;
-        };
-        /**
          * RefundApproveIn
          * @description `POST /refunds/{id}/approve` — the rahbar's (`payments.confirm`) own
          *     half: `resolution="returned"` validates the breakdown again (defensive —
@@ -9413,6 +11007,73 @@ export interface components {
             comment?: string | null;
         };
         /**
+         * RefundComponentIn
+         * @description One line of the accountant's breakdown by source
+         *     (`RefundSubmitDecisionIn.components`) — `recipient_id` names a
+         *     configured `payment_recipients` row (a `target='receiver'` allocation
+         *     once approved), or `None` for the leshoz's own remainder
+         *     (`target='recipient'`). Replaces the three fixed `budget_amount`/
+         *     `recipient_amount`/`other_amount` fields (stage 7.9 task 7, decision
+         *     #154) — the split is now a configurable directory of any size, not
+         *     three named buckets.
+         *
+         *     `amount` defaults to no default at all: unlike the old three-column
+         *     shape, where an untouched bucket read `0.00` for free, a component the
+         *     accountant means to enter must be an explicit list entry — omitting a
+         *     source from the list IS "nothing from here", the same reading
+         *     `refunds.breakdown_is_complete` already gives an empty sequence.
+         *     `ge=0` (never `gt=0`) keeps a negative component out of a financial
+         *     ledger at the edge, before it becomes a negative-of-a-negative
+         *     allocation; a `0.00` component is accepted but writes no
+         *     `RefundComponent` row (that table's own `amount_positive` CHECK forbids
+         *     it) — the same "nothing from this source" reading.
+         *
+         *     **Override 1 — the SERVICE, not this schema, refuses a duplicate
+         *     source.** `uq_refund_components_source` cannot stop two components both
+         *     naming `recipient_id=None` (Postgres treats `NULL <> NULL` under a
+         *     plain UNIQUE constraint), so `backoffice_service.submit_refund_decision`
+         *     checks the whole list for a repeated `recipient_id` — `None` included —
+         *     before writing anything, and answers `ERR-VAL-001` naming the reason.
+         */
+        RefundComponentIn: {
+            /** Recipient Id */
+            recipient_id: string | null;
+            /** Amount */
+            amount: number | string;
+        };
+        /**
+         * RefundComponentOut
+         * @description One line of `RefundOut.components` — a `refund_components` row
+         *     enriched with its source's own name, replacing the old
+         *     `RefundAllocationOut`/`recipient_account`/`budget_account` trio (stage
+         *     7.9 task 7): a configurable directory of any size does not fit two
+         *     named accounts.
+         *
+         *     Always reflects whatever `submit_refund_decision` has stored — visible
+         *     on every response from `in_review` onward, including a `rejected` one
+         *     (the accountant's submitted breakdown is a fact about what was
+         *     entered, independent of whether the rahbar accepted it) and empty
+         *     while the refund is still `requested` (nothing submitted yet).
+         *     `account` is `None` for every configured receiver (never a bank
+         *     account of its own, `payments.ledger`'s own docstring) and for the
+         *     leshoz's own remainder UNTIL the refund reaches `returned` — the same
+         *     `None`-until-decided posture the old `budget_account` field documented
+         *     (`tz/12` #15), now generalised to any source rather than two fixed
+         *     ones.
+         */
+        RefundComponentOut: {
+            /** Recipient Id */
+            recipient_id: string | null;
+            /** Name */
+            name: {
+                [key: string]: unknown;
+            };
+            /** Account */
+            account: string | null;
+            /** Amount */
+            amount: string;
+        };
+        /**
          * RefundOut
          * @description One `refunds` row. `suggested_amount`/`suggestion_reason` are the
          *     formula's hint (`backoffice_service.request_refund`'s own docstring
@@ -9420,17 +11081,13 @@ export interface components {
          *     hint is never an error, so `POST /refunds` always answers 201 with one
          *     of the two set.
          *
-         *     `budget_account`/`recipient_account` are NOT columns on `refunds` — they
-         *     are filled in only by `POST /refunds/{id}/approve`'s own response, from
-         *     the allocations that call just wrote, and stay `None` on every other
-         *     response (nothing has been decided yet to have an account at all).
-         *     **`budget_account` is `None` by design, not by omission** (`tz/12` #15
-         *     — the state budget's account number is stored nowhere in this system):
-         *     the field is declared here, with an explicit default, specifically so an
-         *     accountant reading this response sees a `null` the API chose to report
-         *     rather than a key that silently is not there. `allocations` carries the
-         *     same two rows in full (target, account, amount) for a client that wants
-         *     more than the two named accounts.
+         *     `components`/`available_sources` are NOT columns on `refunds` (stage
+         *     7.9 task 7) — see `RefundComponentOut`/`AvailableSourceOut`'s own
+         *     docstrings. `available_sources` is populated only by
+         *     `GET /refunds/{id}` (the one route that already holds the invoice to
+         *     read it from); every other route leaves it `[]`, not because the data
+         *     would be wrong there but because no other handler reads the invoice's
+         *     snapshot today — a real absence, not a hidden default.
          */
         RefundOut: {
             /**
@@ -9459,12 +11116,6 @@ export interface components {
             suggestion_reason: string | null;
             /** Final Amount */
             final_amount: string | null;
-            /** Budget Amount */
-            budget_amount: string | null;
-            /** Recipient Amount */
-            recipient_amount: string | null;
-            /** Other Amount */
-            other_amount: string | null;
             /** Status */
             status: string;
             /** Requested By */
@@ -9485,12 +11136,10 @@ export interface components {
             decided_at: string | null;
             /** Comment */
             comment: string | null;
-            /** Recipient Account */
-            recipient_account?: string | null;
-            /** Budget Account */
-            budget_account?: string | null;
-            /** Allocations */
-            allocations?: components["schemas"]["RefundAllocationOut"][];
+            /** Components */
+            components?: components["schemas"]["RefundComponentOut"][];
+            /** Available Sources */
+            available_sources?: components["schemas"]["AvailableSourceOut"][];
         };
         /**
          * RefundRequestIn
@@ -9521,40 +11170,19 @@ export interface components {
         /**
          * RefundSubmitDecisionIn
          * @description `POST /refunds/{id}/submit-decision` — the accountant's (`payments.
-         *     manage`) own half (ruling 4): the three-way breakdown and the amount it
+         *     manage`) own half (ruling 4): the breakdown by source and the amount it
          *     is meant to sum to. Checked against `refunds.breakdown_is_complete` in
          *     code BEFORE the insert, so a mismatch answers `ERR-VAL-001` rather than
-         *     an IntegrityError 500 from `returned_needs_complete_breakdown` — even
-         *     though that CHECK only fires once `approve` moves the row to `returned`,
+         *     a 500 out of the `refund_components_complete` trigger — even though
+         *     that trigger only fires once `approve` moves the row to `returned`,
          *     catching the arithmetic here is what keeps a wrong number from ever
          *     reaching the rahbar's screen at all.
-         *
-         *     Each component defaults to `0.00`, not `None`: an accountant who leaves
-         *     a source untouched means "nothing from here", the same reading
-         *     `refunds.breakdown_is_complete`'s own `coalesce`-style treatment of
-         *     `None` already gives it — a bare `Field(ge=0, ...)` on each keeps a
-         *     negative component (which `returned_needs_complete_breakdown` does not
-         *     itself forbid) out of a financial ledger at the edge, before it becomes
-         *     a negative-of-a-negative allocation.
          */
         RefundSubmitDecisionIn: {
             /** Final Amount */
             final_amount: number | string;
-            /**
-             * Budget Amount
-             * @default 0.00
-             */
-            budget_amount: number | string;
-            /**
-             * Recipient Amount
-             * @default 0.00
-             */
-            recipient_amount: number | string;
-            /**
-             * Other Amount
-             * @default 0.00
-             */
-            other_amount: number | string;
+            /** Components */
+            components?: components["schemas"]["RefundComponentIn"][];
             /** Comment */
             comment?: string | null;
         };
@@ -10000,6 +11628,17 @@ export interface components {
             effective_to?: string | null;
             /** Basis */
             basis?: string | null;
+        };
+        /**
+         * SatisfactionKpiOut
+         * @description Ruling #143. `avg_score` is `None`, never `0`, for a period with no
+         *     ratings — a portal may not state a number it cannot produce.
+         */
+        SatisfactionKpiOut: {
+            /** Avg Score */
+            avg_score: string | null;
+            /** Count */
+            count: number;
         };
         /** SavedFilterIn */
         SavedFilterIn: {
@@ -11127,6 +12766,9 @@ export interface components {
          *     half: `VersionOut` alone carries no geometry, so a version id handed over
          *     out of band still could not actually be looked at. Adds exactly one field
          *     over the list row.
+         *
+         *     `geometry` is `None` for a version filed by requisites alone (decision
+         *     #178) — there is nothing PostGIS could have rendered for it.
          */
         VersionDetailOut: {
             /**
@@ -11164,19 +12806,26 @@ export interface components {
             /** Geometry */
             geometry: {
                 [key: string]: unknown;
-            };
+            } | null;
         };
         /**
          * VersionIn
          * @description `POST /gis/contours/{id}/versions`. `declared_area_ha` is the source
          *     file's own figure, kept for reference only — `area_ha` is always computed by
          *     PostGIS (ruling 2).
+         *
+         *     `geom` is optional (decision #178): a leshoz with no delivered GIS layer
+         *     files a version by requisites alone, and `declared_area_ha` then becomes
+         *     the area of record instead (`gis.service.create_version`'s own pre-check,
+         *     the DB CHECK `geom_or_declared_area` behind it) — so at least one of the
+         *     two must be present, checked here for a same-request 422 with a clear
+         *     reason rather than the service's generic one.
          */
         VersionIn: {
             /** Geom */
-            geom: {
+            geom?: {
                 [key: string]: unknown;
-            };
+            } | null;
             /** Source */
             source: string;
             /** Declared Area Ha */
@@ -11972,6 +13621,41 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ActivityTypeOut"][];
+                };
+            };
+        };
+    };
+    update_activity_type_api_v1_refs_activity_types__activity_type_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                activity_type_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ActivityTypePatch"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ActivityTypeOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
@@ -13288,6 +14972,389 @@ export interface operations {
             };
         };
     };
+    list_legal_documents_api_v1_admin_legal_documents_get: {
+        parameters: {
+            query?: {
+                status?: string | null;
+                page?: number;
+                page_size?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Page_LegalDocumentAdminOut_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_legal_document_api_v1_admin_legal_documents_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LegalDocumentCreateIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LegalDocumentAdminOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_legal_document_api_v1_admin_legal_documents__doc_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                doc_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LegalDocumentAdminOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    patch_legal_document_api_v1_admin_legal_documents__doc_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                doc_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LegalDocumentPatchIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LegalDocumentAdminOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    publish_legal_document_api_v1_admin_legal_documents__doc_id__publish_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                doc_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LegalDocumentAdminOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    archive_legal_document_api_v1_admin_legal_documents__doc_id__archive_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                doc_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LegalDocumentAdminOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_public_legal_documents_api_v1_public_legal_documents_get: {
+        parameters: {
+            query?: {
+                page?: number;
+                page_size?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Page_LegalDocumentOut_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_public_legal_document_api_v1_public_legal_documents__doc_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                doc_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LegalDocumentOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    download_public_legal_document_api_v1_public_legal_documents__doc_id__file_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                doc_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_landing_announcements_api_v1_public_announcements_get: {
+        parameters: {
+            query?: {
+                page?: number;
+                page_size?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Page_AnnouncementLandingOut_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_landing_announcement_api_v1_public_announcements__announcement_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                announcement_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AnnouncementLandingOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    download_landing_file_api_v1_public_announcements__announcement_id__files__file_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                announcement_id: string;
+                file_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_outbox_api_v1_admin_integrations_outbox_get: {
         parameters: {
             query?: {
@@ -13413,6 +15480,61 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    eimzo_timestamp_api_v1_eimzo_timestamp_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EimzoTimestampIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EimzoTimestampOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    eimzo_health_api_v1_eimzo_health_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
                 };
             };
         };
@@ -14765,6 +16887,41 @@ export interface operations {
             };
         };
     };
+    get_occupancy_api_v1_gis_contours__contour_id__occupancy_get: {
+        parameters: {
+            query: {
+                activity_type_id: string;
+                from: string;
+                to: string;
+            };
+            header?: never;
+            path: {
+                contour_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OccupancyOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_parameters_api_v1_rule_parameters_get: {
         parameters: {
             query?: {
@@ -15419,6 +17576,172 @@ export interface operations {
             };
         };
     };
+    list_activity_seasons_api_v1_activity_seasons_get: {
+        parameters: {
+            query?: {
+                organization_id?: string | null;
+                activity_type_id?: string | null;
+                limit?: number;
+                offset?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Page_ActivitySeasonOut_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_activity_season_api_v1_activity_seasons_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ActivitySeasonIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ActivitySeasonOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    effective_season_api_v1_activity_seasons_effective_get: {
+        parameters: {
+            query: {
+                activity_type_id: string;
+                contour_id?: string | null;
+                organization_id?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EffectiveSeasonOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_activity_season_api_v1_activity_seasons__activity_season_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                activity_season_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ActivitySeasonOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_activity_season_api_v1_activity_seasons__activity_season_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                activity_season_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ActivitySeasonPatch"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ActivitySeasonOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     preview_calculation_api_v1_calculations_preview_post: {
         parameters: {
             query?: never;
@@ -15768,6 +18091,136 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SignatureOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_benefit_claims_api_v1_applications_benefit_verifications_get: {
+        parameters: {
+            query?: {
+                verification_status?: ("not_required" | "pending" | "verified" | "rejected") | null;
+                page?: number;
+                page_size?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Page_ApplicationOut_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_benefit_claim_api_v1_applications_benefit_verifications__application_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                application_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BenefitClaimDetailOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    verify_benefit_claim_api_v1_applications_benefit_verifications__application_id__verify_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                application_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApplicationOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    reject_benefit_claim_api_v1_applications_benefit_verifications__application_id__reject_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                application_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BenefitClaimRejectIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApplicationOut"];
                 };
             };
             /** @description Validation Error */
@@ -16987,6 +19440,106 @@ export interface operations {
             };
         };
     };
+    list_recipients_api_v1_payments_recipients_get: {
+        parameters: {
+            query?: {
+                page?: number;
+                page_size?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Page_PaymentRecipientOut_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_recipient_api_v1_payments_recipients_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PaymentRecipientIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaymentRecipientOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    patch_recipient_api_v1_payments_recipients__recipient_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                recipient_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PaymentRecipientPatch"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaymentRecipientOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_refunds_api_v1_refunds_get: {
         parameters: {
             query?: {
@@ -17103,6 +19656,37 @@ export interface operations {
                 "application/json": components["schemas"]["RefundApproveIn"];
             };
         };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RefundOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_refund_api_v1_refunds__refund_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                refund_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
         responses: {
             /** @description Successful Response */
             200: {
@@ -17297,6 +19881,41 @@ export interface operations {
                 };
                 content: {
                     "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    rate_permit_api_v1_permits__permit_id__rating_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                permit_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PermitRatingIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PermitRatingOut"];
                 };
             };
             /** @description Validation Error */
@@ -17578,6 +20197,76 @@ export interface operations {
             };
         };
     };
+    get_ratings_summary_api_v1_admin_ratings_summary_get: {
+        parameters: {
+            query: {
+                period_from: string;
+                period_to: string;
+                organization_id?: string | null;
+                activity_type_id?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RatingsSummaryOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_ratings_api_v1_admin_ratings_get: {
+        parameters: {
+            query: {
+                period_from: string;
+                period_to: string;
+                organization_id?: string | null;
+                activity_type_id?: string | null;
+                page?: number;
+                page_size?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Page_RatingCommentRow_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     check_permit_api_v1_public_permits_check_get: {
         parameters: {
             query?: {
@@ -17824,6 +20513,41 @@ export interface operations {
             };
         };
     };
+    reassign_task_api_v1_inspections_tasks__task_id__reassign_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                task_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReassignIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TaskOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_acts_api_v1_inspections_acts_get: {
         parameters: {
             query?: {
@@ -18030,6 +20754,7 @@ export interface operations {
         parameters: {
             query?: {
                 status?: string | null;
+                applicant_id?: string | null;
                 page?: number;
                 page_size?: number;
             };

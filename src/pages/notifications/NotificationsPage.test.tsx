@@ -4,8 +4,7 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { setupServer } from 'msw/node';
-import { I18nContext } from '../../i18n/context';
-import { uz_latn } from '../../i18n/uz_latn';
+import { DICTIONARIES, type UiLanguage, I18nContext } from '../../i18n/context';
 import { NotificationsPage } from './NotificationsPage';
 
 const server = setupServer();
@@ -13,11 +12,13 @@ beforeAll(() => server.listen({ onUnhandledRequest: 'error' }));
 afterEach(() => server.resetHandlers());
 afterAll(() => server.close());
 
-const t = (key: string) => (uz_latn as Record<string, string>)[key] ?? key;
+const defaultT = (key: string) => DICTIONARIES.uz_latn[key as keyof typeof DICTIONARIES.uz_latn] ?? key;
 
-function renderPage() {
+function renderPage(lang: UiLanguage = 'uz_latn') {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
-  const i18n = { lang: 'uz_latn' as const, backendLang: 'uz_latn' as const, t, setLanguage: async () => {} };
+  const dict = DICTIONARIES[lang];
+  const t = (key: string) => dict[key as keyof typeof dict] ?? key;
+  const i18n = { lang, backendLang: lang, t, setLanguage: async () => {} };
   const wrapper = ({ children }: { children: ReactNode }) => (
     <QueryClientProvider client={client}>
       <I18nContext.Provider value={i18n}>{children}</I18nContext.Provider>
@@ -72,7 +73,7 @@ test('switching to the Unread filter re-queries with unread=true', async () => {
   );
   renderPage();
   await screen.findByTestId('notifications-empty');
-  await userEvent.click(screen.getByRole('button', { name: t('cabinet.notifications.filterUnread') }));
+  await userEvent.click(screen.getByRole('button', { name: defaultT('cabinet.notifications.filterUnread') }));
   await waitFor(() => expect(seenUnread).toContain('true'));
 });
 
@@ -114,3 +115,38 @@ test('mark-all-read calls the route and clears the unread filter view', async ()
   await userEvent.click(screen.getByTestId('mark-all-read'));
   expect(await screen.findByTestId('notifications-empty')).toBeInTheDocument();
 });
+
+test('shows loading indicator while fetching', () => {
+  server.use(
+    http.get('*/notifications', () => new Promise(() => {})),
+  );
+  renderPage();
+  expect(screen.getByTestId('notifications-loading')).toBeInTheDocument();
+});
+
+test('shows error message when fetch fails', async () => {
+  server.use(
+    http.get('*/notifications', () =>
+      HttpResponse.json({ error: { code: 'ERR-SYS-000', message: 'Failed to load' } }, { status: 500 }),
+    ),
+  );
+  renderPage();
+  expect(await screen.findByTestId('notifications-error')).toBeInTheDocument();
+});
+
+test.each(['uz_latn', 'uz_cyrl', 'ru', 'en', 'kaa'] as const)(
+  'notifications page renders in %s',
+  async (lang) => {
+    server.use(
+      http.get('*/notifications', () => HttpResponse.json({ items: [], total: 0, page: 1, page_size: 20 })),
+    );
+    renderPage(lang);
+
+    const dict = DICTIONARIES[lang];
+    expect(await screen.findByTestId('notifications-empty')).toHaveTextContent(dict['cabinet.notifications.empty']);
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(dict['cabinet.notifications.title']);
+    expect(screen.getByTestId('mark-all-read')).toHaveTextContent(dict['cabinet.notifications.markAllRead']);
+    expect(screen.getByText(dict['cabinet.notifications.filterAll'])).toBeInTheDocument();
+    expect(screen.getByText(dict['cabinet.notifications.filterUnread'])).toBeInTheDocument();
+  },
+);

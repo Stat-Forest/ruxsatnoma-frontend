@@ -127,18 +127,19 @@ export function PermitPdfPanel({ permitId, fileName, ready }: { permitId: string
   }
 
   return (
-    <div className="bg-white border border-[#E4E7EA] rounded-2xl p-5 shadow-xs space-y-3 font-sans">
-      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#E4E7EA] pb-3">
+    <div className="bg-white border border-[#E4E7EA] rounded-2xl p-4 sm:p-5 shadow-xs space-y-3 font-sans">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#E4E7EA] pb-3">
         <h3 className="text-sm font-bold text-[#1A1F24] flex items-center gap-2">
-          <FileText className="w-5 h-5 text-[#2E7D4F]" /> {t.title}
+          <FileText className="w-5 h-5 text-[#2E7D4F] shrink-0" /> {t.title}
         </h3>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
           <Button
             variant="outline"
             size="sm"
             isLoading={state === 'loading'}
-            leftIcon={<RefreshCw className="w-4 h-4" />}
+            leftIcon={<RefreshCw className="w-4 h-4 shrink-0" />}
             onClick={() => void reload()}
+            className="flex-1 sm:flex-none justify-center"
           >
             {t.refresh}
           </Button>
@@ -146,9 +147,9 @@ export function PermitPdfPanel({ permitId, fileName, ready }: { permitId: string
             variant="primary"
             size="sm"
             disabled={!url}
-            leftIcon={<Download className="w-4 h-4" />}
+            leftIcon={<Download className="w-4 h-4 shrink-0" />}
             onClick={() => url && triggerDownload(url, fileName)}
-            className="bg-[#2E7D4F] hover:bg-[#23653F] text-white font-bold"
+            className="bg-[#2E7D4F] hover:bg-[#23653F] text-white font-bold flex-1 sm:flex-none justify-center"
           >
             {t.download}
           </Button>

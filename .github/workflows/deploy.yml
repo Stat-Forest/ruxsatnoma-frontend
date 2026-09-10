@@ -33,6 +33,14 @@ jobs:
     with:
       upload-dist: true
       api-base: https://dev-api.ruxsatnoma-urmon.uz
+      # FE-1 (fix wave, critical 1): explicit, never left to the default.
+      # dev-api still runs eimzo_mode=mock (backend config), so the bundle
+      # shipped here must too, or a real browser's E-IMZO key hits a backend
+      # that cannot verify it. "true" is redundant with the safe default
+      # (src/lib/eimzo/index.ts::isEimzoMock) but is spelled out anyway so
+      # this mapping is not silently inherited from a default someone could
+      # change later without noticing this environment depends on it.
+      eimzo-mock: 'true'
 
   deploy:
     name: Ship to dev

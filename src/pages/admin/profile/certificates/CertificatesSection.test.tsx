@@ -8,11 +8,15 @@ import { AuthContext } from '../../../../auth/AuthContext';
 import type { AuthContextValue } from '../../../../auth/AuthContext';
 import { I18nContext } from '../../../../i18n/context';
 import { uz_latn } from '../../../../i18n/uz_latn';
+import * as eimzo from '../../../../lib/eimzo';
 import { CertificatesSection } from './CertificatesSection';
 
 const server = setupServer();
 beforeAll(() => server.listen({ onUnhandledRequest: 'error' }));
-afterEach(() => server.resetHandlers());
+afterEach(() => {
+  server.resetHandlers();
+  vi.restoreAllMocks();
+});
 afterAll(() => server.close());
 
 const t = (key: string) => (uz_latn as Record<string, string>)[key] ?? key;
@@ -24,7 +28,7 @@ function renderSection() {
     me: { user: { full_name: 'Aliyev Vali' } },
     loading: false,
     authError: null,
-    requestMfa: async () => {},
+    submitPassword: async () => 'mfa-required',
     verifyMfa: async () => {},
     startOneId: async () => {},
     loginViaEimzo: async () => {},
@@ -106,6 +110,45 @@ test('binding sends an ATTACHED envelope (document_b64 present) and refreshes th
     atob(seenPkcs7.replace(/-/g, '+').replace(/_/g, '/') + '='.repeat((4 - (seenPkcs7.length % 4)) % 4)),
   );
   expect(decoded.document_b64).toBeTruthy();
+});
+
+test('real mode: no PINFL/full-name box, and bind calls signAttached with a random nonce', async () => {
+  vi.spyOn(eimzo, 'isEimzoMock').mockReturnValue(false);
+  const signAttachedSpy = vi.spyOn(eimzo, 'signAttached').mockResolvedValue('REAL-ATTACHED-PKCS7');
+  let seenPkcs7 = '';
+  server.use(
+    http.get('*/certificates', () => HttpResponse.json({ items: [], total: 0, page: 1, page_size: 100 })),
+    http.post('*/certificates', async ({ request }) => {
+      const body = (await request.json()) as { pkcs7: string };
+      seenPkcs7 = body.pkcs7;
+      return HttpResponse.json(CERT, { status: 201 });
+    }),
+  );
+  renderSection();
+  await screen.findByTestId('certificates-empty');
+
+  expect(screen.queryByTestId('certificate-pinfl')).not.toBeInTheDocument();
+  expect(screen.queryByTestId('certificate-full-name')).not.toBeInTheDocument();
+
+  await userEvent.click(screen.getByTestId('bind-submit'));
+
+  await waitFor(() => expect(seenPkcs7).toBe('REAL-ATTACHED-PKCS7'));
+  expect(signAttachedSpy).toHaveBeenCalledTimes(1);
+  expect(signAttachedSpy.mock.calls[0][0]).toBeInstanceOf(Uint8Array);
+});
+
+test('a real-mode bind failure shows a distinct message, never a generic error', async () => {
+  vi.spyOn(eimzo, 'isEimzoMock').mockReturnValue(false);
+  vi.spyOn(eimzo, 'signAttached').mockRejectedValue(new eimzo.EimzoNotInstalledError());
+  server.use(http.get('*/certificates', () => HttpResponse.json({ items: [], total: 0, page: 1, page_size: 100 })));
+  renderSection();
+  await screen.findByTestId('certificates-empty');
+
+  await userEvent.click(screen.getByTestId('bind-submit'));
+
+  expect(await screen.findByTestId('bind-error')).toHaveTextContent(
+    t(eimzo.EIMZO_ERROR_MESSAGE_KEYS.not_installed),
+  );
 });
 
 test('unbinding calls DELETE with no confirmation dialog and refreshes the list', async () => {

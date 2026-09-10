@@ -2,6 +2,7 @@ import type { ComponentType } from 'react';
 import {
   Archive,
   Award,
+  BadgeCheck,
   Bell,
   BookMarked,
   Building2,
@@ -21,6 +22,8 @@ import {
   ShieldAlert,
   ShieldCheck,
   Stamp,
+  Star,
+  Trees,
   User,
   Users,
   Wallet,
@@ -61,18 +64,34 @@ export function satisfies(
  * truth). A code that does not exist hides its menu entry from everyone, silently
  * and forever, because `visibleNav` simply never matches it and nothing throws.
  *
- * `/my/applications` and `/my/permits` carry no permission code, deliberately:
- * they are scoped by ownership (the backend narrows the list to the caller), not
- * by a code, so a citizen always sees their own documents. `/applications` and
- * `/permits` are the staff equivalents — seeing *everyone's* is a different
- * right from seeing *one's own*, and merging the two pairs is a real defect in
- * either direction. `/applications` lists BOTH staff codes because the reviewer
- * and the approver are different people holding different rights.
+ * `/my/permits` carries `applications.create` for the same reason
+ * `/my/applications` does, and the two were separated only because the demo
+ * caught one of them. Ownership-scoping is a real property of the ENDPOINT —
+ * the backend narrows the list to the caller — but it is not a menu rule: a
+ * member of staff holds no permits of their own, so the entry led them to a
+ * page that could only ever be empty, while its counter read «3 records»
+ * because the total came from the unfiltered response. Verified on the dev
+ * stand under `demo_executor` and `demo_benefit_verifier`, 2026-09-10.
+ *
+ * `/applications` and `/permits` are the staff equivalents — seeing
+ * *everyone's* is a different right from seeing *one's own*, and merging the
+ * two pairs is a real defect in either direction. `/applications` lists BOTH
+ * staff codes because the reviewer and the approver are different people
+ * holding different rights.
+ *
+ * `/my/applications` DOES carry a code, `applications.create` — the demo of
+ * 2026-09-10 (Odilxon's remark 1) found every staff role could open this
+ * screen and its «New application» button, which then failed on the first
+ * call the wizard makes with a 403: filing is the applicant's own action, not
+ * something ownership-scoping narrows for a role that files nothing. The
+ * card behind an existing application (`my/applications/:id`, `routes.tsx`)
+ * stays ungated — a representative or a role reading a specific record by id
+ * is a different question from seeing the whole list and its create button.
  */
 export const NAVIGATION: NavItem[] = [
   { to: '/', labelKey: 'nav.dashboard', icon: Home },
-  { to: '/my/applications', labelKey: 'nav.myApplications', icon: FileText },
-  { to: '/my/permits', labelKey: 'nav.myPermits', icon: Award },
+  { to: '/my/applications', labelKey: 'nav.myApplications', permission: 'applications.create', icon: FileText },
+  { to: '/my/permits', labelKey: 'nav.myPermits', permission: 'applications.create', icon: Award },
   {
     to: '/applications',
     labelKey: 'nav.applications',
@@ -142,6 +161,14 @@ export const NAVIGATION: NavItem[] = [
   // leadership) — there is no role with `reports.manage`/`.sign`/`.accept`/
   // `.forms.manage` that lacks `reports.view`.
   { to: '/reports', labelKey: 'nav.reports', permission: 'reports.view', icon: ClipboardList },
+  // Stage 7.7, task 9 (rulings #140-#143) — the aggregate read over what
+  // citizens leave on their own issued permits (`PermitRatingPanel.tsx`,
+  // task 8). `ratings.view` is zone-scoped exactly like `dashboard.view`
+  // (ruling #142) and held by `central_admin`, `leadership`, `executor_head`
+  // and `prosecutor` — the same four roles `nav.oversight` above reaches,
+  // for the same reason: a leshoz sees its own ratings, the Agency sees
+  // all, the backend does the narrowing.
+  { to: '/ratings', labelKey: 'nav.ratings', permission: 'ratings.view', icon: Star },
   // Five codes, any ONE of them (`NavItem.permission` semantics): the
   // inspector's own `inspections.acts.write` (checklists, acts, ERI
   // signing), `inspections.tasks.manage` for the executor_staff/
@@ -165,14 +192,37 @@ export const NAVIGATION: NavItem[] = [
     ],
     icon: ClipboardCheck,
   },
+  // Stage 9, T11 (decisions.md #179) — the central benefit-verification
+  // office. `benefits.verify` is held by ONE role, `benefit_verifier`
+  // (migration 0051), whose visibility is not a zone at all: it sees every
+  // leshoz's applications that carry a certificate-bearing benefit claim,
+  // and NOTHING else — not its own leshoz's ordinary caseload, because it is
+  // central and holds no zone to begin with. That predicate lives entirely
+  // server-side (`GET /applications/benefit-verifications`); this entry only
+  // decides who sees the menu item and the route, same as every other row
+  // here.
+  { to: '/benefits/verification', labelKey: 'nav.benefitVerification', permission: 'benefits.verify', icon: BadgeCheck },
   { to: '/admin/users', labelKey: 'nav.users', permission: 'auth.users.manage', icon: Users },
   { to: '/admin/roles', labelKey: 'nav.roles', permission: 'auth.users.manage', icon: ShieldCheck },
   { to: '/admin/organizations', labelKey: 'nav.organizations', permission: 'admin.organizations.manage', icon: Building2 },
   { to: '/admin/classifiers', labelKey: 'nav.classifiers', permission: 'admin.classifiers.manage', icon: BookMarked },
+  // Ruling #139 (stage 7.7): the six `activity_types` rows are fixed by law —
+  // this screen edits copy and switches one off, never adds or removes one.
+  // Same permission as `/admin/classifiers` above: `PATCH
+  // /refs/activity-types/{id}` is gated on `admin.classifiers.manage`
+  // (`refs_router.py`), not a permission of its own.
+  { to: '/admin/activities', labelKey: 'nav.activityTypes', permission: 'admin.classifiers.manage', icon: Trees },
   { to: '/admin/settings', labelKey: 'nav.settings', permission: 'admin.settings.manage', icon: Settings },
   { to: '/admin/announcements', labelKey: 'nav.announcements', permission: 'admin.announcements.manage', icon: Megaphone },
+  { to: '/admin/legal-documents', labelKey: 'nav.legalDocuments', permission: 'admin.legal_documents.manage', icon: Scale },
   { to: '/admin/notification-templates', labelKey: 'nav.templates', permission: 'notifications.templates.manage', icon: MailPlus },
   { to: '/admin/integrations', labelKey: 'nav.integrations', permission: 'admin.integrations.view', icon: Radio },
+  // Stage 7.9, task 9 (decisions #154-#160): the configurable payment-split
+  // directory. `payments.recipients.manage` is granted to no role today
+  // (superuser only) — deliberately the WRITE code, not `payments.view`, so
+  // an accountant who can only read the split sees it through the invoice
+  // instead (`InvoiceDetailDrawer.tsx`), never this directory.
+  { to: '/admin/payment-recipients', labelKey: 'nav.paymentRecipients', permission: 'payments.recipients.manage', icon: Wallet },
   { to: '/notifications', labelKey: 'nav.notifications', icon: Bell },
   { to: '/support', labelKey: 'nav.support', icon: LifeBuoy },
   { to: '/profile', labelKey: 'nav.profile', icon: User },

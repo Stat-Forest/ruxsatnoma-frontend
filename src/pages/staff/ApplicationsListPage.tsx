@@ -12,6 +12,7 @@ import { apiError } from '../../api/errors';
 import { downloadCsv, fetchAllPages, toCsv } from '../../lib/csvExport';
 import { useActivityTypes, useApplicationsList, type ApplicationListFilters, type ApplicationOut } from './queries';
 import { formatAmount, formatDate, localizedName, STATUS_LABELS, statusLabel } from './format';
+import { translateTerm } from '../../i18n/terms';
 import { WorklistRow } from './components/WorklistRow';
 
 const REVIEW_PERMISSION = 'applications.review';
@@ -30,6 +31,7 @@ const APPLICATIONS_LIST_I18N = {
     reset: 'Tiklash',
     apply: 'Qoʻllash',
     exportCsv: 'CSV eksport',
+    exportTruncated: 'Eksport cheklovi: dastlabki 10 000 ta yozuv yuklandi.',
     loading: 'Yuklanmoqda...',
     loadError: 'Arizalar yuklanmadi.',
     notFoundFiltered: 'Filtr boʻyicha ariza topilmadi.',
@@ -53,6 +55,7 @@ const APPLICATIONS_LIST_I18N = {
     reset: 'Тиклаш',
     apply: 'Қўллаш',
     exportCsv: 'CSV экспорт',
+    exportTruncated: 'Экспорт чеклови: дастлабки 10 000 та ёзув юкланди.',
     loading: 'Юкланмоқда...',
     loadError: 'Аризалар юкланмади.',
     notFoundFiltered: 'Фильтр бўйича ариза топилмади.',
@@ -76,6 +79,7 @@ const APPLICATIONS_LIST_I18N = {
     reset: 'Сбросить',
     apply: 'Применить',
     exportCsv: 'Экспорт CSV',
+    exportTruncated: 'Ограничение экспорта: выгружены первые 10 000 записей.',
     loading: 'Загрузка...',
     loadError: 'Не удалось загрузить заявки.',
     notFoundFiltered: 'По фильтру заявок не найдено.',
@@ -99,6 +103,7 @@ const APPLICATIONS_LIST_I18N = {
     reset: 'Reset',
     apply: 'Apply',
     exportCsv: 'Export CSV',
+    exportTruncated: 'Export truncated: first 10,000 records downloaded.',
     loading: 'Loading...',
     loadError: 'Failed to load applications.',
     notFoundFiltered: 'No applications found matching the filters.',
@@ -122,6 +127,7 @@ const APPLICATIONS_LIST_I18N = {
     reset: 'Qayta tiklew',
     apply: 'Qollaw',
     exportCsv: 'CSV eksport',
+    exportTruncated: 'Eksport sheklewi: dáslepki 10 000 jazba júklendi.',
     loading: 'Júklenbekte...',
     loadError: 'Arzalar júklenbedi.',
     notFoundFiltered: 'Filtr boyınsha arza tabılmadı.',
@@ -278,7 +284,20 @@ export function ApplicationsListPage() {
               }}
               options={[
                 { value: '', label: lt.all },
-                ...(activityTypes.data ?? []).map((a) => ({ value: a.id, label: localizedName(a.name, lang) || a.code })),
+                ...(activityTypes.data ?? []).map((a) => {
+                  const rawName = localizedName(a.name, lang);
+                  const translated = translateTerm(rawName, lang);
+                  const byCode = translateTerm(a.code, lang);
+                  const label =
+                    (a.name && typeof a.name[lang] === 'string' && (a.name[lang] as string).trim())
+                      ? (a.name[lang] as string)
+                      : (translated && translated !== rawName)
+                      ? translated
+                      : (byCode && byCode !== a.code)
+                      ? byCode
+                      : rawName || a.code;
+                  return { value: a.id, label };
+                }),
               ]}
             />
           </FormField>

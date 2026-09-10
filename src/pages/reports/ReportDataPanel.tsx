@@ -97,14 +97,15 @@ export function ReportDataPanel({ report }: { report: ReportOut }) {
   }
 
   return (
-    <div className="bg-white border border-[#E4E7EA] rounded-2xl p-6 shadow-xs font-sans space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#E4E7EA] pb-3">
+    <div className="bg-white border border-[#E4E7EA] rounded-2xl p-4 sm:p-6 shadow-xs font-sans space-y-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#E4E7EA] pb-3">
         <h2 className="text-base font-bold text-[#1A1F24]">{t('reports.data.panelTitle')}</h2>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-col sm:flex-row flex-wrap gap-2 w-full sm:w-auto">
           {canGenerate && !editing && (
             <Button
               variant="outline"
               size="sm"
+              className="w-full sm:w-auto"
               isLoading={generate.isPending}
               leftIcon={<RefreshCw className="h-4 w-4" />}
               data-testid="report-data-generate"
@@ -120,6 +121,7 @@ export function ReportDataPanel({ report }: { report: ReportOut }) {
             <Button
               variant="outline"
               size="sm"
+              className="w-full sm:w-auto"
               leftIcon={<Pencil className="h-4 w-4" />}
               data-testid="report-data-edit"
               onClick={startEdit}
@@ -132,6 +134,7 @@ export function ReportDataPanel({ report }: { report: ReportOut }) {
               <Button
                 variant="outline"
                 size="sm"
+                className="w-full sm:w-auto"
                 leftIcon={<X className="h-4 w-4" />}
                 disabled={update.isPending}
                 data-testid="report-data-cancel"
@@ -142,6 +145,7 @@ export function ReportDataPanel({ report }: { report: ReportOut }) {
               <Button
                 variant="primary"
                 size="sm"
+                className="w-full sm:w-auto"
                 isLoading={update.isPending}
                 leftIcon={<Save className="h-4 w-4" />}
                 data-testid="report-data-save"
@@ -174,7 +178,7 @@ export function ReportDataPanel({ report }: { report: ReportOut }) {
           {t('reports.data.emptyColumns')}
         </p>
       ) : (
-        <div className="overflow-x-auto" data-testid="report-data-table">
+        <div className="w-full overflow-x-auto" data-testid="report-data-table">
           <table className="w-full text-left text-sm border-collapse">
             <thead>
               <tr className="bg-[#F8F9FA] border-b border-[#E4E7EA]">

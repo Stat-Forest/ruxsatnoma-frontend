@@ -395,13 +395,15 @@ export function PermitsListPage({ variant }: { variant: 'staff' | 'applicant' })
         <div className="py-16 text-center text-sm text-[#5A646D]">{lt.noPermitsApplicant}</div>
       ) : (
         <>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
             {list.data!.items.map((permit) => (
               <PermitCard key={permit.id} permit={permit} />
             ))}
           </div>
           {list.data && list.data.total > 0 && (
-            <Pagination currentPage={page} totalPages={totalPages} onPageChange={setPage} totalRecords={list.data.total} />
+            <div className="mt-4 bg-white border border-[#E4E7EA] rounded-2xl px-4 py-2">
+              <Pagination currentPage={page} totalPages={totalPages} onPageChange={setPage} totalRecords={list.data.total} />
+            </div>
           )}
         </>
       )}

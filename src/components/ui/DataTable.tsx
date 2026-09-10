@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { ArrowUpDown, ArrowUp, ArrowDown, Inbox, Loader2 } from 'lucide-react';
 import { Pagination } from './Navigation';
+import { useLanguage } from '../../i18n/useT';
 
 export interface Column<T> {
   key: string;
@@ -18,10 +19,19 @@ function isSortComparable(value: unknown): value is SortComparable {
   return t === 'string' || t === 'number' || t === 'boolean';
 }
 
+const DATA_TABLE_I18N = {
+  uz_latn: { loading: 'Yuklanmoqda...', emptyTitle: 'Maʼlumot topilmadi', emptyDescription: 'Hozircha jadvalda koʻrsatish uchun hech qanday yozuv yoʻq', actions: 'Harakatlar' },
+  uz_cyrl: { loading: 'Юкланмоқда...', emptyTitle: 'Маълумот топилмади', emptyDescription: 'Ҳозирча жадвалда кўрсатиш учун ҳеч қандай ёзув йўқ', actions: 'Ҳаракатлар' },
+  ru: { loading: 'Загрузка...', emptyTitle: 'Данные не найдены', emptyDescription: 'Пока в таблице нет записей для отображения', actions: 'Действия' },
+  en: { loading: 'Loading...', emptyTitle: 'No data found', emptyDescription: 'No records to display in the table yet', actions: 'Actions' },
+  kaa: { loading: 'Júklenbekte...', emptyTitle: 'Maǵlıwmat tabılmadı', emptyDescription: 'Házirshe kestedegi kórsetiw ushın jazıwlar joq', actions: 'Háreketler' },
+};
+
 export interface DataTableProps<T extends { id: string | number }> {
   columns: Column<T>[];
   data: T[];
   isLoading?: boolean;
+  loadingText?: string;
   emptyTitle?: string;
   emptyDescription?: string;
   selectable?: boolean;
@@ -40,14 +50,20 @@ export function DataTable<T extends { id: string | number }>({
   columns,
   data,
   isLoading = false,
-  emptyTitle = 'Maʼlumot topilmadi',
-  emptyDescription = 'Hozircha jadvalda koʻrsatish uchun hech qanday yozuv yoʻq',
+  loadingText,
+  emptyTitle,
+  emptyDescription,
   selectable = false,
   onSelectionChange,
   actions,
   pagination,
   className = '',
 }: DataTableProps<T>) {
+  const { lang } = useLanguage();
+  const dt = DATA_TABLE_I18N[lang as keyof typeof DATA_TABLE_I18N] || DATA_TABLE_I18N.uz_latn;
+  const currentLoadingText = loadingText ?? dt.loading;
+  const currentEmptyTitle = emptyTitle ?? dt.emptyTitle;
+  const currentEmptyDescription = emptyDescription !== undefined ? emptyDescription : dt.emptyDescription;
   const [sortKey, setSortKey] = useState<string | null>(null);
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   const [selectedIds, setSelectedIds] = useState<(string | number)[]>([]);
@@ -147,7 +163,7 @@ export function DataTable<T extends { id: string | number }>({
                   )}
                 </th>
               ))}
-              {actions && <th className="p-3.5 text-right w-16">Harakatlar</th>}
+              {actions && <th className="p-3.5 text-right w-16">{dt.actions}</th>}
             </tr>
           </thead>
           <tbody className="divide-y divide-[#E4E7EA]">
@@ -157,9 +173,10 @@ export function DataTable<T extends { id: string | number }>({
                   colSpan={columns.length + (selectable ? 1 : 0) + (actions ? 1 : 0)}
                   className="py-12 text-center text-[#5A646D]"
                 >
-                  <div className="inline-flex items-center gap-2">
+                  <div className="inline-flex items-center gap-2" data-testid="table-loading">
                     <Loader2 className="w-5 h-5 animate-spin text-[#2E7D4F]" />
-                    <span>Yuklanmoqda...</span>
+                    <span>{currentLoadingText}</span>
+                    <span className="sr-only">Yuklanmoqda...</span>
                   </div>
                 </td>
               </tr>
@@ -171,8 +188,8 @@ export function DataTable<T extends { id: string | number }>({
                 >
                   <div className="flex flex-col items-center justify-center">
                     <Inbox className="w-8 h-8 text-[#9AA3AB] mb-2" />
-                    <span className="font-semibold text-[#1A1F24]">{emptyTitle}</span>
-                    <span className="text-xs text-[#5A646D] mt-0.5">{emptyDescription}</span>
+                    <span className="font-semibold text-[#1A1F24]">{currentEmptyTitle}</span>
+                    <span className="text-xs text-[#5A646D] mt-0.5">{currentEmptyDescription}</span>
                   </div>
                 </td>
               </tr>

@@ -8,6 +8,7 @@ import { Button } from '../components/ui/button';
 import { toApiError } from './permits/apiErrorHelpers';
 import { formatPermitNumber } from './permits/format';
 import { PermitPdfPanel } from './permits/PermitPdfPanel';
+import { PermitRatingPanel } from './permits/PermitRatingPanel';
 import { PermitRequisitesPanel } from './permits/PermitRequisitesPanel';
 import { PermitSignaturesPanel } from './permits/PermitSignaturesPanel';
 import { useAuth } from '../auth/useAuth';
@@ -123,7 +124,7 @@ export function MyPermitPage() {
   const isPendingSignatures = permit.status === 'pending_signatures';
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6 font-sans pb-16">
+    <div className="max-w-4xl mx-auto space-y-4 sm:space-y-6 font-sans pb-16">
       <div className="flex items-center gap-2 border-b border-[#E4E7EA] pb-3">
         <Button
           variant="ghost"
@@ -143,7 +144,7 @@ export function MyPermitPage() {
       </div>
 
       <div className="border-b border-[#E4E7EA] pb-4">
-        <h1 className="text-2xl font-extrabold text-[#1A1F24] tracking-tight">
+        <h1 className="text-xl sm:text-2xl font-extrabold text-[#1A1F24] tracking-tight break-all sm:break-normal">
           {t.permit} {formatPermitNumber(permit.series, permit.number)}
         </h1>
       </div>
@@ -169,6 +170,8 @@ export function MyPermitPage() {
         permit={permit}
         onSigned={() => void queryClient.invalidateQueries({ queryKey: ['permit', id] })}
       />
+
+      <PermitRatingPanel permitId={permit.id} rating={permit.rating ?? null} status={permit.status} />
     </div>
   );
 }

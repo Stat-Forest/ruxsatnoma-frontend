@@ -67,14 +67,14 @@ export function ReportCreateModal({ onClose }: { onClose: () => void }) {
       title={t('reports.create.title')}
       maxWidth="md"
       footer={
-        <>
-          <Button type="button" variant="secondary" onClick={onClose} disabled={create.isPending}>
+        <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 w-full">
+          <Button type="button" variant="secondary" className="w-full sm:w-auto" onClick={onClose} disabled={create.isPending}>
             {t('reports.create.cancel')}
           </Button>
-          <Button type="button" variant="primary" isLoading={create.isPending} disabled={!canSubmit} onClick={handleSubmit}>
+          <Button type="button" variant="primary" className="w-full sm:w-auto" isLoading={create.isPending} disabled={!canSubmit} onClick={handleSubmit}>
             {t('reports.create.submit')}
           </Button>
-        </>
+        </div>
       }
     >
       <div className="space-y-4">
@@ -104,7 +104,7 @@ export function ReportCreateModal({ onClose }: { onClose: () => void }) {
             ]}
           />
         </FormField>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <FormField label={t('reports.create.periodStartLabel')} required>
             <Input type="date" value={periodStart} onChange={(e) => setPeriodStart(e.target.value)} />
           </FormField>

@@ -1,15 +1,18 @@
-import { useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useNavigate, useSearchParams } from 'react-router';
+import { useBlocker, useNavigate, useSearchParams, type BlockerFunction } from 'react-router';
 import { ArrowLeft, ArrowRight, Loader2, Plus, ShieldCheck, Trash2, Upload } from 'lucide-react';
 import { Button } from '../../../components/ui/button';
 import { FormField, Input, Select } from '../../../components/ui/FormControls';
 import { Alert } from '../../../components/ui/Feedback';
 import { Stepper } from '../../../components/ui/Navigation';
+import { Modal } from '../../../components/ui/Overlay';
 import { ApiError } from '../../../api/errors';
 import { saveApplicantAddress } from '../../../api/address';
 import { useAuth } from '../../../auth/useAuth';
+import type { UiLanguage } from '../../../i18n/context';
 import { useApiErrorText } from '../../../i18n/useApiErrorText';
+import { useLanguage, useT } from '../../../i18n/useT';
 import {
   addApplicationDocument,
   createApplicationDraft,
@@ -27,22 +30,115 @@ import {
   type CalculationIn,
   type PrecheckOut,
 } from '../api';
-import { formatMoney, pickName } from '../format';
+import { formatMoney, formatUnit, pickName } from '../format';
 import { fromApplicationChecks } from '../checkTypeLabels';
 import { ChecksList } from './ChecksList';
 import { ContourPicker, type PickedContour } from './ContourPicker';
 import { PricePreviewPanel } from './PricePreviewPanel';
-import { buildMockSignature } from '../../../lib/eimzoMock';
+import { OccupancyCalendar } from './OccupancyCalendar';
+import { isIsoDateInWindows, type SeasonWindow } from './seasonCalendar';
+import {
+  buildMockSignature,
+  EimzoError,
+  eimzoErrorMessageKey,
+  isEimzoMock,
+  isProviderUnreachable,
+  signDocument,
+} from '../../../lib/eimzo';
 
 const GRAZING_CODE = 'grazing';
 
-const WIZARD_STEPS = [
-  { id: 1, title: 'Faoliyat turi', description: 'Foydalanish turi' },
-  { id: 2, title: 'Uchastka', description: 'Kontur va davr' },
-  { id: 3, title: 'Parametrlar', description: 'Miqdor va narx' },
-  { id: 4, title: 'Hujjatlar', description: 'Ilova fayllar' },
-  { id: 5, title: 'Yuborish', description: 'Tekshiruv va ERI' },
-];
+// Mirrors the backend's own ceiling (`backend/app/modules/norms/checks.py`,
+// `MAX_PERIOD_DAYS = 5 * 366`) so a reversed or overlong period is named IN
+// THE FIELD before the request ever reaches the server — decision #177's
+// own worked example is exactly this miss: `ERR-VAL-001` with
+// `details.reason = "period_reversed"` reached the applicant as the
+// generic "data failed validation" sentence, because this screen dropped
+// `details` for that code entirely.
+const MAX_PERIOD_DAYS = 5 * 366;
+
+/** `iso` + `days` calendar days, in UTC so a local-timezone DST shift can
+ *  never shave a day off the span — the same reason `date-only` values are
+ *  compared as UTC midnight everywhere else this ceiling is enforced. */
+function addIsoDays(iso: string, days: number): string {
+  const d = new Date(`${iso}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + days);
+  return d.toISOString().slice(0, 10);
+}
+
+/** Whole calendar days between two `YYYY-MM-DD` values — the same quantity
+ *  `(period_to - period_from).days` computes server-side. */
+function isoDaySpan(fromIso: string, toIso: string): number {
+  const from = new Date(`${fromIso}T00:00:00Z`).getTime();
+  const to = new Date(`${toIso}T00:00:00Z`).getTime();
+  return Math.round((to - from) / 86_400_000);
+}
+
+/**
+ * Local copy, not `i18n/errorMessages.ts` (T3's file this stage) and not
+ * the shared `DICTIONARIES` either — a client-side check has no backend
+ * error code to key `errorMessages.ts` on, and a key added to `uz_latn.ts`
+ * would have to be added to all five dictionaries just for two sentences
+ * this one screen uses. Same idiom `Navigation.tsx`'s own `PAGINATION_I18N`
+ * already uses for copy that belongs to a single component.
+ */
+const DATE_ERROR_COPY: Record<UiLanguage, { reversed: string; tooLong: string }> = {
+  uz_latn: {
+    reversed: 'Tugash sanasi boshlanish sanasidan oldin boʻlishi mumkin emas.',
+    tooLong: `Davr muddati ${MAX_PERIOD_DAYS} kundan (5 yildan) oshmasligi kerak.`,
+  },
+  uz_cyrl: {
+    reversed: 'Тугаш санаси бошланиш санасидан олдин бўлиши мумкин эмас.',
+    tooLong: `Давр муддати ${MAX_PERIOD_DAYS} кундан (5 йилдан) ошмаслиги керак.`,
+  },
+  ru: {
+    reversed: 'Дата окончания не может быть раньше даты начала.',
+    tooLong: `Срок периода не может превышать ${MAX_PERIOD_DAYS} дней (5 лет).`,
+  },
+  en: {
+    reversed: 'End date cannot be earlier than the start date.',
+    tooLong: `The period cannot exceed ${MAX_PERIOD_DAYS} days (5 years).`,
+  },
+  kaa: {
+    reversed: 'Tamamlanıw sánesi baslanıw sánesinen aldın bolıwı múmkin emes.',
+    tooLong: `Dáwir múddeti ${MAX_PERIOD_DAYS} kúnnen (5 jıldan) aspawı kerek.`,
+  },
+};
+
+/** Same reasoning as `DATE_ERROR_COPY` — this confirmation belongs to the
+ *  wizard alone, so it stays local rather than growing the shared maps. */
+const LEAVE_CONFIRM_COPY: Record<UiLanguage, { title: string; body: string; stay: string; leave: string }> = {
+  uz_latn: {
+    title: 'Vizarddan chiqasizmi?',
+    body: 'Qoralama saqlanadi — arizalar roʻyxatidan istalgan vaqtda davom ettirishingiz mumkin.',
+    stay: 'Davom etish',
+    leave: 'Chiqish',
+  },
+  uz_cyrl: {
+    title: 'Визарддан чиқасизми?',
+    body: 'Қоралама сақланади — аризалар рўйхатидан исталган вақтда давом эттиришингиз мумкин.',
+    stay: 'Давом этиш',
+    leave: 'Чиқиш',
+  },
+  ru: {
+    title: 'Выйти из мастера?',
+    body: 'Черновик сохранён — вы можете продолжить в любой момент из списка заявок.',
+    stay: 'Продолжить',
+    leave: 'Выйти',
+  },
+  en: {
+    title: 'Leave the wizard?',
+    body: 'Your draft is saved — you can resume it any time from the applications list.',
+    stay: 'Continue',
+    leave: 'Leave',
+  },
+  kaa: {
+    title: 'Vizarddan shıgasız ba?',
+    body: 'Qoralama saqlanadı — arizalar dizıminen qálegen waqıtta dawam ettire alasız.',
+    stay: 'Dawam etiw',
+    leave: 'Shıgıw',
+  },
+};
 
 interface LivestockRow {
   key: string;
@@ -60,6 +156,8 @@ interface LivestockRow {
  * `MyApplicationCardPage` links back here with `?draft=<id>` to resume.
  */
 export function ApplicationWizardPage() {
+  const t = useT();
+  const { lang } = useLanguage();
   const { me, refreshMe } = useAuth();
   const errorText = useApiErrorText();
   const navigate = useNavigate();
@@ -68,6 +166,12 @@ export function ApplicationWizardPage() {
   const queryClient = useQueryClient();
 
   const [step, setStep] = useState(1);
+  // The furthest step ever reached, distinct from `step` (where the
+  // applicant currently stands). T1's stepper contract: clicking a
+  // COMPLETED step returns to it, and that must survive going back further
+  // still — reaching step 4 then returning to step 2 must not re-lock
+  // steps 3 and 4 (`Stepper`'s own `maxStepReached` prop docstring).
+  const [maxStepReached, setMaxStepReached] = useState(1);
   const [applicationId, setApplicationId] = useState<string | null>(resumeId);
   const [onBehalf, setOnBehalf] = useState<'self' | 'legal'>('self');
   const [representationApplicantId, setRepresentationApplicantId] = useState('');
@@ -78,6 +182,22 @@ export function ApplicationWizardPage() {
   const [quantity, setQuantity] = useState('');
   const [items, setItems] = useState<LivestockRow[]>([]);
   const [benefitCategoryItemId, setBenefitCategoryItemId] = useState('');
+  // #179: shown only for a benefit category whose classifier item carries
+  // `props.requires_certificate = true`, and required before the request
+  // ever leaves the browser — the backend refuses submission without it
+  // (`ERR-APP-003`, `details.reason = "benefit_certificate_required"`), and
+  // that refusal must never be how the applicant first learns of it.
+  const [benefitCertificateNo, setBenefitCertificateNo] = useState('');
+  const [certificateTouched, setCertificateTouched] = useState(false);
+  // #177: the effective season windows and minimum term, read by
+  // `OccupancyCalendar` (through `GET /activity-seasons/effective`, the SAME
+  // resolution the blocking check itself uses) and handed back here so the
+  // native date inputs below can be constrained by the identical numbers
+  // rather than a second, possibly-drifted reading of the same dictionary.
+  const [seasonInfo, setSeasonInfo] = useState<{ windows: SeasonWindow[]; minTermDays: number | null }>({
+    windows: [],
+    minTermDays: null,
+  });
   const [precheckResult, setPrecheckResult] = useState<PrecheckOut | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [signing, setSigning] = useState(false);
@@ -150,11 +270,18 @@ export function ApplicationWizardPage() {
       setItems(card.items.map((i) => ({ key: i.id, livestockTypeId: i.livestock_type_id, headCount: String(i.head_count) })));
     }
     if (card?.benefit_category_item_id) setBenefitCategoryItemId(card.benefit_category_item_id);
+    if (card?.benefit_certificate_no) setBenefitCertificateNo(card.benefit_certificate_no);
   }
 
   const activityCode = activityTypesQuery.data?.find((a) => a.id === activityTypeId)?.code;
   const isGrazing = activityCode === GRAZING_CODE;
   const quantityUnit = activityTypesQuery.data?.find((a) => a.id === activityTypeId)?.quantity_unit;
+
+  // #179: the flag lives on the classifier item, not on the application —
+  // `ClassifierItemOut.props` is a free-form `dict`, so this is the one
+  // place that reads it as a boolean.
+  const selectedBenefitItem = benefitCategoriesQuery.data?.find((b) => b.id === benefitCategoryItemId);
+  const requiresCertificate = selectedBenefitItem?.props?.['requires_certificate'] === true;
 
   function invalidateCard() {
     if (applicationId) void queryClient.invalidateQueries({ queryKey: ['wizard-card', applicationId] });
@@ -184,27 +311,69 @@ export function ApplicationWizardPage() {
     onSuccess: (data) => setPrecheckResult(data),
   });
 
-  async function ensureDraftAndPatchActivity() {
+  // Advances AND remembers the furthest point reached, so the stepper can
+  // later tell "completed" (clickable) apart from "never visited yet"
+  // (inert) regardless of where `step` itself currently sits.
+  function goToStep(next: number) {
+    setStep(next);
+    setMaxStepReached((m) => Math.max(m, next));
+  }
+
+  // The stepper's own click handler: only a step already reached is a valid
+  // destination — `Stepper` itself also gates this, so the check here is
+  // belt-and-braces, not the only guard.
+  function goToCompletedStep(stepId: number) {
+    if (stepId <= maxStepReached) setStep(stepId);
+  }
+
+  async function ensureDraftAndPatchActivity(overrideActivityTypeId?: string) {
     let id = applicationId;
     if (!id) {
       const created = await createMutation.mutateAsync();
       id = created.id;
       setApplicationId(id);
     }
-    await patchApplication(id, { activity_type_id: activityTypeId });
+    await patchApplication(id, { activity_type_id: overrideActivityTypeId ?? activityTypeId });
     invalidateCard();
+  }
+
+  // T1's contract: choosing the activity type advances to step 2 BY
+  // ITSELF — the footer's "Next" button stays in place (Oybek: not
+  // removed, merely no longer the only way forward). `id` is passed
+  // explicitly rather than read back from `activityTypeId` state: the
+  // `setActivityTypeId` call just above it has not re-rendered yet when
+  // `ensureDraftAndPatchActivity` runs, so the state would still read the
+  // PREVIOUS selection.
+  async function selectActivityType(id: string) {
+    setSubmitError(null);
+    setActivityTypeId(id);
+    await ensureDraftAndPatchActivity(id);
+    // TWO clicks, not one (Oybek, 2026-09-10, after trying the one-click
+    // version on the stand): the first click SELECTS and stays put, a second
+    // click on the SAME card moves on. A single click that both chose and
+    // navigated gave no moment to see what had been chosen, and misreading
+    // one card for its neighbour cost a step back every time. Clicking a
+    // DIFFERENT card selects that one instead of advancing — otherwise
+    // correcting a misclick would carry the applicant forward on the wrong
+    // activity, which is the very thing this change exists to prevent.
+    // The footer's "Next" button still works, and always did.
+    if (activityTypeId === id) goToStep(2);
   }
 
   async function goNext() {
     setSubmitError(null);
     if (step === 1) {
+      // Reachable mainly when the applicant returns to step 1 through the
+      // stepper (activity already chosen) and presses "Next" again without
+      // reselecting — `selectActivityType` above is what normally leaves
+      // step 1 now.
       await ensureDraftAndPatchActivity();
-      setStep(2);
+      goToStep(2);
       return;
     }
     if (step === 2 && contour) {
       await patchMutation.mutateAsync({ contour_id: contour.id, period_from: periodFrom, period_to: periodTo });
-      setStep(3);
+      goToStep(3);
       return;
     }
     if (step === 3) {
@@ -217,12 +386,17 @@ export function ApplicationWizardPage() {
         body.quantity = quantity;
       }
       body.benefit_category_item_id = benefitCategoryItemId || null;
+      // #179: sent only while the CURRENTLY chosen category actually
+      // requires one — switching to a category that doesn't clears it
+      // server-side too, rather than leaving a stale number attached to an
+      // unrelated claim.
+      body.benefit_certificate_no = requiresCertificate ? benefitCertificateNo.trim() || null : null;
       await patchMutation.mutateAsync(body);
-      setStep(4);
+      goToStep(4);
       return;
     }
     if (step === 4) {
-      setStep(5);
+      goToStep(5);
       setPrecheckResult(null);
       await precheckMutation.mutateAsync();
       return;
@@ -269,7 +443,7 @@ export function ApplicationWizardPage() {
     try {
       const applicant = me?.applicant;
       if (!applicant?.pinfl) {
-        setSubmitError("ERI bilan imzolash uchun shaxsingizni tasdiqlovchi PINFL topilmadi. Profilni tekshiring.");
+        setSubmitError(t('wizard.step5.noPinfl'));
         return;
       }
       if (filingApplicant && !filingApplicant.address && !addressSaved) {
@@ -296,11 +470,29 @@ export function ApplicationWizardPage() {
         return;
       }
       const packageBytes = await getApplicationPackage(applicationId);
-      const pkcs7 = await buildMockSignature({ documentBytes: packageBytes, pinfl: applicant.pinfl, fullName: applicant.name });
+      // Fix wave, finding 2: real mode DETACHED, over the exact bytes
+      // `GET .../package` just served — `POST .../submit` verifies through
+      // `signatures.service.sign()` -> `verify_detached` against them
+      // (`applications/router.py::get_application_package`'s own docstring:
+      // "the client signs exactly these"). No PINFL to type in beyond the
+      // identity check above; the certificate the citizen picks in E-IMZO
+      // carries it.
+      const pkcs7 = isEimzoMock()
+        ? await buildMockSignature({ documentBytes: packageBytes, pinfl: applicant.pinfl, fullName: applicant.name })
+        : await signDocument(new Uint8Array(packageBytes));
       await submitApplication(applicationId, pkcs7);
+      // The one navigation the leave-guard below must let through without
+      // asking — it fires right after a successful submit, when there is
+      // nothing left to lose. A ref, not state: `navigate()` runs in the
+      // same tick, before a `setState` would have re-rendered the guard.
+      skipLeaveGuardRef.current = true;
       navigate(`/my/applications/${applicationId}`);
     } catch (err) {
-      setSubmitError(errorText(err, 'Kutilmagan xatolik yuz berdi.'));
+      setSubmitError(
+        err instanceof EimzoError || isProviderUnreachable(err)
+          ? t(eimzoErrorMessageKey(err))
+          : errorText(err, 'Kutilmagan xatolik yuz berdi.'),
+      );
     } finally {
       setSigning(false);
     }
@@ -308,12 +500,105 @@ export function ApplicationWizardPage() {
 
   const hasBlockingCheck = precheckResult?.checks.some((c) => c.result === 'fail') ?? false;
 
+  // T1's contract, item 1: named IN THE FIELD before the request ever
+  // leaves the browser — mirrors `norms/checks.py::_validate_period`
+  // exactly (`period_to < period_from`, then the `MAX_PERIOD_DAYS` span),
+  // so a pair this rejects is a pair the backend would also reject with
+  // `ERR-VAL-001`.
+  const periodError = useMemo(() => {
+    if (!periodFrom || !periodTo) return null;
+    const copy = DATE_ERROR_COPY[lang];
+    if (periodTo < periodFrom) return copy.reversed;
+    if (isoDaySpan(periodFrom, periodTo) > MAX_PERIOD_DAYS) return copy.tooLong;
+    return null;
+  }, [periodFrom, periodTo, lang]);
+
+  // #177: the effective season windows and minimum term — read through
+  // `OccupancyCalendar` (`onSeasonInfo`, this file's own `seasonInfo` state)
+  // rather than a second query here, so there is exactly one reading of
+  // "what season applies" to ever disagree with the check. A date outside
+  // every window is refused IN THE FIELD, same as the reversed/too-long
+  // pair above, rather than surfacing only from the calendar's disabled
+  // day cells — a value typed directly into the native input, bypassing the
+  // calendar entirely, still gets caught here.
+  const seasonError = useMemo(() => {
+    if (!periodFrom || !periodTo) return null;
+    if (seasonInfo.windows.length === 0) return null;
+    const bothInSeason =
+      isIsoDateInWindows(periodFrom, seasonInfo.windows) && isIsoDateInWindows(periodTo, seasonInfo.windows);
+    return bothInSeason ? null : t('wizard.step2.seasonOutOfRange');
+  }, [periodFrom, periodTo, seasonInfo.windows, t]);
+
+  const minTermError = useMemo(() => {
+    if (!periodFrom || !periodTo || !seasonInfo.minTermDays) return null;
+    if (isoDaySpan(periodFrom, periodTo) < seasonInfo.minTermDays) {
+      return t('wizard.step2.minTermNotice').replace('{days}', String(seasonInfo.minTermDays));
+    }
+    return null;
+  }, [periodFrom, periodTo, seasonInfo.minTermDays, t]);
+
+  const combinedPeriodError = periodError ?? seasonError ?? minTermError;
+  const minTermNotice = seasonInfo.minTermDays
+    ? t('wizard.step2.minTermNotice').replace('{days}', String(seasonInfo.minTermDays))
+    : null;
+
+  // Each input constrains the other via native `min`/`max`, so most invalid
+  // pairs are impossible to pick in the first place rather than merely
+  // flagged after the fact.
+  const periodFromMin = periodTo ? addIsoDays(periodTo, -MAX_PERIOD_DAYS) : undefined;
+  const periodFromMax = periodTo || undefined;
+  const periodToMin = periodFrom || undefined;
+  const periodToMax = periodFrom ? addIsoDays(periodFrom, MAX_PERIOD_DAYS) : undefined;
+
+  // T1's contract, item 3: leaving mid-draft asks first. The draft is
+  // already autosaved field by field (this file's own docstring above), so
+  // this is never "discard your work" — only "you'll need to come back for
+  // it". `applicationId` is the signal: step 1 sets it the moment a draft
+  // exists (`ensureDraftAndPatchActivity`/`selectActivityType`) and it is
+  // never cleared again in this component, so it tracks "is there
+  // something on the server to resume" for the page's whole lifetime.
+  const hasUnsavedDraft = applicationId !== null;
+  const skipLeaveGuardRef = useRef(false);
+
+  const shouldBlockLeaving = useCallback<BlockerFunction>(
+    ({ currentLocation, nextLocation }) =>
+      !skipLeaveGuardRef.current && hasUnsavedDraft && currentLocation.pathname !== nextLocation.pathname,
+    [hasUnsavedDraft],
+  );
+  // Covers BOTH the in-app "back to list" navigation and the browser's back
+  // button: a data router's `useBlocker` intercepts every in-SPA
+  // navigation attempt alike, `historyAction` included, so one guard is
+  // enough for both triggers T1's contract names separately.
+  const blocker = useBlocker(shouldBlockLeaving);
+  const leaveCopy = LEAVE_CONFIRM_COPY[lang];
+
+  // `useBlocker` explicitly does not cover a hard reload or tab close
+  // (react-router's own docs) — that is what this effect is for.
+  useEffect(() => {
+    if (!hasUnsavedDraft) return;
+    function handleBeforeUnload(e: BeforeUnloadEvent) {
+      if (skipLeaveGuardRef.current) return;
+      e.preventDefault();
+      e.returnValue = '';
+    }
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [hasUnsavedDraft]);
+
+  const wizardSteps = [
+    { id: 1, title: t('wizard.step1.title'), description: t('wizard.step1.desc') },
+    { id: 2, title: t('wizard.step2.title'), description: t('wizard.step2.desc') },
+    { id: 3, title: t('wizard.step3.title'), description: t('wizard.step3.desc') },
+    { id: 4, title: t('wizard.step4.title'), description: t('wizard.step4.desc') },
+    { id: 5, title: t('wizard.step5.title'), description: t('wizard.step5.desc') },
+  ];
+
   return (
     <div className="max-w-5xl mx-auto space-y-6 font-sans pb-24">
       <div className="flex flex-wrap items-start justify-between gap-4 border-b border-[#E4E7EA] pb-4">
         <div>
-          <h1 className="text-2xl font-extrabold text-[#1A1F24] tracking-tight">Yangi ariza topshirish</h1>
-          <p className="text-xs text-[#5A646D] mt-1">Bosqichlarni ketma-ket toʻldiring — qoralama har bosqichda saqlanadi</p>
+          <h1 className="text-2xl font-extrabold text-[#1A1F24] tracking-tight">{t('wizard.title')}</h1>
+          <p className="text-xs text-[#5A646D] mt-1">{t('wizard.subtitle')}</p>
         </div>
         <Button
           variant="outline"
@@ -322,20 +607,20 @@ export function ApplicationWizardPage() {
           onClick={() => navigate('/my/applications')}
           className="cursor-pointer font-bold"
         >
-          Roʻyxatga qaytish
+          {t('wizard.backToList')}
         </Button>
       </div>
 
       <div className="bg-white border border-[#E4E7EA] rounded-2xl p-4 shadow-xs">
-        <Stepper steps={WIZARD_STEPS.map((s) => ({ id: s.id, title: s.title, description: s.description }))} currentStep={step} />
+        <Stepper steps={wizardSteps} currentStep={step} maxStepReached={maxStepReached} onStepClick={goToCompletedStep} />
       </div>
 
       {/* Step 1 — activity type */}
       {step === 1 && (
         <section className="bg-white border border-[#E4E7EA] rounded-2xl p-6 shadow-xs space-y-4">
-          <h2 className="text-sm font-bold text-[#1A1F24] uppercase tracking-wider">1. Faoliyat turini tanlang</h2>
+          <h2 className="text-sm font-bold text-[#1A1F24] uppercase tracking-wider">{t('wizard.step1.heading')}</h2>
           {me && me.representations.length > 0 && (
-            <FormField label="Kim nomidan topshirilmoqda">
+            <FormField label={t('wizard.step1.onBehalfLabel')}>
               <Select
                 value={onBehalf === 'legal' ? representationApplicantId : ''}
                 onChange={(e) => {
@@ -348,7 +633,7 @@ export function ApplicationWizardPage() {
                   }
                 }}
                 options={[
-                  { value: '', label: "Oʻzim uchun (jismoniy shaxs)" },
+                  { value: '', label: t('wizard.step1.onBehalfSelf') },
                   ...me.representations.map((r) => ({ value: r.applicant.id, label: r.applicant.name })),
                 ]}
               />
@@ -358,15 +643,15 @@ export function ApplicationWizardPage() {
             {(activityTypesQuery.data ?? []).map((a) => (
               <button
                 key={a.id}
-                onClick={() => setActivityTypeId(a.id)}
+                onClick={() => void selectActivityType(a.id)}
                 className={`text-left p-4 rounded-xl border transition-all cursor-pointer ${
                   activityTypeId === a.id
                     ? 'border-[#2E7D4F] bg-[#F0F7F1] ring-2 ring-[#2E7D4F]/30'
                     : 'border-[#E4E7EA] hover:border-[#2E7D4F]'
                 }`}
               >
-                <span className="font-bold text-sm text-[#1A1F24] block">{pickName(a.name)}</span>
-                <span className="text-[11px] text-[#5A646D]">Birlik: {a.quantity_unit}</span>
+                <span className="font-bold text-sm text-[#1A1F24] block">{pickName(a.name, lang)}</span>
+                <span className="text-[11px] text-[#5A646D]">{t('wizard.step1.unit')} {formatUnit(a.quantity_unit, t, lang)}</span>
               </button>
             ))}
           </div>
@@ -377,22 +662,59 @@ export function ApplicationWizardPage() {
       {step === 2 && (
         <section className="space-y-4">
           <div className="bg-white border border-[#E4E7EA] rounded-2xl p-6 shadow-xs space-y-4">
-            <h2 className="text-sm font-bold text-[#1A1F24] uppercase tracking-wider">2. Uchastkani tanlang</h2>
+            <h2 className="text-sm font-bold text-[#1A1F24] uppercase tracking-wider">{t('wizard.step2.heading')}</h2>
             <ContourPicker value={contour} onChange={setContour} />
             {contour && (
               <Alert variant="success">
-                Tanlangan kontur: <strong className="font-mono">{contour.number}</strong> ({contour.areaHa ?? '—'} ga)
+                {t('wizard.step2.selectedContour')} <strong className="font-mono">{contour.number}</strong> ({contour.areaHa ?? '—'} {formatUnit('ha', t, lang)})
               </Alert>
             )}
           </div>
           <div className="bg-white border border-[#E4E7EA] rounded-2xl p-6 shadow-xs grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <FormField label="Boshlanish sanasi" required htmlFor="period-from">
-              <Input id="period-from" type="date" value={periodFrom} onChange={(e) => setPeriodFrom(e.target.value)} />
+            <FormField label={t('wizard.step2.periodFrom')} required htmlFor="period-from">
+              <Input
+                id="period-from"
+                type="date"
+                value={periodFrom}
+                min={periodFromMin}
+                max={periodFromMax}
+                onChange={(e) => setPeriodFrom(e.target.value)}
+              />
             </FormField>
-            <FormField label="Tugash sanasi" required htmlFor="period-to">
-              <Input id="period-to" type="date" value={periodTo} onChange={(e) => setPeriodTo(e.target.value)} />
+            <FormField
+              label={t('wizard.step2.periodTo')}
+              required
+              htmlFor="period-to"
+              error={combinedPeriodError ?? undefined}
+              helperText={!combinedPeriodError && minTermNotice ? minTermNotice : undefined}
+            >
+              <Input
+                id="period-to"
+                type="date"
+                value={periodTo}
+                min={periodToMin}
+                max={periodToMax}
+                onChange={(e) => setPeriodTo(e.target.value)}
+              />
             </FormField>
           </div>
+
+          {/* T10 (#177): the three-colour occupancy calendar, constrained
+              to the effective season and showing the minimum term — the
+              same numbers the two `FormField`s above validate against. */}
+          {contour && activityTypeId && (
+            <OccupancyCalendar
+              contourId={contour.id}
+              activityTypeId={activityTypeId}
+              periodFrom={periodFrom}
+              periodTo={periodTo}
+              onSelectRange={(from, to) => {
+                setPeriodFrom(from);
+                setPeriodTo(to);
+              }}
+              onSeasonInfo={setSeasonInfo}
+            />
+          )}
         </section>
       )}
 
@@ -400,12 +722,12 @@ export function ApplicationWizardPage() {
       {step === 3 && (
         <section className="space-y-4">
           <div className="bg-white border border-[#E4E7EA] rounded-2xl p-6 shadow-xs space-y-4">
-            <h2 className="text-sm font-bold text-[#1A1F24] uppercase tracking-wider">3. Parametrlar</h2>
+            <h2 className="text-sm font-bold text-[#1A1F24] uppercase tracking-wider">{t('wizard.step3.heading')}</h2>
             {isGrazing ? (
               <div className="space-y-3">
                 {items.map((row, idx) => (
                   <div key={row.key} className="flex items-end gap-3">
-                    <FormField label="Chorva turi" className="flex-1">
+                    <FormField label={t('wizard.step3.livestockType')} className="flex-1">
                       <Select
                         value={row.livestockTypeId}
                         onChange={(e) => {
@@ -414,12 +736,12 @@ export function ApplicationWizardPage() {
                           setItems(next);
                         }}
                         options={[
-                          { value: '', label: 'Tanlang...' },
-                          ...(livestockTypesQuery.data ?? []).map((l) => ({ value: l.id, label: pickName(l.name) })),
+                          { value: '', label: t('wizard.step3.selectPrompt') },
+                          ...(livestockTypesQuery.data ?? []).map((l) => ({ value: l.id, label: pickName(l.name, lang) })),
                         ]}
                       />
                     </FormField>
-                    <FormField label="Bosh soni" className="w-32">
+                    <FormField label={t('wizard.step3.headCount')} className="w-32">
                       <Input
                         type="number"
                         min={1}
@@ -443,32 +765,52 @@ export function ApplicationWizardPage() {
                   onClick={() => setItems([...items, { key: crypto.randomUUID(), livestockTypeId: '', headCount: '' }])}
                   className="cursor-pointer"
                 >
-                  Chorva turini qoʻshish
+                  {t('wizard.step3.addLivestock')}
                 </Button>
               </div>
             ) : (
-              <FormField label={`Miqdor (${quantityUnit ?? ''})`} required htmlFor="quantity">
+              <FormField label={quantityUnit ? `${t('wizard.step3.quantity')} (${formatUnit(quantityUnit, t, lang)})` : t('wizard.step3.quantity')} required htmlFor="quantity">
                 <Input id="quantity" type="number" min={0} step="0.0001" value={quantity} onChange={(e) => setQuantity(e.target.value)} />
               </FormField>
             )}
 
             {benefitCategoriesQuery.data && benefitCategoriesQuery.data.length > 0 && (
-              <FormField label="Imtiyoz toifasi (agar mavjud boʻlsa)" htmlFor="benefit">
+              <FormField label={t('wizard.step3.benefitCategory')} htmlFor="benefit">
                 <Select
                   id="benefit"
                   value={benefitCategoryItemId}
                   onChange={(e) => setBenefitCategoryItemId(e.target.value)}
                   options={[
-                    { value: '', label: 'Imtiyozsiz' },
-                    ...benefitCategoriesQuery.data.map((b) => ({ value: b.id, label: pickName(b.name) })),
+                    { value: '', label: t('wizard.step3.noBenefit') },
+                    ...benefitCategoriesQuery.data.map((b) => ({ value: b.id, label: pickName(b.name, lang) })),
                   ]}
+                />
+              </FormField>
+            )}
+
+            {/* #179: shown only for a category whose classifier item carries
+                `props.requires_certificate = true` — filled in here, before
+                the backend's own refusal (`ERR-APP-003`,
+                `benefit_certificate_required`) ever has a chance to fire. */}
+            {requiresCertificate && (
+              <FormField
+                label={t('wizard.step3.certificateNumber')}
+                required
+                htmlFor="benefit-certificate-no"
+                error={certificateTouched && !benefitCertificateNo.trim() ? t('wizard.step3.certificateNumberRequired') : undefined}
+              >
+                <Input
+                  id="benefit-certificate-no"
+                  value={benefitCertificateNo}
+                  onChange={(e) => setBenefitCertificateNo(e.target.value)}
+                  onBlur={() => setCertificateTouched(true)}
                 />
               </FormField>
             )}
           </div>
 
           <div className="bg-[#F0F9FF] border border-[#BAE6FD] rounded-2xl p-6 shadow-xs space-y-3">
-            <h3 className="text-sm font-bold text-[#0369A1] uppercase tracking-wider">Taxminiy narx</h3>
+            <h3 className="text-sm font-bold text-[#0369A1] uppercase tracking-wider">{t('wizard.step3.estimatedPrice')}</h3>
             <PricePreviewPanel request={calculationRequest} />
           </div>
         </section>
@@ -477,7 +819,7 @@ export function ApplicationWizardPage() {
       {/* Step 4 — documents */}
       {step === 4 && (
         <section className="bg-white border border-[#E4E7EA] rounded-2xl p-6 shadow-xs space-y-4">
-          <h2 className="text-sm font-bold text-[#1A1F24] uppercase tracking-wider">4. Hujjatlarni biriktiring</h2>
+          <h2 className="text-sm font-bold text-[#1A1F24] uppercase tracking-wider">{t('wizard.step4.heading')}</h2>
           <DocumentsStep
             docTypes={docTypesQuery.data ?? []}
             documents={cardQuery.data?.documents ?? []}
@@ -494,15 +836,15 @@ export function ApplicationWizardPage() {
       {step === 5 && (
         <section className="space-y-4">
           <div className="bg-white border border-[#E4E7EA] rounded-2xl p-6 shadow-xs space-y-3">
-            <h2 className="text-sm font-bold text-[#1A1F24] uppercase tracking-wider">5. Yakuniy tekshiruv</h2>
+            <h2 className="text-sm font-bold text-[#1A1F24] uppercase tracking-wider">{t('wizard.step5.heading')}</h2>
             {precheckMutation.isPending && (
               <p className="text-xs text-[#5A646D] flex items-center gap-2">
-                <Loader2 className="w-4 h-4 animate-spin" /> Tekshirilmoqda...
+                <Loader2 className="w-4 h-4 animate-spin" /> {t('wizard.step5.checking')}
               </p>
             )}
             {precheckMutation.isError && (
               <Alert variant="danger">
-                {errorText(precheckMutation.error, 'Tekshiruvda xatolik yuz berdi.')}
+                {errorText(precheckMutation.error, t('wizard.step5.checkError'))}
               </Alert>
             )}
             {precheckResult && (
@@ -510,14 +852,14 @@ export function ApplicationWizardPage() {
                 <ChecksList checks={fromApplicationChecks(precheckResult.checks)} />
                 {precheckResult.calculation ? (
                   <div className="bg-[#F0F9FF] border border-[#BAE6FD] rounded-xl p-4 font-mono text-lg font-bold text-[#123522]">
-                    {formatMoney(precheckResult.calculation.amount)} soʻm
+                    {formatMoney(precheckResult.calculation.amount)} {t('wizard.step3.currency')}
                   </div>
                 ) : (
-                  <Alert variant="warning">Ariza hali toʻliq emas — narx hisoblanmadi.</Alert>
+                  <Alert variant="warning">{t('wizard.step5.incompleteWarning')}</Alert>
                 )}
                 {hasBlockingCheck && (
-                  <Alert variant="danger" title="Yuborib boʻlmaydi">
-                    Bloklovchi tekshiruv aniqlandi. Avvalgi bosqichlarga qaytib maʼlumotlarni tuzating.
+                  <Alert variant="danger" title={t('wizard.step5.cannotSubmitTitle')}>
+                    {t('wizard.step5.cannotSubmitDesc')}
                   </Alert>
                 )}
               </>
@@ -526,15 +868,15 @@ export function ApplicationWizardPage() {
 
           {needsAddress && (
             <div className="bg-white border border-[#E4E7EA] rounded-2xl p-6 shadow-xs space-y-3">
-              <h2 className="text-sm font-bold text-[#1A1F24] uppercase tracking-wider">Manzil</h2>
+              <h2 className="text-sm font-bold text-[#1A1F24] uppercase tracking-wider">{t('wizard.step5.addressTitle')}</h2>
               <p className="text-xs text-[#5A646D]">
-                Ruxsatnomada koʻrsatiladigan manzilingiz profilingizda topilmadi — yuborishdan oldin kiriting.
+                {t('wizard.step5.addressDesc')}
               </p>
               <FormField
-                label="Manzil"
+                label={t('wizard.step5.addressLabel')}
                 required
                 htmlFor="applicant-address"
-                error={addressTouched && !address.trim() ? 'Manzil kiritilishi shart.' : undefined}
+                error={addressTouched && !address.trim() ? t('wizard.step5.addressRequired') : undefined}
               >
                 <Input
                   id="applicant-address"
@@ -547,13 +889,12 @@ export function ApplicationWizardPage() {
           )}
 
           <div className="bg-white border border-[#E4E7EA] rounded-2xl p-6 shadow-xs space-y-3">
-            <h2 className="text-sm font-bold text-[#1A1F24] uppercase tracking-wider">ERI bilan imzolash va yuborish</h2>
+            <h2 className="text-sm font-bold text-[#1A1F24] uppercase tracking-wider">{t('wizard.step5.eriTitle')}</h2>
             <p className="text-xs text-[#5A646D]">
-              Arizani yuborish uchun elektron raqamli imzo (ERI) bilan tasdiqlashingiz kerak. Ushbu muhitda ERI mock
-              (demo) rejimida ishlaydi.
+              {t('wizard.step5.eriDesc')}
             </p>
             {submitError && (
-              <Alert variant="danger" title="Yuborilmadi">
+              <Alert variant="danger" title={t('wizard.step5.notSubmittedTitle')}>
                 {submitError}
               </Alert>
             )}
@@ -571,8 +912,8 @@ export function ApplicationWizardPage() {
               className="cursor-pointer font-bold"
             >
               {needsAddress && !addressSaved
-                ? 'Manzilni saqlash va narxni hisoblash'
-                : 'ERI bilan imzolash va yuborish'}
+                ? t('wizard.step5.saveAddressAndCalc')
+                : t('wizard.step5.signAndSubmit')}
             </Button>
           </div>
         </section>
@@ -582,7 +923,7 @@ export function ApplicationWizardPage() {
       <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-[#E4E7EA] p-4 shadow-lg z-30">
         <div className="max-w-5xl mx-auto flex items-center justify-between gap-4">
           <Button variant="outline" leftIcon={<ArrowLeft className="w-4 h-4" />} disabled={step <= 1} onClick={goBack} className="cursor-pointer font-bold">
-            Orqaga
+            {t('wizard.nav.back')}
           </Button>
           {step < 5 && (
             <Button
@@ -591,18 +932,46 @@ export function ApplicationWizardPage() {
               isLoading={createMutation.isPending || patchMutation.isPending}
               disabled={
                 (step === 1 && !activityTypeId) ||
-                (step === 2 && (!contour || !periodFrom || !periodTo)) ||
+                (step === 2 && (!contour || !periodFrom || !periodTo || !!combinedPeriodError)) ||
                 (step === 3 && !isGrazing && !quantity) ||
-                (step === 3 && isGrazing && items.filter((i) => i.livestockTypeId && i.headCount).length === 0)
+                (step === 3 && isGrazing && items.filter((i) => i.livestockTypeId && i.headCount).length === 0) ||
+                // #179: the certificate number must be filled in before the
+                // wizard moves on — the backend's own refusal
+                // (`ERR-APP-003`, `benefit_certificate_required`) must never
+                // be how the applicant first learns it was needed.
+                (step === 3 && requiresCertificate && !benefitCertificateNo.trim())
               }
               onClick={goNext}
               className="cursor-pointer font-bold"
             >
-              Keyingisi
+              {t('wizard.nav.next')}
             </Button>
           )}
         </div>
       </div>
+
+      {/* T1's contract, item 3: leaving mid-draft asks first — the browser
+          back button and any in-app navigation away from the wizard both
+          go through the same `useBlocker` above. */}
+      {blocker.state === 'blocked' && (
+        <Modal
+          isOpen
+          onClose={() => blocker.reset()}
+          title={leaveCopy.title}
+          footer={
+            <>
+              <Button variant="outline" onClick={() => blocker.reset()} className="cursor-pointer font-bold">
+                {leaveCopy.stay}
+              </Button>
+              <Button variant="danger" onClick={() => blocker.proceed()} className="cursor-pointer font-bold">
+                {leaveCopy.leave}
+              </Button>
+            </>
+          }
+        >
+          <p>{leaveCopy.body}</p>
+        </Modal>
+      )}
     </div>
   );
 }
@@ -618,6 +987,8 @@ function DocumentsStep({
   onUpload: (file: File, docTypeItemId: string) => Promise<void>;
   onRemove: (documentId: string) => void;
 }) {
+  const t = useT();
+  const { lang } = useLanguage();
   const [docTypeItemId, setDocTypeItemId] = useState('');
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -625,7 +996,7 @@ function DocumentsStep({
 
   async function handleFile(file: File) {
     if (!docTypeItemId) {
-      setError('Avval hujjat turini tanlang.');
+      setError(t('wizard.step4.selectDocTypeFirst'));
       return;
     }
     setError(null);
@@ -633,7 +1004,7 @@ function DocumentsStep({
     try {
       await onUpload(file, docTypeItemId);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Hujjatni yuklashda xatolik yuz berdi.');
+      setError(err instanceof ApiError ? err.message : t('wizard.step4.uploadError'));
     } finally {
       setUploading(false);
       if (inputRef.current) inputRef.current.value = '';
@@ -641,17 +1012,17 @@ function DocumentsStep({
   }
 
   if (docTypes.length === 0) {
-    return <Alert variant="warning">Hujjat turlari hali sozlanmagan — hozircha fayl biriktirish mumkin emas.</Alert>;
+    return <Alert variant="warning">{t('wizard.step4.notConfigured')}</Alert>;
   }
 
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-end gap-3">
-        <FormField label="Hujjat turi" className="flex-1 min-w-[220px]">
+        <FormField label={t('wizard.step4.docType')} className="flex-1 min-w-[220px]">
           <Select
             value={docTypeItemId}
             onChange={(e) => setDocTypeItemId(e.target.value)}
-            options={[{ value: '', label: 'Tanlang...' }, ...docTypes.map((d) => ({ value: d.id, label: pickName(d.name) }))]}
+            options={[{ value: '', label: t('wizard.step4.selectDocType') }, ...docTypes.map((d) => ({ value: d.id, label: pickName(d.name, lang) }))]}
           />
         </FormField>
         <Button
@@ -661,7 +1032,7 @@ function DocumentsStep({
           onClick={() => inputRef.current?.click()}
           className="cursor-pointer font-bold"
         >
-          Fayl tanlash
+          {t('wizard.step4.chooseFile')}
         </Button>
         <input
           ref={inputRef}
@@ -678,9 +1049,9 @@ function DocumentsStep({
         <ul className="space-y-2">
           {documents.map((doc) => (
             <li key={doc.id} className="flex items-center justify-between p-3 border border-[#E4E7EA] rounded-xl text-xs">
-              <span className="font-semibold">{pickName(docTypes.find((d) => d.id === doc.doc_type_item_id)?.name) || 'Hujjat'}</span>
+              <span className="font-semibold">{pickName(docTypes.find((d) => d.id === doc.doc_type_item_id)?.name, lang) || t('wizard.step4.defaultDocName')}</span>
               <button onClick={() => onRemove(doc.id)} className="text-[#B91C1C] font-bold hover:underline cursor-pointer">
-                Oʻchirish
+                {t('wizard.step4.deleteDoc')}
               </button>
             </li>
           ))}

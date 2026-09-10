@@ -6,18 +6,27 @@ import { FormField, Input } from '../components/ui/FormControls';
 import { ApiError, RATE_LIMITED } from '../api/errors';
 import { useAuth } from '../auth/useAuth';
 import { useT } from '../i18n/useT';
-import { PINFL_PATTERN } from '../lib/eimzoMock';
+import { EimzoError, PINFL_PATTERN, eimzoErrorMessageKey, isEimzoMock, isProviderUnreachable } from '../lib/eimzo';
 import { peekStoredNext } from './oneIdReturnCache';
 
 type ErrorKind = 'credentials' | 'blocked' | 'rate-limited' | 'connection' | 'oneid' | null;
 
-// ERR-AUTH-001 (wrong credentials), ERR-AUTH-003 (blocked account) and
+// ERR-AUTH-001 (wrong credentials), ERR-AUTH-003 (locked out) and
 // ERR-SYS-006 (rate limited) get three different messages on purpose — the
 // brief's whole reason is that "wrong password" for a locked-out account
 // sends the user in circles. Anything that is not even an ApiError (the
 // backend never answered — a dropped connection, a CORS failure) is its own
 // fourth case: telling someone their password is wrong when their
 // connection dropped is that same defect in a different costume.
+//
+// `ERR-AUTH-003` is a TEMPORARY lockout — `login_max_attempts` failures put
+// `locked_until` `login_lockout_minutes` into the future and it clears
+// itself, so the copy must not send anyone to an administrator (it said
+// exactly that until 2026-09-09, and the wait is 15 minutes by default). An
+// account an administrator really did block (`users.status != 'active'`)
+// never reaches this branch at all: `auth.service.login_password` answers it
+// with `ERR-AUTH-001`, deliberately indistinguishable from a wrong password
+// so the response is not a user-existence oracle.
 function classify(err: unknown): Exclude<ErrorKind, null | 'oneid'> {
   if (!(err instanceof ApiError)) return 'connection';
   if (err.code === RATE_LIMITED) return 'rate-limited';
@@ -49,7 +58,7 @@ function storedMethod(): Method {
 }
 
 export function LoginPage() {
-  const { requestMfa, verifyMfa, startOneId, loginViaEimzo } = useAuth();
+  const { submitPassword, verifyMfa, startOneId, loginViaEimzo } = useAuth();
   const t = useT();
   const navigate = useNavigate();
   const location = useLocation();
@@ -72,6 +81,12 @@ export function LoginPage() {
   const [fullName, setFullName] = useState('');
   const [badPinfl, setBadPinfl] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  // Real mode only: the message key for one of task 11's five conditions.
+  // Kept apart from `errorKind` above — that state carries a FIXED message
+  // per kind, while an E-IMZO failure's text depends on which of `errors.ts`'s
+  // kinds it was, so the KEY is what this page stores, resolved through `t()`
+  // at render time same as everything else.
+  const [eimzoErrorKey, setEimzoErrorKey] = useState<string | null>(null);
   // Read once, on mount: the backend redirects a failed OneID state check
   // (the `oneid_state` cookie expired — its `max_age` is 600s — or was lost)
   // to `/login?error=oneid`, a full page load. This is the only place that
@@ -86,7 +101,14 @@ export function LoginPage() {
     setErrorKind(null);
     setSubmitting(true);
     try {
-      await requestMfa(loginId, password);
+      // Only the server knows whether a second factor is still in force
+      // (`mfa_enabled`). When it is off the session already exists by the time
+      // this resolves, so showing the code screen would strand a signed-in user
+      // in front of a field nothing checks.
+      if ((await submitPassword(loginId, password)) === 'signed-in') {
+        navigate(next, { replace: true });
+        return;
+      }
       setStep('code');
     } catch (err) {
       setErrorKind(classify(err));
@@ -131,6 +153,29 @@ export function LoginPage() {
     }
   }
 
+  // Real mode: no PINFL/name to validate first — there is nothing typed
+  // into this page at all, the certificate the signer picks in E-IMZO's own
+  // dialog carries the identity. `EimzoError`/`ERR-INT-001`/`ERR-INT-002`
+  // (task 11's five conditions) get their own message; anything else falls
+  // through to the same `classify()` the password/OneID flows already use.
+  async function handleEimzoRealSubmit() {
+    setErrorKind(null);
+    setEimzoErrorKey(null);
+    setSubmitting(true);
+    try {
+      await loginViaEimzo();
+      navigate(next, { replace: true });
+    } catch (err) {
+      if (err instanceof EimzoError || isProviderUnreachable(err)) {
+        setEimzoErrorKey(eimzoErrorMessageKey(err));
+      } else {
+        setErrorKind(classify(err));
+      }
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
   return (
     <div
       data-testid="login-page"
@@ -161,6 +206,7 @@ export function LoginPage() {
                 // be 14 digits" alert must not survive a trip to another tab
                 // and back for a form that was never resubmitted.
                 setBadPinfl(false);
+                setEimzoErrorKey(null);
                 try {
                   localStorage.setItem(TAB_KEY, m);
                 } catch {
@@ -234,7 +280,7 @@ export function LoginPage() {
         )}
 
         {method === 'eimzo' &&
-          (import.meta.env.VITE_EIMZO_MOCK === 'true' ? (
+          (isEimzoMock() ? (
             <form onSubmit={handleEimzoSubmit} className="space-y-4">
               <p className="text-xs text-[#8A6D00] bg-[#FFF8E1] border border-[#FFE082] rounded-xl p-3">
                 {t('login.eimzoMockNotice')}
@@ -274,7 +320,31 @@ export function LoginPage() {
               </Button>
             </form>
           ) : (
-            <p className="text-sm text-[#5A646D]">{t('login.eimzoUnavailable')}</p>
+            // Real mode: no PINFL/name box — task 10's own rule, since a
+            // real certificate carries the identity a mock has none to read
+            // (`AuthContextValue.loginViaEimzo`'s own doc comment). Just the
+            // one action a citizen can take: hand the sign to their own
+            // connected E-IMZO key.
+            <div className="space-y-4">
+              <p className="text-xs text-[#123522] bg-[#F0F7F1] border border-[#D9EBDC] rounded-xl p-4 leading-relaxed">
+                {t('login.eimzoRealHint')}
+              </p>
+              {eimzoErrorKey && (
+                <p data-testid="eimzo-real-error" role="alert" className="text-sm text-[#B91C1C]">
+                  {t(eimzoErrorKey)}
+                </p>
+              )}
+              <Button
+                type="button"
+                variant="primary"
+                fullWidth
+                size="touch"
+                isLoading={submitting}
+                onClick={() => void handleEimzoRealSubmit()}
+              >
+                {t('login.eimzoButton')}
+              </Button>
+            </div>
           ))}
 
         {method === 'password' &&

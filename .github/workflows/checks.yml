@@ -15,6 +15,13 @@ on:
       api-base:
         type: string
         default: ''
+      # FE-1: real E-IMZO mode is an explicit per-environment opt-in, never a
+      # default (src/lib/eimzo/index.ts::isEimzoMock — unset means mock).
+      # Left blank here on purpose for a plain push/PR build: that resolves
+      # to mock, the safe default, exactly like every unset VITE_EIMZO_MOCK.
+      eimzo-mock:
+        type: string
+        default: ''
 
 jobs:
   check:
@@ -31,6 +38,10 @@ jobs:
         env:
           # Baked into the bundle at build time; without it the browser calls localhost.
           VITE_API_BASE: ${{ inputs.api-base }}
+          # FE-1: baked in at build time, same as VITE_API_BASE above — never
+          # left to the runtime default alone. Blank here (plain push/PR) or
+          # any value other than the literal "false" bakes in mock mode.
+          VITE_EIMZO_MOCK: ${{ inputs.eimzo-mock }}
         run: npm run build
 
       # The build succeeding is not the same as the bundle being usable: a

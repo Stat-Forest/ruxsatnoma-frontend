@@ -39,7 +39,7 @@ function Probe() {
   return <div data-testid="who">{me.role.code}</div>;
 }
 
-/** Calls verifyMfa on click, without ever calling requestMfa first. */
+/** Calls verifyMfa on click, without ever calling submitPassword first. */
 function MfaOrderProbe() {
   const { verifyMfa } = useAuth();
   const [error, setError] = useState<string | null>(null);
@@ -138,7 +138,7 @@ test('a /auth/me failure other than ERR-AUTH-002 is not silently treated as logg
   expect(screen.queryByTestId('anonymous')).not.toBeInTheDocument();
 });
 
-test('verifyMfa before requestMfa fails locally instead of sending an empty token to the server', async () => {
+test('verifyMfa before submitPassword fails locally instead of sending an empty token to the server', async () => {
   server.use(
     http.get('*/auth/me', () =>
       HttpResponse.json({ error: { code: 'ERR-AUTH-002', message: 'no session' } }, { status: 401 }),

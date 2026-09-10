@@ -62,23 +62,23 @@ export function ApplicantTimeline({ timeline }: { timeline: ApplicationTimelineO
           </div>
           <div className="bg-white border border-[#E4E7EA] rounded-xl p-4 space-y-2">
             <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#E4E7EA] pb-2">
-              <div className="flex items-center gap-2 text-xs font-bold text-[#1A1F24]">
+              <div className="flex items-center gap-1.5 sm:gap-2 text-xs font-bold text-[#1A1F24] flex-wrap">
                 <span>{entry.from_status ? getStatusLabel(entry.from_status as ApplicationStatus, lang) : t.start}</span>
-                <ArrowRight className="w-3.5 h-3.5 text-[#5A646D]" />
+                <ArrowRight className="w-3.5 h-3.5 text-[#5A646D] shrink-0" />
                 <span className="text-[#2E7D4F]">{getStatusLabel(entry.to_status as ApplicationStatus, lang)}</span>
               </div>
-              <span className="font-mono text-xs text-[#5A646D]">{formatDateTime(entry.occurred_at)}</span>
+              <span className="font-mono text-xs text-[#5A646D] shrink-0">{formatDateTime(entry.occurred_at)}</span>
             </div>
-            {entry.reason_text && <p className="text-xs text-[#5A646D]">{entry.reason_text}</p>}
-            {entry.legal_basis && <p className="text-xs text-[#5A646D]">{t.basis} {entry.legal_basis}</p>}
+            {entry.reason_text && <p className="text-xs text-[#5A646D] break-words">{entry.reason_text}</p>}
+            {entry.legal_basis && <p className="text-xs text-[#5A646D] break-words">{t.basis} {entry.legal_basis}</p>}
             {entry.signatures.length > 0 && (
               <div className="flex flex-wrap gap-2 pt-1">
                 {entry.signatures.map((sig) => (
                   <span
                     key={sig.id}
-                    className="inline-flex items-center gap-1 text-[11px] font-bold text-[#15803D] bg-[#DCFCE7] px-2 py-0.5 rounded border border-[#86EFAC]"
+                    className="inline-flex items-center gap-1 text-[11px] font-bold text-[#15803D] bg-[#DCFCE7] px-2 py-0.5 rounded border border-[#86EFAC] break-words"
                   >
-                    <ShieldCheck className="w-3.5 h-3.5" /> {t.signedWith} ({formatDateTime(sig.signed_at)})
+                    <ShieldCheck className="w-3.5 h-3.5 shrink-0" /> {t.signedWith} ({formatDateTime(sig.signed_at)})
                   </span>
                 ))}
               </div>

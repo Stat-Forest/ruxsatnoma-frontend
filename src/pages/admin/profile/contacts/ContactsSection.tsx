@@ -1,17 +1,16 @@
 import { useAuth } from '../../../../auth/useAuth';
-import { useLanguage, useT } from '../../../../i18n/useT';
+import { useT } from '../../../../i18n/useT';
 import { ContactField } from './ContactField';
 import { Phone } from 'lucide-react';
 
 export function ContactsSection() {
   const { me, applyMe } = useAuth();
-  const { lang } = useLanguage();
   const t = useT();
 
   if (!me) return null;
 
   return (
-    <section className="bg-white border border-[#E4E7EA] rounded-2xl p-6 sm:p-7 shadow-xs space-y-6">
+    <section className="bg-white border border-[#E4E7EA] rounded-2xl p-4 sm:p-7 shadow-xs space-y-6">
       <div className="flex items-start justify-between gap-4 pb-4 border-b border-[#E4E7EA]">
         <div>
           <h2 className="text-base sm:text-lg font-bold text-[#1A1F24] flex items-center gap-2">
@@ -19,15 +18,7 @@ export function ContactsSection() {
             {t('cabinet.profile.contactsTitle')}
           </h2>
           <p className="text-xs sm:text-sm text-[#5A646D] mt-1">
-            {lang === 'ru'
-              ? 'Информация о телефоне и электронной почте, привязанных к вашему аккаунту'
-              : lang === 'uz_cyrl'
-              ? 'Ҳисобингизга бириктирилган телефон ва электрон почта маълумотлари'
-              : lang === 'en'
-              ? 'Phone and email information associated with your account'
-              : lang === 'kaa'
-              ? "Esabıńızǵa biriktirilgen telefon hám elektron pochta maǵlıwmatları"
-              : "Hisobingizga biriktirilgan telefon va elektron pochta ma'lumotlari"}
+            {t('cabinet.profile.contactsSubtitle')}
           </p>
         </div>
       </div>

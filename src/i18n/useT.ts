@@ -1,9 +1,11 @@
 import { useContext } from 'react';
 import { I18nContext } from './context';
 
+import { uz_latn } from './uz_latn';
+
 export function useT() {
   const ctx = useContext(I18nContext);
-  if (!ctx) throw new Error('useT must be used within an I18nProvider');
+  if (!ctx) return (key: string) => (uz_latn as Record<string, string>)[key] ?? key;
   return ctx.t;
 }
 

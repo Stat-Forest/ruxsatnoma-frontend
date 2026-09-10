@@ -4,7 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { setupServer } from 'msw/node';
 import { RolesPage } from './RolesPage';
-import { DICTIONARIES, I18nContext } from '../../../i18n/context';
+import { DICTIONARIES, I18nContext, type UiLanguage } from '../../../i18n/context';
 import type { PermissionOut, RoleAdminOut } from '../api';
 
 const EXECUTOR = 'e0000000-0000-4000-8000-000000000001';
@@ -80,7 +80,7 @@ function mockBackend(options: { roles?: RoleAdminOut[]; permissions?: Permission
   );
 }
 
-function renderPage(lang: 'uz_latn' | 'ru' = 'uz_latn') {
+function renderPage(lang: UiLanguage = 'uz_latn') {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
   const i18n = {
     lang,
@@ -307,3 +307,121 @@ test('the screen own copy is translated too, not only the data', async () => {
   // slipped through as a string would render as a dotted identifier.
   expect(document.body.textContent).not.toMatch(/\broles\.[a-z]+\b/i);
 });
+
+test('the roles page renders completely translated in English (en)', async () => {
+  mockBackend();
+  const page = renderPage('en');
+
+  // Wait for loading to finish
+  const executor = await screen.findByTestId('role-row-executor');
+
+  // Page header
+  expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Roles and permissions');
+  expect(screen.getByText('Configure which system actions each role is authorized to perform')).toBeInTheDocument();
+
+  // Left column
+  expect(screen.getByRole('heading', { level: 2, name: 'Roles' })).toBeInTheDocument();
+  expect(screen.getByText('Select a role to view its permissions')).toBeInTheDocument();
+
+  // Empty selection state
+  expect(screen.getByText('No role selected')).toBeInTheDocument();
+  expect(screen.getByText('Select a role from the list — its permissions will open here')).toBeInTheDocument();
+
+  // Role item badges & stats
+  expect(within(executor).getByTestId('role-system-badge')).toHaveTextContent('System role');
+  expect(executor).toHaveTextContent('Active');
+  expect(executor).toHaveTextContent('permissions');
+  expect(executor).toHaveTextContent('users');
+
+  // Open role detail
+  const matrix = await openRole('executor');
+  expect(within(matrix).getByText(/Permissions matrix/)).toBeInTheDocument();
+  expect(within(matrix).getByText(/selected/)).toBeInTheDocument();
+  expect(within(matrix).getByText(/System role code and name cannot be changed here/)).toBeInTheDocument();
+  expect(screen.getByTestId('save-permissions')).toHaveTextContent('Save');
+  expect(screen.getByRole('button', { name: 'Reset' })).toBeInTheDocument();
+
+  // Groups
+  expect(within(matrix).getByLabelText('Applications')).toBeInTheDocument();
+  expect(within(matrix).getByLabelText('Permits')).toBeInTheDocument();
+
+  page.unmount();
+});
+
+test('the roles page renders completely translated in Uzbek Cyrillic (uz_cyrl)', async () => {
+  mockBackend();
+  const page = renderPage('uz_cyrl');
+
+  await screen.findByTestId('role-row-executor');
+
+  expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Роллар ва ҳуқуқлар');
+  expect(screen.getByText('Ҳар бир рол тизимда қайси амалларни бажара олишини шу ерда белгиланади')).toBeInTheDocument();
+  expect(screen.getByText('Рол танланмаган')).toBeInTheDocument();
+
+  const matrix = await openRole('executor');
+  expect(within(matrix).getByText(/Ҳуқуқлар матрицаси/)).toBeInTheDocument();
+  expect(screen.getByTestId('save-permissions')).toHaveTextContent('Сақлаш');
+  expect(within(matrix).getByLabelText('Аризалар')).toBeInTheDocument();
+
+  page.unmount();
+});
+
+test('the roles page renders completely translated in Karakalpak (kaa)', async () => {
+  mockBackend();
+  const page = renderPage('kaa');
+
+  const executor = await screen.findByTestId('role-row-executor');
+
+  expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Roller hám huqıqlar');
+  expect(screen.getByText('Hár bir rol sistemada qaysı ámellerdi orınlay alıwın usı jerde belgilenedi')).toBeInTheDocument();
+  expect(screen.getByText('Rol saylanbaǵan')).toBeInTheDocument();
+
+  expect(within(executor).getByTestId('role-system-badge')).toHaveTextContent('Sistema roli');
+  expect(executor).toHaveTextContent('Belsendi');
+
+  const matrix = await openRole('executor');
+  expect(within(matrix).getByText(/Huqıqlar matricası/)).toBeInTheDocument();
+  expect(screen.getByTestId('save-permissions')).toHaveTextContent('Saqlaw');
+  expect(within(matrix).getByLabelText('Arzalar')).toBeInTheDocument();
+
+  page.unmount();
+});
+
+test('system roles from image 4 are translated across languages', async () => {
+  const SYSTEM_ROLES = [
+    role({ id: 'r1', code: 'accountant', name: { en: 'Accountant' } }),
+    role({ id: 'r2', code: 'chief_forester', name: { en: 'Chief forester' } }),
+    role({ id: 'r3', code: 'leadership', name: { en: 'Agency leadership' } }),
+    role({ id: 'r4', code: 'prosecutor', name: { en: 'Prosecutor / Oversight' } }),
+    role({ id: 'r5', code: 'sys_admin', name: { en: 'System administrator' } }),
+  ];
+  mockBackend({ roles: SYSTEM_ROLES });
+
+  // In Uzbek Latin
+  const uz = renderPage('uz_latn');
+  expect(await screen.findByTestId('role-row-accountant')).toHaveTextContent('Hisobchi');
+  expect(screen.getByTestId('role-row-chief_forester')).toHaveTextContent('Bosh oʻrmonchi');
+  expect(screen.getByTestId('role-row-leadership')).toHaveTextContent('Agentlik rahbariyati');
+  expect(screen.getByTestId('role-row-prosecutor')).toHaveTextContent('Prokuror / Nazorat');
+  expect(screen.getByTestId('role-row-sys_admin')).toHaveTextContent('Tizim maʼmuri');
+  uz.unmount();
+
+  // In Russian
+  const ru = renderPage('ru');
+  expect(await screen.findByTestId('role-row-accountant')).toHaveTextContent('Бухгалтер');
+  expect(screen.getByTestId('role-row-chief_forester')).toHaveTextContent('Главный лесничий');
+  expect(screen.getByTestId('role-row-leadership')).toHaveTextContent('Руководство агентства');
+  expect(screen.getByTestId('role-row-prosecutor')).toHaveTextContent('Прокурор / Надзор');
+  expect(screen.getByTestId('role-row-sys_admin')).toHaveTextContent('Системный администратор');
+  ru.unmount();
+
+  // In English
+  const en = renderPage('en');
+  expect(await screen.findByTestId('role-row-accountant')).toHaveTextContent('Accountant');
+  expect(screen.getByTestId('role-row-chief_forester')).toHaveTextContent('Chief forester');
+  expect(screen.getByTestId('role-row-leadership')).toHaveTextContent('Agency leadership');
+  expect(screen.getByTestId('role-row-prosecutor')).toHaveTextContent('Prosecutor / Oversight');
+  expect(screen.getByTestId('role-row-sys_admin')).toHaveTextContent('System administrator');
+  en.unmount();
+});
+
