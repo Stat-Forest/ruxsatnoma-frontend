@@ -34,6 +34,15 @@ const UZBEKISTAN_BOUNDS: [[number, number], [number, number]] = [
 ];
 const MIN_ZOOM = 4.5;
 
+/** Below this the viewport covers more ground than a browsable layer: the
+ * request would ask for thousands of polygons, the server would clip the
+ * answer at its own cap (`FEATURE_COLLECTION_LIMIT`, 2000) and the map would
+ * draw a partial layer as if it were the whole one. So nothing is fetched —
+ * `onViewportChange` reports `null` — and the map says why instead. Same
+ * threshold `ContourMapPreview.tsx` uses for an applicant (Oybek, 2026-09-10:
+ * the operator's map behaves the same way, on purpose). */
+const MIN_FETCH_ZOOM = 10;
+
 /** The same two basemaps `ContourMapPreview.tsx` offers an applicant, carried
  * over to the operator's map (Oybek, 2026-09-08): the scheme answers "where
  * is this parcel", the imagery answers "what is actually on the ground" —
@@ -122,8 +131,20 @@ export interface DrawMapProps {
    * replaced (an edit) or cut (a split), so the operator can see what they
    * are re-drawing or slicing without it being part of the new geometry. */
   referenceGeometry?: Geometry | null;
-  /** Read-only context, e.g. every published contour in the viewport. */
+  /** Read-only context, e.g. every published contour in the viewport. Each
+   * feature's `properties.contour_id` is what a click on it reports through
+   * `onPickContour`. */
   browsableFeatures?: FeatureCollection;
+  /** True while `browsableFeatures` is being (re)fetched — the count label
+   * says "loading" instead of a stale or zero number meanwhile. */
+  browsableLoading?: boolean;
+  /** A click on one of `browsableFeatures`'s parcels while the map is a plain
+   * viewer (`active` false). Never fired while drawing: there a click is a
+   * vertex of the shape being drawn, and picking a parcel underneath it
+   * would switch the selection out from under an operator mid-polygon. The
+   * caller decides what a click on the already-selected parcel means (the
+   * tab treats it as "clear"). */
+  onPickContour?: (contourId: string) => void;
   /** The contour picked in the list, while merely browsing (not editing or
    * splitting — those already get their own guide via `referenceGeometry`).
    * Drawn in its own solid, high-contrast style so it stands out among
@@ -133,7 +154,9 @@ export interface DrawMapProps {
    * map, so clearing a selection leaves the operator wherever they were
    * looking, just without a stale highlight left behind. */
   selectedGeometry?: Geometry | null;
-  onViewportChange?: (bbox: string) => void;
+  /** The settled viewport as the API's `bbox` string, or `null` when the map
+   * is zoomed out past `MIN_FETCH_ZOOM` and nothing should be fetched. */
+  onViewportChange?: (bbox: string | null) => void;
   /** Fired once, when the operator finishes one shape (a polygon's closing
    * click, a line's double-click, a point's single click). The drawn feature
    * is then cleared from terra-draw's own store — this component never
@@ -156,8 +179,10 @@ export function DrawMap({
   active,
   referenceGeometry,
   browsableFeatures,
+  browsableLoading = false,
   selectedGeometry,
   onViewportChange,
+  onPickContour,
   onDrawFinish,
   height = '420px',
 }: DrawMapProps) {
@@ -167,15 +192,24 @@ export function DrawMap({
   const drawRef = useRef<TerraDraw | null>(null);
   const [mapReady, setMapReady] = useState(false);
   const [basemap, setBasemap] = useState<BasemapId>('osm');
+  /** Zoomed out past `MIN_FETCH_ZOOM` — drives the label under the map. */
+  const [zoomedOut, setZoomedOut] = useState(false);
   const t = useT();
   const onDrawFinishRef = useRef(onDrawFinish);
   const onViewportChangeRef = useRef(onViewportChange);
+  const onPickContourRef = useRef(onPickContour);
+  // MapLibre's click handler is registered once, at `load`, and would
+  // otherwise close over the `active` of that first render: a ref is what
+  // lets it tell a browse-mode click from a drawing vertex today.
+  const activeRef = useRef(active);
   const heightRef = useRef(height);
   useEffect(() => {
     onDrawFinishRef.current = onDrawFinish;
     onViewportChangeRef.current = onViewportChange;
+    onPickContourRef.current = onPickContour;
+    activeRef.current = active;
     heightRef.current = height;
-  }, [onDrawFinish, onViewportChange, height]);
+  }, [onDrawFinish, onViewportChange, onPickContour, active, height]);
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -235,10 +269,23 @@ export function DrawMap({
     });
 
     const readViewport = () => {
+      if (map.getZoom() < MIN_FETCH_ZOOM) {
+        setZoomedOut(true);
+        onViewportChangeRef.current?.(null);
+        return;
+      }
+      setZoomedOut(false);
       const b = map.getBounds();
       onViewportChangeRef.current?.(
         [b.getWest(), b.getSouth(), b.getEast(), b.getNorth()].map((n) => n.toFixed(5)).join(','),
       );
+    };
+
+    const pick = (event: { features?: { properties?: Record<string, unknown> }[] }) => {
+      // While drawing, this click was a vertex — Terra Draw has it already.
+      if (activeRef.current) return;
+      const id = event.features?.[0]?.properties?.contour_id;
+      if (typeof id === 'string') onPickContourRef.current?.(id);
     };
 
     map.once('load', () => {
@@ -316,6 +363,21 @@ export function DrawMap({
         type: 'line',
         source: 'selected',
         paint: { 'line-color': '#B45309', 'line-width': 2.5 },
+      });
+
+      // The browsable parcels are what the operator picks from — the same
+      // click-to-select `ContourMapPreview.tsx` gives an applicant. Terra
+      // Draw's own listeners are on the canvas, not on a layer, so this one
+      // fires during a draw too; `pick` is what ignores it then. The cursor
+      // is left alone while drawing for the same reason: Terra Draw sets its
+      // own (a crosshair), and a `mouseleave` here resetting it mid-polygon
+      // would flicker it back to an arrow over every parcel crossed.
+      map.on('click', 'browsable-fill', pick);
+      map.on('mouseenter', 'browsable-fill', () => {
+        if (!activeRef.current) map.getCanvas().style.cursor = 'pointer';
+      });
+      map.on('mouseleave', 'browsable-fill', () => {
+        if (!activeRef.current) map.getCanvas().style.cursor = '';
       });
 
       draw.start();
@@ -409,6 +471,28 @@ export function DrawMap({
   return (
     <div ref={shellRef} className="relative bg-white border border-[#E4E7EA] rounded-2xl overflow-hidden">
       <div ref={containerRef} style={{ height }} data-testid="draw-map-canvas" />
+      {/* Bottom-LEFT, clear of the attribution (bottom-right). Says what the
+          browsable layer is showing, because "no polygons" has two very
+          different causes — zoomed out past the fetch threshold, or zoomed
+          in on ground with no published contours — and silence would look
+          identical in both, and identical to a broken layer. `!mapReady`
+          comes first: before `load` there is no viewport to have read, so
+          the count is not zero, it is not yet known. Only for a caller that
+          listens to the viewport — that is the one feeding a browsable
+          layer; `LayersTab`'s draw-only map has none, and "0 contours"
+          there would describe a layer it never had. */}
+      {onViewportChange && (
+        <div
+          className="absolute bottom-2 left-2 z-10 rounded-md bg-white/90 border border-[#E4E7EA] px-2 py-1 text-[11px] text-[#5A646D] shadow-xs"
+          data-testid="browsable-status"
+        >
+          {!mapReady || browsableLoading
+            ? t('gis.map.loading')
+            : zoomedOut
+              ? t('gis.map.zoomInHint')
+              : t('gis.map.contourCount').replace('{n}', String(browsableFeatures?.features.length ?? 0))}
+        </div>
+      )}
       {/* Top-LEFT: the fullscreen control sits top-right, and the attribution
           — the one thing on this map that may not be covered — bottom-right.
           A child of the shell, not of the map container, so it survives the

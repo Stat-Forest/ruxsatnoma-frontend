@@ -24,6 +24,9 @@ vi.mock('./DrawMap', () => ({
     active: boolean;
     referenceGeometry?: { type: string } | null;
     selectedGeometry?: { type: string } | null;
+    browsableFeatures?: { features: { properties: { contour_id: string } }[] };
+    onViewportChange?: (bbox: string | null) => void;
+    onPickContour?: (contourId: string) => void;
     onDrawFinish: (g: unknown) => void;
   }) => (
     <div
@@ -44,6 +47,17 @@ vi.mock('./DrawMap', () => ({
       >
         finish-draw
       </button>
+      {/* Stands in for a pan/zoom settling on a viewport: the real map reports
+          its bbox from `moveend`, and only then does the tab fetch the
+          browsable layer. */}
+      <button onClick={() => props.onViewportChange?.('69.0,41.0,70.0,42.0')}>settle-viewport</button>
+      {/* One button per parcel the tab handed the map — clicking it is what a
+          click on that polygon does in the real component. */}
+      {props.browsableFeatures?.features.map((f) => (
+        <button key={f.properties.contour_id} onClick={() => props.onPickContour?.(f.properties.contour_id)}>
+          map-pick-{f.properties.contour_id}
+        </button>
+      ))}
     </div>
   ),
 }));
@@ -152,7 +166,7 @@ test('creating a contour, drawing its first version, and holding it through to a
 
   await ui.click(await screen.findByRole('button', { name: 'gis.contours.newContour' }));
   await ui.type(screen.getByPlaceholderText('K-001'), 'K-777');
-  const orgSelect = await screen.findByRole('combobox');
+  const orgSelect = await screen.findByRole('combobox', { name: /gis.contours.form.organization/ });
   await waitFor(() => expect(within(orgSelect).getByText('Burchmulla LX')).toBeInTheDocument());
   await ui.selectOptions(orgSelect, 'org-1');
   await ui.click(screen.getByRole('button', { name: 'gis.contours.form.create' }));
@@ -378,7 +392,7 @@ test('creating a contour for a leshoz with no GIS layer skips the map and saves 
 
   await ui.click(await screen.findByRole('button', { name: 'gis.contours.newContour' }));
   await ui.type(screen.getByPlaceholderText('K-001'), 'K-900');
-  const orgSelect = await screen.findByRole('combobox');
+  const orgSelect = await screen.findByRole('combobox', { name: /gis.contours.form.organization/ });
   await waitFor(() => expect(within(orgSelect).getByText('Xorazm LX')).toBeInTheDocument());
   await ui.selectOptions(orgSelect, 'org-2');
   await ui.click(screen.getByRole('button', { name: 'gis.contours.form.create' }));
@@ -422,7 +436,7 @@ test('a leshoz WITH a GIS layer still draws on the map, unaffected by the switch
 
   await ui.click(await screen.findByRole('button', { name: 'gis.contours.newContour' }));
   await ui.type(screen.getByPlaceholderText('K-001'), 'K-901');
-  const orgSelect = await screen.findByRole('combobox');
+  const orgSelect = await screen.findByRole('combobox', { name: /gis.contours.form.organization/ });
   await waitFor(() => expect(within(orgSelect).getByText('Burchmulla LX')).toBeInTheDocument());
   await ui.selectOptions(orgSelect, 'org-1');
   await ui.click(screen.getByRole('button', { name: 'gis.contours.form.create' }));
@@ -444,4 +458,70 @@ test('a contour with neither a published card nor a held draft offers "draw firs
 
   await ui.click(await screen.findByTestId('contour-row-c-empty'));
   expect(await screen.findByRole('button', { name: 'gis.contours.drawFirstVersion' })).toBeInTheDocument();
+});
+
+const CONTOUR_ROW = { id: 'c-1', number: 'K-042', organization_id: 'org-1', area_ha: '10.0000', occupied_ha: '2.0000', s_available_ha: '8.0000', occupancy_source: 'none' };
+const CONTOUR_CARD = { ...CONTOUR_ROW, version_id: 'v-1', geometry: { type: 'Polygon', coordinates: [[[69.1, 41.1], [69.2, 41.1], [69.2, 41.2], [69.1, 41.1]]] }, over_allocated: false };
+const CONTOUR_FEATURE = { type: 'Feature', id: 'v-1', geometry: CONTOUR_CARD.geometry, properties: { contour_id: 'c-1', number: 'K-042', organization_id: 'org-1', area_ha: '10.0000' } };
+
+test('clicking a parcel on the map selects it like its list row does, and a second click clears it', async () => {
+  server.use(
+    ...referenceHandlers(),
+    http.get('*/api/v1/gis/contours', () => HttpResponse.json({ items: [CONTOUR_ROW], total: 1 })),
+    http.get('*/api/v1/gis/contours/features', () =>
+      HttpResponse.json({ type: 'FeatureCollection', features: [CONTOUR_FEATURE], truncated: false }),
+    ),
+    http.get('*/api/v1/gis/contours/c-1', () => HttpResponse.json(CONTOUR_CARD)),
+  );
+  const ui = userEvent.setup();
+  renderTab(['gis.contours.manage']);
+
+  await screen.findByTestId('contour-row-c-1');
+  await ui.click(screen.getByText('settle-viewport'));
+  await ui.click(await screen.findByText('map-pick-c-1'));
+
+  // Same outcome as clicking the row: the card loads and the row highlights.
+  expect(await screen.findByText('gis.versions.status.published')).toBeInTheDocument();
+  expect(screen.getByTestId('contour-row-c-1').className).toContain('bg-[#F0F7F1]');
+  expect(screen.getByTestId('draw-map-mock')).toHaveAttribute('data-selected-geometry-type', 'Polygon');
+
+  await ui.click(screen.getByText('map-pick-c-1'));
+  await waitFor(() => expect(screen.queryByText('gis.versions.status.published')).not.toBeInTheDocument());
+  expect(screen.getByTestId('contour-row-c-1').className).not.toContain('bg-[#F0F7F1]');
+  expect(screen.getByTestId('draw-map-mock')).toHaveAttribute('data-selected-geometry-type', '');
+});
+
+test('the organization filter narrows the list and the map\'s parcels together', async () => {
+  const listUrls: string[] = [];
+  const featureUrls: string[] = [];
+  server.use(
+    ...referenceHandlers(),
+    http.get('*/api/v1/gis/contours', ({ request }) => {
+      listUrls.push(request.url);
+      return HttpResponse.json({ items: [CONTOUR_ROW], total: 1 });
+    }),
+    http.get('*/api/v1/gis/contours/features', ({ request }) => {
+      featureUrls.push(request.url);
+      return HttpResponse.json({ type: 'FeatureCollection', features: [CONTOUR_FEATURE], truncated: false });
+    }),
+  );
+  const ui = userEvent.setup();
+  renderTab(['gis.contours.manage']);
+
+  await screen.findByTestId('contour-row-c-1');
+  await ui.click(screen.getByText('settle-viewport'));
+  await screen.findByText('map-pick-c-1');
+  expect(new URL(listUrls[0]).searchParams.get('organization_id')).toBeNull();
+  expect(new URL(featureUrls[0]).searchParams.get('organization_id')).toBeNull();
+
+  const filter = await screen.findByRole('combobox', { name: 'gis.contours.filterOrganization' });
+  await waitFor(() => expect(within(filter).getByText('Burchmulla LX')).toBeInTheDocument());
+  await ui.selectOptions(filter, 'org-1');
+
+  await waitFor(() => expect(listUrls.length).toBe(2));
+  await waitFor(() => expect(featureUrls.length).toBe(2));
+  const listQuery = new URL(listUrls[1]).searchParams;
+  expect(listQuery.get('organization_id')).toBe('org-1');
+  expect(listQuery.get('page')).toBe('1');
+  expect(new URL(featureUrls[1]).searchParams.get('organization_id')).toBe('org-1');
 });

@@ -894,6 +894,9 @@ export const ru = {
 
   'gis.map.basemapScheme': 'Схема',
   'gis.map.basemapSatellite': 'Спутник',
+  'gis.map.loading': 'Загрузка...',
+  'gis.map.zoomInHint': 'Приблизьте карту, чтобы увидеть контуры',
+  'gis.map.contourCount': 'Контуров: {n}',
 
   'gis.versions.checks.title': 'Топологические проверки',
   'gis.versions.checks.run': 'Проверить',
@@ -936,6 +939,8 @@ export const ru = {
   'gis.contours.listTitle': 'Контуры',
   'gis.contours.newContour': 'Новый контур',
   'gis.contours.searchPlaceholder': 'Поиск по номеру контура...',
+  'gis.contours.filterOrganization': 'Фильтр по организации',
+  'gis.contours.allOrganizations': 'Все организации',
   'gis.contours.loading': 'Загрузка...',
   'gis.contours.loadFailed': 'Не удалось загрузить список контуров',
   'gis.contours.empty': 'Контуры не найдены',
