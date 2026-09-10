@@ -1,17 +1,15 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Download, Loader2, RotateCcw } from 'lucide-react';
+import { Loader2, RotateCcw } from 'lucide-react';
 import { useAuth } from '../../auth/useAuth';
-import { useLanguage, useT } from '../../i18n/useT';
+import { useLanguage } from '../../i18n/useT';
 import { Button } from '../../components/ui/button';
 import { FormField, Input, Select } from '../../components/ui/FormControls';
 import { Pagination } from '../../components/ui/Navigation';
 import { ApiError } from '../../api/errors';
 import { useApiErrorText } from '../../i18n/useApiErrorText';
-import { api } from '../../api/client';
-import { apiError } from '../../api/errors';
-import { downloadCsv, fetchAllPages, toCsv } from '../../lib/csvExport';
+import { ExportXlsxButton } from '../../components/ui/ExportXlsxButton';
 import { useActivityTypes, useApplicationsList, type ApplicationListFilters, type ApplicationOut } from './queries';
-import { formatAmount, formatDate, localizedName, STATUS_LABELS, statusLabel } from './format';
+import { localizedName, STATUS_LABELS, statusLabel } from './format';
 import { translateTerm } from '../../i18n/terms';
 import { WorklistRow } from './components/WorklistRow';
 
@@ -30,8 +28,6 @@ const APPLICATIONS_LIST_I18N = {
     all: 'Barchasi',
     reset: 'Tiklash',
     apply: 'Qoʻllash',
-    exportCsv: 'CSV eksport',
-    exportTruncated: 'Eksport cheklovi: dastlabki 10 000 ta yozuv yuklandi.',
     loading: 'Yuklanmoqda...',
     loadError: 'Arizalar yuklanmadi.',
     notFoundFiltered: 'Filtr boʻyicha ariza topilmadi.',
@@ -54,8 +50,6 @@ const APPLICATIONS_LIST_I18N = {
     all: 'Барчаси',
     reset: 'Тиклаш',
     apply: 'Қўллаш',
-    exportCsv: 'CSV экспорт',
-    exportTruncated: 'Экспорт чеклови: дастлабки 10 000 та ёзув юкланди.',
     loading: 'Юкланмоқда...',
     loadError: 'Аризалар юкланмади.',
     notFoundFiltered: 'Фильтр бўйича ариза топилмади.',
@@ -78,8 +72,6 @@ const APPLICATIONS_LIST_I18N = {
     all: 'Все',
     reset: 'Сбросить',
     apply: 'Применить',
-    exportCsv: 'Экспорт CSV',
-    exportTruncated: 'Ограничение экспорта: выгружены первые 10 000 записей.',
     loading: 'Загрузка...',
     loadError: 'Не удалось загрузить заявки.',
     notFoundFiltered: 'По фильтру заявок не найдено.',
@@ -102,8 +94,6 @@ const APPLICATIONS_LIST_I18N = {
     all: 'All',
     reset: 'Reset',
     apply: 'Apply',
-    exportCsv: 'Export CSV',
-    exportTruncated: 'Export truncated: first 10,000 records downloaded.',
     loading: 'Loading...',
     loadError: 'Failed to load applications.',
     notFoundFiltered: 'No applications found matching the filters.',
@@ -126,8 +116,6 @@ const APPLICATIONS_LIST_I18N = {
     all: 'Barlıǵı',
     reset: 'Qayta tiklew',
     apply: 'Qollaw',
-    exportCsv: 'CSV eksport',
-    exportTruncated: 'Eksport sheklewi: dáslepki 10 000 jazba júklendi.',
     loading: 'Júklenbekte...',
     loadError: 'Arzalar júklenbedi.',
     notFoundFiltered: 'Filtr boyınsha arza tabılmadı.',
@@ -159,15 +147,12 @@ const EMPTY_FILTERS: FilterFormState = {
 
 export function ApplicationsListPage() {
   const { me } = useAuth();
-  const t = useT();
   const { lang } = useLanguage();
   const lt = APPLICATIONS_LIST_I18N[lang as keyof typeof APPLICATIONS_LIST_I18N] || APPLICATIONS_LIST_I18N.uz_latn;
   const errorText = useApiErrorText();
   const [filters, setFilters] = useState(EMPTY_FILTERS);
   const [appliedFilters, setAppliedFilters] = useState(EMPTY_FILTERS);
   const [page, setPage] = useState(1);
-  const [exporting, setExporting] = useState(false);
-  const [exportTruncated, setExportTruncated] = useState(false);
 
   // Auto-apply text/date filters with debounce
   useEffect(() => {
@@ -216,33 +201,6 @@ export function ApplicationsListPage() {
   }
 
   const totalPages = list.data ? Math.max(1, Math.ceil(list.data.total / PAGE_SIZE)) : 1;
-
-  async function exportCsv() {
-    setExporting(true);
-    setExportTruncated(false);
-    try {
-      const { rows, truncated } = await fetchAllPages<ApplicationOut>(async (p, pageSize) => {
-        const { data, error } = await api.GET('/api/v1/applications', {
-          params: { query: { ...queryFilters, page: p, page_size: pageSize } },
-        });
-        if (error) throw apiError(error);
-        return data;
-      });
-      const csv = toCsv(rows, [
-        { header: 'number', value: (r) => r.number ?? r.id },
-        { header: 'status', value: (r) => statusLabel(r.status, lang) },
-        { header: 'contour_id', value: (r) => r.contour_id ?? '' },
-        { header: 'period_from', value: (r) => formatDate(r.period_from) },
-        { header: 'period_to', value: (r) => formatDate(r.period_to) },
-        { header: 'requested_area_ha', value: (r) => formatAmount(r.requested_area_ha) },
-        { header: 'sla_deadline_at', value: (r) => r.sla_deadline_at ?? '' },
-      ]);
-      downloadCsv(`applications-${new Date().toISOString().slice(0, 10)}.csv`, csv);
-      setExportTruncated(truncated);
-    } finally {
-      setExporting(false);
-    }
-  }
 
   return (
     <div className="space-y-6" data-testid="applications-page">
@@ -324,16 +282,7 @@ export function ApplicationsListPage() {
           </FormField>
         </div>
         <div className="flex justify-end gap-2">
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            leftIcon={<Download className="w-3.5 h-3.5" />}
-            isLoading={exporting}
-            onClick={() => void exportCsv()}
-          >
-            {t('prosecutor.exportCsv')}
-          </Button>
+          <ExportXlsxButton path="/api/v1/applications" query={queryFilters} />
           <Button type="button" variant="outline" size="sm" leftIcon={<RotateCcw className="w-3.5 h-3.5" />} onClick={resetFilters}>
             {lt.reset}
           </Button>
@@ -342,12 +291,6 @@ export function ApplicationsListPage() {
           </Button>
         </div>
       </form>
-
-      {exportTruncated && (
-        <div className="p-3 bg-[#FFFBEB] border border-[#FDE68A] rounded-xl text-xs text-[#92400E]" role="alert">
-          {t('prosecutor.exportTruncated')}
-        </div>
-      )}
 
       {list.error && (
         <div className="p-4 bg-[#FEF2F2] border border-[#FCA5A5] rounded-2xl text-sm text-[#991B1B]" role="alert">

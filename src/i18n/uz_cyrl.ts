@@ -1214,9 +1214,9 @@ export const uz_cyrl = {
   'permits.signatures.errors.pdfFetchFailed': 'Имзоланадиган ҳужжатни юклаб бўлмади — қайтадан уриниг.',
 
   // --- I1: the prosecutor's read-only registers with export ---------------
-  'prosecutor.exportCsv': "CSV экспорт",
-  'prosecutor.exportTruncated':
-    "Диққат: рўйхат 2000 тадан кўп ёзувни ўз ичига олади — фақат биринчи 2000 таси экспорт қилинди. Аниқроқ натижа учун фильтрларни торайтиринг.",
+  'export.xlsxButton': 'Excel',
+  'export.truncated': 'Файлга биринчи {rows} қатор кирди, жами {total}. Аниқроқ натижа учун фильтрларни торайтиринг.',
+  'export.error': 'Файлни юклаб бўлмади',
 
   // --- J3: leadership dashboard --------------------------------------------
   'leadership.dash.loading': "Юкланмоқда...",

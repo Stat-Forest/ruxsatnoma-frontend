@@ -1199,9 +1199,9 @@ export const uz_latn = {
   'permits.signatures.errors.pdfFetchFailed': "Imzolanadigan hujjatni yuklab boʻlmadi — qaytadan urining.",
 
   // --- I1: the prosecutor's read-only registers with export ---------------
-  'prosecutor.exportCsv': "CSV eksport",
-  'prosecutor.exportTruncated':
-    "Diqqat: roʻyxat 2000 tadan koʻp yozuvni oʻz ichiga oladi — faqat birinchi 2000 tasi eksport qilindi. Aniqroq natija uchun filtrlarni toraytiring.",
+  'export.xlsxButton': 'Excel',
+  'export.truncated': 'Faylga birinchi {rows} qator kirdi, jami {total}. Aniqroq natija uchun filtrlarni toraytiring.',
+  'export.error': 'Faylni yuklab boʻlmadi',
 
   // --- J3: leadership dashboard --------------------------------------------
   'leadership.dash.loading': "Yuklanmoqda...",
