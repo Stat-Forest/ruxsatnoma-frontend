@@ -17,6 +17,10 @@ Staff and citizen-cabinet frontend for the Ruxsatnoma electronic permit system
 - `VITE_API_BASE` — the backend origin baked into the bundle at build time
   (e.g. `https://dev-api.ruxsatnoma-urmon.uz`). Unset falls back to
   `http://localhost:8000`.
+- `VITE_LANDING_BASE_URL` — the public site's origin, baked in the same way
+  (e.g. `https://dev.ruxsatnoma-urmon.uz`); the login page's "home", "verify a
+  permit" and footer links point there (`src/lib/landing.ts`). Unset falls back
+  to `http://localhost:5173`, the landing's own `vite` dev port.
 - `VITE_EIMZO_MOCK` — the E-IMZO mock/real switch (`src/lib/eimzo/index.ts`).
   **Defaults to mock**: unset, or anything other than the literal string
   `'false'`, means mock. Set it to `'false'` to run against a real E-IMZO

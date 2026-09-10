@@ -8,7 +8,26 @@ interface LanguageMenuProps {
   /** Accessible name for the trigger — `shell.language`, in the active language. */
   label: string;
   onSelect: (code: BackendLanguage) => void;
+  /**
+   * `light` (default) is the shell header's white bar; `dark` is the trigger
+   * the login page puts on the landing-green header — the landing's own
+   * switcher, pixel for pixel, so the two sites read as one.
+   */
+  tone?: 'light' | 'dark';
 }
+
+const TRIGGER_TONE = {
+  light: {
+    base: 'h-11 rounded-md px-2.5 text-xs font-semibold',
+    open: 'border-[#2E7D4F] bg-[#F0F7F1] text-[#23653F]',
+    closed: 'border-[#E4E7EA] text-[#5A646D] hover:bg-[#F8F9FA]',
+  },
+  dark: {
+    base: 'h-9 rounded-xl px-3 text-xs font-bold',
+    open: 'border-[#E4E7EA] bg-white/20 text-white',
+    closed: 'border-[#E4E7EA] text-white hover:bg-white/20',
+  },
+} as const;
 
 /**
  * The header's language picker: a compact trigger that opens a menu of all five
@@ -21,7 +40,8 @@ interface LanguageMenuProps {
  * is built from the same surface the modals use (`components/ui/Overlay.tsx`):
  * white, `rounded-xl`, `#E4E7EA` border, `shadow-xl`.
  */
-export function LanguageMenu({ value, label, onSelect }: LanguageMenuProps) {
+export function LanguageMenu({ value, label, onSelect, tone = 'light' }: LanguageMenuProps) {
+  const trigger = TRIGGER_TONE[tone];
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const active = LANGUAGES.find((language) => language.code === value) ?? LANGUAGES[1];
@@ -54,10 +74,8 @@ export function LanguageMenu({ value, label, onSelect }: LanguageMenuProps) {
         aria-haspopup="menu"
         aria-expanded={open}
         onClick={() => setOpen((wasOpen) => !wasOpen)}
-        className={`flex h-11 items-center gap-1.5 rounded-md border px-2.5 text-xs font-semibold transition-colors ${
-          open
-            ? 'border-[#2E7D4F] bg-[#F0F7F1] text-[#23653F]'
-            : 'border-[#E4E7EA] text-[#5A646D] hover:bg-[#F8F9FA]'
+        className={`flex items-center gap-1.5 border transition-colors ${trigger.base} ${
+          open ? trigger.open : trigger.closed
         }`}
       >
         <Globe className="h-4 w-4" />

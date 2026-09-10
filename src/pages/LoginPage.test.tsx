@@ -265,3 +265,47 @@ it('the E-IMZO tab offers the real sign-in button when the mock flag is off, wit
   expect(screen.queryByLabelText(/PINFL/)).not.toBeInTheDocument();
   expect(screen.queryByLabelText(/F\.I\.SH|ФИО/)).not.toBeInTheDocument();
 });
+
+// ── The page frame ───────────────────────────────────────────────────────────
+// Until 2026-09-10 the page was a bare card on a grey field: no way back to
+// the public site, no language, nothing saying whose system this is. It now
+// carries the landing's header (logo, "home", language) and its footer, and
+// every outward link is built from `VITE_LANDING_BASE_URL` — unset here, so
+// the localhost fallback is what these assert.
+
+const LANGUAGE_KEY = 'ruxsatnoma.language';
+
+afterEach(() => {
+  localStorage.removeItem(LANGUAGE_KEY);
+});
+
+it('links back to the public site and to permit verification without signing in', async () => {
+  render(<App />);
+  await screen.findByTestId('login-page');
+  expect(screen.getByRole('link', { name: 'Bosh sahifa' })).toHaveAttribute(
+    'href',
+    'http://localhost:5173/',
+  );
+  expect(screen.getByRole('link', { name: /kirmasdan tekshirish/i })).toHaveAttribute(
+    'href',
+    'http://localhost:5173/check',
+  );
+});
+
+it('lets an anonymous visitor switch language without a session, and remembers it', async () => {
+  // No `PUT /auth/me/language` handler is registered and `onUnhandledRequest`
+  // is 'error': had the anonymous switch tried to write the language to a
+  // profile that does not exist yet, this test would fail on the request.
+  render(<App />);
+  await screen.findByTestId('login-page');
+  await userEvent.click(screen.getByTestId('language-trigger'));
+  await userEvent.click(screen.getByRole('menuitemradio', { name: /Русский/ }));
+  expect(await screen.findByRole('tab', { name: 'Логин/Пароль' })).toBeInTheDocument();
+  expect(localStorage.getItem(LANGUAGE_KEY)).toBe('ru');
+});
+
+it('opens in the language the visitor picked last time', async () => {
+  localStorage.setItem(LANGUAGE_KEY, 'ru');
+  render(<App />);
+  expect(await screen.findByRole('tab', { name: 'Логин/Пароль' })).toBeInTheDocument();
+});
