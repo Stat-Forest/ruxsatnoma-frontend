@@ -1093,6 +1093,49 @@ export const TERM_TRANSLATIONS: Record<string, Record<string, string>> = {
     kaa: 'Tólem tastıyıqlandı',
   },
 
+  "to'lov qo'lda tasdiqlandi": {
+    uz_latn: "To'lov qo'lda tasdiqlandi",
+    ru: 'Оплата подтверждена вручную',
+    en: 'Payment confirmed manually',
+    uz_cyrl: 'Тўлов қўлда тасдиқланди',
+    kaa: 'Tólem qolda tastıyıqlandı',
+  },
+  "toʻlov qoʻlda tasdiqlandi": {
+    uz_latn: "To'lov qo'lda tasdiqlandi",
+    ru: 'Оплата подтверждена вручную',
+    en: 'Payment confirmed manually',
+    uz_cyrl: 'Тўлов қўлда тасдиқланди',
+    kaa: 'Tólem qolda tastıyıqlandı',
+  },
+  'тўлов қўлда тасдиқланди': {
+    uz_latn: "To'lov qo'lda tasdiqlandi",
+    ru: 'Оплата подтверждена вручную',
+    en: 'Payment confirmed manually',
+    uz_cyrl: 'Тўлов қўлда тасдиқланди',
+    kaa: 'Tólem qolda tastıyıqlandı',
+  },
+  'оплата подтверждена вручную': {
+    uz_latn: "To'lov qo'lda tasdiqlandi",
+    ru: 'Оплата подтверждена вручную',
+    en: 'Payment confirmed manually',
+    uz_cyrl: 'Тўлов қўлда тасдиқланди',
+    kaa: 'Tólem qolda tastıyıqlandı',
+  },
+  'payment confirmed manually': {
+    uz_latn: "To'lov qo'lda tasdiqlandi",
+    ru: 'Оплата подтверждена вручную',
+    en: 'Payment confirmed manually',
+    uz_cyrl: 'Тўлов қўлда тасдиқланди',
+    kaa: 'Tólem qolda tastıyıqlandı',
+  },
+  'tólem qolda tastıyıqlandı': {
+    uz_latn: "To'lov qo'lda tasdiqlandi",
+    ru: 'Оплата подтверждена вручную',
+    en: 'Payment confirmed manually',
+    uz_cyrl: 'Тўлов қўлда тасдиқланди',
+    kaa: 'Tólem qolda tastıyıqlandı',
+  },
+
   "ruxsatnomani rasmiylashtiring": {
     uz_latn: "Ruxsatnomani rasmiylashtiring",
     ru: "Оформите разрешение",

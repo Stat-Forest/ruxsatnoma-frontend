@@ -252,27 +252,31 @@ export function translateNotification(text: string | null | undefined, lang: str
     }
   }
 
-  // 11. Payment confirmed for application (with optional amount and permit issuance notice)
+  // 11. Payment confirmed for application (with optional manual confirmation, amount and permit issuance notice)
   // Examples:
+  // "RX-2026-000005 аризаси бўйича 2200000.00 сўм тўлов қўлда тасдиқланди."
   // "RX-2026-000005 аризаси бўйича 2200000.00 сўм тўлов тасдиқланди. Рухсатномани расмийлаштиринг."
+  // "RX-2026-000005 arizasi bo'yicha 2200000.00 so'm to'lov qo'lda tasdiqlandi."
   // "RX-2026-000005 arizasi bo'yicha 2200000.00 so'm to'lov tasdiqlandi. Ruxsatnomani rasmiylashtiring."
   // "Ариза RX-2026-000005 бўйича 2200000.00 сўм тўлов тасдиқланди. Рухсатномани расмийлаштиринг."
+  // "По заявке RX-2026-000005 подтверждена оплата 2200000.00 сум вручную."
   // "По заявке RX-2026-000005 подтверждена оплата 2200000.00 сум. Оформите разрешение."
+  // "Payment of 2200000.00 UZS confirmed manually for application RX-2026-000005."
   // "Payment of 2200000.00 UZS confirmed for application RX-2026-000005. Issue the permit."
   const mConfirmedUz =
     normalized.match(
-      /^(?:(?:Ariza|Ариза|Arza)\s+)?([A-Z0-9_-]+)\s*(?:arizasi|аризаси|arzası)?\s*(?:bo['ʼʻ`]yicha|б[ўу]йича|boy[ıi]nsha)\s+(?:([0-9.,\s]+)\s+(?:so['ʼʻ`]m|с[ўу]м|som|sum|UZS)\s+)?(?:to['ʼʻ`]lov\s+tasdiqlandi|т[ўу]лов\s+тасди[қк]ланди|t[oó]lem\s+tast[ıi]y[ıi]qland[ıi])\.?(?:\s+(?:Ruxsatnomani\s+rasmiylashtiring|Ру[хҳ]сатномани\s+расмийлаштиринг|Ruxsatnaman[ıi]\s+r[aá]smiylestiri[ńn]|Оформите\s+разрешение|Issue\s+the\s+permit)\.?)?$/i,
+      /^(?:(?:Ariza|Ариза|Arza)\s+)?([A-Z0-9_-]+)\s*(?:arizasi|аризаси|arzası)?\s*(?:bo['ʼʻ`]yicha|б[ўу]йича|boy[ıi]nsha)\s+(?:([0-9.,\s]+)\s+(?:so['ʼʻ`]m|с[ўу]м|som|sum|UZS)\s+)?(?:(?:to['ʼʻ`]lov|т[ўу]лов|t[oó]lem)\s+)?(?:qo['ʼʻ`]?lda\s+|қ[ўу]лда\s+|qolda\s+|qol\s+menen\s+)?(?:to['ʼʻ`]lov\s+|т[ўу]лов\s+|t[oó]lem\s+)?(?:tasdiqlandi|тасди[қк]ланди|tast[ıi]y[ıi]qland[ıi])(?:\s+(?:qo['ʼʻ`]?lda|қ[ўу]лда|qolda|qol\s+menen))?\.?(?:\s+(?:Ruxsatnomani\s+rasmiylashtiring|Ру[хҳ]сатномани\s+расмийлаштиринг|Ruxsatnaman[ıi]\s+r[aá]smiylestiri[ńn]|Оформите\s+разрешение|Issue\s+the\s+permit)\.?)?$/i,
     ) ||
     trimmed.match(
-      /^(?:(?:Ariza|Ариза|Arza)\s+)?([A-Z0-9_-]+)\s*(?:arizasi|аризаси|arzası)?\s*(?:bo['ʼʻ`]yicha|б[ўу]йича|boy[ıi]nsha)\s+(?:([0-9.,\s]+)\s+(?:so['ʼʻ`]m|с[ўу]м|som|sum|UZS)\s+)?(?:to['ʼʻ`]lov\s+tasdiqlandi|т[ўу]лов\s+тасди[қк]ланди|t[oó]lem\s+tast[ıi]y[ıi]qland[ıi])\.?(?:\s+(?:Ruxsatnomani\s+rasmiylashtiring|Ру[хҳ]сатномани\s+расмийлаштиринг|Ruxsatnaman[ıi]\s+r[aá]smiylestiri[ńn]|Оформите\s+разрешение|Issue\s+the\s+permit)\.?)?$/i,
+      /^(?:(?:Ariza|Ариза|Arza)\s+)?([A-Z0-9_-]+)\s*(?:arizasi|аризаси|arzası)?\s*(?:bo['ʼʻ`]yicha|б[ўу]йича|boy[ıi]nsha)\s+(?:([0-9.,\s]+)\s+(?:so['ʼʻ`]m|с[ўу]м|som|sum|UZS)\s+)?(?:(?:to['ʼʻ`]lov|т[ўу]лов|t[oó]lem)\s+)?(?:qo['ʼʻ`]?lda\s+|қ[ўу]лда\s+|qolda\s+|qol\s+menen\s+)?(?:to['ʼʻ`]lov\s+|т[ўу]лов\s+|t[oó]lem\s+)?(?:tasdiqlandi|тасди[қк]ланди|tast[ıi]y[ıi]qland[ıi])(?:\s+(?:qo['ʼʻ`]?lda|қ[ўу]лда|qolda|qol\s+menen))?\.?(?:\s+(?:Ruxsatnomani\s+rasmiylashtiring|Ру[хҳ]сатномани\s+расмийлаштиринг|Ruxsatnaman[ıi]\s+r[aá]smiylestiri[ńn]|Оформите\s+разрешение|Issue\s+the\s+permit)\.?)?$/i,
     );
   const mConfirmedRu =
     normalized.match(
-      /^(?:По\s+заявке\s+([A-Z0-9_-]+)\s+подтверждена\s+оплата|Оплата\s+по\s+заявке\s+([A-Z0-9_-]+)\s+подтверждена|Подтверждена\s+оплата\s+по\s+заявке\s+([A-Z0-9_-]+))(?: на сумму)?(?:\s+([0-9.,\s]+)\s+сум)?\.?(?:\s+(?:Оформите\s+разрешение|Ру[хҳ]сатномани\s+расмийлаштиринг|Ruxsatnomani\s+rasmiylashtiring|Issue\s+the\s+permit)\.?)?$/i,
+      /^(?:По\s+заявке\s+([A-Z0-9_-]+)\s+(?:(?:вручную\s+)?подтверждена\s+(?:ручная\s+)?оплата|подтверждена\s+оплата(?:\s+вручную)?)|Оплата\s+по\s+заявке\s+([A-Z0-9_-]+)\s+подтверждена(?:\s+вручную)?|Подтверждена\s+(?:ручная\s+)?оплата\s+по\s+заявке\s+([A-Z0-9_-]+)(?:\s+вручную)?)(?: на сумму)?(?:\s+([0-9.,\s]+)\s+сум)?(?:\s+вручную)?\.?(?:\s+(?:Оформите\s+разрешение|Ру[хҳ]сатномани\s+расмийлаштиринг|Ruxsatnomani\s+rasmiylashtiring|Issue\s+the\s+permit)\.?)?$/i,
     );
   const mConfirmedEn =
     normalized.match(
-      /^Payment(?:\s+of\s+([0-9.,\s]+)\s+UZS)?\s+confirmed\s+for\s+application\s+([A-Z0-9_-]+)\.?(?:\s+(?:Issue\s+the\s+permit|Оформите\s+разрешение|Ру[хҳ]сатномани\s+расмийлаштиринг|Ruxsatnomani\s+rasmiylashtiring)\.?)?$/i,
+      /^(?:Manual\s+payment|Payment)(?:\s+of\s+([0-9.,\s]+)\s+UZS)?\s+(?:manually\s+confirmed|confirmed(?:\s+manually)?)\s+for\s+application\s+([A-Z0-9_-]+)\.?(?:\s+(?:Issue\s+the\s+permit|Оформите\s+разрешение|Ру[хҳ]сатномани\s+расмийлаштиринг|Ruxsatnomani\s+rasmiylashtiring)\.?)?$/i,
     );
 
   const mConfirmed = mConfirmedUz || mConfirmedRu || mConfirmedEn;
@@ -290,6 +294,25 @@ export function translateNotification(text: string | null | undefined, lang: str
       amt = mConfirmedUz[2]?.trim() || '';
     }
     const hasNotice = /(?:rasmiylashti|расмийлашти|r[aá]smiylesti|разрешени|permit)/i.test(trimmed);
+    const isManual = /(?:qo'?lda|қ[ўу]лда|qolda|qol\s+menen|вручную|ручн\w+|manuall?y?)/i.test(normalized);
+
+    if (isManual) {
+      switch (lang) {
+        case 'uz_cyrl':
+          return `${num} аризаси бўйича ${amt ? `${amt} сўм ` : ''}тўлов қўлда тасдиқланди.${hasNotice ? ' Рухсатномани расмийлаштиринг.' : ''}`;
+        case 'ru':
+          return `По заявке ${num} подтверждена оплата${amt ? ` ${amt} сум` : ''} вручную.${hasNotice ? ' Оформите разрешение.' : ''}`;
+        case 'en':
+          return `Payment${amt ? ` of ${amt} UZS` : ''} confirmed manually for application ${num}.${hasNotice ? ' Issue the permit.' : ''}`;
+        case 'kaa':
+        case 'kk':
+          return `${num} arzası boyınsha ${amt ? `${amt} sum ` : ''}tólem qolda tastıyıqlandı.${hasNotice ? ' Ruxsatnamanı rásmiylestiriń.' : ''}`;
+        case 'uz_latn':
+        default:
+          return `${num} arizasi bo'yicha ${amt ? `${amt} so'm ` : ''}to'lov qo'lda tasdiqlandi.${hasNotice ? ' Ruxsatnomani rasmiylashtiring.' : ''}`;
+      }
+    }
+
     switch (lang) {
       case 'uz_cyrl':
         return `${num} аризаси бўйича ${amt ? `${amt} сўм ` : ''}тўлов тасдиқланди.${hasNotice ? ' Рухсатномани расмийлаштиринг.' : ''}`;
@@ -298,6 +321,7 @@ export function translateNotification(text: string | null | undefined, lang: str
       case 'en':
         return `Payment${amt ? ` of ${amt} UZS` : ''} confirmed for application ${num}.${hasNotice ? ' Issue the permit.' : ''}`;
       case 'kaa':
+      case 'kk':
         return `${num} arzası boyınsha ${amt ? `${amt} sum ` : ''}tólem tastıyıqlandı.${hasNotice ? ' Ruxsatnamanı rásmiylestiriń.' : ''}`;
       case 'uz_latn':
       default:
@@ -307,13 +331,30 @@ export function translateNotification(text: string | null | undefined, lang: str
 
   // 12. Generic payment confirmed
   if (
-    /^(?:To['ʼʻ`]lov\s+tasdiqlandi|Т[ўу]лов\s+тасди[қк]ланди|T[oó]lem\s+tast[ıi]y[ıi]qland[ıi]|Оплата\s+подтверждена|Подтверждена\s+оплата|Payment\s+confirmed)\.?$/i.test(
+    /^(?:To['ʼʻ`]lov\s+(?:qo['ʼʻ`]?lda\s+)?tasdiqlandi|Т[ўу]лов\s+(?:қ[ўу]лда\s+)?тасди[қк]ланди|T[oó]lem\s+(?:qolda\s+|qol\s+menen\s+)?tast[ıi]y[ıi]qland[ıi]|(?:qo['ʼʻ`]?lda|қ[ўу]лда|qolda|qol\s+menen)\s+(?:to['ʼʻ`]lov|т[ўу]лов|t[oó]lem)\s+(?:tasdiqlandi|тасди[қк]ланди|tast[ıi]y[ıi]qland[ıi])|Оплата\s+подтверждена(?:\s+вручную)?|Подтверждена\s+(?:ручная\s+)?оплата(?:\s+вручную)?|Payment\s+(?:manually\s+)?confirmed(?:\s+manually)?)\.?$/i.test(
       normalized,
     ) ||
-    /^(?:To['ʼʻ`]lov\s+tasdiqlandi|Т[ўу]лов\s+тасди[қк]ланди|T[oó]lem\s+tast[ıi]y[ıi]qland[ıi]|Оплата\s+подтверждена|Подтверждена\s+оплата|Payment\s+confirmed)\.?$/i.test(
+    /^(?:To['ʼʻ`]lov\s+(?:qo['ʼʻ`]?lda\s+)?tasdiqlandi|Т[ўу]лов\s+(?:қ[ўу]лда\s+)?тасди[қк]ланди|T[oó]lem\s+(?:qolda\s+|qol\s+menen\s+)?tast[ıi]y[ıi]qland[ıi]|(?:qo['ʼʻ`]?lda|қ[ўу]лда|qolda|qol\s+menen)\s+(?:to['ʼʻ`]lov|т[ўу]лов|t[oó]lem)\s+(?:tasdiqlandi|тасди[қк]ланди|tast[ıi]y[ıi]qland[ıi])|Оплата\s+подтверждена(?:\s+вручную)?|Подтверждена\s+(?:ручная\s+)?оплата(?:\s+вручную)?|Payment\s+(?:manually\s+)?confirmed(?:\s+manually)?)\.?$/i.test(
       trimmed,
     )
   ) {
+    const isManualGeneric = /(?:qo'?lda|қ[ўу]лда|qolda|qol\s+menen|вручную|ручн\w+|manuall?y?)/i.test(normalized);
+    if (isManualGeneric) {
+      switch (lang) {
+        case 'uz_cyrl':
+          return 'Тўлов қўлда тасдиқланди';
+        case 'ru':
+          return 'Оплата подтверждена вручную';
+        case 'en':
+          return 'Payment confirmed manually';
+        case 'kaa':
+        case 'kk':
+          return 'Tólem qolda tastıyıqlandı';
+        case 'uz_latn':
+        default:
+          return 'Toʻlov qoʻlda tasdiqlandi';
+      }
+    }
     switch (lang) {
       case 'uz_cyrl':
         return 'Тўлов тасдиқланди';
@@ -322,6 +363,7 @@ export function translateNotification(text: string | null | undefined, lang: str
       case 'en':
         return 'Payment confirmed';
       case 'kaa':
+      case 'kk':
         return 'Tólem tastıyıqlandı';
       case 'uz_latn':
       default:
