@@ -3755,11 +3755,11 @@ export interface paths {
          *     up to 200 rows is not the place for a per-row extra query, and
          *     `GET /refunds/{id}` is the single-item read built for it.
          *
-         *     Widened to `PAYMENTS_VIEW` OR `PAYMENTS_CONFIRM` alongside `get_refund`
-         *     above (whole-branch review Important 3): this docstring already called
-         *     it the rahbar's own register too, and there is no other route through
-         *     which he could ever discover a refund's id to approve it — no
-         *     notification carries one today (`submit_refund_decision` sends none).
+         *     Stage 11 (ruling R1): the gate moved off this route entirely — see
+         *     `backoffice_service.list_refunds`'s own docstring. Staff
+         *     (`payments.view` or `.confirm`, the same actor `get_refund` above
+         *     admits) still get the register; anyone else gets their own refunds,
+         *     never a 403, and the accounting fields blanked (`_refund_out`).
          */
         get: operations["list_refunds_api_v1_refunds_get"];
         put?: never;
@@ -3851,6 +3851,9 @@ export interface paths {
          *     reach `POST .../approve` (which returns `components` too) but not THIS
          *     route — reading the breakdown only by committing to it. `available_
          *     sources` existed for the actor it was unreachable to.
+         *
+         *     Stage 11 (ruling R3) opens this read to the refund's owner —
+         *     `get_refund_for_actor` decides whether, `_refund_out` decides what.
          */
         get: operations["get_refund_api_v1_refunds__refund_id__get"];
         put?: never;
