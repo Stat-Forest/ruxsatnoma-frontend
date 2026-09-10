@@ -1763,8 +1763,8 @@ export const en = {
   'wizard.step3.selectPrompt': 'Select...',
   'wizard.step3.addLivestock': 'Add livestock type',
   'wizard.step3.quantity': 'Quantity',
-  'wizard.step3.benefitCategory': 'Benefit category (if applicable)',
-  'wizard.step3.noBenefit': 'No benefit',
+  'wizard.step4.benefitCategory': 'Benefit category (if applicable)',
+  'wizard.step4.noBenefit': 'No benefit',
   'wizard.step3.estimatedPrice': 'Estimated price',
   'wizard.step3.pricePrompt': 'Fill in plot, period, and quantity to preview the price.',
   'wizard.step3.calculating': 'Calculating...',
@@ -1781,8 +1781,8 @@ export const en = {
   // certificate number. ---
   'wizard.step2.seasonOutOfRange': 'The selected date falls outside the season set for this activity and plot.',
   'wizard.step2.minTermNotice': 'The period must be at least {days} days.',
-  'wizard.step3.certificateNumber': 'Certificate number',
-  'wizard.step3.certificateNumberRequired': 'The selected benefit category requires a certificate number.',
+  'wizard.step4.certificateNumber': 'Certificate number',
+  'wizard.step4.certificateNumberRequired': 'The selected benefit category requires a certificate number.',
   'wizard.calendar.heading': 'Occupancy calendar',
   'wizard.calendar.legendFree': 'Free',
   'wizard.calendar.legendPartial': 'Partly taken',
@@ -1808,6 +1808,9 @@ export const en = {
   'wizard.step4.uploadError': 'Error uploading document.',
   'wizard.step4.notConfigured': 'Document types not configured yet — file attachment is unavailable.',
   'wizard.step4.defaultDocName': 'Document',
+  'wizard.step4.benefitsGroup': "Benefits",
+  'wizard.step4.addDoc': "Add document",
+  'wizard.step4.pendingRowHint': "Choose a file or remove the row.",
   'wizard.step5.title': 'Submit',
   'wizard.step5.desc': 'Precheck and EDS',
   'wizard.step5.heading': '5. Final precheck',
@@ -2041,5 +2044,5 @@ export const en = {
   'wizard.step5.signDesc':
     'Press the button below to submit the application — no electronic signature is required, since you signed in through OneID or E-IMZO.',
   'wizard.step4.benefitProofOk': 'The supporting document for the benefit is attached.',
-  'wizard.step4.benefitProofRequired': 'A supporting document is required for the chosen benefit category.',
+  'wizard.step4.benefitProofOptional': "Attaching the certificate's scan is optional.",
 };

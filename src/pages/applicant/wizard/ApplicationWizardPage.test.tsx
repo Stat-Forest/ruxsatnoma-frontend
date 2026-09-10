@@ -821,36 +821,82 @@ test('the minimum term is stated before any date is picked, and enforced once a 
   await waitFor(() => expect(screen.getByRole('button', { name: new RegExp(UZ['wizard.nav.next']) })).toBeEnabled());
 });
 
-// Ruling #181: the certificate number is mandatory for EVERY benefit
-// category now — there is no `props.requires_certificate` switch any more,
-// so this fixture deliberately carries `props: {}` to prove the field is
-// still required regardless.
-test('the benefit certificate number is required before Next for ANY chosen category (no per-item switch), and reaches the PATCH', async () => {
-  server.use(
-    http.get('*/api/v1/refs/classifiers/:code/items', ({ params }) => {
-      if (params.code === 'benefit_categories') {
-        return HttpResponse.json([
-          {
-            id: 'benefit-1',
-            code: 'veteran',
-            name: { uz_latn: 'Urush faxriysi' },
-            props: {},
-            valid_from: '2020-01-01',
-            valid_to: null,
-            status: 'active',
-          },
-        ]);
-      }
-      return HttpResponse.json([]);
+// The benefit claim lives on step 4 with the documents: a category is one
+// more option of the same "document type" select every row carries, under a
+// divider after the `doc_types` items. These fixtures answer both
+// classifiers at once — `doc_types` must carry at least one item for the
+// step to render its rows at all, and `benefit_proof` is what a chosen
+// category is filed under (migration `0024`).
+const BENEFIT_ITEM = {
+  id: 'benefit-1',
+  code: 'veteran',
+  name: { uz_latn: 'Urush faxriysi' },
+  props: {},
+  valid_from: '2020-01-01',
+  valid_to: null,
+  status: 'active',
+};
+const PROOF_DOC_TYPE = {
+  id: 'doctype-proof',
+  code: 'benefit_proof',
+  name: { uz_latn: 'Imtiyozni tasdiqlovchi hujjat' },
+  props: {},
+  valid_from: '2020-01-01',
+  valid_to: null,
+  status: 'active',
+};
+const OTHER_DOC_TYPE = {
+  id: 'doctype-other',
+  code: 'passport',
+  name: { uz_latn: 'Pasport' },
+  props: {},
+  valid_from: '2020-01-01',
+  valid_to: null,
+  status: 'active',
+};
+function classifierHandler(benefits: object[], docTypes: object[]) {
+  return http.get('*/api/v1/refs/classifiers/:code/items', ({ params }) => {
+    if (params.code === 'benefit_categories') return HttpResponse.json(benefits);
+    if (params.code === 'doc_types') return HttpResponse.json(docTypes);
+    return HttpResponse.json([]);
+  });
+}
+// A card whose `documents` grow as `POST .../documents` lands — the wizard
+// re-reads the card after every upload, and step 4's rows are drawn from it.
+function documentsStore(initial: { id: string; doc_type_item_id: string; file_id: string }[] = []) {
+  let documents = initial;
+  return [
+    http.get('*/api/v1/applications/:id', () => HttpResponse.json({ id: APPLICATION_ID, documents, items: [] })),
+    http.post('*/api/v1/applications/:id/documents', async ({ request }) => {
+      const body = (await request.json()) as { doc_type_item_id: string; file_id: string };
+      const doc = { id: `doc-${documents.length + 1}`, doc_type_item_id: body.doc_type_item_id, file_id: body.file_id };
+      documents = [...documents, doc];
+      return HttpResponse.json(doc);
     }),
-  );
-  let lastPatchBody: unknown = null;
-  server.use(
-    http.patch('*/api/v1/applications/:id', async ({ request }) => {
-      lastPatchBody = await request.json();
-      return HttpResponse.json({ id: APPLICATION_ID });
+    http.delete('*/api/v1/applications/:id/documents/:documentId', ({ params }) => {
+      documents = documents.filter((d) => d.id !== params.documentId);
+      return new HttpResponse(null, { status: 204 });
     }),
-  );
+    http.post('*/api/v1/files', () => HttpResponse.json({ id: 'file-1' })),
+  ];
+}
+// Steps 1–3 for a non-grazing activity, ending on step 4's first row.
+async function driveToStep4() {
+  await chooseActivity();
+  await userEvent.click(await screen.findByText('pick-contour'));
+  fireEvent.change(screen.getByLabelText(new RegExp(UZ['wizard.step2.periodFrom'])), { target: { value: '2026-01-01' } });
+  fireEvent.change(screen.getByLabelText(new RegExp(UZ['wizard.step2.periodTo'])), { target: { value: '2026-06-01' } });
+  await userEvent.click(screen.getByRole('button', { name: new RegExp(UZ['wizard.nav.next']) }));
+  await userEvent.type(await screen.findByLabelText(new RegExp(UZ['wizard.step3.quantity'])), '5');
+  await userEvent.click(screen.getByRole('button', { name: new RegExp(UZ['wizard.nav.next']) }));
+  await screen.findByText(UZ['wizard.step4.heading']);
+}
+function fileInput(): HTMLInputElement {
+  return document.querySelector('input[type="file"]') as HTMLInputElement;
+}
+
+test('the benefit is not asked on step 3 any more — it is an option of the document-type select on step 4', async () => {
+  server.use(classifierHandler([BENEFIT_ITEM], [PROOF_DOC_TYPE, OTHER_DOC_TYPE]));
   renderWizard();
 
   await chooseActivity();
@@ -859,86 +905,69 @@ test('the benefit certificate number is required before Next for ANY chosen cate
   fireEvent.change(screen.getByLabelText(new RegExp(UZ['wizard.step2.periodTo'])), { target: { value: '2026-06-01' } });
   await userEvent.click(screen.getByRole('button', { name: new RegExp(UZ['wizard.nav.next']) }));
 
-  await userEvent.type(await screen.findByLabelText(new RegExp(UZ['wizard.step3.quantity'])), '5');
-  // The benefit `Select` is the only `combobox` on step 3 for a non-grazing
-  // activity — same idiom the on-behalf picker's own test already uses,
-  // since `FormField` renders its label as plain text next to `htmlFor`,
-  // and the label text here contains parentheses that would need escaping
-  // for a literal `RegExp` match.
-  await userEvent.selectOptions(await screen.findByRole('combobox'), 'benefit-1');
+  await screen.findByLabelText(new RegExp(UZ['wizard.step3.quantity']));
+  // No select on step 3 for a non-grazing activity: the benefit one is gone.
+  expect(screen.queryByRole('combobox')).not.toBeInTheDocument();
+  await userEvent.type(screen.getByLabelText(new RegExp(UZ['wizard.step3.quantity'])), '5');
+  await userEvent.click(screen.getByRole('button', { name: new RegExp(UZ['wizard.nav.next']) }));
 
-  const certificateInput = await screen.findByLabelText(new RegExp(UZ['wizard.step3.certificateNumber']));
+  const select = await screen.findByRole('combobox');
+  const labels = Array.from((select as HTMLSelectElement).options).map((o) => o.textContent);
+  expect(labels).toEqual([UZ['wizard.step4.selectDocType'], 'Pasport', `— ${UZ['wizard.step4.benefitsGroup']} —`, 'Urush faxriysi']);
+});
+
+// Ruling #181: the certificate number is mandatory for EVERY benefit
+// category now — there is no `props.requires_certificate` switch any more,
+// so this fixture deliberately carries `props: {}` to prove the field is
+// still required regardless.
+test('the benefit certificate number is required before Next for ANY chosen category (no per-item switch), and reaches the PATCH', async () => {
+  server.use(classifierHandler([BENEFIT_ITEM], [PROOF_DOC_TYPE]), ...documentsStore());
+  let lastPatchBody: unknown = null;
+  server.use(
+    http.patch('*/api/v1/applications/:id', async ({ request }) => {
+      lastPatchBody = await request.json();
+      return HttpResponse.json({ id: APPLICATION_ID });
+    }),
+  );
+  renderWizard();
+  await driveToStep4();
+
+  await userEvent.selectOptions(await screen.findByRole('combobox'), 'benefit:benefit-1');
+
+  const certificateInput = await screen.findByLabelText(new RegExp(UZ['wizard.step4.certificateNumber']));
   const nextButton = screen.getByRole('button', { name: new RegExp(UZ['wizard.nav.next']) });
   // The field is required BEFORE the backend ever has a chance to refuse
   // with `ERR-APP-003`/`benefit_certificate_required`.
   expect(nextButton).toBeDisabled();
 
   await userEvent.type(certificateInput, 'AB-12345');
+  // The number alone is enough (#189: the scan is optional).
   await waitFor(() => expect(nextButton).toBeEnabled());
   await userEvent.click(nextButton);
 
-  await waitFor(() => expect(lastPatchBody).toMatchObject({ benefit_certificate_no: 'AB-12345' }));
+  await waitFor(() =>
+    expect(lastPatchBody).toMatchObject({ benefit_category_item_id: 'benefit-1', benefit_certificate_no: 'AB-12345' }),
+  );
 });
 
 // Ruling #181: the certificate field appears for ANY chosen category — a
 // second item with equally bare `props: {}` is enough to show it is not
-// reading the flag at all any more (the old test this replaces proved the
-// opposite premise, which stage 10 makes false).
+// reading the flag at all any more.
 test('the certificate field is shown for a SECOND category with no special props either', async () => {
-  server.use(
-    http.get('*/api/v1/refs/classifiers/:code/items', ({ params }) => {
-      if (params.code === 'benefit_categories') {
-        return HttpResponse.json([
-          {
-            id: 'benefit-2',
-            code: 'other',
-            name: { uz_latn: 'Boshqa imtiyoz' },
-            props: {},
-            valid_from: '2020-01-01',
-            valid_to: null,
-            status: 'active',
-          },
-        ]);
-      }
-      return HttpResponse.json([]);
-    }),
-  );
+  server.use(classifierHandler([{ ...BENEFIT_ITEM, id: 'benefit-2', code: 'other', name: { uz_latn: 'Boshqa imtiyoz' } }], [PROOF_DOC_TYPE]));
   renderWizard();
+  await driveToStep4();
 
-  await chooseActivity();
-  await userEvent.click(await screen.findByText('pick-contour'));
-  fireEvent.change(screen.getByLabelText(new RegExp(UZ['wizard.step2.periodFrom'])), { target: { value: '2026-01-01' } });
-  fireEvent.change(screen.getByLabelText(new RegExp(UZ['wizard.step2.periodTo'])), { target: { value: '2026-06-01' } });
-  await userEvent.click(screen.getByRole('button', { name: new RegExp(UZ['wizard.nav.next']) }));
+  await userEvent.selectOptions(await screen.findByRole('combobox'), 'benefit:benefit-2');
 
-  await userEvent.type(await screen.findByLabelText(new RegExp(UZ['wizard.step3.quantity'])), '5');
-  await userEvent.selectOptions(await screen.findByRole('combobox'), 'benefit-2');
-
-  expect(await screen.findByLabelText(new RegExp(UZ['wizard.step3.certificateNumber']))).toBeInTheDocument();
+  expect(await screen.findByLabelText(new RegExp(UZ['wizard.step4.certificateNumber']))).toBeInTheDocument();
   expect(screen.getByRole('button', { name: new RegExp(UZ['wizard.nav.next']) })).toBeDisabled();
 });
 
 // Choosing "no benefit" (clearing the selection) is the one way to make the
 // certificate optional again — not a per-item classifier flag.
 test('clearing the benefit selection hides the certificate field again and sends null', async () => {
-  server.use(
-    http.get('*/api/v1/refs/classifiers/:code/items', ({ params }) => {
-      if (params.code === 'benefit_categories') {
-        return HttpResponse.json([
-          {
-            id: 'benefit-1',
-            code: 'veteran',
-            name: { uz_latn: 'Urush faxriysi' },
-            props: {},
-            valid_from: '2020-01-01',
-            valid_to: null,
-            status: 'active',
-          },
-        ]);
-      }
-      return HttpResponse.json([]);
-    }),
-  );
+  server.use(classifierHandler([BENEFIT_ITEM], [PROOF_DOC_TYPE]));
   let lastPatchBody: unknown = null;
   server.use(
     http.patch('*/api/v1/applications/:id', async ({ request }) => {
@@ -947,22 +976,41 @@ test('clearing the benefit selection hides the certificate field again and sends
     }),
   );
   renderWizard();
+  await driveToStep4();
 
-  await chooseActivity();
-  await userEvent.click(await screen.findByText('pick-contour'));
-  fireEvent.change(screen.getByLabelText(new RegExp(UZ['wizard.step2.periodFrom'])), { target: { value: '2026-01-01' } });
-  fireEvent.change(screen.getByLabelText(new RegExp(UZ['wizard.step2.periodTo'])), { target: { value: '2026-06-01' } });
-  await userEvent.click(screen.getByRole('button', { name: new RegExp(UZ['wizard.nav.next']) }));
-
-  await userEvent.type(await screen.findByLabelText(new RegExp(UZ['wizard.step3.quantity'])), '5');
-  await userEvent.selectOptions(await screen.findByRole('combobox'), 'benefit-1');
-  expect(await screen.findByLabelText(new RegExp(UZ['wizard.step3.certificateNumber']))).toBeInTheDocument();
+  await userEvent.selectOptions(await screen.findByRole('combobox'), 'benefit:benefit-1');
+  expect(await screen.findByLabelText(new RegExp(UZ['wizard.step4.certificateNumber']))).toBeInTheDocument();
 
   await userEvent.selectOptions(await screen.findByRole('combobox'), '');
-  expect(screen.queryByLabelText(new RegExp(UZ['wizard.step3.certificateNumber']))).not.toBeInTheDocument();
+  expect(screen.queryByLabelText(new RegExp(UZ['wizard.step4.certificateNumber']))).not.toBeInTheDocument();
   await userEvent.click(screen.getByRole('button', { name: new RegExp(UZ['wizard.nav.next']) }));
 
-  await waitFor(() => expect(lastPatchBody).toMatchObject({ benefit_certificate_no: null }));
+  await waitFor(() => expect(lastPatchBody).toMatchObject({ benefit_category_item_id: null, benefit_certificate_no: null }));
+});
+
+// Every upload is its own row: the row dissolves into the card's list once
+// its file is on the server, and "add document" opens the next one. A row
+// with a type chosen and no file holds Next — moving on would drop it
+// without a word.
+test('a second document is added as a new row; a half-filled row holds Next until its file lands', async () => {
+  server.use(classifierHandler([], [OTHER_DOC_TYPE]), ...documentsStore());
+  renderWizard();
+  await driveToStep4();
+
+  await userEvent.selectOptions(await screen.findByRole('combobox'), 'doctype-other');
+  const nextButton = screen.getByRole('button', { name: new RegExp(UZ['wizard.nav.next']) });
+  expect(await screen.findByText(UZ['wizard.step4.pendingRowHint'])).toBeInTheDocument();
+  expect(nextButton).toBeDisabled();
+
+  await userEvent.upload(fileInput(), new File(['x'], 'a.pdf', { type: 'application/pdf' }));
+  await waitFor(() => expect(screen.getAllByText('Pasport')).toHaveLength(1));
+  expect(screen.queryByRole('combobox')).not.toBeInTheDocument();
+  await waitFor(() => expect(nextButton).toBeEnabled());
+
+  await userEvent.click(screen.getByRole('button', { name: new RegExp(UZ['wizard.step4.addDoc']) }));
+  await userEvent.selectOptions(await screen.findByRole('combobox'), 'doctype-other');
+  await userEvent.upload(fileInput(), new File(['y'], 'b.pdf', { type: 'application/pdf' }));
+  await waitFor(() => expect(screen.getAllByText('Pasport')).toHaveLength(2));
 });
 
 test('choosing an activity takes two clicks: the first selects, the second moves on', async () => {
@@ -1044,38 +1092,10 @@ test('a simple-signature refusal (ERR-SIGN-001, simple_signature_not_allowed) is
 // Ruling #181: a benefit-certificate refusal the client could not have
 // caught itself (the number LOOKS filled in, but the register disagrees) is
 // shown AT THE FIELD, not only as a step-5 banner — the wizard sends the
-// applicant back to step 3 for it.
-test('a benefit-certificate refusal (ERR-APP-003, benefit_certificate_unknown) sends the applicant back to step 3 and shows it at the field', async () => {
+// applicant back to step 4 for it.
+test('a benefit-certificate refusal (ERR-APP-003, benefit_certificate_unknown) sends the applicant back to step 4 and shows it at the field', async () => {
   server.use(
-    http.get('*/api/v1/refs/classifiers/:code/items', ({ params }) => {
-      if (params.code === 'benefit_categories') {
-        return HttpResponse.json([
-          {
-            id: 'benefit-1',
-            code: 'veteran',
-            name: { uz_latn: 'Urush faxriysi' },
-            props: {},
-            valid_from: '2020-01-01',
-            valid_to: null,
-            status: 'active',
-          },
-        ]);
-      }
-      if (params.code === 'doc_types') {
-        return HttpResponse.json([
-          {
-            id: 'doctype-proof',
-            code: 'benefit_proof',
-            name: { uz_latn: 'Imtiyozni tasdiqlovchi hujjat' },
-            props: {},
-            valid_from: '2020-01-01',
-            valid_to: null,
-            status: 'active',
-          },
-        ]);
-      }
-      return HttpResponse.json([]);
-    }),
+    classifierHandler([BENEFIT_ITEM], [PROOF_DOC_TYPE]),
     // The proof is already on the card: step 4's gate is fail-closed (review
     // finding 3), so reaching the sign button needs a real `benefit_proof`
     // row, not an unloaded doc-type list.
@@ -1094,17 +1114,10 @@ test('a benefit-certificate refusal (ERR-APP-003, benefit_certificate_unknown) s
     ),
   );
   renderWizard();
+  await driveToStep4();
 
-  await chooseActivity();
-  await userEvent.click(await screen.findByText('pick-contour'));
-  fireEvent.change(screen.getByLabelText(new RegExp(UZ['wizard.step2.periodFrom'])), { target: { value: '2026-01-01' } });
-  fireEvent.change(screen.getByLabelText(new RegExp(UZ['wizard.step2.periodTo'])), { target: { value: '2026-06-01' } });
-  await userEvent.click(screen.getByRole('button', { name: new RegExp(UZ['wizard.nav.next']) }));
-
-  await userEvent.type(await screen.findByLabelText(new RegExp(UZ['wizard.step3.quantity'])), '5');
-  await userEvent.selectOptions(await screen.findByRole('combobox'), 'benefit-1');
-  await userEvent.type(await screen.findByLabelText(new RegExp(UZ['wizard.step3.certificateNumber'])), 'AB-99999');
-  await userEvent.click(screen.getByRole('button', { name: new RegExp(UZ['wizard.nav.next']) })); // step3 -> step4
+  await userEvent.selectOptions(await screen.findByRole('combobox'), 'benefit:benefit-1');
+  await userEvent.type(await screen.findByLabelText(new RegExp(UZ['wizard.step4.certificateNumber'])), 'AB-99999');
   await userEvent.click(await screen.findByRole('button', { name: new RegExp(UZ['wizard.nav.next']) })); // step4 -> step5
 
   await acceptRules();
@@ -1112,48 +1125,22 @@ test('a benefit-certificate refusal (ERR-APP-003, benefit_certificate_unknown) s
   await waitFor(() => expect(signButton).toBeEnabled());
   await userEvent.click(signButton);
 
-  expect(await screen.findByText(UZ['wizard.step3.heading'])).toBeInTheDocument();
+  expect(await screen.findByText(UZ['wizard.step4.heading'])).toBeInTheDocument();
   expect(await screen.findByText("Bunday guvohnoma/ma'lumotnoma raqami reyestrda topilmadi.")).toBeInTheDocument();
 });
 
-// Ruling #181: the supporting document is required exactly like the
-// certificate number — checked once step 4 is reached, and cleared the
-// moment a document of the right type lands.
-test('the benefit_proof document is required before step 4\'s Next once a category is chosen', async () => {
+// Ruling #189: the certificate's scan is OPTIONAL — Next is open on the
+// number alone, and the benefit row's own file button, when used, files the
+// scan under `benefit_proof` (no doc type to pick: the category IS the type).
+test('the benefit_proof scan is optional: Next opens on the number alone, and the file, when attached, is filed under benefit_proof', async () => {
+  let uploadedType: string | null = null;
   let documents: { id: string; doc_type_item_id: string; file_id: string }[] = [];
   server.use(
-    http.get('*/api/v1/refs/classifiers/:code/items', ({ params }) => {
-      if (params.code === 'benefit_categories') {
-        return HttpResponse.json([
-          {
-            id: 'benefit-1',
-            code: 'veteran',
-            name: { uz_latn: 'Urush faxriysi' },
-            props: {},
-            valid_from: '2020-01-01',
-            valid_to: null,
-            status: 'active',
-          },
-        ]);
-      }
-      if (params.code === 'doc_types') {
-        return HttpResponse.json([
-          {
-            id: 'doctype-proof',
-            code: 'benefit_proof',
-            name: { uz_latn: 'Imtiyozni tasdiqlovchi hujjat' },
-            props: {},
-            valid_from: '2020-01-01',
-            valid_to: null,
-            status: 'active',
-          },
-        ]);
-      }
-      return HttpResponse.json([]);
-    }),
+    classifierHandler([BENEFIT_ITEM], [PROOF_DOC_TYPE, OTHER_DOC_TYPE]),
     http.get('*/api/v1/applications/:id', () => HttpResponse.json({ id: APPLICATION_ID, documents, items: [] })),
     http.post('*/api/v1/applications/:id/documents', async ({ request }) => {
       const body = (await request.json()) as { doc_type_item_id: string; file_id: string };
+      uploadedType = body.doc_type_item_id;
       const doc = { id: 'doc-1', doc_type_item_id: body.doc_type_item_id, file_id: body.file_id };
       documents = [...documents, doc];
       return HttpResponse.json(doc);
@@ -1161,66 +1148,45 @@ test('the benefit_proof document is required before step 4\'s Next once a catego
     http.post('*/api/v1/files', () => HttpResponse.json({ id: 'file-1' })),
   );
   renderWizard();
+  await driveToStep4();
 
-  await chooseActivity();
-  await userEvent.click(await screen.findByText('pick-contour'));
-  fireEvent.change(screen.getByLabelText(new RegExp(UZ['wizard.step2.periodFrom'])), { target: { value: '2026-01-01' } });
-  fireEvent.change(screen.getByLabelText(new RegExp(UZ['wizard.step2.periodTo'])), { target: { value: '2026-06-01' } });
-  await userEvent.click(screen.getByRole('button', { name: new RegExp(UZ['wizard.nav.next']) }));
+  await userEvent.selectOptions(await screen.findByRole('combobox'), 'benefit:benefit-1');
+  await userEvent.type(await screen.findByLabelText(new RegExp(UZ['wizard.step4.certificateNumber'])), 'AB-1');
 
-  await userEvent.type(await screen.findByLabelText(new RegExp(UZ['wizard.step3.quantity'])), '5');
-  await userEvent.selectOptions(await screen.findByRole('combobox'), 'benefit-1');
-  await userEvent.type(await screen.findByLabelText(new RegExp(UZ['wizard.step3.certificateNumber'])), 'AB-1');
-  await userEvent.click(screen.getByRole('button', { name: new RegExp(UZ['wizard.nav.next']) })); // -> step4
+  const nextButton = screen.getByRole('button', { name: new RegExp(UZ['wizard.nav.next']) });
+  expect(await screen.findByText(UZ['wizard.step4.benefitProofOptional'])).toBeInTheDocument();
+  await waitFor(() => expect(nextButton).toBeEnabled());
 
-  const nextButton = await screen.findByRole('button', { name: new RegExp(UZ['wizard.nav.next']) });
-  expect(await screen.findByText(UZ['wizard.step4.benefitProofRequired'])).toBeInTheDocument();
-  expect(nextButton).toBeDisabled();
-
-  await userEvent.selectOptions(screen.getByRole('combobox'), 'doctype-proof');
-  const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
-  await userEvent.upload(fileInput, new File(['x'], 'proof.pdf', { type: 'application/pdf' }));
+  await userEvent.upload(fileInput(), new File(['x'], 'proof.pdf', { type: 'application/pdf' }));
 
   await waitFor(() => expect(screen.getByText(UZ['wizard.step4.benefitProofOk'])).toBeInTheDocument());
-  await waitFor(() => expect(nextButton).toBeEnabled());
+  expect(uploadedType).toBe('doctype-proof');
+  expect(screen.queryByText(UZ['wizard.step4.benefitProofOptional'])).not.toBeInTheDocument();
+  expect(nextButton).toBeEnabled();
 });
 
-// Stage 10 review, finding 3: the gate used to OPEN when the doc-type list
-// did not carry `benefit_proof` (not loaded, or not configured) — step 4
-// printed the green "attached" sentence over an empty list and the citizen
-// met the refusal only at the sign button. Fail-closed now, like the backend.
-test('an unknown benefit_proof doc type keeps step 4 shut instead of waving the claim through', async () => {
+// Without a `benefit_proof` doc type (list not loaded, or the item archived)
+// the benefit row has nothing to file a scan under, so it offers no file
+// button — and, the scan being optional (#189), the claim still moves on.
+test('an unknown benefit_proof doc type hides the file button and does not hold the claim', async () => {
   server.use(
-    http.get('*/api/v1/refs/classifiers/:code/items', ({ params }) => {
-      if (params.code === 'benefit_categories') {
-        return HttpResponse.json([
-          { id: 'benefit-1', code: 'veteran', name: { uz_latn: 'Urush faxriysi' }, props: {}, valid_from: '2020-01-01', valid_to: null, status: 'active' },
-        ]);
-      }
-      // `doc_types` answers without `benefit_proof`.
-      return HttpResponse.json([]);
-    }),
+    // `doc_types` answers without `benefit_proof`.
+    classifierHandler([BENEFIT_ITEM], [OTHER_DOC_TYPE]),
     http.get('*/api/v1/applications/:id', () =>
       HttpResponse.json({ id: APPLICATION_ID, documents: [{ id: 'doc-1', doc_type_item_id: 'some-other-type', file_id: 'file-1' }], items: [] }),
     ),
   );
   renderWizard();
+  await driveToStep4();
 
-  await chooseActivity();
-  await userEvent.click(await screen.findByText('pick-contour'));
-  fireEvent.change(screen.getByLabelText(new RegExp(UZ['wizard.step2.periodFrom'])), { target: { value: '2026-01-01' } });
-  fireEvent.change(screen.getByLabelText(new RegExp(UZ['wizard.step2.periodTo'])), { target: { value: '2026-06-01' } });
-  await userEvent.click(screen.getByRole('button', { name: new RegExp(UZ['wizard.nav.next']) }));
+  await userEvent.selectOptions(await screen.findByRole('combobox'), 'benefit:benefit-1');
+  await userEvent.type(await screen.findByLabelText(new RegExp(UZ['wizard.step4.certificateNumber'])), 'AB-1');
 
-  await userEvent.type(await screen.findByLabelText(new RegExp(UZ['wizard.step3.quantity'])), '5');
-  await userEvent.selectOptions(await screen.findByRole('combobox'), 'benefit-1');
-  await userEvent.type(await screen.findByLabelText(new RegExp(UZ['wizard.step3.certificateNumber'])), 'AB-1');
-  await userEvent.click(screen.getByRole('button', { name: new RegExp(UZ['wizard.nav.next']) })); // -> step4
-
-  const nextButton = await screen.findByRole('button', { name: new RegExp(UZ['wizard.nav.next']) });
-  expect(await screen.findByText(UZ['wizard.step4.benefitProofRequired'])).toBeInTheDocument();
+  const nextButton = screen.getByRole('button', { name: new RegExp(UZ['wizard.nav.next']) });
+  expect(await screen.findByText(UZ['wizard.step4.benefitProofOptional'])).toBeInTheDocument();
+  expect(screen.queryByRole('button', { name: new RegExp(UZ['wizard.step4.chooseFile']) })).not.toBeInTheDocument();
   expect(screen.queryByText(UZ['wizard.step4.benefitProofOk'])).not.toBeInTheDocument();
-  expect(nextButton).toBeDisabled();
+  await waitFor(() => expect(nextButton).toBeEnabled());
 });
 
 // A resumed draft must restore WHO it is filed for — the last step's

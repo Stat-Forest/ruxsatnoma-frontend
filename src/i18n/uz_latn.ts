@@ -1984,8 +1984,8 @@ export const uz_latn = {
   'wizard.step3.selectPrompt': "Tanlang...",
   'wizard.step3.addLivestock': "Chorva turini qoʻshish",
   'wizard.step3.quantity': "Miqdori",
-  'wizard.step3.benefitCategory': "Imtiyoz toifasi (agar mavjud boʻlsa)",
-  'wizard.step3.noBenefit': "Imtiyoz yoʻq",
+  'wizard.step4.benefitCategory': "Imtiyoz toifasi (agar mavjud boʻlsa)",
+  'wizard.step4.noBenefit': "Imtiyoz yoʻq",
   'wizard.step3.estimatedPrice': "Moʻljallangan narx",
   'wizard.step3.pricePrompt': "Narxni hisoblash uchun maydon, davr va miqdorni kiriting.",
   'wizard.step3.calculating': "Narx hisoblanmoqda...",
@@ -2002,8 +2002,8 @@ export const uz_latn = {
   // certificate number. ---
   'wizard.step2.seasonOutOfRange': "Tanlangan sana ushbu faoliyat va kontur uchun belgilangan mavsumdan tashqarida.",
   'wizard.step2.minTermNotice': "Davr muddati kamida {days} kun boʻlishi kerak.",
-  'wizard.step3.certificateNumber': "Guvohnoma raqami",
-  'wizard.step3.certificateNumberRequired': "Tanlangan imtiyoz toifasi uchun guvohnoma raqami kiritilishi shart.",
+  'wizard.step4.certificateNumber': "Guvohnoma raqami",
+  'wizard.step4.certificateNumberRequired': "Tanlangan imtiyoz toifasi uchun guvohnoma raqami kiritilishi shart.",
   'wizard.calendar.heading': "Bandlik taqvimi",
   'wizard.calendar.legendFree': "Boʻsh",
   'wizard.calendar.legendPartial': "Qisman band",
@@ -2029,6 +2029,9 @@ export const uz_latn = {
   'wizard.step4.uploadError': "Hujjat yuklashda xatolik yuz berdi.",
   'wizard.step4.notConfigured': "Hujjat turlari hali sozlanmagan — fayl ilova qilish imkonsiz.",
   'wizard.step4.defaultDocName': "Hujjat",
+  'wizard.step4.benefitsGroup': "Imtiyozlar",
+  'wizard.step4.addDoc': "Hujjat qoʻshish",
+  'wizard.step4.pendingRowHint': "Faylni tanlang yoki qatorni olib tashlang.",
   'wizard.step5.title': "Yuborish",
   'wizard.step5.desc': "Tekshiruv va E-imzo",
   'wizard.step5.heading': "5. Yakuniy tekshiruv",
@@ -2259,5 +2262,5 @@ export const uz_latn = {
   'wizard.step5.signDesc':
     "Arizani topshirish uchun quyidagi tugmani bosing — elektron imzo talab qilinmaydi, chunki tizimga OneID yoki E-IMZO orqali kirgansiz.",
   'wizard.step4.benefitProofOk': "Imtiyozni tasdiqlovchi hujjat ilova qilindi.",
-  'wizard.step4.benefitProofRequired': "Tanlangan imtiyoz toifasi uchun tasdiqlovchi hujjat ilova qilinishi shart.",
+  'wizard.step4.benefitProofOptional': "Guvohnoma nusxasini ilova qilish ixtiyoriy.",
 };
