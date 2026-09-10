@@ -160,6 +160,49 @@ test('changing the period and clicking Apply asks both routes for the new dates'
   await waitFor(() => expect(feedPeriods.some((p) => p === '2026-01-01..2026-01-31')).toBe(true));
 });
 
+test('the Excel export carries the applied period filter and nothing about paging', async () => {
+  server.use(
+    http.get('*/api/v1/admin/ratings/summary', () => HttpResponse.json(EMPTY_SUMMARY)),
+    http.get('*/api/v1/admin/ratings', () => HttpResponse.json(PAGE_WITH_ONE_COMMENT)),
+  );
+
+  let exportUrl: URL | null = null;
+  server.use(
+    http.get('*/api/v1/admin/ratings/export.xlsx', ({ request }) => {
+      exportUrl = new URL(request.url);
+      return HttpResponse.text('xlsx-bytes', {
+        headers: {
+          'Content-Disposition': 'attachment; filename="baholar.xlsx"',
+          'X-Export-Truncated': 'false',
+        },
+      });
+    }),
+  );
+
+  const createObjectURL = vi.fn().mockReturnValue('blob:mock');
+  URL.createObjectURL = createObjectURL;
+  URL.revokeObjectURL = vi.fn();
+  vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+
+  renderWithProviders(<RatingsPage />);
+
+  const filters = await screen.findByTestId('ratings-filters');
+  const dateInputs = filters.querySelectorAll('input[type="date"]');
+  fireEvent.change(dateInputs[0], { target: { value: '2026-02-01' } });
+  fireEvent.change(dateInputs[1], { target: { value: '2026-02-28' } });
+  const user = userEvent.setup();
+  await user.click(screen.getByTestId('ratings-apply'));
+  await screen.findByTestId('ratings-comment-0');
+
+  await user.click(screen.getByTestId('export-xlsx'));
+
+  await waitFor(() => expect(createObjectURL).toHaveBeenCalled());
+  expect(exportUrl!.searchParams.get('period_from')).toBe('2026-02-01');
+  expect(exportUrl!.searchParams.get('period_to')).toBe('2026-02-28');
+  expect(exportUrl!.searchParams.has('page')).toBe(false);
+  expect(exportUrl!.searchParams.has('page_size')).toBe(false);
+});
+
 test('a failed summary fetch shows a visible alert, never a silently blank screen', async () => {
   server.use(
     http.get('*/api/v1/admin/ratings/summary', () =>

@@ -34,6 +34,7 @@ import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { RotateCcw } from 'lucide-react';
 import { Button } from '../../components/ui/button';
+import { ExportXlsxButton } from '../../components/ui/ExportXlsxButton';
 import { FormField, Input } from '../../components/ui/FormControls';
 import { Pagination } from '../../components/ui/Navigation';
 import { useApiErrorText } from '../../i18n/useApiErrorText';
@@ -148,6 +149,10 @@ export function RatingsPage() {
           </FormField>
         </div>
         <div className="flex justify-end gap-2">
+          <ExportXlsxButton
+            path="/api/v1/admin/ratings"
+            query={{ ...applied, page, page_size: PAGE_SIZE }}
+          />
           <Button
             variant="outline"
             size="sm"

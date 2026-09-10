@@ -344,6 +344,44 @@ test('the Excel export carries the applied filters to the server and nothing abo
   expect(exportUrl!.searchParams.has('page_size')).toBe(false);
 });
 
+test('the events tab Excel export carries the applied object_type filter and nothing about paging', async () => {
+  let exportUrl: URL | null = null;
+  server.use(
+    http.get('*/api/v1/oversight/risk-indicators', () => HttpResponse.json(page([]))),
+    http.get('*/api/v1/oversight/events', () => HttpResponse.json(page([eventFixture()]))),
+    http.get('*/api/v1/oversight/events/export.xlsx', ({ request }) => {
+      exportUrl = new URL(request.url);
+      return HttpResponse.text('xlsx-bytes', {
+        headers: { 'Content-Disposition': 'attachment; filename="hodisalar.xlsx"', 'X-Export-Truncated': 'false' },
+      });
+    }),
+  );
+
+  const createObjectURL = vi.fn().mockReturnValue('blob:mock');
+  URL.createObjectURL = createObjectURL;
+  URL.revokeObjectURL = vi.fn();
+  vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+
+  render(
+    <Providers>
+      <OversightPage />
+    </Providers>,
+  );
+
+  const user = userEvent.setup();
+  await user.click(screen.getByText('Voqealar'));
+  await screen.findByTestId(`event-row-${EVENT_ROW_ID}`);
+
+  await user.type(screen.getByLabelText('Obyekt turi'), 'permit');
+  await user.click(screen.getByRole('button', { name: /qo.*llash/i }));
+
+  await user.click(screen.getByTestId('export-xlsx'));
+  await waitFor(() => expect(createObjectURL).toHaveBeenCalled());
+  expect(exportUrl!.searchParams.get('object_type')).toBe('permit');
+  expect(exportUrl!.searchParams.has('page')).toBe(false);
+  expect(exportUrl!.searchParams.has('page_size')).toBe(false);
+});
+
 
 
 // Compile-time parity (`Record<TranslationKey, string>` in `i18n/context.ts`)

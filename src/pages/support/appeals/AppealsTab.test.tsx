@@ -214,3 +214,48 @@ test('a click anywhere on an appeal row opens its detail panel', async () => {
   await userEvent.setup().click(await screen.findByText('Row subject'));
   expect(await screen.findByTestId('appeal-contact')).toBeInTheDocument();
 });
+
+test('the Excel button asks the server for the export with the applied status filter, never paging the list itself', async () => {
+  const listCalls: string[] = [];
+  let exportUrl: URL | null = null;
+  server.use(
+    http.get('*/api/v1/admin/public/appeals', ({ request }) => {
+      listCalls.push(request.url);
+      return HttpResponse.json(page([appeal({ id: 'a-1', number: 'PA-1', status: 'new' })]));
+    }),
+    http.get('*/api/v1/admin/public/appeals/export.xlsx', ({ request }) => {
+      exportUrl = new URL(request.url);
+      return HttpResponse.text('xlsx-bytes', {
+        headers: {
+          'Content-Disposition': 'attachment; filename="murojaatlar-2026-09-11.xlsx"',
+          'X-Export-Total': '1',
+          'X-Export-Rows': '1',
+          'X-Export-Truncated': 'false',
+        },
+      });
+    }),
+  );
+
+  const createObjectURL = vi.fn().mockReturnValue('blob:mock');
+  const revokeObjectURL = vi.fn();
+  URL.createObjectURL = createObjectURL;
+  URL.revokeObjectURL = revokeObjectURL;
+  const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+
+  const user = userEvent.setup();
+  renderTab();
+
+  await screen.findByText('PA-1');
+  await user.selectOptions(screen.getByTestId('appeals-status-filter'), 'answered');
+  await waitFor(() => expect(listCalls.some((u) => u.includes('status=answered'))).toBe(true));
+  const listCallsBefore = listCalls.length;
+
+  await user.click(screen.getByTestId('export-xlsx'));
+
+  await waitFor(() => expect(createObjectURL).toHaveBeenCalled());
+  expect(clickSpy).toHaveBeenCalled();
+  expect(listCalls.length).toBe(listCallsBefore); // the export never re-fetches the list
+  expect(exportUrl!.searchParams.get('status')).toBe('answered');
+  expect(exportUrl!.searchParams.has('page')).toBe(false);
+  expect(exportUrl!.searchParams.has('page_size')).toBe(false);
+});
