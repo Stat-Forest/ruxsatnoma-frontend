@@ -5,6 +5,7 @@ import { MemoryRouter } from 'react-router';
 import { http, HttpResponse } from 'msw';
 import { setupServer } from 'msw/node';
 import { DICTIONARIES, I18nContext } from '../../../i18n/context';
+import { INVOICE_STATUS_LABEL_I18N } from '../../permits/statusMeta';
 import { MyInvoicesTab } from './MyInvoicesTab';
 
 const APP_ONE = 'a0000000-0000-4000-8000-000000000001';
@@ -36,12 +37,12 @@ beforeAll(() => server.listen({ onUnhandledRequest: 'error' }));
 afterEach(() => server.resetHandlers());
 afterAll(() => server.close());
 
-function renderTab() {
+function renderTab(lang: 'uz_latn' | 'ru' = 'uz_latn') {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   const i18n = {
-    lang: 'uz_latn' as const,
-    backendLang: 'uz_latn' as const,
-    t: (key: string) => (DICTIONARIES.uz_latn as Record<string, string>)[key] ?? key,
+    lang,
+    backendLang: lang,
+    t: (key: string) => (DICTIONARIES[lang] as Record<string, string>)[key] ?? key,
     setLanguage: async () => {},
   };
   const wrapper = ({ children }: { children: ReactNode }) => (
@@ -114,4 +115,16 @@ test('a failed load says so instead of showing nothing', async () => {
   renderTab();
 
   expect(await screen.findByText('Hisob-fakturalarni yuklab boʻlmadi.')).toBeInTheDocument();
+});
+
+test('the status badge follows the UI language, not a fixed uz_latn label', async () => {
+  server.use(
+    http.get('*/api/v1/invoices', () => HttpResponse.json(page([invoice({})]))),
+    http.get('*/api/v1/applications', () => HttpResponse.json(page([]))),
+  );
+  renderTab('ru');
+
+  await screen.findByText('INV-2026-000001');
+  const table = screen.getByRole('table');
+  expect(within(table).getByText(INVOICE_STATUS_LABEL_I18N.ru.pending)).toBeInTheDocument();
 });

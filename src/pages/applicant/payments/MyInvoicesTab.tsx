@@ -4,14 +4,14 @@ import { CreditCard, Eye } from 'lucide-react';
 import { DataTable, type Column } from '../../../components/ui/DataTable';
 import { FormField, Select } from '../../../components/ui/FormControls';
 import { Alert } from '../../../components/ui/Feedback';
-import { useT } from '../../../i18n/useT';
-import { INVOICE_STATUS_LABEL, INVOICE_STATUS_STYLE } from '../../permits/statusMeta';
+import { useLanguage, useT } from '../../../i18n/useT';
+import { INVOICE_STATUS_LABEL, INVOICE_STATUS_STYLE, getInvoiceStatusLabel } from '../../permits/statusMeta';
 import { formatDateTime, formatMoney } from '../../permits/format';
 import type { InvoiceOut } from '../api';
 import { useMyApplicationsIndex, useMyInvoices } from './queries';
 
 const PAGE_SIZE = 50;
-const STATUSES = ['pending', 'paid', 'expired', 'cancelled'] as const;
+const STATUSES = Object.keys(INVOICE_STATUS_LABEL);
 
 /** Stage 11 — every invoice of every application the citizen owns or
  * represents, from `GET /invoices` without `application_id` (ruling R1). The application
@@ -20,6 +20,7 @@ const STATUSES = ['pending', 'paid', 'expired', 'cancelled'] as const;
  * a number the same page already holds would be one more place to disagree. */
 export function MyInvoicesTab() {
   const t = useT();
+  const { lang } = useLanguage();
   const [page, setPage] = useState(1);
   const [status, setStatus] = useState('');
   const invoicesQuery = useMyInvoices({ status, page, pageSize: PAGE_SIZE });
@@ -55,7 +56,7 @@ export function MyInvoicesTab() {
       header: t('myPayments.invoices.colStatus'),
       accessor: (row) => (
         <span className={`inline-block px-2 py-0.5 rounded-md border text-xs font-semibold ${INVOICE_STATUS_STYLE[row.status] ?? ''}`}>
-          {INVOICE_STATUS_LABEL[row.status] ?? row.status}
+          {getInvoiceStatusLabel(row.status, lang)}
         </span>
       ),
     },
@@ -81,7 +82,7 @@ export function MyInvoicesTab() {
             }}
             options={[
               { value: '', label: t('myPayments.filterAll') },
-              ...STATUSES.map((value) => ({ value, label: INVOICE_STATUS_LABEL[value] })),
+              ...STATUSES.map((value) => ({ value, label: getInvoiceStatusLabel(value, lang) })),
             ]}
           />
         </FormField>
