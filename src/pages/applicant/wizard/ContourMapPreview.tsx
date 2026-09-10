@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type RefObject } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { MapPinOff } from 'lucide-react';
 import {
   FullscreenControl,
   GeoJSONSource,
@@ -532,6 +533,22 @@ export function ContourMapPreview({
                       return `${count} ta uchastka`;
                   }
                 })()}
+        </div>
+      )}
+      {/* Something IS picked, but there is nothing to draw for it — a
+          geometry-less contour (decision #178: no delivered GIS layer for
+          its leshoz, or filed by requisites alone even under one that does).
+          Without this the map would sit blank with no explanation the
+          moment `geometry` turns out null: the exact "dead map frame" this
+          track exists to remove, and worse than the empty-viewport case
+          above because the bottom-left count badge above is hidden
+          whenever something is selected. `z-20`, above the basemap
+          switcher, deliberately: there is no basemap worth picking for a
+          parcel with no shape to show against it. */}
+      {selectedId && !geometry && (
+        <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-2 bg-white/95 px-6 text-center">
+          <MapPinOff className="w-6 h-6 text-[#8FA396]" aria-hidden="true" />
+          <p className="text-xs font-semibold text-[#3D4B41]">{t('wizard.step2.noGeometryForPick')}</p>
         </div>
       )}
       <div className="absolute top-2 left-2 z-10 flex rounded-lg overflow-hidden border border-[#E4E7EA] shadow-xs bg-white">

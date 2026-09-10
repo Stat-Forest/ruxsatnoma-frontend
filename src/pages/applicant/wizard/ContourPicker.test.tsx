@@ -210,3 +210,70 @@ test('a click selects the contour immediately, with no separate confirm button',
   expect(onChange).toHaveBeenCalledTimes(1);
   expect(screen.queryByText('Tanlandi')).not.toBeInTheDocument();
 });
+
+/**
+ * T12 (decision #178) — a leshoz with no delivered GIS layer files contours
+ * by requisites, and the picker must not show a dead map frame for it: no
+ * empty grey rectangle, a deliberate notice in its place. The list itself
+ * (number, forestry, area) already IS the requisites view — it keeps
+ * working exactly as it did before.
+ */
+test('a leshoz with no GIS layer shows a requisites notice instead of the map, and the list still lets you pick', async () => {
+  const user = userEvent.setup();
+  server.use(
+    http.get('*/api/v1/refs/organizations', ({ request }) => {
+      const url = new URL(request.url);
+      if (!url.searchParams.get('parent_id')) {
+        return HttpResponse.json({
+          items: [
+            { id: 'agency-1', parent_id: null, kind: 'agency', code: 'agency', name: { uz_latn: 'Agentlik' }, stir: null, region_id: null, district_id: null, status: 'active', gis_enabled: true },
+          ],
+          total: 1,
+        });
+      }
+      return HttpResponse.json({ items: [organization({ gis_enabled: false })], total: 1 });
+    }),
+    http.get('*/api/v1/gis/contours', () =>
+      HttpResponse.json({ items: [contourListItem()], total: 1, page: 1, page_size: 100 }),
+    ),
+  );
+
+  renderPicker();
+  const leshozSelect = await screen.findByRole('combobox');
+  await waitFor(() => expect(within(leshozSelect).getByText('Burchmulla LX')).toBeInTheDocument());
+  await user.selectOptions(leshozSelect, 'org-1');
+
+  await screen.findByTestId('no-map-notice');
+  // The requisites list — number, area — is unaffected by the switch.
+  expect(screen.getByText('10517қ')).toBeInTheDocument();
+  expect(screen.getByText(/65\.0694/)).toBeInTheDocument();
+});
+
+test('a leshoz WITH a GIS layer shows no such notice', async () => {
+  const user = userEvent.setup();
+  server.use(
+    http.get('*/api/v1/refs/organizations', ({ request }) => {
+      const url = new URL(request.url);
+      if (!url.searchParams.get('parent_id')) {
+        return HttpResponse.json({
+          items: [
+            { id: 'agency-1', parent_id: null, kind: 'agency', code: 'agency', name: { uz_latn: 'Agentlik' }, stir: null, region_id: null, district_id: null, status: 'active', gis_enabled: true },
+          ],
+          total: 1,
+        });
+      }
+      return HttpResponse.json({ items: [organization({ gis_enabled: true })], total: 1 });
+    }),
+    http.get('*/api/v1/gis/contours', () =>
+      HttpResponse.json({ items: [contourListItem()], total: 1, page: 1, page_size: 100 }),
+    ),
+  );
+
+  renderPicker();
+  const leshozSelect = await screen.findByRole('combobox');
+  await waitFor(() => expect(within(leshozSelect).getByText('Burchmulla LX')).toBeInTheDocument());
+  await user.selectOptions(leshozSelect, 'org-1');
+
+  await screen.findByText('10517қ');
+  expect(screen.queryByTestId('no-map-notice')).not.toBeInTheDocument();
+});

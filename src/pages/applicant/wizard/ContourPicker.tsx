@@ -1,12 +1,33 @@
 import { useMemo, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { CheckCircle2, Search } from 'lucide-react';
+import { CheckCircle2, MapPinOff, Search } from 'lucide-react';
 import { Input, Select } from '../../../components/ui/FormControls';
 import { Button } from '../../../components/ui/button';
 import { getContourCard, listContours, listOrganizations } from '../api';
 import { formatUnit, pickName } from '../format';
 import { ContourMapPreview, type PickedContour } from './ContourMapPreview';
 import { useLanguage, useT } from '../../../i18n/useT';
+
+/**
+ * Takes the map's place — same footprint, so the layout does not jump —
+ * whenever nothing here COULD have a map: the leshoz filter is pinned to an
+ * organization with `gis_enabled === false` (decision #178), or the picked
+ * contour itself carries no geometry. A blank basemap with nothing drawn on
+ * it would read as a broken map, not an absent one — T12's own charge is
+ * that the absence must look deliberate.
+ */
+function NoMapNotice({ t }: { t: (key: string) => string }) {
+  return (
+    <div
+      data-testid="no-map-notice"
+      className="w-full h-80 lg:h-[560px] rounded-xl border border-dashed border-[#D9EBDC] bg-[#F7FAF7] flex flex-col items-center justify-center gap-2 px-6 text-center"
+    >
+      <MapPinOff className="w-8 h-8 text-[#8FA396]" aria-hidden="true" />
+      <p className="text-sm font-semibold text-[#3D4B41]">{t('wizard.step2.noMapTitle')}</p>
+      <p className="text-xs text-[#5A646D] max-w-xs">{t('wizard.step2.noMapHint')}</p>
+    </div>
+  );
+}
 
 // Re-exported under its original home so `ApplicationWizardPage.tsx`'s
 // `import { ContourPicker, type PickedContour } from './ContourPicker'` needs
@@ -74,6 +95,24 @@ export function ContourPicker({ value, onChange }: { value: PickedContour | null
       ...leshozes.map((org) => ({ value: org.id, label: pickName(org.name, lang) || org.code })),
     ];
   }, [organizationsQuery.data, lang, t]);
+
+  // `OrganizationOut.gis_enabled` (decision #178) — `!== false` defaults an
+  // organization this browser has not loaded yet (or a row from before the
+  // field existed) to "has a map", the same direction `ContourMapPreview`'s
+  // own absence-vs-broken distinction already leans: showing a map that
+  // turns out empty is recoverable, hiding one that exists is not.
+  const orgHasGis = useMemo(() => {
+    const map = new Map<string, boolean>();
+    for (const org of organizationsQuery.data ?? []) map.set(org.id, org.gis_enabled !== false);
+    return map;
+  }, [organizationsQuery.data]);
+
+  // The leshoz filter itself is pinned to an org with no GIS layer — every
+  // contour it could ever list is geometry-less, so the map column never
+  // has anything to draw and is replaced outright (also skips the
+  // now-pointless `listContourFeatures` fetch `ContourMapPreview` would
+  // otherwise make for an always-empty viewport).
+  const filteredLeshozHasNoGis = organizationId !== '' && orgHasGis.get(organizationId) === false;
 
   // Server-side, not client-side: `GET /gis/contours` already accepts
   // `organization_id` (`listContours`'s own params, generated from the
@@ -235,18 +274,22 @@ export function ContourPicker({ value, onChange }: { value: PickedContour | null
       </div>
 
       <div className={isFullscreen ? 'h-full' : ''}>
-        <ContourMapPreview
-          geometry={previewQuery.data?.geometry ?? null}
-          selectedId={selectedId}
-          // Selection is one value shared by the list and the map, so picking
-          // a parcel on either shows it on both. `null` arrives when the map
-          // clears it — clicking the highlighted parcel a second time — and
-          // puts every contour in view back on screen.
-          onPick={handlePick}
-          organizationId={organizationId || null}
-          fullscreenTarget={shellRef}
-          onFullscreenChange={setIsFullscreen}
-        />
+        {filteredLeshozHasNoGis ? (
+          <NoMapNotice t={t} />
+        ) : (
+          <ContourMapPreview
+            geometry={previewQuery.data?.geometry ?? null}
+            selectedId={selectedId}
+            // Selection is one value shared by the list and the map, so picking
+            // a parcel on either shows it on both. `null` arrives when the map
+            // clears it — clicking the highlighted parcel a second time — and
+            // puts every contour in view back on screen.
+            onPick={handlePick}
+            organizationId={organizationId || null}
+            fullscreenTarget={shellRef}
+            onFullscreenChange={setIsFullscreen}
+          />
+        )}
       </div>
     </div>
   );

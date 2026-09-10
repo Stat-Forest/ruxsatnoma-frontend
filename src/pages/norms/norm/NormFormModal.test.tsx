@@ -41,6 +41,8 @@ const ROW: NormOut = {
   contour_id: CONTOUR_ID,
   activity_type_id: ACTIVITY_TYPE_ID,
   yield_c_per_ha: '12.5000',
+    // Ruling #176 (stage 9): capacity for every activity but grazing.
+  capacity: null,
   season: { windows: [{ from: '05-01', to: '09-30' }] },
   rotation: { rest_years: [2027] },
   max_sb: null,

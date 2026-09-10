@@ -152,3 +152,42 @@ describe('ContourMapPreview fullscreen target', () => {
     expect(onFullscreenChange).toHaveBeenCalledWith(false);
   });
 });
+
+/**
+ * T12 (decision #178) — a contour is selected but carries no geometry
+ * (its leshoz has no delivered GIS layer, or this particular version was
+ * filed by requisites alone even under a leshoz that otherwise has one).
+ * Before this the map rendered its basemap with nothing drawn on it and no
+ * explanation — indistinguishable from a broken fetch.
+ */
+describe('ContourMapPreview with no geometry for the current pick', () => {
+  test('shows a deliberate notice instead of a blank map when something is selected but has no geometry', () => {
+    const { getByText, queryByText } = render(
+      withQueryClient(<ContourMapPreview geometry={null} selectedId="c-1" />),
+    );
+    expect(
+      getByText('Ushbu kontur uchun GIS xaritasi mavjud emas — u rekvizitlar boʻyicha roʻyxatga olingan.'),
+    ).toBeInTheDocument();
+    // The "N ta uchastka" viewport counter is for browsing, not for a pick —
+    // both must never show at once.
+    expect(queryByText(/ta uchastka/)).not.toBeInTheDocument();
+  });
+
+  test('shows no such notice once the pick actually has a geometry', () => {
+    const { queryByText } = render(
+      withQueryClient(
+        <ContourMapPreview geometry={{ type: 'Polygon', coordinates: [] }} selectedId="c-1" />,
+      ),
+    );
+    expect(
+      queryByText('Ushbu kontur uchun GIS xaritasi mavjud emas — u rekvizitlar boʻyicha roʻyxatga olingan.'),
+    ).not.toBeInTheDocument();
+  });
+
+  test('shows no such notice while nothing is selected at all', () => {
+    const { queryByText } = render(withQueryClient(<ContourMapPreview geometry={null} />));
+    expect(
+      queryByText('Ushbu kontur uchun GIS xaritasi mavjud emas — u rekvizitlar boʻyicha roʻyxatga olingan.'),
+    ).not.toBeInTheDocument();
+  });
+});
