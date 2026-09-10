@@ -4,6 +4,7 @@ import { Loader2 } from 'lucide-react';
 import { useAuth } from '../../auth/useAuth';
 import { useT } from '../../i18n/useT';
 import { Button } from '../../components/ui/button';
+import { ExportXlsxButton } from '../../components/ui/ExportXlsxButton';
 import { Select } from '../../components/ui/FormControls';
 import { Pagination } from '../../components/ui/Navigation';
 import { StatusBadge, type StatusType } from '../../components/ui/StatusBadge';
@@ -127,27 +128,31 @@ export function TasksTab({ active }: { active: boolean }) {
   const [status, setStatus] = useState<TaskStatusFilter>('');
   const [page, setPage] = useState(1);
 
-  const list = useTasksList({ status: status || undefined, page, page_size: PAGE_SIZE }, { enabled: active });
+  const filters = { status: status || undefined, page, page_size: PAGE_SIZE };
+  const list = useTasksList(filters, { enabled: active });
   const totalPages = list.data ? Math.max(1, Math.ceil(list.data.total / PAGE_SIZE)) : 1;
 
   return (
     <div className="space-y-4" data-testid="inspector-tasks-tab">
-      <div className="max-w-xs">
-        <Select
-          touchSize
-          value={status}
-          onChange={(e) => {
-            setStatus(e.target.value as TaskStatusFilter);
-            setPage(1);
-          }}
-          options={[
-            { value: '', label: t('inspector.tasks.status.all') },
-            { value: 'assigned', label: t('inspector.tasks.status.assigned') },
-            { value: 'in_progress', label: t('inspector.tasks.status.inProgress') },
-            { value: 'done', label: t('inspector.tasks.status.done') },
-            { value: 'cancelled', label: t('inspector.tasks.status.cancelled') },
-          ]}
-        />
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <div className="max-w-xs">
+          <Select
+            touchSize
+            value={status}
+            onChange={(e) => {
+              setStatus(e.target.value as TaskStatusFilter);
+              setPage(1);
+            }}
+            options={[
+              { value: '', label: t('inspector.tasks.status.all') },
+              { value: 'assigned', label: t('inspector.tasks.status.assigned') },
+              { value: 'in_progress', label: t('inspector.tasks.status.inProgress') },
+              { value: 'done', label: t('inspector.tasks.status.done') },
+              { value: 'cancelled', label: t('inspector.tasks.status.cancelled') },
+            ]}
+          />
+        </div>
+        <ExportXlsxButton path="/api/v1/inspections/tasks" query={filters} className="w-full sm:w-auto" />
       </div>
 
       {list.error && (

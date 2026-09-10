@@ -13,6 +13,7 @@ import { useAuth } from '../../../auth/useAuth';
 import { satisfies } from '../../../shell/navigation';
 import { Button } from '../../../components/ui/button';
 import { DataTable, type Column } from '../../../components/ui/DataTable';
+import { ExportXlsxButton } from '../../../components/ui/ExportXlsxButton';
 import { FormField, Select } from '../../../components/ui/FormControls';
 import { ApiError } from '../../../api/errors';
 import { useApiErrorText } from '../../../i18n/useApiErrorText';
@@ -44,7 +45,8 @@ export function TicketsTab() {
   const [creating, setCreating] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
-  const list = useTicketsList({ status, page, page_size: PAGE_SIZE });
+  const filters = { status, page, page_size: PAGE_SIZE };
+  const list = useTicketsList(filters);
   const total = list.data?.total ?? 0;
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
@@ -86,22 +88,25 @@ export function TicketsTab() {
         </Button>
       </div>
 
-      <div className="max-w-xs">
-        <FormField label={t('support.tickets.filterStatus')} htmlFor="tickets-status-filter">
-          <Select
-            id="tickets-status-filter"
-            data-testid="tickets-status-filter"
-            value={status}
-            onChange={(e) => {
-              setStatus(e.target.value as TicketStatus | '');
-              setPage(1);
-            }}
-            options={[
-              { value: '', label: t('support.common.all') },
-              ...TICKET_STATUSES.map((s) => ({ value: s, label: t(STATUS_LABEL_KEY[s]) })),
-            ]}
-          />
-        </FormField>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <div className="max-w-xs">
+          <FormField label={t('support.tickets.filterStatus')} htmlFor="tickets-status-filter">
+            <Select
+              id="tickets-status-filter"
+              data-testid="tickets-status-filter"
+              value={status}
+              onChange={(e) => {
+                setStatus(e.target.value as TicketStatus | '');
+                setPage(1);
+              }}
+              options={[
+                { value: '', label: t('support.common.all') },
+                ...TICKET_STATUSES.map((s) => ({ value: s, label: t(STATUS_LABEL_KEY[s]) })),
+              ]}
+            />
+          </FormField>
+        </div>
+        <ExportXlsxButton path="/api/v1/help/tickets" query={filters} className="w-full sm:w-auto" />
       </div>
 
       {list.error && (
