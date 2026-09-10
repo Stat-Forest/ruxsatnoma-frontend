@@ -148,6 +148,24 @@ interface LivestockRow {
 }
 
 /**
+ * One not-yet-uploaded row of step 4. `typeValue` is a `doc_types` item id,
+ * or `''` while nothing is chosen. A row LEAVES this list the moment its
+ * file lands on the server (the card's `documents` list is what shows it
+ * from then on), and a benefit option chosen in its select turns it into
+ * the benefit row instead (`benefitCategoryItemId`), so a pending row is
+ * never a benefit.
+ */
+interface PendingDocRow {
+  key: string;
+  typeValue: string;
+}
+
+// The `<option value>` a benefit category takes in step 4's shared
+// "document type" select, so one `<select>` can carry both `doc_types` items
+// and `benefit_categories` items without their uuids ever colliding.
+const BENEFIT_OPTION_PREFIX = 'benefit:';
+
+/**
  * B7 — the application wizard, the core of the system. Drives the real API
  * chain end to end: `POST /applications` (DRAFT) -> `PATCH` (contour, period,
  * activity, quantity) -> `POST .../documents` -> `POST .../precheck` ->
@@ -182,6 +200,10 @@ export function ApplicationWizardPage() {
   const [periodTo, setPeriodTo] = useState('');
   const [quantity, setQuantity] = useState('');
   const [items, setItems] = useState<LivestockRow[]>([]);
+  // The benefit claim lives on step 4 with the documents, not on step 3 with
+  // the quantities: a category is chosen as one more "document type" in the
+  // same select as the attachments, because to the citizen the claim IS the
+  // certificate they attach — one row, its number, its file.
   const [benefitCategoryItemId, setBenefitCategoryItemId] = useState('');
   // Ruling #181: the certificate number is mandatory for EVERY benefit
   // category now — there is no per-item `requires_certificate` switch any
@@ -193,9 +215,13 @@ export function ApplicationWizardPage() {
   const [certificateTouched, setCertificateTouched] = useState(false);
   // Set only from a submit refusal (`ERR-APP-003`,
   // `benefit_certificate_required/unknown/not_yours`) — `handleSignAndSubmit`
-  // sends the applicant back to step 3 and shows the server's own reason
+  // sends the applicant back to step 4 and shows the server's own reason
   // right at this field, rather than only in the step-5 banner.
   const [benefitCertificateServerError, setBenefitCertificateServerError] = useState<string | null>(null);
+  // Step 4's rows that have no file yet. One empty row from the start, so
+  // the step opens on a select rather than on a lone "add" button; every
+  // further row is the citizen's own "add document".
+  const [docRows, setDocRows] = useState<PendingDocRow[]>(() => [{ key: crypto.randomUUID(), typeValue: '' }]);
   // #177: the effective season windows and minimum term, read by
   // `OccupancyCalendar` (through `GET /activity-seasons/effective`, the SAME
   // resolution the blocking check itself uses) and handed back here so the
@@ -424,17 +450,20 @@ export function ApplicationWizardPage() {
       } else {
         body.quantity = quantity;
       }
-      body.benefit_category_item_id = benefitCategoryItemId || null;
-      // #179: sent only while the CURRENTLY chosen category actually
-      // requires one — switching to a category that doesn't clears it
-      // server-side too, rather than leaving a stale number attached to an
-      // unrelated claim.
-      body.benefit_certificate_no = requiresCertificate ? benefitCertificateNo.trim() || null : null;
       await patchMutation.mutateAsync(body);
       goToStep(4);
       return;
     }
     if (step === 4) {
+      // The benefit claim is confirmed with the documents it belongs to.
+      // #179: the number is sent only while a category is actually chosen —
+      // clearing the claim clears it server-side too, rather than leaving a
+      // stale number attached to nothing. Sent BEFORE the pre-check, which
+      // reads the server's copy.
+      await patchMutation.mutateAsync({
+        benefit_category_item_id: benefitCategoryItemId || null,
+        benefit_certificate_no: requiresCertificate ? benefitCertificateNo.trim() || null : null,
+      });
       goToStep(5);
       setPrecheckResult(null);
       await precheckMutation.mutateAsync();
@@ -536,7 +565,7 @@ export function ApplicationWizardPage() {
       navigate(`/my/applications/${applicationId}`);
     } catch (err) {
       // Ruling #181: a benefit-certificate refusal is a FIELD error, not a
-      // banner — the wizard sends the applicant back to step 3, where the
+      // banner — the wizard sends the applicant back to step 4, where the
       // certificate number actually lives, rather than leaving them on step
       // 5 staring at a sentence about a field they cannot see.
       const reason = err instanceof ApiError ? (err.details as { reason?: string } | undefined)?.reason : undefined;
@@ -548,7 +577,7 @@ export function ApplicationWizardPage() {
           reason === 'benefit_certificate_not_yours')
       ) {
         setBenefitCertificateServerError(errorText(err));
-        setStep(3);
+        setStep(4);
         return;
       }
       // The document half of the same claim (`_assert_benefit_documents`):
@@ -853,50 +882,6 @@ export function ApplicationWizardPage() {
                 <Input id="quantity" type="number" min={0} step="0.0001" value={quantity} onChange={(e) => setQuantity(e.target.value)} />
               </FormField>
             )}
-
-            {benefitCategoriesQuery.data && benefitCategoriesQuery.data.length > 0 && (
-              <FormField label={t('wizard.step3.benefitCategory')} htmlFor="benefit">
-                <Select
-                  id="benefit"
-                  value={benefitCategoryItemId}
-                  onChange={(e) => setBenefitCategoryItemId(e.target.value)}
-                  options={[
-                    { value: '', label: t('wizard.step3.noBenefit') },
-                    ...benefitCategoriesQuery.data.map((b) => ({ value: b.id, label: pickName(b.name, lang) })),
-                  ]}
-                />
-              </FormField>
-            )}
-
-            {/* Ruling #181: shown for EVERY chosen category, no per-item
-                switch — filled in here, before the backend's own refusal
-                (`ERR-APP-003`, `benefit_certificate_required`) ever has a
-                chance to fire. `benefitCertificateServerError` is set only
-                by a submit-time refusal (`unknown`/`not_yours`), which the
-                wizard cannot catch client-side — shown at this same field
-                rather than only in the step-5 banner. */}
-            {requiresCertificate && (
-              <FormField
-                label={t('wizard.step3.certificateNumber')}
-                required
-                htmlFor="benefit-certificate-no"
-                error={
-                  (certificateTouched && !benefitCertificateNo.trim()
-                    ? t('wizard.step3.certificateNumberRequired')
-                    : undefined) ?? benefitCertificateServerError ?? undefined
-                }
-              >
-                <Input
-                  id="benefit-certificate-no"
-                  value={benefitCertificateNo}
-                  onChange={(e) => {
-                    setBenefitCertificateNo(e.target.value);
-                    setBenefitCertificateServerError(null);
-                  }}
-                  onBlur={() => setCertificateTouched(true)}
-                />
-              </FormField>
-            )}
           </div>
 
           <div className="bg-[#F0F9FF] border border-[#BAE6FD] rounded-2xl p-6 shadow-xs space-y-3">
@@ -906,27 +891,48 @@ export function ApplicationWizardPage() {
         </section>
       )}
 
-      {/* Step 4 — documents */}
+      {/* Step 4 — documents, the benefit claim among them */}
       {step === 4 && (
         <section className="bg-white border border-[#E4E7EA] rounded-2xl p-6 shadow-xs space-y-4">
           <h2 className="text-sm font-bold text-[#1A1F24] uppercase tracking-wider">{t('wizard.step4.heading')}</h2>
-          {/* Ruling #181: the benefit's supporting document is mandatory
-              exactly like the certificate number — filed under the
-              `benefit_proof` doc type, same as any other attachment. */}
-          {requiresCertificate && (
-            <Alert variant={hasBenefitProofDoc ? 'success' : 'warning'}>
-              {hasBenefitProofDoc ? t('wizard.step4.benefitProofOk') : t('wizard.step4.benefitProofRequired')}
-            </Alert>
+          {(docTypesQuery.data ?? []).length === 0 ? (
+            <Alert variant="warning">{t('wizard.step4.notConfigured')}</Alert>
+          ) : (
+            <DocumentsStep
+              docTypes={docTypesQuery.data ?? []}
+              benefitCategories={benefitCategoriesQuery.data ?? []}
+              benefitProofDocTypeId={benefitProofDocTypeId}
+              documents={cardQuery.data?.documents ?? []}
+              rows={docRows}
+              onRowsChange={setDocRows}
+              benefitCategoryItemId={benefitCategoryItemId}
+              onBenefitCategoryChange={(id) => {
+                setBenefitCategoryItemId(id);
+                if (!id) {
+                  setBenefitCertificateNo('');
+                  setCertificateTouched(false);
+                }
+                setBenefitCertificateServerError(null);
+              }}
+              benefitCertificateNo={benefitCertificateNo}
+              onBenefitCertificateNoChange={(value) => {
+                setBenefitCertificateNo(value);
+                setBenefitCertificateServerError(null);
+              }}
+              certificateError={
+                (certificateTouched && !benefitCertificateNo.trim()
+                  ? t('wizard.step4.certificateNumberRequired')
+                  : undefined) ?? benefitCertificateServerError ?? undefined
+              }
+              onCertificateBlur={() => setCertificateTouched(true)}
+              hasBenefitProofDoc={hasBenefitProofDoc}
+              onUpload={async (file, docTypeItemId) => {
+                const uploaded = await uploadFile(file);
+                await addDocMutation.mutateAsync({ doc_type_item_id: docTypeItemId, file_id: uploaded.id });
+              }}
+              onRemove={(documentId) => removeDocMutation.mutate(documentId)}
+            />
           )}
-          <DocumentsStep
-            docTypes={docTypesQuery.data ?? []}
-            documents={cardQuery.data?.documents ?? []}
-            onUpload={async (file, docTypeItemId) => {
-              const uploaded = await uploadFile(file);
-              await addDocMutation.mutateAsync({ doc_type_item_id: docTypeItemId, file_id: uploaded.id });
-            }}
-            onRemove={(documentId) => removeDocMutation.mutate(documentId)}
-          />
         </section>
       )}
 
@@ -1081,11 +1087,15 @@ export function ApplicationWizardPage() {
                 // Ruling #181: the certificate number must be filled in
                 // before the wizard moves on — the backend's own refusal
                 // (`ERR-APP-003`, `benefit_certificate_required`) must never
-                // be how the applicant first learns it was needed.
-                (step === 3 && requiresCertificate && !benefitCertificateNo.trim()) ||
-                // Same reasoning for the supporting document (`benefit_proof`),
-                // checked once step 4 is reached.
-                (step === 4 && !hasBenefitProofDoc)
+                // be how the applicant first learns it was needed. Same
+                // reasoning for the supporting document (`benefit_proof`).
+                (step === 4 && requiresCertificate && !benefitCertificateNo.trim()) ||
+                (step === 4 && !hasBenefitProofDoc) ||
+                // A row with a type chosen and no file is a document the
+                // citizen meant to attach: moving on would drop it without
+                // a word (the hiding direction), so the row is finished or
+                // removed first — the hint under it says which.
+                (step === 4 && docRows.some((r) => r.typeValue !== ''))
               }
               onClick={goNext}
               className="cursor-pointer font-bold"
@@ -1122,78 +1132,108 @@ export function ApplicationWizardPage() {
   );
 }
 
+type DocTypeRef = { id: string; code: string; name: Record<string, unknown> };
+type BenefitCategoryRef = { id: string; name: Record<string, unknown> };
+type UploadedDocument = { id: string; doc_type_item_id: string; file_id: string };
+
+/**
+ * Step 4 as rows. The "document type" select of every row carries BOTH the
+ * `doc_types` items and, under a divider, the `benefit_categories` items:
+ * picking a category turns that row into THE benefit row — category, its
+ * certificate number (ruling #181) and its `benefit_proof` file — because
+ * an application claims at most one benefit (`applications.benefit_category_
+ * item_id` is one column), so the categories disappear from every other
+ * row's select while one is chosen. `benefit_proof` itself is not offered
+ * as a plain type while categories exist: it is what a chosen category is
+ * filed under, never a type to pick by hand.
+ *
+ * A pending row leaves `rows` the moment its file is on the server — the
+ * card's own `documents` list shows it from then on — so "add document" is
+ * how the citizen attaches a second, third, … file.
+ */
 function DocumentsStep({
   docTypes,
+  benefitCategories,
+  benefitProofDocTypeId,
   documents,
+  rows,
+  onRowsChange,
+  benefitCategoryItemId,
+  onBenefitCategoryChange,
+  benefitCertificateNo,
+  onBenefitCertificateNoChange,
+  certificateError,
+  onCertificateBlur,
+  hasBenefitProofDoc,
   onUpload,
   onRemove,
 }: {
-  docTypes: { id: string; name: Record<string, unknown> }[];
-  documents: { id: string; doc_type_item_id: string; file_id: string }[];
+  docTypes: DocTypeRef[];
+  benefitCategories: BenefitCategoryRef[];
+  benefitProofDocTypeId: string | undefined;
+  documents: UploadedDocument[];
+  rows: PendingDocRow[];
+  onRowsChange: (rows: PendingDocRow[]) => void;
+  benefitCategoryItemId: string;
+  onBenefitCategoryChange: (id: string) => void;
+  benefitCertificateNo: string;
+  onBenefitCertificateNoChange: (value: string) => void;
+  certificateError: string | undefined;
+  onCertificateBlur: () => void;
+  hasBenefitProofDoc: boolean;
   onUpload: (file: File, docTypeItemId: string) => Promise<void>;
   onRemove: (documentId: string) => void;
 }) {
   const t = useT();
   const { lang } = useLanguage();
-  const [docTypeItemId, setDocTypeItemId] = useState('');
-  const [uploading, setUploading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
 
-  async function handleFile(file: File) {
-    if (!docTypeItemId) {
-      setError(t('wizard.step4.selectDocTypeFirst'));
+  const benefitClaimed = benefitCategoryItemId !== '';
+  const plainDocTypeOptions = docTypes
+    .filter((d) => benefitCategories.length === 0 || d.code !== 'benefit_proof')
+    .map((d) => ({ value: d.id, label: pickName(d.name, lang) }));
+  const benefitOptions =
+    benefitCategories.length > 0
+      ? [
+          { value: '__benefits', label: `— ${t('wizard.step4.benefitsGroup')} —`, disabled: true },
+          ...benefitCategories.map((b) => ({ value: BENEFIT_OPTION_PREFIX + b.id, label: pickName(b.name, lang) })),
+        ]
+      : [];
+  // The proof file(s) of a claimed benefit are shown IN the benefit row;
+  // every other attachment is a plain uploaded row.
+  const isBenefitProof = (doc: UploadedDocument) =>
+    benefitClaimed && !!benefitProofDocTypeId && doc.doc_type_item_id === benefitProofDocTypeId;
+  const plainDocuments = documents.filter((doc) => !isBenefitProof(doc));
+  const proofDocuments = documents.filter(isBenefitProof);
+
+  function setRowType(key: string, typeValue: string) {
+    onRowsChange(rows.map((r) => (r.key === key ? { ...r, typeValue } : r)));
+  }
+  function removeRow(key: string) {
+    onRowsChange(rows.filter((r) => r.key !== key));
+  }
+  // One handler for every row's select, the benefit row included: a benefit
+  // value claims (or re-claims) the category and the row that chose it
+  // dissolves into the benefit row; a plain value on the benefit row drops
+  // the claim and opens a pending row of that type in its place.
+  function handleTypeChange(rowKey: string | null, value: string) {
+    if (value.startsWith(BENEFIT_OPTION_PREFIX)) {
+      onBenefitCategoryChange(value.slice(BENEFIT_OPTION_PREFIX.length));
+      if (rowKey !== null) removeRow(rowKey);
       return;
     }
-    setError(null);
-    setUploading(true);
-    try {
-      await onUpload(file, docTypeItemId);
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : t('wizard.step4.uploadError'));
-    } finally {
-      setUploading(false);
-      if (inputRef.current) inputRef.current.value = '';
+    if (rowKey === null) {
+      onBenefitCategoryChange('');
+      if (value) onRowsChange([...rows, { key: crypto.randomUUID(), typeValue: value }]);
+      return;
     }
-  }
-
-  if (docTypes.length === 0) {
-    return <Alert variant="warning">{t('wizard.step4.notConfigured')}</Alert>;
+    setRowType(rowKey, value);
   }
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-end gap-3">
-        <FormField label={t('wizard.step4.docType')} className="flex-1 min-w-[220px]">
-          <Select
-            value={docTypeItemId}
-            onChange={(e) => setDocTypeItemId(e.target.value)}
-            options={[{ value: '', label: t('wizard.step4.selectDocType') }, ...docTypes.map((d) => ({ value: d.id, label: pickName(d.name, lang) }))]}
-          />
-        </FormField>
-        <Button
-          variant="outline"
-          leftIcon={<Upload className="w-4 h-4" />}
-          isLoading={uploading}
-          onClick={() => inputRef.current?.click()}
-          className="cursor-pointer font-bold"
-        >
-          {t('wizard.step4.chooseFile')}
-        </Button>
-        <input
-          ref={inputRef}
-          type="file"
-          className="hidden"
-          onChange={(e) => {
-            const file = e.target.files?.[0];
-            if (file) void handleFile(file);
-          }}
-        />
-      </div>
-      {error && <Alert variant="danger">{error}</Alert>}
-      {documents.length > 0 && (
+      {plainDocuments.length > 0 && (
         <ul className="space-y-2">
-          {documents.map((doc) => (
+          {plainDocuments.map((doc) => (
             <li key={doc.id} className="flex items-center justify-between p-3 border border-[#E4E7EA] rounded-xl text-xs">
               <span className="font-semibold">{pickName(docTypes.find((d) => d.id === doc.doc_type_item_id)?.name, lang) || t('wizard.step4.defaultDocName')}</span>
               <button onClick={() => onRemove(doc.id)} className="text-[#B91C1C] font-bold hover:underline cursor-pointer">
@@ -1203,6 +1243,145 @@ function DocumentsStep({
           ))}
         </ul>
       )}
+
+      {benefitClaimed && (
+        <div className="border border-[#E4E7EA] rounded-xl p-3 space-y-3">
+          <div className="flex flex-wrap items-end gap-3">
+            <FormField label={t('wizard.step4.docType')} htmlFor="benefit" className="flex-1 min-w-[220px]">
+              <Select
+                id="benefit"
+                value={BENEFIT_OPTION_PREFIX + benefitCategoryItemId}
+                onChange={(e) => handleTypeChange(null, e.target.value)}
+                options={[{ value: '', label: t('wizard.step4.noBenefit') }, ...plainDocTypeOptions, ...benefitOptions]}
+              />
+            </FormField>
+            {/* Ruling #181: shown for EVERY chosen category, no per-item
+                switch — filled in here, before the backend's own refusal
+                (`ERR-APP-003`, `benefit_certificate_required`) ever has a
+                chance to fire. The server error (`unknown`/`not_yours`) is
+                a submit-time refusal the wizard cannot catch client-side —
+                shown at this same field rather than only in the step-5
+                banner. */}
+            <FormField
+              label={t('wizard.step4.certificateNumber')}
+              required
+              htmlFor="benefit-certificate-no"
+              error={certificateError}
+              className="flex-1 min-w-[200px]"
+            >
+              <Input
+                id="benefit-certificate-no"
+                value={benefitCertificateNo}
+                onChange={(e) => onBenefitCertificateNoChange(e.target.value)}
+                onBlur={onCertificateBlur}
+              />
+            </FormField>
+            {proofDocuments.length === 0 && benefitProofDocTypeId && (
+              <FileButton onFile={(file) => onUpload(file, benefitProofDocTypeId)} />
+            )}
+            <Button variant="ghost" size="sm" onClick={() => handleTypeChange(null, '')} className="cursor-pointer" aria-label={t('wizard.step4.deleteDoc')}>
+              <Trash2 className="w-4 h-4 text-[#B91C1C]" />
+            </Button>
+          </div>
+          {/* Ruling #181: the supporting document is mandatory exactly like
+              the certificate number — filed under `benefit_proof`. */}
+          <Alert variant={hasBenefitProofDoc ? 'success' : 'warning'}>
+            <span className="flex flex-wrap items-center justify-between gap-2">
+              <span>{hasBenefitProofDoc ? t('wizard.step4.benefitProofOk') : t('wizard.step4.benefitProofRequired')}</span>
+              {proofDocuments.map((doc) => (
+                <button key={doc.id} onClick={() => onRemove(doc.id)} className="text-[#B91C1C] font-bold hover:underline cursor-pointer">
+                  {t('wizard.step4.deleteDoc')}
+                </button>
+              ))}
+            </span>
+          </Alert>
+        </div>
+      )}
+
+      {rows.map((row) => (
+        <div key={row.key} className="space-y-1">
+          <div className="flex flex-wrap items-end gap-3">
+            <FormField label={t('wizard.step4.docType')} className="flex-1 min-w-[220px]">
+              <Select
+                value={row.typeValue}
+                onChange={(e) => handleTypeChange(row.key, e.target.value)}
+                options={[
+                  { value: '', label: t('wizard.step4.selectDocType') },
+                  ...plainDocTypeOptions,
+                  ...(benefitClaimed ? [] : benefitOptions),
+                ]}
+              />
+            </FormField>
+            <FileButton
+              disabled={!row.typeValue}
+              onFile={async (file) => {
+                await onUpload(file, row.typeValue);
+                removeRow(row.key);
+              }}
+            />
+            <Button variant="ghost" size="sm" onClick={() => removeRow(row.key)} className="cursor-pointer" aria-label={t('wizard.step4.deleteDoc')}>
+              <Trash2 className="w-4 h-4 text-[#B91C1C]" />
+            </Button>
+          </div>
+          {row.typeValue && <p className="text-[11px] text-[#5A646D]">{t('wizard.step4.pendingRowHint')}</p>}
+        </div>
+      ))}
+
+      <Button
+        variant="outline"
+        size="sm"
+        leftIcon={<Plus className="w-4 h-4" />}
+        onClick={() => onRowsChange([...rows, { key: crypto.randomUUID(), typeValue: '' }])}
+        className="cursor-pointer"
+      >
+        {t('wizard.step4.addDoc')}
+      </Button>
+    </div>
+  );
+}
+
+/** "Choose file" with its hidden `<input type="file">`, one upload at a time. */
+function FileButton({ onFile, disabled }: { onFile: (file: File) => Promise<void>; disabled?: boolean }) {
+  const t = useT();
+  const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  async function handleFile(file: File) {
+    setError(null);
+    setUploading(true);
+    try {
+      await onFile(file);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : t('wizard.step4.uploadError'));
+    } finally {
+      setUploading(false);
+      if (inputRef.current) inputRef.current.value = '';
+    }
+  }
+
+  return (
+    <div className="flex flex-col gap-1">
+      <Button
+        variant="outline"
+        leftIcon={<Upload className="w-4 h-4" />}
+        isLoading={uploading}
+        disabled={disabled}
+        onClick={() => inputRef.current?.click()}
+        className="cursor-pointer font-bold"
+      >
+        {t('wizard.step4.chooseFile')}
+      </Button>
+      <input
+        ref={inputRef}
+        type="file"
+        className="hidden"
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          if (file) void handleFile(file);
+        }}
+      />
+      {error && <p className="text-[11px] text-[#B91C1C]">{error}</p>}
     </div>
   );
 }
