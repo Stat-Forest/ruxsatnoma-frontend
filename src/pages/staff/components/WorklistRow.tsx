@@ -7,7 +7,6 @@ import { useContour, useStartReviewRow, type ApplicationOut } from '../queries';
 import { formatAmount, formatDate, formatDateTime, slaStatus, statusLabel } from '../format';
 
 const STATUS_BADGE_CLASS: Record<string, string> = {
-  DRAFT: 'bg-[#F8F9FA] text-[#5A646D] border-[#E4E7EA]',
   SUBMITTED: 'bg-[#E0F2FE] text-[#0369A1] border-[#BAE6FD]',
   IN_REVIEW: 'bg-[#FFFBEB] text-[#B45309] border-[#FDE68A]',
   PENDING_INFO: 'bg-[#E0F2FE] text-[#0369A1] border-[#BAE6FD]',

@@ -1948,7 +1948,7 @@ export const uz_cyrl = {
   'common.fileSelected': "Файл танланди",
   'common.removeFile': "Файлни ўчириш",
   'wizard.title': "Янги ариза топшириш",
-  'wizard.subtitle': "Босқичларни кетма-кет тўлдиринг — ҳар бир қадамда қоралама сақланади",
+  'wizard.subtitle': "Босқичларни кетма-кет тўлдиринг.",
   'wizard.backToList': "Рўйхатга қайтиш",
   'wizard.step1.title': "Фаолият тури",
   'wizard.step1.desc': "Фойдаланиш тури",

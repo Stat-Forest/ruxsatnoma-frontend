@@ -1923,7 +1923,7 @@ export const ru = {
   'common.fileSelected': 'Файл выбран',
   'common.removeFile': 'Удалить файл',
   'wizard.title': 'Подача нового заявления',
-  'wizard.subtitle': 'Заполняйте этапы последовательно — черновик сохраняется на каждом этапе',
+  'wizard.subtitle': 'Заполняйте этапы последовательно.',
   'wizard.backToList': 'Вернуться к списку',
   'wizard.step1.title': 'Вид деятельности',
   'wizard.step1.desc': 'Вид пользования',

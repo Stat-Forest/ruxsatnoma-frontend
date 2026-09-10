@@ -23,7 +23,6 @@ const API_BASE = (import.meta.env.VITE_API_BASE as string | undefined) ?? 'http:
 const CARD_I18N = {
   uz_latn: {
     backToList: 'Arizalar roʻyxatiga qaytish',
-    draft: 'Qoralama',
     loading: 'Yuklanmoqda...',
     notFound: 'Ariza topilmadi yoki uni koʻrish huquqingiz yoʻq.',
     returnToList: 'Roʻyxatga qaytish',
@@ -33,7 +32,6 @@ const CARD_I18N = {
     livestockComposition: 'Chorva tarkibi',
     head: 'bosh',
     quantity: 'Miqdor:',
-    continueEditing: 'Tahrirlashni davom ettirish',
     calculatedAmount: 'Hisoblangan summa',
     som: 'soʻm',
     notCalculatedYet: 'Hali hisob-kitob qilinmagan.',
@@ -50,7 +48,6 @@ const CARD_I18N = {
   },
   uz_cyrl: {
     backToList: 'Аризалар рўйхатига қайтиш',
-    draft: 'Қоралама',
     loading: 'Юкланмоқда...',
     notFound: 'Ариза топилмади ёки уни кўриш ҳуқуқингиз йўқ.',
     returnToList: 'Рўйхатга қайтиш',
@@ -60,7 +57,6 @@ const CARD_I18N = {
     livestockComposition: 'Чорва таркиби',
     head: 'бош',
     quantity: 'Миқдор:',
-    continueEditing: 'Таҳрирлашни давом эттириш',
     calculatedAmount: 'Ҳисобланган сумма',
     som: 'сўм',
     notCalculatedYet: 'Ҳали ҳисоб-китоб қилинмаган.',
@@ -77,7 +73,6 @@ const CARD_I18N = {
   },
   ru: {
     backToList: 'Вернуться к списку заявок',
-    draft: 'Черновик',
     loading: 'Загрузка...',
     notFound: 'Заявка не найдена или у вас нет прав на её просмотр.',
     returnToList: 'Вернуться к списку',
@@ -87,7 +82,6 @@ const CARD_I18N = {
     livestockComposition: 'Состав скота',
     head: 'голов',
     quantity: 'Количество:',
-    continueEditing: 'Продолжить редактирование',
     calculatedAmount: 'Рассчитанная сумма',
     som: 'сум',
     notCalculatedYet: 'Расчет еще не произведен.',
@@ -104,7 +98,6 @@ const CARD_I18N = {
   },
   en: {
     backToList: 'Back to applications list',
-    draft: 'Draft',
     loading: 'Loading...',
     notFound: 'Application not found or you do not have permission to view it.',
     returnToList: 'Back to list',
@@ -114,7 +107,6 @@ const CARD_I18N = {
     livestockComposition: 'Livestock details',
     head: 'heads',
     quantity: 'Quantity:',
-    continueEditing: 'Continue editing',
     calculatedAmount: 'Calculated amount',
     som: 'UZS',
     notCalculatedYet: 'Not calculated yet.',
@@ -131,7 +123,6 @@ const CARD_I18N = {
   },
   kaa: {
     backToList: 'Arzalar dizimine qaytıw',
-    draft: 'Dáslepki nusqa',
     loading: 'Júklenbekte...',
     notFound: 'Arza tabılmadı yamasa onı kóriw huqıqıńız joq.',
     returnToList: 'Dizimge qaytıw',
@@ -141,7 +132,6 @@ const CARD_I18N = {
     livestockComposition: 'Sharwa quramı',
     head: 'bas',
     quantity: 'Muǵdarı:',
-    continueEditing: 'Ońlawdı dawam ettiriw',
     calculatedAmount: 'Esaplanǵan summa',
     som: 'swm',
     notCalculatedYet: 'Házirshe esap-kitap qılınbaǵan.',
@@ -241,7 +231,11 @@ export function MyApplicationCardPage() {
       <div className="bg-white border border-[#E4E7EA] rounded-2xl p-4 sm:p-6 shadow-xs space-y-3">
         <div className="flex flex-wrap items-start justify-between gap-3 sm:gap-4">
           <div className="min-w-0 flex-1">
-            <h1 className="text-lg sm:text-xl font-bold text-[#1A1F24] font-mono break-all sm:break-normal">{card.number ?? `${t.draft} (${card.id.slice(0, 8)})`}</h1>
+            {/* Plan 12, R1: every application is born SUBMITTED and numbered
+                in the same transaction that files it, so `card.number` is
+                never null in practice any more — this fallback is only for
+                the type, which still allows it. */}
+            <h1 className="text-lg sm:text-xl font-bold text-[#1A1F24] font-mono break-all sm:break-normal">{card.number ?? card.id.slice(0, 8)}</h1>
             <p className="text-sm text-[#5A646D] mt-1 break-words">{activityName}</p>
           </div>
           <div className="shrink-0">
@@ -284,14 +278,6 @@ export function MyApplicationCardPage() {
           <div className="pt-3 border-t border-[#E4E7EA] text-xs">
             <span className="text-[#5A646D]">{t.quantity} </span>
             <strong className="text-[#1A1F24]">{card.quantity}</strong>
-          </div>
-        )}
-
-        {card.status === 'DRAFT' && (
-          <div className="pt-3 border-t border-[#E4E7EA]">
-            <Button variant="primary" size="sm" onClick={() => navigate(`/my/applications/new?draft=${card.id}`)} className="cursor-pointer font-bold w-full sm:w-auto justify-center">
-              {t.continueEditing}
-            </Button>
           </div>
         )}
       </div>

@@ -177,10 +177,11 @@ export function SearchPage() {
 
   const [selectedRow, setSelectedRow] = useState<SearchResultOut | null>(null);
 
-  /** A draft, or an application no organisation has picked up yet, has no
-   * card of its own to navigate to — the number opens the drawer instead. */
-  const opensInDrawer = (row: SearchResultOut) =>
-    row.kind === 'applications' && (!row.organization_id || row.status?.toUpperCase() === 'DRAFT');
+  /** An application no organisation has picked up yet has no card of its own
+   * to navigate to — the number opens the drawer instead. Plan 12 (R1): a
+   * `DRAFT` application can no longer exist, so this is the one remaining
+   * reason. */
+  const opensInDrawer = (row: SearchResultOut) => row.kind === 'applications' && !row.organization_id;
   const openRow = (row: SearchResultOut) => {
     if (opensInDrawer(row)) setSelectedRow(row);
     else navigate(row.kind === 'applications' ? `/applications/${row.id}` : `/permits/${row.id}`);
@@ -469,7 +470,7 @@ export function SearchPage() {
       >
         {selectedRow && (
           <div className="space-y-4 text-sm" data-testid="search-detail-drawer">
-            {(!selectedRow.organization_id || selectedRow.status?.toUpperCase() === 'DRAFT') && (
+            {!selectedRow.organization_id && (
               <div className="p-3.5 bg-[#FFFBEB] border border-[#FDE68A] rounded-xl text-xs text-[#92400E] leading-relaxed">
                 {t('search.detail.noOrgDraftNotice')}
               </div>

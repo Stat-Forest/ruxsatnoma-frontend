@@ -24,7 +24,6 @@ export type CheckResult = 'pass' | 'fail' | 'warning' | 'skipped';
  * produce — a filter or a stray row must never render as an unlabeled code. */
 export const STATUS_LABELS_I18N: Record<string, Record<ApplicationStatus, string>> = {
   uz_latn: {
-    DRAFT: 'Qoralama',
     SUBMITTED: 'Yuborilgan',
     IN_REVIEW: 'Koʻrib chiqilmoqda',
     PENDING_INFO: 'Maʼlumot kutilmoqda',
@@ -40,7 +39,6 @@ export const STATUS_LABELS_I18N: Record<string, Record<ApplicationStatus, string
     ARCHIVED: 'Arxivlangan',
   },
   uz_cyrl: {
-    DRAFT: 'Қоралама',
     SUBMITTED: 'Юборилган',
     IN_REVIEW: 'Кўриб чиқилмоқда',
     PENDING_INFO: 'Маълумот кутилмоқда',
@@ -56,7 +54,6 @@ export const STATUS_LABELS_I18N: Record<string, Record<ApplicationStatus, string
     ARCHIVED: 'Архивланган',
   },
   ru: {
-    DRAFT: 'Черновик',
     SUBMITTED: 'Отправлено',
     IN_REVIEW: 'На рассмотрении',
     PENDING_INFO: 'Запрос информации',
@@ -72,7 +69,6 @@ export const STATUS_LABELS_I18N: Record<string, Record<ApplicationStatus, string
     ARCHIVED: 'В архиве',
   },
   en: {
-    DRAFT: 'Draft',
     SUBMITTED: 'Submitted',
     IN_REVIEW: 'In review',
     PENDING_INFO: 'Pending information',
@@ -88,7 +84,6 @@ export const STATUS_LABELS_I18N: Record<string, Record<ApplicationStatus, string
     ARCHIVED: 'Archived',
   },
   kaa: {
-    DRAFT: 'Dáslepki nusqa',
     SUBMITTED: 'Jiberilgen',
     IN_REVIEW: 'Kórip shıǵılmaqta',
     PENDING_INFO: 'Maǵlıwmat kútilmekte',
@@ -110,6 +105,28 @@ export const STATUS_LABELS: Record<ApplicationStatus, string> = STATUS_LABELS_I1
 export function statusLabel(status: ApplicationStatus, lang: string = 'uz_latn'): string {
   const table = STATUS_LABELS_I18N[lang] || STATUS_LABELS_I18N.uz_latn;
   return table[status] ?? STATUS_LABELS[status] ?? status;
+}
+
+/** Plan 12, R7: `DRAFT` left `ApplicationStatus` (a status_history row can
+ * never move an application INTO or out of it any more, and `statusLabel`
+ * above has no entry for it), but every application filed before stage 12
+ * carries a `DRAFT -> SUBMITTED` row in its own history, and `HistoryPanel`
+ * still has to label that one legal PAST value. Kept OUT of
+ * `STATUS_LABELS`/`ApplicationsListPage`'s filter list on purpose — nothing
+ * can be filtered to a status that can never occur again. */
+export type HistoryStatus = ApplicationStatus | 'DRAFT';
+
+const DRAFT_HISTORY_LABEL: Record<string, string> = {
+  uz_latn: 'Qoralama',
+  uz_cyrl: 'Қоралама',
+  ru: 'Черновик',
+  en: 'Draft',
+  kaa: 'Dáslepki nusqa',
+};
+
+export function historyStatusLabel(status: HistoryStatus, lang: string = 'uz_latn'): string {
+  if (status === 'DRAFT') return DRAFT_HISTORY_LABEL[lang] ?? DRAFT_HISTORY_LABEL.uz_latn;
+  return statusLabel(status, lang);
 }
 
 export const CHECK_TYPE_LABELS_I18N: Record<string, Record<string, string>> = {

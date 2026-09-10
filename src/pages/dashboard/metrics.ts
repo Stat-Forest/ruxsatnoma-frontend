@@ -71,9 +71,11 @@ export function activePermitsSummary(permits: PermitOut[]): ActivePermitsSummary
 
 // --- tile 2 ---------------------------------------------------------------
 
-/** Everything between "submitted" and "finished". A DRAFT has not been handed
- *  in, and `PERMIT_ISSUED`/`REJECTED`/`CANCELLED`/`EXPIRED_UNPAID`/`CLOSED`/
- *  `ARCHIVED` are done — what is left is what the citizen is still waiting on. */
+/** Everything between "submitted" and "finished". Plan 12 (R1): an
+ *  application exists only from the moment it is filed, so there is no
+ *  DRAFT state to exclude any more; `PERMIT_ISSUED`/`REJECTED`/`CANCELLED`/
+ *  `EXPIRED_UNPAID`/`CLOSED`/`ARCHIVED` are done — what is left is what the
+ *  citizen is still waiting on. */
 const IN_PROGRESS: ReadonlySet<string> = new Set([
   'SUBMITTED',
   'IN_REVIEW',

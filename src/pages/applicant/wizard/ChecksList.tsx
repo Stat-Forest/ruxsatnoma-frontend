@@ -170,7 +170,7 @@ function detailNote(check: NormalizedCheck, t: (key: string) => string): string 
  * `fail` here is DATA in a 200 response (design/03), not a crash — shared by
  * the wizard's live price preview and its official precheck step, so the
  * two never describe a check differently. Callers normalize their own
- * endpoint's shape first — `fromApplicationChecks`/`fromPreviewChecks`,
+ * endpoint's shape first — `fromPrecheckChecks`/`fromPreviewChecks`,
  * re-exported above from `checkTypeLabels.ts` (see its own comment for why
  * the two endpoints cannot share one shape). */
 export function ChecksList({ checks }: { checks: NormalizedCheck[] }) {
