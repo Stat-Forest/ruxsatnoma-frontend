@@ -11,30 +11,35 @@ const TIMELINE_I18N = {
     start: 'Boshlanishi',
     basis: 'Asos:',
     signedWith: 'E-IMZO bilan imzolangan',
+    signedSimple: 'Oddiy imzo bilan imzolangan',
   },
   uz_cyrl: {
     empty: 'Ҳозирча тарих ёзувлари йўқ.',
     start: 'Бошланиши',
     basis: 'Асос:',
     signedWith: 'E-IMZO билан имзоланган',
+    signedSimple: 'Оддий имзо билан имзоланган',
   },
   ru: {
     empty: 'Записей в истории пока нет.',
     start: 'Начало',
     basis: 'Основание:',
     signedWith: 'Подписано ЭЦП',
+    signedSimple: 'Подписано простой подписью',
   },
   en: {
     empty: 'No history records yet.',
     start: 'Start',
     basis: 'Basis:',
     signedWith: 'Signed with E-IMZO',
+    signedSimple: 'Signed with a simple signature',
   },
   kaa: {
     empty: 'Házirshe tariyx jazıwları joq.',
     start: 'Baslanıwı',
     basis: 'Tiykar:',
     signedWith: 'E-IMZO menen qol qoyılǵan',
+    signedSimple: 'Ápiwayı qol tańba menen qol qoyılǵan',
   },
 };
 
@@ -78,7 +83,7 @@ export function ApplicantTimeline({ timeline }: { timeline: ApplicationTimelineO
                     key={sig.id}
                     className="inline-flex items-center gap-1 text-[11px] font-bold text-[#15803D] bg-[#DCFCE7] px-2 py-0.5 rounded border border-[#86EFAC] break-words"
                   >
-                    <ShieldCheck className="w-3.5 h-3.5 shrink-0" /> {t.signedWith} ({formatDateTime(sig.signed_at)})
+                    <ShieldCheck className="w-3.5 h-3.5 shrink-0" /> {sig.kind === 'simple' ? t.signedSimple : t.signedWith} ({formatDateTime(sig.signed_at)})
                   </span>
                 ))}
               </div>
