@@ -27,6 +27,7 @@ export const CHECK_TYPE_LABELS: Record<string, string> = {
   norm_fire_ban: "Yong'in xavfi taqiqi",
   norm_restrictions: 'Cheklovlar (ogohlantirish)',
   norm_limit: 'Yuklama chegarasi (MaxSB)',
+  norm_min_term: 'Minimal muddat',
   // The live preview's own, unmapped names (`norms/checks.py`'s `"check"` field):
   norm: "Me'yoriy parametr mavjudligi",
   season: 'Mavsumga mosligi',
@@ -34,6 +35,12 @@ export const CHECK_TYPE_LABELS: Record<string, string> = {
   fire_ban: "Yong'in xavfi taqiqi",
   restrictions: 'Cheklovlar (ogohlantirish)',
   limit: 'Yuklama chegarasi (MaxSB)',
+  // Ruling #177 task 3 — the leshoz dictionary's `min_term_days`. Today the
+  // live preview is the ONLY place it is seen: `applications.checks.
+  // NORM_CHECK_TYPES` has no entry for it, so the recorded pre-check drops
+  // the row. `norm_min_term` is the name it will carry once that map (and
+  // `CHECK_TYPES`) learns it, listed now so the label does not lapse again.
+  min_term: 'Minimal muddat',
 };
 
 export const CHECK_RESULT_LABELS: Record<string, string> = {
@@ -53,6 +60,7 @@ export const CHECK_TYPE_I18N_KEYS: Record<string, string> = {
   norm_fire_ban: 'wizard.checks.norm_fire_ban',
   norm_restrictions: 'wizard.checks.norm_restrictions',
   norm_limit: 'wizard.checks.norm_limit',
+  norm_min_term: 'wizard.checks.norm_min_term',
   // The live preview's own, unmapped names (`norms/checks.py`'s `"check"` field):
   norm: 'wizard.checks.norm_available',
   season: 'wizard.checks.norm_season',
@@ -60,6 +68,7 @@ export const CHECK_TYPE_I18N_KEYS: Record<string, string> = {
   fire_ban: 'wizard.checks.norm_fire_ban',
   restrictions: 'wizard.checks.norm_restrictions',
   limit: 'wizard.checks.norm_limit',
+  min_term: 'wizard.checks.norm_min_term',
 };
 
 export const CHECK_RESULT_I18N_KEYS: Record<string, string> = {

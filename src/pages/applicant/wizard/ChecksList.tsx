@@ -120,6 +120,23 @@ function limitDetailNote(d: Record<string, unknown>, failed: boolean, t: (key: s
   return null;
 }
 
+/** Ruling #177 task 3 — `norms/checks.py`'s `_min_term_check` carries
+ *  `min_term_days` on EVERY outcome so the screen can state the rule, not
+ *  merely enforce it: `skipped` with `reason: "no_min_term_defined"` when the
+ *  leshoz dictionary names no figure, `fail` with `period_too_short` plus
+ *  `requested_days` (inclusive of both ends), `pass` with the figure alone.
+ *  A shape with none of that is left unsaid, like every other check's. */
+function minTermDetailNote(d: Record<string, unknown>, failed: boolean, t: (key: string) => string): string | null {
+  if (d.reason === 'no_min_term_defined') return t('wizard.checks.noMinTerm');
+  const min = numField(d, 'min_term_days');
+  if (min === undefined) return null;
+  const requested = numField(d, 'requested_days');
+  if (failed && requested !== undefined) {
+    return t('wizard.checks.minTermFail').replace('{requested}', requested).replace('{min}', min);
+  }
+  return t('wizard.checks.minTermPass').replace('{min}', min);
+}
+
 /** F3 (`docs/plans/07.3-findings.md`) — three of the nine automatic checks
  *  carry a `details` object meant for a developer reading a log, not for the
  *  applicant reading this screen: `{"reason":"layer_empty"}`,
@@ -139,6 +156,9 @@ function detailNote(check: NormalizedCheck, t: (key: string) => string): string 
   }
   if ((type === 'norm_season' || type === 'season') && d.reason === 'no_season_defined') {
     return t('wizard.checks.noSeason');
+  }
+  if (type === 'norm_min_term' || type === 'min_term') {
+    return minTermDetailNote(d, check.result === 'fail', t);
   }
   if (type === 'norm_limit' || type === 'limit') {
     return limitDetailNote(d, check.result === 'fail', t);
