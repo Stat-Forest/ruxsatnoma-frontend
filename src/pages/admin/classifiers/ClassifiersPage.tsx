@@ -53,6 +53,7 @@ import {
   type LocalizedName,
 } from './api';
 import { KNOWN_CLASSIFIER_CODES, LABELS, type ClassifiersLabels } from './labels';
+import { CLICKABLE_ROW_CLASS, clickableRowProps } from '../../../lib/rowClick';
 
 // --- plain calendar dates, never re-parsed through a local `Date` -----------
 
@@ -488,13 +489,14 @@ export function ClassifiersPage() {
               return (
                 <li
                   key={item.id}
+                  {...(phase === 'scheduled' ? clickableRowProps(() => openForm('edit', item)) : {})}
                   data-testid={`item-${item.id}`}
                   data-archived={item.status !== 'active' ? 'true' : 'false'}
                   className={`rounded-xl border p-4 ${
                     history
                       ? 'border-dashed border-[#9AA3AB] bg-[#F8F9FA]'
                       : 'border-[#E4E7EA] bg-white'
-                  }`}
+                  } ${phase === 'scheduled' ? `hover:bg-[#F8F9FA] ${CLICKABLE_ROW_CLASS}` : ''}`}
                 >
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div className="min-w-0 flex-1">

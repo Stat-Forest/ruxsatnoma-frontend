@@ -262,3 +262,16 @@ test('a row with no benefit_modifiers shows a dash', async () => {
   await findTableLoaded();
   expect(within(screen.getByTestId('tariffs-table')).getAllByText('—').length).toBeGreaterThan(0);
 });
+
+test('a click anywhere on a draft tariff row opens its form; a published row stays plain', async () => {
+  const user = userEvent.setup();
+  mockList([tariff({ status: 'draft' }), tariff({ status: 'published' })]);
+  renderTab();
+  await findTableLoaded();
+
+  const [, draft, published] = screen.getAllByRole('row');
+  expect(published).not.toHaveAttribute('tabindex');
+
+  await user.click(within(draft).getAllByRole('cell')[0]);
+  expect(await screen.findByTestId('tariff-form')).toBeInTheDocument();
+});

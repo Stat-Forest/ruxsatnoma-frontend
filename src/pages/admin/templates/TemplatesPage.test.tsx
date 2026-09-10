@@ -297,3 +297,12 @@ test('the Russian dictionary renders the same screen', async () => {
   expect(within(row).getByText('В приложении')).toBeInTheDocument();
   expect(within(row).getByText('Устаревший')).toBeInTheDocument();
 });
+
+test('a click anywhere on a template row opens its editor', async () => {
+  const user = userEvent.setup();
+  mockList([template({ id: ID_A, event_code: 'application.submitted', channel: 'sms', version: 2 })]);
+  renderPage();
+
+  await user.click(await screen.findByText('v2'));
+  expect(await screen.findByTestId('template-body-uz_latn')).toBeInTheDocument();
+});

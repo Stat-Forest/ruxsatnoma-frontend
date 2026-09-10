@@ -209,3 +209,16 @@ test('a filled form posts exactly what the editor typed', async () => {
     source_url: 'https://lex.uz/docs/3799819',
   });
 });
+
+test('a click anywhere on a document card opens its editor; an archived card stays plain', async () => {
+  mockBackend();
+  server.use(http.get('*/api/v1/admin/legal-documents/:id', () => HttpResponse.json(document({ id: DRAFT }))));
+  renderPage();
+
+  const archived = await screen.findByTestId(`legal-document-row-${ARCHIVED}`);
+  expect(archived).not.toHaveAttribute('tabindex');
+
+  const draft = screen.getByTestId(`legal-document-row-${DRAFT}`);
+  await userEvent.click(within(draft).getByTestId('legal-document-source'));
+  expect(await screen.findByTestId('legal-document-number')).toBeInTheDocument();
+});

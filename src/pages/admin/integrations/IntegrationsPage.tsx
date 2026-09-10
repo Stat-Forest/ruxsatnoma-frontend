@@ -24,6 +24,7 @@ import {
   outboxStatusLabel,
   type IntegrationsLabels,
 } from './labels';
+import { CLICKABLE_ROW_CLASS, clickableRowProps } from '../../../lib/rowClick';
 
 const PAGE_SIZE = 20;
 
@@ -373,7 +374,12 @@ function OutboxTab({ L }: { L: IntegrationsLabels }) {
         L={L}
       >
         {items.map((message) => (
-          <tr key={message.id} data-testid={`outbox-row-${message.id}`} className="hover:bg-[#F8F9FA]">
+          <tr
+            key={message.id}
+            {...clickableRowProps(() => setDetails(message))}
+            data-testid={`outbox-row-${message.id}`}
+            className={`hover:bg-[#F8F9FA] ${CLICKABLE_ROW_CLASS}`}
+          >
             <td className="p-3 font-semibold text-[#1A1F24] whitespace-nowrap">{message.destination}</td>
             <td className="p-3">
               <StatusBadge status={message.status} label={outboxStatusLabel(message.status, L)} />
@@ -557,7 +563,12 @@ function DeadLettersTab({ L }: { L: IntegrationsLabels }) {
         L={L}
       >
         {items.map((letter) => (
-          <tr key={letter.id} data-testid={`letter-row-${letter.id}`} className="hover:bg-[#F8F9FA]">
+          <tr
+            key={letter.id}
+            {...clickableRowProps(() => setDetails(letter))}
+            data-testid={`letter-row-${letter.id}`}
+            className={`hover:bg-[#F8F9FA] ${CLICKABLE_ROW_CLASS}`}
+          >
             <td className="p-3 font-semibold text-[#1A1F24] whitespace-nowrap">{letter.source}</td>
             <td className="p-3">
               <StatusBadge status={letter.status} label={letterStatusLabel(letter.status, L)} />

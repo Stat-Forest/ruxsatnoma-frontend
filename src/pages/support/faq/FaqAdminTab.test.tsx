@@ -153,3 +153,13 @@ test('a published row offers only "В архив", not "Опубликовать
   expect(within(row).queryByRole('button', { name: 'Опубликовать' })).not.toBeInTheDocument();
   expect(within(row).getByRole('button', { name: 'В архив' })).toBeInTheDocument();
 });
+
+test('a click anywhere on a FAQ row opens its editor', async () => {
+  server.use(http.get('*/api/v1/admin/help/faq', () => HttpResponse.json([DRAFT])));
+  const user = userEvent.setup();
+  renderTab();
+
+  const row = await screen.findByTestId(`faq-admin-row-${DRAFT.id}`);
+  await user.click(within(row).getAllByRole('cell')[0]);
+  expect(await screen.findByTestId('faq-question-ru')).toBeInTheDocument();
+});

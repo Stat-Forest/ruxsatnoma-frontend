@@ -20,6 +20,7 @@ import {
   useRegions,
   useRoles,
 } from './queries';
+import { CLICKABLE_ROW_CLASS, clickableRowProps } from '../../../lib/rowClick';
 
 const PAGE_SIZE = 20;
 
@@ -284,12 +285,15 @@ function AnnouncementRow({ row, L, lang, audience, onEdit, onPublish, onArchive 
   // `status` is a bare `string` in the contract; an unknown value renders as
   // itself rather than being forced into one of the three known buckets.
   const meta = isKnownStatus(row.status) ? STATUS_META[row.status] : null;
+  // An archived announcement has no editor to open, so its row stays plain.
+  const editable = row.status !== 'archived';
 
   return (
     <tr
+      {...(editable ? clickableRowProps(onEdit) : {})}
       data-testid={`announcement-row-${row.id}`}
       data-status={row.status}
-      className={`align-top ${row.status === 'archived' ? 'bg-[#FAFAFA]' : 'bg-white'}`}
+      className={`align-top ${row.status === 'archived' ? 'bg-[#FAFAFA]' : `bg-white hover:bg-[#F8F9FA] ${CLICKABLE_ROW_CLASS}`}`}
     >
       <td className={`p-3 border-l-4 ${meta?.accent ?? 'border-l-[#E4E7EA]'}`}>
         <span className={`block max-w-[280px] ${meta?.title ?? 'text-[#1A1F24]'}`}>

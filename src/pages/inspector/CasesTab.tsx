@@ -27,6 +27,7 @@ import { ApiError } from '../../api/errors';
 import { useApiErrorText } from '../../i18n/useApiErrorText';
 import { formatDate } from './format';
 import { useCasesList, type CaseOut } from './queries';
+import { CLICKABLE_ROW_CLASS, clickableRowProps } from '../../lib/rowClick';
 
 const PAGE_SIZE = 20;
 
@@ -74,7 +75,10 @@ function CaseRow({ caseItem }: { caseItem: CaseOut }) {
   const navigate = useNavigate();
 
   return (
-    <div className="bg-white border border-[#E4E7EA] rounded-2xl p-4 shadow-xs space-y-2">
+    <div
+      {...clickableRowProps(() => navigate(`/inspections/cases/${caseItem.id}`))}
+      className={`bg-white border border-[#E4E7EA] rounded-2xl p-4 shadow-xs space-y-2 ${CLICKABLE_ROW_CLASS}`}
+    >
       <div className="flex items-start justify-between gap-2">
         <p className="font-bold text-[#1A1F24] font-mono">{caseItem.number}</p>
         <StatusBadge

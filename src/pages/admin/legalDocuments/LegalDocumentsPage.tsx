@@ -17,6 +17,7 @@ import {
   useLegalDocumentsList,
   usePublishLegalDocument,
 } from './queries';
+import { CLICKABLE_ROW_CLASS, clickableRowProps } from '../../../lib/rowClick';
 
 const PAGE_SIZE = 20;
 
@@ -154,12 +155,17 @@ export function LegalDocumentsPage() {
         <div className="space-y-3">
           {list.data.items.map((row) => {
             const meta = isKnownStatus(row.status) ? STATUS_META[row.status] : STATUS_META.draft;
+            // An archived document has no editor to open, so its card stays plain.
+            const editable = row.status !== 'archived';
             return (
               <div
                 key={row.id}
+                {...(editable ? clickableRowProps(() => setEditor({ id: row.id })) : {})}
                 data-testid={`legal-document-row-${row.id}`}
                 data-status={row.status}
-                className={`bg-white border border-[#E4E7EA] border-l-4 ${meta.accent} rounded-2xl p-4 shadow-xs flex flex-col md:flex-row md:items-center gap-3 md:justify-between`}
+                className={`bg-white border border-[#E4E7EA] border-l-4 ${meta.accent} rounded-2xl p-4 shadow-xs flex flex-col md:flex-row md:items-center gap-3 md:justify-between ${
+                  editable ? `hover:bg-[#F8F9FA] ${CLICKABLE_ROW_CLASS}` : ''
+                }`}
               >
                 <div className="space-y-1 min-w-0">
                   <div className="flex flex-wrap items-center gap-2">

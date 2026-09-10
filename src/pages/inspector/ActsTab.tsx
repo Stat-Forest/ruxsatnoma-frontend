@@ -23,6 +23,7 @@ import { useApiErrorText } from '../../i18n/useApiErrorText';
 import { formatDateTime } from './format';
 import { INSPECTIONS_ACTS_WRITE } from './permissions';
 import { useActsList, type ActOut } from './queries';
+import { CLICKABLE_ROW_CLASS, clickableRowProps } from '../../lib/rowClick';
 
 const PAGE_SIZE = 20;
 
@@ -55,7 +56,10 @@ function ActRow({ act }: { act: ActOut }) {
   const navigate = useNavigate();
 
   return (
-    <div className="bg-white border border-[#E4E7EA] rounded-2xl p-4 shadow-xs space-y-3">
+    <div
+      {...clickableRowProps(() => navigate(`/inspections/acts/${act.id}`))}
+      className={`bg-white border border-[#E4E7EA] rounded-2xl p-4 shadow-xs space-y-3 ${CLICKABLE_ROW_CLASS}`}
+    >
       <div className="flex items-start justify-between gap-2">
         <div>
           <p className="font-bold text-[#1A1F24]">{formatDateTime(act.occurred_at)}</p>

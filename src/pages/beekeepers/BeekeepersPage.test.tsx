@@ -211,3 +211,11 @@ test('a removed row offers no remove action', async () => {
   expect(screen.queryByTestId(`beekeeper-remove-${beekeeper().id}`)).not.toBeInTheDocument();
   expect(screen.getByTestId(`beekeeper-edit-${beekeeper().id}`)).toBeInTheDocument();
 });
+
+test('a click anywhere on a beekeeper row opens the edit form', async () => {
+  const user = userEvent.setup();
+  renderPage();
+
+  await user.click(await screen.findByText('Asalov Nodir'));
+  expect(await screen.findByTestId('beekeeper-form-submit')).toBeInTheDocument();
+});
