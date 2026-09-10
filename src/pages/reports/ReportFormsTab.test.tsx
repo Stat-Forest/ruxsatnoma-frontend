@@ -11,7 +11,7 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { setupServer } from 'msw/node';
-import { afterAll, afterEach, beforeAll, expect, test } from 'vitest';
+import { afterAll, afterEach, beforeAll, expect, test, vi } from 'vitest';
 import { AuthContext, type AuthContextValue } from '../../auth/AuthContext';
 import { stubAuthActions } from '../../auth/testAuthActions';
 import { DICTIONARIES, I18nContext } from '../../i18n/context';
@@ -138,4 +138,47 @@ test('activating a form shows the not_draft refusal from a 409', async () => {
 
   await waitFor(() => expect(screen.getByTestId('confirm-dialog-error')).toBeInTheDocument());
   expect(screen.getByTestId('confirm-dialog-error')).toHaveTextContent('Faqat qoralamani faollashtirish mumkin');
+});
+
+test('the Excel button asks the server for the export with the applied filter, never paging the list itself', async () => {
+  mockBackend({ forms: [DRAFT_FORM] });
+  const listCalls: string[] = [];
+  let exportUrl: URL | null = null;
+  server.use(
+    http.get('*/api/v1/reports/forms', ({ request }) => {
+      listCalls.push(request.url);
+      return HttpResponse.json(page([DRAFT_FORM]));
+    }),
+    http.get('*/api/v1/reports/forms/export.xlsx', ({ request }) => {
+      exportUrl = new URL(request.url);
+      return HttpResponse.text('xlsx-bytes', {
+        headers: {
+          'Content-Disposition': 'attachment; filename="hisobot-shakllari-2026-09-11.xlsx"',
+          'X-Export-Total': '1',
+          'X-Export-Rows': '1',
+          'X-Export-Truncated': 'false',
+        },
+      });
+    }),
+  );
+
+  const createObjectURL = vi.fn().mockReturnValue('blob:mock');
+  const revokeObjectURL = vi.fn();
+  URL.createObjectURL = createObjectURL;
+  URL.revokeObjectURL = revokeObjectURL;
+  const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+
+  const user = userEvent.setup();
+  renderTab(['reports.view']);
+  await screen.findByText('RPT-1');
+  const listCallsBefore = listCalls.length;
+
+  await user.click(screen.getByTestId('export-xlsx'));
+
+  await waitFor(() => expect(createObjectURL).toHaveBeenCalled());
+  expect(clickSpy).toHaveBeenCalled();
+  expect(listCalls.length).toBe(listCallsBefore); // the export never re-fetches the list
+  expect(exportUrl!.searchParams.get('lang')).toBe('uz_latn');
+  expect(exportUrl!.searchParams.has('page')).toBe(false);
+  expect(exportUrl!.searchParams.has('page_size')).toBe(false);
 });

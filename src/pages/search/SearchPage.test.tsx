@@ -9,6 +9,7 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter, useLocation } from 'react-router';
 import { http, HttpResponse } from 'msw';
 import { setupServer } from 'msw/node';
+import { vi } from 'vitest';
 import { DICTIONARIES, I18nContext, type UiLanguage } from '../../i18n/context';
 import { SearchPage } from './SearchPage';
 import type { ExportJobOut, SavedFilterOut, SearchResultOut } from './api';
@@ -576,4 +577,51 @@ test('a click anywhere on a result row follows the same rule as its number: card
 
   await user.click(screen.getByText('Filed Applicant'));
   expect(screen.getByTestId('current-location')).toHaveTextContent('/applications/a1000000-0000-4000-8000-000000000001');
+});
+
+test('the Excel button asks the server for the plain register export with the applied filters, never paging the list itself', async () => {
+  const user = userEvent.setup();
+  const listCalls: string[] = [];
+  let exportUrl: URL | null = null;
+  server.use(
+    http.get('*/api/v1/search', ({ request }) => {
+      listCalls.push(request.url);
+      return HttpResponse.json(page([applicationResult()]));
+    }),
+    http.get('*/api/v1/search/export.xlsx', ({ request }) => {
+      exportUrl = new URL(request.url);
+      return HttpResponse.text('xlsx-bytes', {
+        headers: {
+          'Content-Disposition': 'attachment; filename="qidiruv-applications-2026-09-11.xlsx"',
+          'X-Export-Total': '1',
+          'X-Export-Rows': '1',
+          'X-Export-Truncated': 'false',
+        },
+      });
+    }),
+    http.get('*/api/v1/search/profiles', () => HttpResponse.json([])),
+    http.get('*/api/v1/refs/organizations', () => HttpResponse.json(page([]))),
+    http.get('*/api/v1/refs/activity-types', () => HttpResponse.json([])),
+    http.get('*/api/v1/search/exports', () => HttpResponse.json([])),
+  );
+
+  const createObjectURL = vi.fn().mockReturnValue('blob:mock');
+  const revokeObjectURL = vi.fn();
+  URL.createObjectURL = createObjectURL;
+  URL.revokeObjectURL = revokeObjectURL;
+  const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+
+  renderSearchPage();
+  await screen.findByText('APP-00000001');
+  const listCallsBefore = listCalls.length;
+
+  await user.click(screen.getByTestId('export-xlsx'));
+
+  await waitFor(() => expect(createObjectURL).toHaveBeenCalled());
+  expect(clickSpy).toHaveBeenCalled();
+  expect(listCalls.length).toBe(listCallsBefore); // the export never re-fetches the list
+  expect(exportUrl!.searchParams.get('kind')).toBe('applications');
+  expect(exportUrl!.searchParams.get('lang')).toBe('uz_latn');
+  expect(exportUrl!.searchParams.has('page')).toBe(false);
+  expect(exportUrl!.searchParams.has('page_size')).toBe(false);
 });
