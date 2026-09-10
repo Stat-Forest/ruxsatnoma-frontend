@@ -940,9 +940,7 @@ test('the benefit certificate number is required before Next for ANY chosen cate
   expect(nextButton).toBeDisabled();
 
   await userEvent.type(certificateInput, 'AB-12345');
-  // The number alone is not enough: the proof file is the other half.
-  expect(nextButton).toBeDisabled();
-  await userEvent.upload(fileInput(), new File(['x'], 'proof.pdf', { type: 'application/pdf' }));
+  // The number alone is enough (#189: the scan is optional).
   await waitFor(() => expect(nextButton).toBeEnabled());
   await userEvent.click(nextButton);
 
@@ -1130,10 +1128,10 @@ test('a benefit-certificate refusal (ERR-APP-003, benefit_certificate_unknown) s
   expect(await screen.findByText("Bunday guvohnoma/ma'lumotnoma raqami reyestrda topilmadi.")).toBeInTheDocument();
 });
 
-// Ruling #181: the supporting document is required exactly like the
-// certificate number — the benefit row's own file button files it under
-// `benefit_proof`, and the gate clears the moment it lands.
-test('the benefit_proof document is required before step 4\'s Next once a category is chosen', async () => {
+// Ruling #189: the certificate's scan is OPTIONAL — Next is open on the
+// number alone, and the benefit row's own file button, when used, files the
+// scan under `benefit_proof` (no doc type to pick: the category IS the type).
+test('the benefit_proof scan is optional: Next opens on the number alone, and the file, when attached, is filed under benefit_proof', async () => {
   let uploadedType: string | null = null;
   let documents: { id: string; doc_type_item_id: string; file_id: string }[] = [];
   server.use(
@@ -1155,22 +1153,21 @@ test('the benefit_proof document is required before step 4\'s Next once a catego
   await userEvent.type(await screen.findByLabelText(new RegExp(UZ['wizard.step4.certificateNumber'])), 'AB-1');
 
   const nextButton = screen.getByRole('button', { name: new RegExp(UZ['wizard.nav.next']) });
-  expect(await screen.findByText(UZ['wizard.step4.benefitProofRequired'])).toBeInTheDocument();
-  expect(nextButton).toBeDisabled();
+  expect(await screen.findByText(UZ['wizard.step4.benefitProofOptional'])).toBeInTheDocument();
+  await waitFor(() => expect(nextButton).toBeEnabled());
 
-  // The benefit row's own button — no doc type to pick: the category IS the type.
   await userEvent.upload(fileInput(), new File(['x'], 'proof.pdf', { type: 'application/pdf' }));
 
   await waitFor(() => expect(screen.getByText(UZ['wizard.step4.benefitProofOk'])).toBeInTheDocument());
   expect(uploadedType).toBe('doctype-proof');
-  await waitFor(() => expect(nextButton).toBeEnabled());
+  expect(screen.queryByText(UZ['wizard.step4.benefitProofOptional'])).not.toBeInTheDocument();
+  expect(nextButton).toBeEnabled();
 });
 
-// Stage 10 review, finding 3: the gate used to OPEN when the doc-type list
-// did not carry `benefit_proof` (not loaded, or not configured) — step 4
-// printed the green "attached" sentence over an empty list and the citizen
-// met the refusal only at the sign button. Fail-closed now, like the backend.
-test('an unknown benefit_proof doc type keeps step 4 shut instead of waving the claim through', async () => {
+// Without a `benefit_proof` doc type (list not loaded, or the item archived)
+// the benefit row has nothing to file a scan under, so it offers no file
+// button — and, the scan being optional (#189), the claim still moves on.
+test('an unknown benefit_proof doc type hides the file button and does not hold the claim', async () => {
   server.use(
     // `doc_types` answers without `benefit_proof`.
     classifierHandler([BENEFIT_ITEM], [OTHER_DOC_TYPE]),
@@ -1185,9 +1182,10 @@ test('an unknown benefit_proof doc type keeps step 4 shut instead of waving the 
   await userEvent.type(await screen.findByLabelText(new RegExp(UZ['wizard.step4.certificateNumber'])), 'AB-1');
 
   const nextButton = screen.getByRole('button', { name: new RegExp(UZ['wizard.nav.next']) });
-  expect(await screen.findByText(UZ['wizard.step4.benefitProofRequired'])).toBeInTheDocument();
+  expect(await screen.findByText(UZ['wizard.step4.benefitProofOptional'])).toBeInTheDocument();
+  expect(screen.queryByRole('button', { name: new RegExp(UZ['wizard.step4.chooseFile']) })).not.toBeInTheDocument();
   expect(screen.queryByText(UZ['wizard.step4.benefitProofOk'])).not.toBeInTheDocument();
-  expect(nextButton).toBeDisabled();
+  await waitFor(() => expect(nextButton).toBeEnabled());
 });
 
 // A resumed draft must restore WHO it is filed for — the last step's

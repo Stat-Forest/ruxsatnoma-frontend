@@ -2272,5 +2272,5 @@ export const uz_cyrl = {
   'wizard.step5.signDesc':
     'Аризани топшириш учун қуйидаги тугмани босинг — электрон имзо талаб қилинмайди, чунки тизимга OneID ёки E-IMZO орқали киргансиз.',
   'wizard.step4.benefitProofOk': 'Имтиёзни тасдиқловчи ҳужжат илова қилинди.',
-  'wizard.step4.benefitProofRequired': 'Танланган имтиёз тоифаси учун тасдиқловчи ҳужжат илова қилиниши шарт.',
+  'wizard.step4.benefitProofOptional': "Гувоҳнома нусхасини илова қилиш ихтиёрий.",
 };

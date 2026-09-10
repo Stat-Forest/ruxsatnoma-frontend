@@ -330,23 +330,18 @@ export function ApplicationWizardPage() {
   const quantityUnit = activityTypesQuery.data?.find((a) => a.id === activityTypeId)?.quantity_unit;
 
   // Ruling #181: every one of the seven benefit categories needs a
-  // certificate number and a supporting document — there is no
-  // `props.requires_certificate` switch to read any more. Simply: a category
-  // is chosen, or it isn't.
+  // certificate number — there is no `props.requires_certificate` switch to
+  // read any more. Simply: a category is chosen, or it isn't. The
+  // certificate's scan is OPTIONAL (ruling #189): the number is the claim,
+  // the file is support for whoever verifies it, and the backend no longer
+  // gates the submission on it either.
   const requiresCertificate = benefitCategoryItemId !== '';
-  // The `doc_types` item the certificate document is filed under
-  // (`benefit_proof`, migration `0024`) — looked up by CODE, never by list
-  // position (the exact bug `respond_info`'s own fix wave, docs/status.md,
-  // exists to avoid repeating here).
+  // The `doc_types` item the scan is filed under (`benefit_proof`,
+  // migration `0024`) — looked up by CODE, never by list position (the exact
+  // bug `respond_info`'s own fix wave, docs/status.md, exists to avoid
+  // repeating here). Undefined while the list loads or if the item is
+  // archived — then the benefit row simply offers no file button.
   const benefitProofDocTypeId = docTypesQuery.data?.find((d) => d.code === 'benefit_proof')?.id;
-  // FAIL-CLOSED, like the backend's `_assert_benefit_documents`: while the
-  // doc-type list has not loaded, or `benefit_proof` is not in it, the gate
-  // stays SHUT — the stage 10 review found it open in exactly that state,
-  // with step 4 printing a green "document attached" over an empty list.
-  const hasBenefitProofDoc =
-    !requiresCertificate ||
-    (!!benefitProofDocTypeId &&
-      (cardQuery.data?.documents ?? []).some((d) => d.doc_type_item_id === benefitProofDocTypeId));
 
   function invalidateCard() {
     if (applicationId) void queryClient.invalidateQueries({ queryKey: ['wizard-card', applicationId] });
@@ -577,17 +572,6 @@ export function ApplicationWizardPage() {
           reason === 'benefit_certificate_not_yours')
       ) {
         setBenefitCertificateServerError(errorText(err));
-        setStep(4);
-        return;
-      }
-      // The document half of the same claim (`_assert_benefit_documents`):
-      // the file lives on step 4, so that is where the citizen is sent.
-      if (
-        err instanceof ApiError &&
-        err.code === 'ERR-APP-003' &&
-        (reason === 'benefit_claim_needs_a_document' || reason === 'benefit_doc_type_not_configured')
-      ) {
-        setSubmitError(errorText(err));
         setStep(4);
         return;
       }
@@ -925,7 +909,6 @@ export function ApplicationWizardPage() {
                   : undefined) ?? benefitCertificateServerError ?? undefined
               }
               onCertificateBlur={() => setCertificateTouched(true)}
-              hasBenefitProofDoc={hasBenefitProofDoc}
               onUpload={async (file, docTypeItemId) => {
                 const uploaded = await uploadFile(file);
                 await addDocMutation.mutateAsync({ doc_type_item_id: docTypeItemId, file_id: uploaded.id });
@@ -1087,10 +1070,9 @@ export function ApplicationWizardPage() {
                 // Ruling #181: the certificate number must be filled in
                 // before the wizard moves on — the backend's own refusal
                 // (`ERR-APP-003`, `benefit_certificate_required`) must never
-                // be how the applicant first learns it was needed. Same
-                // reasoning for the supporting document (`benefit_proof`).
+                // be how the applicant first learns it was needed. The scan
+                // is optional (#189) and gates nothing.
                 (step === 4 && requiresCertificate && !benefitCertificateNo.trim()) ||
-                (step === 4 && !hasBenefitProofDoc) ||
                 // A row with a type chosen and no file is a document the
                 // citizen meant to attach: moving on would drop it without
                 // a word (the hiding direction), so the row is finished or
@@ -1140,7 +1122,7 @@ type UploadedDocument = { id: string; doc_type_item_id: string; file_id: string 
  * Step 4 as rows. The "document type" select of every row carries BOTH the
  * `doc_types` items and, under a divider, the `benefit_categories` items:
  * picking a category turns that row into THE benefit row — category, its
- * certificate number (ruling #181) and its `benefit_proof` file — because
+ * certificate number (ruling #181) and, optionally (#189), its scan — because
  * an application claims at most one benefit (`applications.benefit_category_
  * item_id` is one column), so the categories disappear from every other
  * row's select while one is chosen. `benefit_proof` itself is not offered
@@ -1164,7 +1146,6 @@ function DocumentsStep({
   onBenefitCertificateNoChange,
   certificateError,
   onCertificateBlur,
-  hasBenefitProofDoc,
   onUpload,
   onRemove,
 }: {
@@ -1180,7 +1161,6 @@ function DocumentsStep({
   onBenefitCertificateNoChange: (value: string) => void;
   certificateError: string | undefined;
   onCertificateBlur: () => void;
-  hasBenefitProofDoc: boolean;
   onUpload: (file: File, docTypeItemId: string) => Promise<void>;
   onRemove: (documentId: string) => void;
 }) {
@@ -1283,18 +1263,23 @@ function DocumentsStep({
               <Trash2 className="w-4 h-4 text-[#B91C1C]" />
             </Button>
           </div>
-          {/* Ruling #181: the supporting document is mandatory exactly like
-              the certificate number — filed under `benefit_proof`. */}
-          <Alert variant={hasBenefitProofDoc ? 'success' : 'warning'}>
-            <span className="flex flex-wrap items-center justify-between gap-2">
-              <span>{hasBenefitProofDoc ? t('wizard.step4.benefitProofOk') : t('wizard.step4.benefitProofRequired')}</span>
-              {proofDocuments.map((doc) => (
-                <button key={doc.id} onClick={() => onRemove(doc.id)} className="text-[#B91C1C] font-bold hover:underline cursor-pointer">
-                  {t('wizard.step4.deleteDoc')}
-                </button>
-              ))}
-            </span>
-          </Alert>
+          {/* Ruling #189: the scan is optional — said so under the row, and
+              listed with its own delete once attached (filed under
+              `benefit_proof`). */}
+          {proofDocuments.length === 0 ? (
+            <p className="text-[11px] text-[#5A646D]">{t('wizard.step4.benefitProofOptional')}</p>
+          ) : (
+            <Alert variant="success">
+              <span className="flex flex-wrap items-center justify-between gap-2">
+                <span>{t('wizard.step4.benefitProofOk')}</span>
+                {proofDocuments.map((doc) => (
+                  <button key={doc.id} onClick={() => onRemove(doc.id)} className="text-[#B91C1C] font-bold hover:underline cursor-pointer">
+                    {t('wizard.step4.deleteDoc')}
+                  </button>
+                ))}
+              </span>
+            </Alert>
+          )}
         </div>
       )}
 

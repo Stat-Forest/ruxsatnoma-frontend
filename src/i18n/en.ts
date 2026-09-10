@@ -2049,5 +2049,5 @@ export const en = {
   'wizard.step5.signDesc':
     'Press the button below to submit the application — no electronic signature is required, since you signed in through OneID or E-IMZO.',
   'wizard.step4.benefitProofOk': 'The supporting document for the benefit is attached.',
-  'wizard.step4.benefitProofRequired': 'A supporting document is required for the chosen benefit category.',
+  'wizard.step4.benefitProofOptional': "Attaching the certificate's scan is optional.",
 };

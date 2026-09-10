@@ -2267,5 +2267,5 @@ export const uz_latn = {
   'wizard.step5.signDesc':
     "Arizani topshirish uchun quyidagi tugmani bosing — elektron imzo talab qilinmaydi, chunki tizimga OneID yoki E-IMZO orqali kirgansiz.",
   'wizard.step4.benefitProofOk': "Imtiyozni tasdiqlovchi hujjat ilova qilindi.",
-  'wizard.step4.benefitProofRequired': "Tanlangan imtiyoz toifasi uchun tasdiqlovchi hujjat ilova qilinishi shart.",
+  'wizard.step4.benefitProofOptional': "Guvohnoma nusxasini ilova qilish ixtiyoriy.",
 };
