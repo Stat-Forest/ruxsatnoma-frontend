@@ -146,6 +146,27 @@ test('"My permits" is the citizen\'s own section too, not the reviewer\'s', () =
   expect(applicant.map((i) => i.to)).toContain('/my/permits');
 });
 
+// Stage 10, F2 (rulings #181/#182): the central benefit-verification queue
+// is retired — the claim moves onto the application card itself
+// (`BenefitClaimPanel`), and the role that used to see it centrally,
+// renamed `beekeeping_registrar`, gets the Union's own certificate register
+// instead.
+test('the beekeeper register is gated on beekeepers.manage', () => {
+  const registrar = visibleNav({ permissions: ['beekeepers.manage'], is_superuser: false });
+  expect(registrar.map((i) => i.to)).toContain('/beekeepers');
+
+  const reviewer = visibleNav({ permissions: ['applications.review'], is_superuser: false });
+  expect(reviewer.map((i) => i.to)).not.toContain('/beekeepers');
+});
+
+test('the retired benefit-verification queue has no menu entry or route', () => {
+  expect(NAVIGATION.map((i) => i.to)).not.toContain('/benefits/verification');
+  const paths = new Set(
+    routeConfig.flatMap((route) => route.children ?? []).map((child) => (child.index ? '/' : `/${child.path}`)),
+  );
+  expect(paths).not.toContain('/benefits/verification');
+});
+
 test('an array permission means ANY of them, never all', () => {
   const holdsOne = satisfies(['applications.review', 'applications.decide'], {
     permissions: ['applications.decide'],

@@ -2,7 +2,6 @@ import type { ComponentType } from 'react';
 import {
   Archive,
   Award,
-  BadgeCheck,
   Bell,
   BookMarked,
   Building2,
@@ -10,6 +9,7 @@ import {
   ClipboardCheck,
   FileText,
   Home,
+  IdCard,
   Inbox,
   LifeBuoy,
   MailPlus,
@@ -192,16 +192,16 @@ export const NAVIGATION: NavItem[] = [
     ],
     icon: ClipboardCheck,
   },
-  // Stage 9, T11 (decisions.md #179) — the central benefit-verification
-  // office. `benefits.verify` is held by ONE role, `benefit_verifier`
-  // (migration 0051), whose visibility is not a zone at all: it sees every
-  // leshoz's applications that carry a certificate-bearing benefit claim,
-  // and NOTHING else — not its own leshoz's ordinary caseload, because it is
-  // central and holds no zone to begin with. That predicate lives entirely
-  // server-side (`GET /applications/benefit-verifications`); this entry only
-  // decides who sees the menu item and the route, same as every other row
-  // here.
-  { to: '/benefits/verification', labelKey: 'nav.benefitVerification', permission: 'benefits.verify', icon: BadgeCheck },
+  // Stage 10, F2 (rulings #181/#182) — retires stage 9's central
+  // benefit-verification queue: `benefits.verify` moved to `executor_staff`/
+  // `executor_head`, in zone, and the claim is now decided as a block on
+  // the application card itself (`BenefitClaimPanel`, `pages/staff/
+  // components/`), reached through `/applications/:id` like everything else
+  // a reviewer does — no menu entry of its own. The role that used to hold
+  // `benefits.verify` centrally, renamed `beekeeping_registrar` (migration
+  // 0053), keeps the Union's own certificate register instead:
+  // `beekeepers.manage`, central (no zone), several users.
+  { to: '/beekeepers', labelKey: 'nav.beekeepers', permission: 'beekeepers.manage', icon: IdCard },
   { to: '/admin/users', labelKey: 'nav.users', permission: 'auth.users.manage', icon: Users },
   { to: '/admin/roles', labelKey: 'nav.roles', permission: 'auth.users.manage', icon: ShieldCheck },
   { to: '/admin/organizations', labelKey: 'nav.organizations', permission: 'admin.organizations.manage', icon: Building2 },

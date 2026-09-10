@@ -23,9 +23,19 @@ interface SignDecisionModalProps {
   applicationId: string;
   isSubmitting: boolean;
   error: unknown;
+  /**
+   * Non-null while the application's own benefit claim is `rejected`
+   * (ruling #182): `legal_basis` becomes optional in that case, and leaving
+   * it blank means "use the verifier's own reason" — `decision.reject`
+   * fills it from `benefit_rejection_reason` server-side. `null`/`undefined`
+   * for every other application (including `mode === 'approve'`, which
+   * never reads this) keeps the original rule: a missing `legal_basis` is
+   * refused.
+   */
+  benefitRejectionReason?: string | null;
   onClose: () => void;
   onSubmitApprove: (pkcs7: string) => void;
-  onSubmitReject: (input: { pkcs7: string; reason_item_id: string; legal_basis: string }) => void;
+  onSubmitReject: (input: { pkcs7: string; reason_item_id: string; legal_basis: string | null }) => void;
 }
 
 const SIGN_DECISION_I18N = {
@@ -139,6 +149,7 @@ export function SignDecisionModal({
   applicationId,
   isSubmitting,
   error,
+  benefitRejectionReason,
   onClose,
   onSubmitApprove,
   onSubmitReject,
@@ -182,11 +193,16 @@ export function SignDecisionModal({
   // clickable so `handleSubmit` below can run its own check and say why it
   // refused, the same way `PermitSignaturesPanel.tsx::handleSign` already
   // does for the permit's own signature slots.
+  // Ruling #182: with a benefit-claim rejection reason on hand, `legal_basis`
+  // is optional — the server fills it from that reason when this field is
+  // left blank (`legalBasisRequired` below feeds both the button gate and
+  // the field's own `required` marker).
+  const legalBasisRequired = mode === 'reject' && !benefitRejectionReason;
   const canSubmit =
     packageQuery.data !== undefined &&
     !isSubmitting &&
     !signing &&
-    (mode === 'approve' || (reasonItemId !== '' && legalBasis.trim().length > 0));
+    (mode === 'approve' || (reasonItemId !== '' && (!legalBasisRequired || legalBasis.trim().length > 0)));
 
   async function handleSubmit() {
     if (isEimzoMock() && !PINFL_PATTERN.test(pinfl)) {
@@ -216,7 +232,10 @@ export function SignDecisionModal({
     if (mode === 'approve') {
       onSubmitApprove(pkcs7);
     } else {
-      onSubmitReject({ pkcs7, reason_item_id: reasonItemId, legal_basis: legalBasis });
+      // A blank field sends `null`, never `''` — `''` would still read as
+      // "given but empty" to a caller checking only `!== undefined`, and the
+      // whole point of leaving it blank is "use the verifier's own reason".
+      onSubmitReject({ pkcs7, reason_item_id: reasonItemId, legal_basis: legalBasis.trim() || null });
     }
   }
 
@@ -268,7 +287,11 @@ export function SignDecisionModal({
                 ]}
               />
             </FormField>
-            <FormField label={tr.legalBasisLabel} required>
+            <FormField
+              label={tr.legalBasisLabel}
+              required={legalBasisRequired}
+              helperText={!legalBasisRequired ? t('staff.decision.benefit.legalBasisOptionalHint') : undefined}
+            >
               <Textarea
                 value={legalBasis}
                 onChange={(e) => setLegalBasis(e.target.value)}

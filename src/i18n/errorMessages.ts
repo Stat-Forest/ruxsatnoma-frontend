@@ -120,7 +120,25 @@ const ru: Record<string, ErrorCopy> = {
       : 'Активная заявка на пересекающийся период уже существует.';
   },
   'ERR-APP-003': 'Неполный комплект документов.',
-  'ERR-APP-004': 'Недопустимый переход статуса заявки. Обновите страницу.',
+  // Stage 10, F2 (rulings #181/#182): `decision.approve` refuses with these
+  // two `reason`s when the leshoz's own benefit-claim verify/reject pair
+  // has not cleared the application yet — `DecisionPanel`'s own disabled
+  // Approve button is the proactive guard, this is the backstop for the
+  // race it cannot see (another reviewer decides the claim between render
+  // and click). Every other `ERR-APP-004` (a stale page, a bad transition)
+  // keeps the original generic sentence.
+  'ERR-APP-004': (details) => {
+    switch (str(details, 'reason')) {
+      case 'benefit_unverified':
+        return 'Заявка на льготу ещё не проверена.';
+      case 'benefit_rejected': {
+        const reason = str(details, 'benefit_rejection_reason');
+        return reason ? `Льгота отклонена: ${reason}` : 'Льгота отклонена.';
+      }
+      default:
+        return 'Недопустимый переход статуса заявки. Обновите страницу.';
+    }
+  },
   'ERR-GIS-001': 'Невалидная геометрия участка.',
   'ERR-GIS-002': 'Геометрия вне границ лесного фонда.',
   'ERR-GIS-003': 'Пересечение с зоной ограничений или охраны.',
@@ -233,7 +251,19 @@ const uz_latn: Record<string, ErrorCopy> = {
       : 'Kesishuvchi davr uchun faol ariza allaqachon mavjud.';
   },
   'ERR-APP-003': "Hujjatlar to'plami to'liq emas.",
-  'ERR-APP-004': "Ariza holatini bunday o'zgartirib bo'lmaydi. Sahifani yangilang.",
+  // Stage 10, F2 (rulings #181/#182) — see the `ru` entry above for why.
+  'ERR-APP-004': (details) => {
+    switch (str(details, 'reason')) {
+      case 'benefit_unverified':
+        return 'Imtiyoz da\'vosi hali tekshirilmagan.';
+      case 'benefit_rejected': {
+        const reason = str(details, 'benefit_rejection_reason');
+        return reason ? `Imtiyoz rad etilgan: ${reason}` : 'Imtiyoz rad etilgan.';
+      }
+      default:
+        return "Ariza holatini bunday o'zgartirib bo'lmaydi. Sahifani yangilang.";
+    }
+  },
   'ERR-GIS-001': "Uchastka geometriyasi noto'g'ri.",
   'ERR-GIS-002': "Geometriya o'rmon fondi chegaralaridan tashqarida.",
   'ERR-GIS-003': 'Cheklov yoki muhofaza zonasi bilan kesishish mavjud.',
