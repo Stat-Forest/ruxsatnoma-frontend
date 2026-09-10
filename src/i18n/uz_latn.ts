@@ -2263,4 +2263,5 @@ export const uz_latn = {
     "Arizani topshirish uchun quyidagi tugmani bosing — elektron imzo talab qilinmaydi, chunki tizimga OneID yoki E-IMZO orqali kirgansiz.",
   'wizard.step4.benefitProofOk': "Imtiyozni tasdiqlovchi hujjat ilova qilindi.",
   'wizard.step4.benefitProofOptional': "Guvohnoma nusxasini ilova qilish ixtiyoriy.",
+  'wizard.step5.benefitNotForActivity': "Tanlangan imtiyoz ushbu faoliyat turiga qoʻllanilmaydi. 4-bosqichga qaytib, imtiyozni oʻzgartiring yoki olib tashlang.",
 };

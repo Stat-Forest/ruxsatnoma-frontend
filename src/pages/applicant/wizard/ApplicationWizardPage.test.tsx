@@ -1235,3 +1235,112 @@ test('resuming a legal draft restores the representation, not the self default',
   // not the 'self' default.
   expect(await screen.findByRole('button', { name: /ERI bilan imzolash va yuborish/ })).toBeInTheDocument();
 });
+
+// ─── The benefit list is scoped to the activity (ruling #181) ─────────────
+// Every `benefit_categories` item names the ONE activity it applies to in
+// `props.activity` (`apiary` for the Union member, `recreation` for the six
+// VMQ 278 ¶12 categories); `norms._check_benefit_claim` refuses a category
+// claimed on any other activity as `ERR-VAL-001`/`unknown_benefit_code`,
+// which the pre-check on step 5 used to surface as a bare "check failed"
+// with nothing to point at. Met on the dev stand: a haymaking draft with
+// `persons_with_disabilities` claimed. Step 4 therefore offers only the
+// categories of the chosen activity.
+const RECREATION_ONLY_ITEM = {
+  ...BENEFIT_ITEM,
+  id: 'benefit-recreation',
+  code: 'persons_with_disabilities',
+  name: { uz_latn: 'Nogironligi bor shaxslar' },
+  props: { activity: 'recreation' },
+};
+const HAYMAKING_ITEM = {
+  ...BENEFIT_ITEM,
+  id: 'benefit-haymaking',
+  code: 'haymaking_only',
+  name: { uz_latn: 'Pichanchilik imtiyozi' },
+  props: { activity: 'haymaking' },
+};
+
+test("step 4 offers only the benefit categories whose props.activity is the chosen activity's code; an unscoped item is offered everywhere", async () => {
+  server.use(classifierHandler([RECREATION_ONLY_ITEM, HAYMAKING_ITEM, BENEFIT_ITEM], [OTHER_DOC_TYPE]));
+  renderWizard();
+  await driveToStep4();
+
+  const select = await screen.findByRole('combobox');
+  const labels = Array.from((select as HTMLSelectElement).options).map((o) => o.textContent);
+  expect(labels).toEqual([
+    UZ['wizard.step4.selectDocType'],
+    'Pasport',
+    `— ${UZ['wizard.step4.benefitsGroup']} —`,
+    'Pichanchilik imtiyozi',
+    'Urush faxriysi',
+  ]);
+});
+
+// A draft resumed with a claim that does not fit its activity (filed before
+// this filter existed, or the activity changed on step 1 afterwards) reads
+// as NO claim: the certificate field is not asked, and confirming step 4
+// clears the stale claim server-side rather than carrying it into a
+// pre-check that can only refuse it.
+test('a resumed draft whose claim does not fit the activity reads as no claim, and Next sends null', async () => {
+  server.use(
+    classifierHandler([RECREATION_ONLY_ITEM], [OTHER_DOC_TYPE]),
+    http.get('*/api/v1/applications/:id', () =>
+      HttpResponse.json({
+        id: APPLICATION_ID,
+        on_behalf: 'self',
+        activity_type_id: ACTIVITY_ID,
+        contour_id: 'contour-1',
+        requested_area_ha: '12',
+        period_from: '2026-01-01',
+        period_to: '2026-06-01',
+        quantity: '5',
+        benefit_category_item_id: 'benefit-recreation',
+        benefit_certificate_no: '1235',
+        documents: [],
+        items: [],
+      }),
+    ),
+  );
+  let lastPatchBody: unknown = null;
+  server.use(
+    http.patch('*/api/v1/applications/:id', async ({ request }) => {
+      lastPatchBody = await request.json();
+      return HttpResponse.json({ id: APPLICATION_ID });
+    }),
+  );
+  renderWizard(AUTH_VALUE, 'uz_latn', `/my/applications/new?draft=${APPLICATION_ID}`);
+
+  await screen.findByText('Pichanchilik');
+  const next = () => screen.getByRole('button', { name: new RegExp(UZ['wizard.nav.next']) });
+  for (const heading of [UZ['wizard.step2.heading'], UZ['wizard.step3.heading'], UZ['wizard.step4.heading']]) {
+    await waitFor(() => expect(next()).toBeEnabled());
+    await userEvent.click(next());
+    await screen.findByText(heading);
+  }
+
+  // No certificate field: the recreation-only claim is not a claim on a
+  // haymaking draft, so nothing about it is asked.
+  expect(screen.queryByLabelText(new RegExp(UZ['wizard.step4.certificateNumber']))).not.toBeInTheDocument();
+  await waitFor(() => expect(next()).toBeEnabled());
+  await userEvent.click(next());
+
+  await waitFor(() => expect(lastPatchBody).toMatchObject({ benefit_category_item_id: null, benefit_certificate_no: null }));
+});
+
+// The safety net for whatever the filter cannot see (a category re-scoped
+// after the list was loaded): the refusal names the benefit and points at
+// step 4, rather than the generic "check failed".
+test('a pre-check refused with unknown_benefit_code says the benefit does not apply to this activity', async () => {
+  server.use(
+    http.post('*/api/v1/applications/:id/precheck', () =>
+      HttpResponse.json(
+        { error: { code: 'ERR-VAL-001', message: 'x', details: { reason: 'unknown_benefit_code', code: 'persons_with_disabilities' } } },
+        { status: 400 },
+      ),
+    ),
+  );
+  renderWizard();
+  await driveToStep5();
+
+  expect(await screen.findByText(UZ['wizard.step5.benefitNotForActivity'])).toBeInTheDocument();
+});

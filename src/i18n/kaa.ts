@@ -2045,4 +2045,5 @@ export const kaa = {
     'Arzanı jiberiw ushın tómendegi túymeni basıń — elektron qol tańba talap etilmeydi, sebebi siz OneID yamasa E-IMZO arqalı kirdińiz.',
   'wizard.step4.benefitProofOk': 'Jeńillikti tastıyıqlawshı hújjet qosıldı.',
   'wizard.step4.benefitProofOptional': "Gúwalıqtıń nusqasın biriktiriw ıqtıyarıy.",
+  'wizard.step5.benefitNotForActivity': "Tańlanǵan jeńillik bul iskerlik túrine qollanılmaydı. 4-basqıshqa qaytıp, jeńillikti ózgertiń yamasa alıp taslań.",
 };
