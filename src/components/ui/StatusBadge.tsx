@@ -80,7 +80,7 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({
 
   return (
     <span
-      className={`inline-flex items-center rounded-full ${conf.bg} ${conf.text} ${sizeClasses} ${className}`}
+      className={`inline-flex items-center whitespace-nowrap rounded-full ${conf.bg} ${conf.text} ${sizeClasses} ${className}`}
     >
       {showIcon ? (
         <span className="shrink-0">{conf.icon}</span>
