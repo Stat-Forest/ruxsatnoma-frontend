@@ -220,3 +220,31 @@ test('ERR-NORM-002 keeps the generic sentence when it recognises none of these s
   expect(apiErrorMessage(error, 'ru')).toBe('Превышен остаток лимита.');
   expect(apiErrorMessage(noDetails, 'uz_latn')).toBe("Limit qoldig'i oshib ketdi.");
 });
+
+// Stage 10, F2 (rulings #181/#182) — `decision.approve` refuses with these
+// two `reason`s while the leshoz's own benefit-claim verify/reject has not
+// cleared the application; `DecisionPanel`'s disabled Approve button is the
+// proactive guard, this map is the backstop for the race it cannot see.
+test('ERR-APP-004 names the benefit-claim cause when the backend sends one', () => {
+  const unverified = { code: 'ERR-APP-004', message: 'x', details: { reason: 'benefit_unverified' } };
+  const rejectedWithReason = {
+    code: 'ERR-APP-004',
+    message: 'x',
+    details: { reason: 'benefit_rejected', benefit_rejection_reason: 'Sertifikat muddati oʻtgan' },
+  };
+  const rejectedNoReason = { code: 'ERR-APP-004', message: 'x', details: { reason: 'benefit_rejected' } };
+
+  expect(apiErrorMessage(unverified, 'ru')).toBe('Заявка на льготу ещё не проверена.');
+  expect(apiErrorMessage(rejectedWithReason, 'ru')).toBe('Льгота отклонена: Sertifikat muddati oʻtgan');
+  expect(apiErrorMessage(rejectedNoReason, 'ru')).toBe('Льгота отклонена.');
+
+  expect(apiErrorMessage(unverified, 'uz_latn')).toBe("Imtiyoz da'vosi hali tekshirilmagan.");
+  expect(apiErrorMessage(rejectedNoReason, 'uz_latn')).toBe('Imtiyoz rad etilgan.');
+});
+
+test('ERR-APP-004 keeps the generic sentence for every other reason', () => {
+  const badTransition = { code: 'ERR-APP-004', message: 'x', details: { reason: 'bad_transition' } };
+  const noDetails = { code: 'ERR-APP-004', message: 'x' };
+  expect(apiErrorMessage(badTransition, 'ru')).toBe('Недопустимый переход статуса заявки. Обновите страницу.');
+  expect(apiErrorMessage(noDetails, 'uz_latn')).toBe("Ariza holatini bunday o'zgartirib bo'lmaydi. Sahifani yangilang.");
+});
