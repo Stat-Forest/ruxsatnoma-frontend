@@ -6,6 +6,7 @@
  */
 import { useState } from 'react';
 import { DataTable, type Column } from '../../../components/ui/DataTable';
+import { ExportXlsxButton } from '../../../components/ui/ExportXlsxButton';
 import { FormField, Select } from '../../../components/ui/FormControls';
 import { ApiError } from '../../../api/errors';
 import { useApiErrorText } from '../../../i18n/useApiErrorText';
@@ -63,22 +64,28 @@ export function AppealsTab() {
         <p className="mt-1 text-xs text-[#5A646D]">{t('support.appeals.subtitle')}</p>
       </div>
 
-      <div className="max-w-xs">
-        <FormField label={t('support.appeals.filterStatus')} htmlFor="appeals-status-filter">
-          <Select
-            id="appeals-status-filter"
-            data-testid="appeals-status-filter"
-            value={status}
-            onChange={(e) => {
-              setStatus(e.target.value as AppealStatus | '');
-              setPage(1);
-            }}
-            options={[
-              { value: '', label: t('support.common.all') },
-              ...APPEAL_STATUSES.map((s) => ({ value: s, label: t(STATUS_LABEL_KEY[s]) })),
-            ]}
-          />
-        </FormField>
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div className="max-w-xs">
+          <FormField label={t('support.appeals.filterStatus')} htmlFor="appeals-status-filter">
+            <Select
+              id="appeals-status-filter"
+              data-testid="appeals-status-filter"
+              value={status}
+              onChange={(e) => {
+                setStatus(e.target.value as AppealStatus | '');
+                setPage(1);
+              }}
+              options={[
+                { value: '', label: t('support.common.all') },
+                ...APPEAL_STATUSES.map((s) => ({ value: s, label: t(STATUS_LABEL_KEY[s]) })),
+              ]}
+            />
+          </FormField>
+        </div>
+        <ExportXlsxButton
+          path="/api/v1/admin/public/appeals"
+          query={{ status, page, page_size: PAGE_SIZE }}
+        />
       </div>
 
       {list.error && (
