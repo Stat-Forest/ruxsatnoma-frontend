@@ -44,6 +44,14 @@ function row(over: Partial<ApplicationOut> = {}): ApplicationOut {
     channel: 'portal',
     kind: 'new',
     benefit_category_item_id: null,
+    // Ruling #179 (stage 9): a benefit claim now carries its certificate and
+    // the verification it is waiting on — required by the schema, so every
+    // fixture states them rather than leaning on `undefined`.
+    benefit_certificate_no: null,
+    benefit_verification_status: 'not_required' as const,
+    benefit_verified_by: null,
+    benefit_verified_at: null,
+    benefit_rejection_reason: null,
     rejection_reason_item_id: null,
     assigned_org_id: null,
     assigned_user_id: null,
