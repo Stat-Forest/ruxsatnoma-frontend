@@ -122,3 +122,45 @@ test('an exclusive-occupied limit check with no date still reads as "occupied", 
   // component DOES recognise.
   expect(document.querySelector('li')?.textContent).toMatch(/band/);
 });
+
+// Ruling #177 task 3 — the backend's `min_term` check (the leshoz
+// dictionary's own `min_term_days`) reached the live preview's list without
+// a label, so the applicant read the raw key "min_term" between two
+// translated rows. Each of its three outcomes gets a sentence of its own.
+test('min_term skipped for want of a dictionary figure reads as a sentence, never as the raw key', () => {
+  render(<ChecksList checks={[check({ type: 'min_term', result: 'skipped', details: { reason: 'no_min_term_defined' } })]} />);
+  expect(screen.getByText('Minimal muddat')).toBeInTheDocument();
+  expect(screen.getByText(/minimal muddat belgilanmagan/)).toBeInTheDocument();
+  expect(screen.queryByText('min_term')).not.toBeInTheDocument();
+  expect(screen.queryByText(/no_min_term_defined/)).not.toBeInTheDocument();
+});
+
+test('a failing min_term check states both figures as a refusal', () => {
+  render(
+    <ChecksList
+      checks={[
+        check({
+          type: 'min_term',
+          result: 'fail',
+          details: { reason: 'period_too_short', min_term_days: 10, requested_days: 3 },
+        }),
+      ]}
+    />,
+  );
+  expect(screen.getByText(/3 kun/)).toBeInTheDocument();
+  expect(screen.getByText(/10 kun/)).toBeInTheDocument();
+  expect(screen.getByText(/qisqa/)).toBeInTheDocument();
+  expect(screen.queryByText(/period_too_short/)).not.toBeInTheDocument();
+});
+
+test('a passing min_term check states the rule it was measured against', () => {
+  render(<ChecksList checks={[check({ type: 'min_term', result: 'pass', details: { min_term_days: 10 } })]} />);
+  expect(screen.getByText(/10 kun/)).toBeInTheDocument();
+  expect(screen.queryByText(/min_term_days/)).not.toBeInTheDocument();
+});
+
+test('the recorded-check spelling norm_min_term is recognised the same way', () => {
+  render(<ChecksList checks={[check({ type: 'norm_min_term', result: 'skipped', details: { reason: 'no_min_term_defined' } })]} />);
+  expect(screen.getByText('Minimal muddat')).toBeInTheDocument();
+  expect(screen.getByText(/minimal muddat belgilanmagan/)).toBeInTheDocument();
+});
