@@ -271,7 +271,7 @@ export const en = {
 
   // Cabinet applications
   'cabinet.applications.title': 'My applications',
-  'cabinet.applications.subtitle': 'List of all submitted applications and drafts',
+  'cabinet.applications.subtitle': 'List of all submitted applications',
   'cabinet.applications.newApp': 'Submit new application',
   'cabinet.applications.colNumber': 'Application number',
   'cabinet.applications.colActivity': 'Activity type',

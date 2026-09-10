@@ -347,7 +347,7 @@ export const uz_cyrl = {
 
   // Cabinet applications
   'cabinet.applications.title': 'Менинг аризаларим',
-  'cabinet.applications.subtitle': 'Барча топширилган аризалар ва қораламалар рўйхати',
+  'cabinet.applications.subtitle': 'Барча топширилган аризалар рўйхати',
   'cabinet.applications.newApp': 'Янги ариза топшириш',
   'cabinet.applications.colNumber': 'Ариза рақами',
   'cabinet.applications.colActivity': 'Фаолият тури',
