@@ -94,7 +94,7 @@ const CHILD_PAGES: Record<string, ReactNode> = {
 const navigationChildren: RouteObject[] = NAVIGATION.map((item) => {
   const page = CHILD_PAGES[item.to];
   const element = item.permission ? (
-    <RequireAuth permission={item.permission} strict={item.strict}>
+    <RequireAuth permission={item.permission} noSuperuser={item.noSuperuser}>
       {page}
     </RequireAuth>
   ) : (
@@ -139,10 +139,10 @@ const navigationChildren: RouteObject[] = NAVIGATION.map((item) => {
  * (`ActsTab.tsx`) — a route-level permission here would just double-gate
  * the same check with a second, drift-prone copy.
  */
-const DETAIL_ROUTES: { path: string; element: ReactNode; permission?: string; strict?: true }[] = [
-  // `strict` for the same reason as the `/my/*` entries of `NAVIGATION`: the
-  // superuser has no applicant profile to file for (`NavItem.strict`).
-  { path: 'my/applications/new', element: <ApplicationWizardPage />, permission: 'applications.create', strict: true },
+const DETAIL_ROUTES: { path: string; element: ReactNode; permission?: string; noSuperuser?: true }[] = [
+  // `noSuperuser` for the same reason as the `/my/*` entries of `NAVIGATION`:
+  // the superuser has no applicant profile to file for (`NavItem.noSuperuser`).
+  { path: 'my/applications/new', element: <ApplicationWizardPage />, permission: 'applications.create', noSuperuser: true },
   { path: 'my/applications/:id', element: <MyApplicationCardPage /> },
   { path: 'my/invoices/:id', element: <MyInvoicePage /> },
   { path: 'my/permits/:id', element: <MyPermitPage /> },
@@ -167,10 +167,10 @@ const DETAIL_ROUTES: { path: string; element: ReactNode; permission?: string; st
   { path: 'admin/system-settings', element: <SettingsPage />, permission: 'admin.settings.manage' },
 ];
 
-const detailRouteChildren: RouteObject[] = DETAIL_ROUTES.map(({ path, element, permission, strict }) => ({
+const detailRouteChildren: RouteObject[] = DETAIL_ROUTES.map(({ path, element, permission, noSuperuser }) => ({
   path,
   element: permission ? (
-    <RequireAuth permission={permission} strict={strict}>
+    <RequireAuth permission={permission} noSuperuser={noSuperuser}>
       {element}
     </RequireAuth>
   ) : (

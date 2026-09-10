@@ -103,14 +103,17 @@ test('the applicant (holding applications.create) reaches the list normally', as
 // `admin` (sys_admin) still opened this list — with all 22 applications in
 // the system under the heading «My applications», next to the staff
 // «Applications» — and its «New application» button, for an account with
-// no applicant profile behind it. `RequireAuth`'s superuser bypass passed
-// the gate without reading the code; the citizen's own cabinet is the one
-// place that bypass must not open.
+// no applicant profile behind it. The citizen's own cabinet is the one
+// place the superuser must not reach — and NOT because a code is missing:
+// the live `/auth/me` answers `sys_admin` with every code in the registry
+// (`auth/router.py`: `sorted(PERMISSIONS) if is_superuser`), so a fixture
+// with `permissions: []` proved nothing (PR #56 shipped green and changed
+// nothing on the stand). `applications.create` is deliberately IN here.
 const SYSADMIN_ME = {
   ...STAFF_ME,
   user: { ...STAFF_ME.user, id: '33333333-3333-3333-3333-333333333333', full_name: 'Admin Test', login: 'admin' },
   role: { code: 'sys_admin', name: { uz_cyrl: 'Tizim administratori' } },
-  permissions: [],
+  permissions: ['applications.create', 'applications.review', 'applications.decide', 'auth.users.manage'],
   is_superuser: true,
 };
 
