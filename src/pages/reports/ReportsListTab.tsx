@@ -5,7 +5,7 @@
  * app takes (`pages/norms/NormsPage.tsx`'s own header comment).
  */
 import { useState } from 'react';
-import { Link } from 'react-router';
+import { Link, useNavigate } from 'react-router';
 import { Plus } from 'lucide-react';
 import { ApiError } from '../../api/errors';
 import { useAuth } from '../../auth/useAuth';
@@ -46,6 +46,7 @@ const EMPTY_FILTERS: FilterState = { organizationId: '', status: '', formId: '' 
 
 export function ReportsListTab({ active }: { active: boolean }) {
   const t = useT();
+  const navigate = useNavigate();
   const { lang } = useLanguage();
   const { me } = useAuth();
 
@@ -225,6 +226,7 @@ export function ReportsListTab({ active }: { active: boolean }) {
           emptyTitle={t('reports.list.emptyTitle')}
           emptyDescription={t('reports.list.emptyDescription')}
           pagination={{ currentPage: page, totalPages, onPageChange: setPage, totalRecords: list.data?.total }}
+          onRowClick={(row) => navigate(`/reports/${row.id}`)}
         />
       </div>
 

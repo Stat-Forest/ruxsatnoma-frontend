@@ -326,6 +326,7 @@ export function MyApplicationsPage() {
           emptyTitle={t.emptyTitle}
           emptyDescription={t.emptyDesc}
           pagination={{ currentPage: page, totalPages, onPageChange: setPage, totalRecords: total }}
+          onRowClick={(row) => navigate(`/my/applications/${row.id}`)}
         />
       </div>
     </div>

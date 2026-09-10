@@ -453,3 +453,12 @@ test('the users page and create modal render correctly in Uzbek Cyrillic', async
   expect(form.getByRole('button', { name: cyrlLabels.save })).toBeInTheDocument();
   expect(form.getByRole('button', { name: cyrlLabels.cancel })).toBeInTheDocument();
 });
+
+test('a click anywhere on a user row opens the card, not only the "open" button', async () => {
+  server.use(...referenceHandlers());
+  const ui = userEvent.setup();
+  renderUsers();
+
+  await ui.click(await screen.findByText('a.karimov'));
+  expect(await screen.findByTestId('user-card')).toBeInTheDocument();
+});

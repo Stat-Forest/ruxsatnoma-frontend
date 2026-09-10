@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { ArrowUpDown, ArrowUp, ArrowDown, Inbox, Loader2 } from 'lucide-react';
 import { Pagination } from './Navigation';
+import { clickableRowProps } from '../../lib/rowClick';
 import { useLanguage } from '../../i18n/useT';
 
 export interface Column<T> {
@@ -37,6 +38,9 @@ export interface DataTableProps<T extends { id: string | number }> {
   selectable?: boolean;
   onSelectionChange?: (selectedIds: (string | number)[]) => void;
   actions?: (row: T) => React.ReactNode;
+  /** Opens the row's record from a click anywhere on it (see `lib/rowClick`);
+   * the row's own links, buttons and checkboxes keep their own clicks. */
+  onRowClick?: (row: T) => void;
   pagination?: {
     currentPage: number;
     totalPages: number;
@@ -56,6 +60,7 @@ export function DataTable<T extends { id: string | number }>({
   selectable = false,
   onSelectionChange,
   actions,
+  onRowClick,
   pagination,
   className = '',
 }: DataTableProps<T>) {
@@ -196,12 +201,14 @@ export function DataTable<T extends { id: string | number }>({
             ) : (
               sortedData.map((row) => {
                 const isSelected = selectedIds.includes(row.id);
+                const rowProps = onRowClick ? clickableRowProps(() => onRowClick(row)) : undefined;
                 return (
                   <tr
                     key={row.id}
+                    {...rowProps}
                     className={`transition-colors ${
                       isSelected ? 'bg-[#F0F7F1]/50' : 'hover:bg-[#F8F9FA]'
-                    }`}
+                    } ${rowProps?.className ?? ''}`}
                   >
                     {selectable && (
                       <td className="p-3.5 text-center">

@@ -1,5 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { vi } from 'vitest';
 import { DataTable, type Column } from './DataTable';
 
 interface Row {
@@ -69,4 +70,38 @@ test('sorting by a non-null, non-primitive value does not reorder rows (isSortCo
   // ("fruit,yellow" vs "fruit,red") and swap Banana and Apple.
   await user.click(screen.getByRole('button', { name: /Tags/i }));
   expect(nameColumnCells()).toEqual(['Banana', 'Apple']);
+});
+
+test('onRowClick opens the row from any cell but leaves the row\'s own controls alone', async () => {
+  const user = userEvent.setup();
+  const onRowClick = vi.fn();
+  const onAction = vi.fn();
+  render(
+    <DataTable
+      columns={columns}
+      data={rows}
+      selectable
+      onRowClick={onRowClick}
+      actions={(row) => (
+        <button type="button" onClick={() => onAction(row.id)}>
+          act
+        </button>
+      )}
+    />,
+  );
+
+  await user.click(screen.getByText('Banana'));
+  expect(onRowClick).toHaveBeenCalledWith(rows[0]);
+
+  await user.click(screen.getAllByRole('button', { name: 'act' })[1]);
+  expect(onAction).toHaveBeenCalledWith(2);
+  await user.click(screen.getAllByRole('checkbox')[2]);
+  expect(onRowClick).toHaveBeenCalledTimes(1);
+});
+
+test('without onRowClick a row is neither focusable nor a pointer target', () => {
+  render(<DataTable columns={columns} data={rows} />);
+  const row = screen.getAllByRole('row')[1];
+  expect(row).not.toHaveAttribute('tabindex');
+  expect(row.className).not.toContain('cursor-pointer');
 });

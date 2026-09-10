@@ -166,3 +166,19 @@ test('the empty state renders when the register is empty', async () => {
   renderArchivePage(['archive.view']);
   expect(await screen.findByText('archive.empty')).toBeInTheDocument();
 });
+
+test('a click anywhere on an archive row opens the item drawer, not the object link', async () => {
+  server.use(
+    http.get('*/api/v1/archive', () => HttpResponse.json(page([archiveItem()]))),
+    http.get('*/api/v1/archive/:id', () => HttpResponse.json(archiveItem())),
+    http.get('*/api/v1/refs/organizations', () => HttpResponse.json(page([]))),
+  );
+  const user = userEvent.setup();
+  renderArchivePage(['archive.view']);
+
+  await screen.findByTestId('archive-page');
+  // The same label is also a filter <option>; the row's cell is the <td>.
+  await screen.findByTestId(`archive-open-${archiveItem().id}`);
+  await user.click(screen.getAllByText('archive.typeApplication').find((el) => el.tagName === 'TD')!);
+  await screen.findByTestId(`archive-item-detail-${archiveItem().id}`);
+});

@@ -6,7 +6,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter } from 'react-router';
+import { MemoryRouter, useLocation } from 'react-router';
 import { http, HttpResponse } from 'msw';
 import { setupServer } from 'msw/node';
 import { DICTIONARIES, I18nContext, type UiLanguage } from '../../i18n/context';
@@ -81,6 +81,13 @@ beforeAll(() => server.listen({ onUnhandledRequest: 'error' }));
 afterEach(() => server.resetHandlers());
 afterAll(() => server.close());
 
+
+/** Rendered alongside the page so a row's navigation is observable. */
+function LocationProbe() {
+  const location = useLocation();
+  return <div data-testid="current-location">{location.pathname}</div>;
+}
+
 function renderSearchPage(lang: UiLanguage = 'uz_latn', useDict: boolean = false) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
   const i18n = {
@@ -94,6 +101,7 @@ function renderSearchPage(lang: UiLanguage = 'uz_latn', useDict: boolean = false
       <QueryClientProvider client={client}>
         <I18nContext.Provider value={i18n}>
           <SearchPage />
+          <LocationProbe />
         </I18nContext.Provider>
       </QueryClientProvider>
     </MemoryRouter>,
@@ -537,3 +545,35 @@ test('applying profile with lowercase status selects the uppercase option in the
   expect(selects[0]).toHaveValue('DRAFT');
 });
 
+
+test('a click anywhere on a result row follows the same rule as its number: card for a filed application, drawer for a draft', async () => {
+  server.use(
+    http.get('*/api/v1/search', () =>
+      HttpResponse.json(
+        page([
+          applicationResult({ applicant_name: 'Filed Applicant' }),
+          applicationResult({
+            id: 'a1000000-0000-4000-8000-000000000002',
+            number: 'APP-00000002',
+            status: 'DRAFT',
+            organization_id: null,
+            applicant_name: 'Draft Applicant',
+          }),
+        ]),
+      ),
+    ),
+    http.get('*/api/v1/search/profiles', () => HttpResponse.json([])),
+    http.get('*/api/v1/refs/organizations', () => HttpResponse.json(page([]))),
+    http.get('*/api/v1/refs/activity-types', () => HttpResponse.json([])),
+    http.get('*/api/v1/search/exports', () => HttpResponse.json([])),
+  );
+  const user = userEvent.setup();
+  renderSearchPage();
+
+  await user.click(await screen.findByText('Draft Applicant'));
+  expect(await screen.findByTestId('search-detail-drawer')).toBeInTheDocument();
+  expect(screen.getByTestId('current-location')).toHaveTextContent('/');
+
+  await user.click(screen.getByText('Filed Applicant'));
+  expect(screen.getByTestId('current-location')).toHaveTextContent('/applications/a1000000-0000-4000-8000-000000000001');
+});

@@ -16,7 +16,7 @@
  * reformatted here.
  */
 import { useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router';
+import { Link, useNavigate } from 'react-router';
 import { Save, Search as SearchIcon, Trash2 } from 'lucide-react';
 import { ApiError } from '../../api/errors';
 import { Button } from '../../components/ui/button';
@@ -46,6 +46,7 @@ const EMPTY_DRAFT: Draft = { q: '', status: '', organization_id: '', activity_ty
 
 export function SearchPage() {
   const t = useT();
+  const navigate = useNavigate();
   const { lang } = useLanguage();
   const [kind, setKind] = useState<SearchKind>('applications');
   const [draft, setDraft] = useState<Draft>(EMPTY_DRAFT);
@@ -176,14 +177,21 @@ export function SearchPage() {
 
   const [selectedRow, setSelectedRow] = useState<SearchResultOut | null>(null);
 
+  /** A draft, or an application no organisation has picked up yet, has no
+   * card of its own to navigate to — the number opens the drawer instead. */
+  const opensInDrawer = (row: SearchResultOut) =>
+    row.kind === 'applications' && (!row.organization_id || row.status?.toUpperCase() === 'DRAFT');
+  const openRow = (row: SearchResultOut) => {
+    if (opensInDrawer(row)) setSelectedRow(row);
+    else navigate(row.kind === 'applications' ? `/applications/${row.id}` : `/permits/${row.id}`);
+  };
+
   const columns: Column<SearchResultOut>[] = [
     {
       key: 'number',
       header: t('search.col.number'),
       accessor: (row) => {
-        const isNoOrgOrDraft =
-          row.kind === 'applications' && (!row.organization_id || row.status?.toUpperCase() === 'DRAFT');
-        if (isNoOrgOrDraft) {
+        if (opensInDrawer(row)) {
           return (
             <button
               type="button"
@@ -439,6 +447,7 @@ export function SearchPage() {
           emptyTitle={t('search.empty')}
           emptyDescription=""
           pagination={{ currentPage: page, totalPages, onPageChange: setPage, totalRecords: total }}
+          onRowClick={openRow}
         />
       </div>
 

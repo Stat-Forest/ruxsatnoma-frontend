@@ -195,3 +195,18 @@ test('the "Взять в работу" assign action is visible for a manage-hol
   const drawerCitizen = await screen.findByTestId('ticket-detail-t-1');
   expect(within(drawerCitizen).queryByRole('button', { name: 'Взять в работу' })).not.toBeInTheDocument();
 });
+
+test('a click anywhere on a ticket row opens its detail panel', async () => {
+  server.use(
+    http.get('*/api/v1/help/tickets', () =>
+      HttpResponse.json(page([ticket({ id: 't-1', number: 'ST-1', subject: 'Row subject', user_id: CITIZEN_ID })])),
+    ),
+    http.get('*/api/v1/help/tickets/t-1', () =>
+      HttpResponse.json({ ...ticket({ id: 't-1', number: 'ST-1', subject: 'Row subject', user_id: CITIZEN_ID }), messages: [] }),
+    ),
+  );
+  renderTab([]);
+
+  await userEvent.setup().click(await screen.findByText('Row subject'));
+  expect(await screen.findByTestId('ticket-detail-t-1')).toBeInTheDocument();
+});
