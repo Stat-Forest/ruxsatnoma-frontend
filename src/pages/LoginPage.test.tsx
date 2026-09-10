@@ -309,3 +309,65 @@ it('opens in the language the visitor picked last time', async () => {
   render(<App />);
   expect(await screen.findByRole('tab', { name: 'Логин/Пароль' })).toBeInTheDocument();
 });
+
+// A live session at `/login`: the landing's "Kirish" button and a stale
+// bookmark both land here with the cookie still valid. Showing the form to
+// someone who is already signed in is a dead end — every route out of it
+// re-signs them in.
+describe('a signed-in user at /login', () => {
+  function page<T>(items: T[]) {
+    return { items, total: items.length, page: 1, page_size: 100 };
+  }
+
+  it('is sent to the dashboard, never shown the form', async () => {
+    server.use(
+      http.get('*/auth/me', () => HttpResponse.json(ME)),
+      http.get('*/api/v1/applications', () => HttpResponse.json(page([]))),
+      http.get('*/api/v1/permits', () => HttpResponse.json(page([]))),
+      http.get('*/api/v1/invoices', () => HttpResponse.json(page([]))),
+      http.get('*/api/v1/refs/activity-types', () => HttpResponse.json([])),
+    );
+    await router.navigate('/login');
+    render(<App />);
+    expect(await screen.findByTestId('app-shell')).toBeInTheDocument();
+    expect(router.state.location.pathname).toBe('/');
+    expect(screen.queryByTestId('login-page')).not.toBeInTheDocument();
+  });
+
+  it('keeps the destination it arrived with, the same way a fresh login does', async () => {
+    server.use(
+      http.get('*/auth/me', () => HttpResponse.json({ ...ME, permissions: ['applications.create'] })),
+      http.get('*/api/v1/refs/activity-types', () => HttpResponse.json([])),
+      http.get('*/api/v1/refs/livestock-types', () => HttpResponse.json([])),
+      http.get('*/api/v1/refs/classifiers/:code/items', () => HttpResponse.json([])),
+      http.get('*/api/v1/public/site-settings', () => HttpResponse.json({})),
+    );
+    await router.navigate('/login', { state: { next: '/my/applications/new' } });
+    render(<App />);
+    await waitFor(() => expect(router.state.location.pathname).toBe('/my/applications/new'));
+    expect(screen.queryByTestId('login-page')).not.toBeInTheDocument();
+  });
+
+  it('sees a spinner, not a flash of the form, while the session is still being checked', async () => {
+    let release!: () => void;
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    server.use(
+      http.get('*/auth/me', async () => {
+        await gate;
+        return HttpResponse.json(ME);
+      }),
+      http.get('*/api/v1/applications', () => HttpResponse.json(page([]))),
+      http.get('*/api/v1/permits', () => HttpResponse.json(page([]))),
+      http.get('*/api/v1/invoices', () => HttpResponse.json(page([]))),
+      http.get('*/api/v1/refs/activity-types', () => HttpResponse.json([])),
+    );
+    await router.navigate('/login');
+    render(<App />);
+    expect(screen.getByRole('status')).toBeInTheDocument();
+    expect(screen.queryByTestId('login-page')).not.toBeInTheDocument();
+    release();
+    expect(await screen.findByTestId('app-shell')).toBeInTheDocument();
+  });
+});
