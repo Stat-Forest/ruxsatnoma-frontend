@@ -229,6 +229,10 @@ export function ContoursTab({ t }: { t: (key: string) => string }) {
 
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
+  // One leshoz, or `''` for all — narrows the list AND the map's browsable
+  // layer together (both endpoints take the same `organization_id`), so the
+  // two never show different sets of the same contours side by side.
+  const [orgFilter, setOrgFilter] = useState('');
   const [selectedContourId, setSelectedContourId] = useState<string | null>(null);
   const [mode, setMode] = useState<WorkMode>('browse');
   const [showCreateForm, setShowCreateForm] = useState(false);
@@ -252,7 +256,7 @@ export function ContoursTab({ t }: { t: (key: string) => string }) {
   // localStorage cache (React state, not the cache itself, drives render).
   const [recallTick, setRecallTick] = useState(0);
 
-  const contoursQuery = useContours({ page, page_size: 50 });
+  const contoursQuery = useContours({ page, page_size: 50, organization_id: orgFilter || undefined });
   const organizationsQuery = useOrganizations();
   // Skipped for the contour we ourselves just created and have not yet drawn
   // a version for: `contour_card` requires a published version (backend
@@ -261,7 +265,7 @@ export function ContoursTab({ t }: { t: (key: string) => string }) {
   const cardQuery = useContourCard(selectedContourId, {
     enabled: selectedContourId !== pendingContourId,
   });
-  const featuresQuery = useContourFeatures(bbox);
+  const featuresQuery = useContourFeatures(bbox, orgFilter || undefined);
   const createContour = useCreateContour();
   const createVersion = useCreateVersion(pendingContourId ?? selectedContourId ?? '');
   const archivePublished = useArchiveVersion(selectedContourId ?? '');
@@ -318,6 +322,19 @@ export function ContoursTab({ t }: { t: (key: string) => string }) {
     setShowCreateForm(false);
     setDrawnGeometry(null);
     setSplitLine(null);
+  }
+
+  /** A click on a parcel drawn on the map — the same selection the list row
+   * makes, with one difference: clicking the parcel that is already selected
+   * clears the selection (the toggle `ContourPicker`'s map is built on),
+   * because on a map there is no other control for "none". `DrawMap` only
+   * fires this in browse mode, so no draw in progress is ever interrupted. */
+  function pickContourOnMap(id: string) {
+    if (id === selectedContourId) {
+      setSelectedContourId(null);
+      return;
+    }
+    selectContour(id);
   }
 
   async function handleCreateContour(fields: { organization_id: string; number: string }) {
@@ -386,6 +403,18 @@ export function ContoursTab({ t }: { t: (key: string) => string }) {
                 </Button>
               )}
             </div>
+            <Select
+              aria-label={t('gis.contours.filterOrganization')}
+              data-testid="contour-org-filter"
+              value={orgFilter}
+              onChange={(e) => {
+                setOrgFilter(e.target.value);
+                // Page numbers belong to the previous filter's list; page 2
+                // of a narrower one may not even exist.
+                setPage(1);
+              }}
+              options={[{ value: '', label: t('gis.contours.allOrganizations') }, ...orgOptions.map((o) => ({ value: o.id, label: o.label }))]}
+            />
             <Input
               placeholder={t('gis.contours.searchPlaceholder')}
               value={search}
@@ -573,7 +602,9 @@ export function ContoursTab({ t }: { t: (key: string) => string }) {
               referenceGeometry={mode === 'edit-draft' || mode === 'split' ? knownGeometry : null}
               selectedGeometry={mode === 'browse' ? knownGeometry : null}
               browsableFeatures={featuresQuery.data as never}
+              browsableLoading={featuresQuery.isFetching}
               onViewportChange={setBbox}
+              onPickContour={pickContourOnMap}
               onDrawFinish={(geometry) => {
                 if (mode === 'split') {
                   setSplitLine(geometry as LineString);
