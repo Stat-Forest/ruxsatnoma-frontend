@@ -99,6 +99,10 @@ export const ru = {
     'В подключённом E-IMZO не найден действующий (не просроченный) сертификат. Получите новый сертификат или обновите просроченный ключ.',
   'eimzo.errors.multipleValidKeys':
     'Обнаружено несколько действующих сертификатов E-IMZO — неясно, каким подписывать. Оставьте подключённым только нужный сертификат/ключ и повторите попытку.',
+  // Mock mode only (`lib/eimzo/useMockSigner.ts`): whose PINFL the mock
+  // envelope carries, read from `/auth/me` instead of typed in.
+  'eimzo.mock.signingAs': 'Демо-режим: подпись тестовой ЭЦП. ПИНФЛ сертификата (из вашего аккаунта):',
+  'eimzo.mock.pinflMissing': 'В вашем аккаунте не записан ПИНФЛ — подписать тестовой ЭЦП нельзя. Обратитесь к администратору.',
   'dash.error': 'Не удалось загрузить данные. Обновите страницу.',
   'dash.loading': 'Загрузка…',
   'dash.activePermits.label': 'Действующие разрешения',
@@ -1133,9 +1137,6 @@ export const ru = {
   'permits.lifecycle.docLabel': 'Документ-приказ (PDF)',
   'permits.lifecycle.docRequiredHint': 'Для этого решения требуется подтверждающий приказ/распоряжение.',
   'permits.lifecycle.docChooseButton': 'Выбрать файл',
-  'permits.lifecycle.pinflLabel': 'Ваш ПИНФЛ',
-  'permits.lifecycle.pinflHelp': '14 цифр — вводится для мок-ЭЦП, в реальном ключе E-IMZO считывается автоматически.',
-  'permits.lifecycle.pinflError': 'Должно быть 14 цифр.',
   'permits.lifecycle.cancelButton': 'Отмена',
   'permits.lifecycle.confirmSuspend': 'Приостановить и подписать',
   'permits.lifecycle.confirmResume': 'Возобновить и подписать',
@@ -1562,9 +1563,6 @@ export const ru = {
   'reports.lifecycle.signButton': 'Подписать (ЭЦП)',
   'reports.lifecycle.signModalTitle': 'Подписание отчёта',
   'reports.lifecycle.signHint': 'Подписывается ЭЦП руководителя лесхоза — в этой среде используется мок-подпись',
-  'reports.lifecycle.pinflLabel': 'ПИНФЛ подписанта',
-  'reports.lifecycle.pinflHelp': '14-значный номер — в реальном E-IMZO считывается с ключа автоматически',
-  'reports.lifecycle.pinflError': 'Введите корректный 14-значный ПИНФЛ',
   'reports.lifecycle.confirmSign': 'Подписать',
   'reports.lifecycle.returnButton': 'Вернуть на доработку',
   'reports.lifecycle.returnModalTitle': 'Возврат отчёта',
@@ -1704,8 +1702,6 @@ export const ru = {
   'inspector.actForm.sign.title': 'Подписание акта',
   'inspector.actForm.sign.violationTypeLabel': 'Тип нарушения',
   'inspector.actForm.sign.violationTypePlaceholder': 'Выберите тип нарушения...',
-  'inspector.actForm.sign.pinflLabel': 'ПИНФЛ (ЭРИ)',
-  'inspector.actForm.sign.pinflError': 'ПИНФЛ должен состоять из 14 цифр.',
   'inspector.actForm.sign.signButton': 'Подписать актом ЭРИ',
   'inspector.actForm.sign.violationCaseOpenedFallback':
     'Акт подписан, дело о нарушении открыто. Найдите его во вкладке «Дела».',

@@ -188,7 +188,7 @@ afterAll(() => server.close());
 function actor(): AuthContextValue {
   return {
     me: {
-      user: { id: ACTOR_ID, full_name: 'Test Actor', login: 'test', phone: null, email: null, must_change_password: false, language: 'uz_latn' },
+      user: { id: ACTOR_ID, full_name: 'Test Actor', login: 'test', phone: null, email: null, must_change_password: false, pinfl: PINFL, language: 'uz_latn' },
       // `role.code`/`zone.organization_id` matching the report's own org so
       // `isHeadOfReportOrg` (the sign/return-by-head identity gate) passes;
       // `is_superuser` covers every permission code so the per-status
@@ -268,7 +268,6 @@ test('create -> generate -> edit data -> submit -> sign -> approve -> revise see
 
   // sign.
   await user.click(screen.getByTestId('report-action-sign'));
-  await user.type(await screen.findByPlaceholderText(PINFL), PINFL);
   await confirm(user);
   expect(await screen.findByTestId('report-action-approve')).toBeInTheDocument();
 
@@ -316,7 +315,6 @@ test('submit -> return (head) -> resubmit -> sign -> return (center) -> resubmit
 
   // sign.
   await user.click(screen.getByTestId('report-action-sign'));
-  await user.type(await screen.findByPlaceholderText(PINFL), PINFL);
   await confirm(user);
   expect(await screen.findByTestId('report-action-approve')).toBeInTheDocument();
 
@@ -333,7 +331,6 @@ test('submit -> return (head) -> resubmit -> sign -> return (center) -> resubmit
   await user.click(await screen.findByTestId('report-action-submit'));
   await confirm(user);
   await user.click(await screen.findByTestId('report-action-sign'));
-  await user.type(await screen.findByPlaceholderText(PINFL), PINFL);
   await confirm(user);
 
   // approve — the terminal state this branch ends on.

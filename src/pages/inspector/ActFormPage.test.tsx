@@ -113,6 +113,7 @@ function authValue(): AuthContextValue {
         phone: null,
         email: null,
         must_change_password: false,
+        pinfl: '31708860250017',
         language: 'uz_latn',
       },
       role: { code: 'inspector', name: {} },
@@ -291,7 +292,6 @@ test('a successful sign navigates to the matching case', async () => {
   await screen.findByText('Ruxsatsiz chorva boqish');
   const typeSelect = screen.getByDisplayValue('inspector.actForm.sign.violationTypePlaceholder');
   await user.selectOptions(typeSelect, 'Ruxsatsiz chorva boqish');
-  await user.type(screen.getByPlaceholderText('31708860250017'), '31708860250017');
   await user.click(screen.getByText('inspector.actForm.sign.signButton'));
 
   const landed = await screen.findByTestId('landed');
@@ -315,7 +315,6 @@ test('a successful sign with no matching case on the first page falls back to a 
 
   await screen.findByText('Ruxsatsiz chorva boqish');
   await user.selectOptions(screen.getByDisplayValue('inspector.actForm.sign.violationTypePlaceholder'), 'Ruxsatsiz chorva boqish');
-  await user.type(screen.getByPlaceholderText('31708860250017'), '31708860250017');
   await user.click(screen.getByText('inspector.actForm.sign.signButton'));
 
   expect(await screen.findByText('inspector.actForm.sign.violationCaseOpenedFallback')).toBeInTheDocument();

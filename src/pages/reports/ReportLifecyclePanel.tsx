@@ -23,14 +23,15 @@ import { useAuth } from '../../auth/useAuth';
 import { useT } from '../../i18n/useT';
 import { ApiError } from '../../api/errors';
 import { Button } from '../../components/ui/button';
-import { FormField, Input, Textarea } from '../../components/ui/FormControls';
+import { FormField, Textarea } from '../../components/ui/FormControls';
 import { satisfies } from '../../shell/navigation';
 import {
   buildMockSignature,
   eimzoErrorMessageKey,
   isEimzoMock,
-  PINFL_PATTERN,
+  MockSignerNotice,
   signDocument,
+  useMockSigner,
 } from '../../lib/eimzo';
 import { ConfirmDialog } from './ConfirmDialog';
 import { reportDocumentBytes } from './reportDocument';
@@ -75,8 +76,7 @@ export function ReportLifecyclePanel({
   const { me } = useAuth();
   const t = useT();
   const [open, setOpen] = useState<OpenAction>(null);
-  const [pinfl, setPinfl] = useState('');
-  const [pinflTouched, setPinflTouched] = useState(false);
+  const signer = useMockSigner();
   const [comment, setComment] = useState('');
   // Real mode only: `signDocument` runs BEFORE `sign.mutate`, so its own
   // failure never reaches `sign.error`/`signErr` below — the same split
@@ -97,8 +97,6 @@ export function ReportLifecyclePanel({
 
   function closeAll() {
     setOpen(null);
-    setPinfl('');
-    setPinflTouched(false);
     setComment('');
     setEimzoErrorKey(null);
     submit.reset();
@@ -109,10 +107,6 @@ export function ReportLifecyclePanel({
   }
 
   async function handleConfirmSign() {
-    if (isEimzoMock() && !PINFL_PATTERN.test(pinfl)) {
-      setPinflTouched(true);
-      return;
-    }
     const documentBytes = reportDocumentBytes({
       reportId: report.id,
       formId: report.form_id,
@@ -125,7 +119,11 @@ export function ReportLifecyclePanel({
     setEimzoErrorKey(null);
     let pkcs7: string;
     if (isEimzoMock()) {
-      pkcs7 = await buildMockSignature({ pinfl, documentBytes });
+      // The envelope carries the signed-in user's own PINFL (`useMockSigner`),
+      // never a typed one — `confirmDisabled` below already blocks the dialog
+      // when there is none to carry.
+      if (signer.pinfl === null) return;
+      pkcs7 = await buildMockSignature({ pinfl: signer.pinfl, documentBytes, fullName: signer.fullName });
     } else {
       // Real mode: DETACHED, over the exact canonical bytes above
       // (`reports/service.py::sign_report`'s own `_report_bytes` byte-for-byte
@@ -230,27 +228,12 @@ export function ReportLifecyclePanel({
           confirmLabel={t('reports.lifecycle.confirmSign')}
           cancelLabel={t('reports.lifecycle.cancelButton')}
           isPending={sign.isPending || signing}
-          confirmDisabled={isEimzoMock() && !PINFL_PATTERN.test(pinfl)}
+          confirmDisabled={signer.blocked}
           errorMessage={eimzoErrorKey ? t(eimzoErrorKey) : signErr ? reportErrorMessage(t, signErr) : null}
           onConfirm={() => void handleConfirmSign()}
           onClose={closeAll}
         >
-          {isEimzoMock() && (
-            <FormField
-              label={t('reports.lifecycle.pinflLabel')}
-              required
-              helperText={t('reports.lifecycle.pinflHelp')}
-              error={pinflTouched && !PINFL_PATTERN.test(pinfl) ? t('reports.lifecycle.pinflError') : undefined}
-            >
-              <Input
-                inputMode="numeric"
-                value={pinfl}
-                onChange={(e) => setPinfl(e.target.value.replace(/\D/g, '').slice(0, 14))}
-                onBlur={() => setPinflTouched(true)}
-                placeholder="31708860250017"
-              />
-            </FormField>
-          )}
+          <MockSignerNotice signer={signer} />
         </ConfirmDialog>
       )}
 

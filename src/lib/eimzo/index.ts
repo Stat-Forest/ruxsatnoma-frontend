@@ -44,9 +44,10 @@ export {
 } from '../../pages/permits/eimzo';
 export type { MockEnvelopeInput } from '../../pages/permits/eimzo';
 
-export function isEimzoMock(): boolean {
-  return import.meta.env.VITE_EIMZO_MOCK !== 'false';
-}
+export { isEimzoMock } from './switch';
+export { useMockSigner } from './useMockSigner';
+export type { MockSigner } from './useMockSigner';
+export { MockSignerNotice } from './MockSignerNotice';
 
 export { listKeys, loadKey, createPkcs7, signDocument, signAttached } from './client';
 export type { EimzoKeyInfo } from './client';

@@ -25,6 +25,7 @@ function authValue(options: {
         phone: '+998901234567',
         email: 'chief@burchmulla.uz',
         must_change_password: false,
+        pinfl: null,
         language: 'uz_latn',
       },
       role: {

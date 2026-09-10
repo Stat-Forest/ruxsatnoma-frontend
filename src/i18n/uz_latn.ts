@@ -119,6 +119,10 @@ export const uz_latn = {
     "Ulangan E-IMZO'da amaldagi (muddati o'tmagan) sertifikat topilmadi. Yangi sertifikat oling yoki muddati o'tgan kalitni yangilang.",
   'eimzo.errors.multipleValidKeys':
     "Bir nechta amaldagi E-IMZO sertifikati aniqlandi — qaysi biri bilan imzolash noaniq. Faqat kerakli sertifikat/kalitni ulab qoldiring va qaytadan urining.",
+  // Mock mode only (`lib/eimzo/useMockSigner.ts`): whose PINFL the mock
+  // envelope carries, read from `/auth/me` instead of typed in.
+  'eimzo.mock.signingAs': 'Demo rejimi: mock ERI bilan imzolanadi. Sertifikat PINFL (hisobingizdan):',
+  'eimzo.mock.pinflMissing': 'Hisobingizda PINFL qayd etilmagan — mock ERI bilan imzolab boʻlmaydi. Administratorga murojaat qiling.',
   'dash.error': "Ma'lumotlarni yuklab bo'lmadi. Sahifani yangilab ko'ring.",
   'dash.loading': 'Yuklanmoqda…',
   'dash.activePermits.label': 'Amaldagi ruxsatnomalar',
@@ -1154,9 +1158,6 @@ export const uz_latn = {
   'permits.lifecycle.docLabel': "Buyruq hujjati (PDF)",
   'permits.lifecycle.docRequiredHint': "Bu qaror uchun tasdiqlovchi buyruq/order talab qilinadi.",
   'permits.lifecycle.docChooseButton': "Fayl tanlash",
-  'permits.lifecycle.pinflLabel': "Sizning PINFL (JSHSHIR)",
-  'permits.lifecycle.pinflHelp': "14 xonali raqam — mock ERI uchun kiritiladi, haqiqiy E-IMZO kalitida avtomatik oʻqiladi.",
-  'permits.lifecycle.pinflError': "14 xonali raqam boʻlishi kerak.",
   'permits.lifecycle.cancelButton': "Bekor qilish",
   'permits.lifecycle.confirmSuspend': "Toʻxtatish va imzolash",
   'permits.lifecycle.confirmResume': "Faollashtirish va imzolash",
@@ -1588,9 +1589,6 @@ export const uz_latn = {
   'reports.lifecycle.signButton': 'Imzolash (ERI)',
   'reports.lifecycle.signModalTitle': 'Hisobotni imzolash',
   'reports.lifecycle.signHint': 'Oʻrmon xoʻjaligi rahbarining ERI bilan imzolanadi — bu muhitda mock imzo ishlatiladi',
-  'reports.lifecycle.pinflLabel': 'Imzolovchining PINFL raqami',
-  'reports.lifecycle.pinflHelp': '14 xonali raqam — haqiqiy E-IMZO kalitida avtomatik oʻqiladi',
-  'reports.lifecycle.pinflError': '14 xonali toʻgʻri PINFL kiriting',
   'reports.lifecycle.confirmSign': 'Imzolash',
   'reports.lifecycle.returnButton': 'Qayta ishlashga qaytarish',
   'reports.lifecycle.returnModalTitle': 'Hisobotni qaytarish',
@@ -1730,8 +1728,6 @@ export const uz_latn = {
   'inspector.actForm.sign.title': "Aktni imzolash",
   'inspector.actForm.sign.violationTypeLabel': "Buzilish turi",
   'inspector.actForm.sign.violationTypePlaceholder': "Buzilish turini tanlang...",
-  'inspector.actForm.sign.pinflLabel': "PINFL (ERI)",
-  'inspector.actForm.sign.pinflError': "PINFL 14 ta raqamdan iborat boʻlishi kerak.",
   'inspector.actForm.sign.signButton': "ERI bilan imzolash",
   'inspector.actForm.sign.violationCaseOpenedFallback':
     "Akt imzolandi, buzilish ishi ochildi. Uni «Ishlar» boʻlimidan toping.",

@@ -2,15 +2,16 @@ import { useState } from 'react';
 import { AlertCircle, Loader2 } from 'lucide-react';
 import { Modal } from '../../../components/ui/Overlay';
 import { Button } from '../../../components/ui/button';
-import { FormField, Input, Select, Textarea } from '../../../components/ui/FormControls';
+import { FormField, Select, Textarea } from '../../../components/ui/FormControls';
 import { ApiError } from '../../../api/errors';
 import { useApiErrorText } from '../../../i18n/useApiErrorText';
 import {
   buildMockSignature,
   eimzoErrorMessageKey,
   isEimzoMock,
-  PINFL_PATTERN,
+  MockSignerNotice,
   signDocument,
+  useMockSigner,
 } from '../../../lib/eimzo';
 import { useLanguage, useT } from '../../../i18n/useT';
 import { useApplicationPackage, useRejectionReasons } from '../queries';
@@ -52,10 +53,6 @@ const SIGN_DECISION_I18N = {
     selectPlaceholder: 'Tanlang...',
     legalBasisLabel: 'Huquqiy asos (legal_basis)',
     legalBasisPlaceholder: 'Masalan: VMQ 278-son, 12-band',
-    pinflLabel: 'ERI sertifikatingiz PINFL (JSHSHIR)',
-    pinflHelper: '14 xonali raqam — mock ERI uchun kiritiladi, haqiqiy E-IMZO kalitida bu avtomatik oʻqiladi.',
-    pinflRequired: 'PINFL kiritilishi shart — bu maydondagi 14 xonali raqam faqat namuna sifatida koʻrsatilgan.',
-    pinflMustBe14: '14 xonali raqam boʻlishi kerak',
   },
   uz_cyrl: {
     approveTitle: 'Аризани тасдиқлаш',
@@ -70,10 +67,6 @@ const SIGN_DECISION_I18N = {
     selectPlaceholder: 'Танланг...',
     legalBasisLabel: 'Ҳуқуқий асос (legal_basis)',
     legalBasisPlaceholder: 'Масалан: ВМҚ 278-сон, 12-банд',
-    pinflLabel: 'ЭРИ сертификатингиз ПИНФЛ (ЖШШИР)',
-    pinflHelper: '14 хонали рақам — мок ЭРИ учун киритилади, ҳақиқий E-IMZO калитида бу автоматик ўқилади.',
-    pinflRequired: 'ПИНФЛ киритилиши шарт — бу майдондаги 14 хонали рақам фақат намуна сифатида кўрсатилган.',
-    pinflMustBe14: '14 хонали рақам бўлиши керак',
   },
   ru: {
     approveTitle: 'Утверждение заявления',
@@ -88,10 +81,6 @@ const SIGN_DECISION_I18N = {
     selectPlaceholder: 'Выберите...',
     legalBasisLabel: 'Правовое основание (legal_basis)',
     legalBasisPlaceholder: 'Например: ПКМ № 278, пункт 12',
-    pinflLabel: 'ПИНФЛ вашего сертификата ЭЦП',
-    pinflHelper: '14-значный номер — вводится для mock ЭЦП, в реальном ключе E-IMZO считывается автоматически.',
-    pinflRequired: 'ПИНФЛ обязателен — 14-значное число в поле показано лишь как пример.',
-    pinflMustBe14: 'Должен содержать 14 цифр',
   },
   en: {
     approveTitle: 'Approve application',
@@ -106,10 +95,6 @@ const SIGN_DECISION_I18N = {
     selectPlaceholder: 'Select...',
     legalBasisLabel: 'Legal basis (legal_basis)',
     legalBasisPlaceholder: 'For example: Resolution No. 278, item 12',
-    pinflLabel: 'PINFL of your EDS certificate',
-    pinflHelper: '14-digit number — entered for mock EDS, in real E-IMZO key read automatically.',
-    pinflRequired: 'PINFL is required — 14-digit number in field is shown only as placeholder.',
-    pinflMustBe14: 'Must be a 14-digit number',
   },
   kaa: {
     approveTitle: 'Arzanı tastıyıqlaw',
@@ -124,21 +109,17 @@ const SIGN_DECISION_I18N = {
     selectPlaceholder: 'Saylań...',
     legalBasisLabel: 'Huqıqıy tiykar (legal_basis)',
     legalBasisPlaceholder: 'Mısalı: VMQ 278-san, 12-bánt',
-    pinflLabel: 'ERI sertifikatıńızdıń PINFL (JSHSHIR)',
-    pinflHelper: '14 xanalı san — mock ERI ushın kiritiledi, haqıyqıy E-IMZO giltinde bul avtomatikalıq oqıladı.',
-    pinflRequired: 'PINFL kiritiliwi shárt — bul maydandaǵı 14 xanalı san tek úlgi retinde kórsetilgen.',
-    pinflMustBe14: '14 xanalı san bolıwı kerek',
   },
 };
 
 /**
  * The one place both decision routes get their `pkcs7` from. Under the
- * mock, a real E-IMZO client's certificate is stood in for by asking the
- * operator for the PINFL it would carry (see `lib/eimzoMock.ts`'s own
- * docstring for why `GET /auth/me` cannot supply it); in real mode
- * (fix wave, finding 2) there is no PINFL box at all — the certificate the
- * signer picks in E-IMZO carries that identity, task 10's own rule applied
- * here. Nothing about the DECISION itself is faked either way: the bytes
+ * mock, a real E-IMZO client's certificate is stood in for by an envelope
+ * carrying the signed-in user's own PINFL (`useMockSigner` — read from
+ * `GET /auth/me`, never typed in); in real mode (fix wave, finding 2) the
+ * certificate the signer picks in E-IMZO carries that identity, task 10's
+ * own rule applied here. Either way this modal is a plain confirmation.
+ * Nothing about the DECISION itself is faked: the bytes
  * signed are the real `GET /applications/{id}/package` response, fetched
  * fresh on open (ruling 23 — the package is priced afresh on every call),
  * DETACHED (`signatures.service.sign()` -> `verify_detached`), and the
@@ -160,13 +141,9 @@ export function SignDecisionModal({
   const t = useT();
   const tr = SIGN_DECISION_I18N[lang] ?? SIGN_DECISION_I18N.uz_latn;
   const errorText = useApiErrorText();
-  const [pinfl, setPinfl] = useState('');
+  const signer = useMockSigner();
   const [reasonItemId, setReasonItemId] = useState('');
   const [legalBasis, setLegalBasis] = useState('');
-  // Set only once the operator has actually tried to submit with the PINFL
-  // field empty — an empty field is normal before that point and should not
-  // shout at someone who has not touched the form yet.
-  const [pinflTouched, setPinflTouched] = useState(false);
   // Real mode only: `signDocument` runs BEFORE `onSubmitApprove`/
   // `onSubmitReject` ever fire, so its own failure never reaches the
   // mutation's `error` prop — kept apart, same reason
@@ -183,16 +160,9 @@ export function SignDecisionModal({
       : tr.packageErrorFallback
     : null;
 
-  // Mock mode only — a real certificate carries the signer's identity, no
-  // PINFL box to validate (task 10's own rule, applied here per fix wave
-  // finding 2).
-  const pinflValid = !isEimzoMock() || PINFL_PATTERN.test(pinfl);
-  // `pinflValid` is deliberately NOT part of `canSubmit`: with it there, an
-  // empty field simply disabled the button and a click did nothing at all —
-  // no error, no feedback (the defect this task fixes). The button stays
-  // clickable so `handleSubmit` below can run its own check and say why it
-  // refused, the same way `PermitSignaturesPanel.tsx::handleSign` already
-  // does for the permit's own signature slots.
+  // `signer.blocked` (mock mode, no PINFL on the account) disables the
+  // button — unlike the old empty-field case there is nothing the operator
+  // could type to fix it, and `MockSignerNotice` below says why.
   // Ruling #182: with a benefit-claim rejection reason on hand, `legal_basis`
   // is optional — the server fills it from that reason when this field is
   // left blank (`legalBasisRequired` below feeds both the button gate and
@@ -202,18 +172,16 @@ export function SignDecisionModal({
     packageQuery.data !== undefined &&
     !isSubmitting &&
     !signing &&
+    !signer.blocked &&
     (mode === 'approve' || (reasonItemId !== '' && (!legalBasisRequired || legalBasis.trim().length > 0)));
 
   async function handleSubmit() {
-    if (isEimzoMock() && !PINFL_PATTERN.test(pinfl)) {
-      setPinflTouched(true);
-      return;
-    }
     if (!packageQuery.data) return;
     setEimzoErrorKey(null);
     let pkcs7: string;
     if (isEimzoMock()) {
-      pkcs7 = await buildMockSignature({ pinfl, documentBytes: packageQuery.data });
+      if (signer.pinfl === null) return;
+      pkcs7 = await buildMockSignature({ pinfl: signer.pinfl, documentBytes: packageQuery.data, fullName: signer.fullName });
     } else {
       // Real mode: DETACHED — `signatures.service.sign()` hashes the exact
       // `GET /applications/{id}/package` bytes fetched above and calls
@@ -302,30 +270,7 @@ export function SignDecisionModal({
           </>
         )}
 
-        {/* Mock mode only: a real E-IMZO key carries the signer's identity,
-            so there is nothing for the operator to type. */}
-        {isEimzoMock() && (
-          <FormField
-            label={tr.pinflLabel}
-            required
-            helperText={tr.pinflHelper}
-            error={
-              (pinflTouched || pinfl !== '') && !pinflValid
-                ? pinfl === ''
-                  ? tr.pinflRequired
-                  : tr.pinflMustBe14
-                : undefined
-            }
-          >
-            <Input
-              inputMode="numeric"
-              value={pinfl}
-              onChange={(e) => setPinfl(e.target.value.replace(/\D/g, '').slice(0, 14))}
-              onBlur={() => setPinflTouched(true)}
-              placeholder="31207854315218"
-            />
-          </FormField>
-        )}
+        <MockSignerNotice signer={signer} />
 
         {eimzoErrorKey && (
           <div className="p-3 bg-[#FEF2F2] border border-[#FCA5A5] rounded-xl text-xs text-[#991B1B] space-y-1">

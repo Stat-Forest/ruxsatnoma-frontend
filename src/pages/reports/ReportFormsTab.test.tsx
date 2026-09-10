@@ -59,7 +59,7 @@ function mockBackend(options: { forms?: unknown[] }) {
 function meWith(permissions: string[]): AuthContextValue {
   return {
     me: {
-      user: { id: 'u1', full_name: 'Test', login: 'test', phone: null, email: null, must_change_password: false, language: 'uz_latn' },
+      user: { id: 'u1', full_name: 'Test', login: 'test', phone: null, email: null, must_change_password: false, pinfl: null, language: 'uz_latn' },
       role: { code: 'central_admin', name: { uz_latn: 'Markaziy apparat' } },
       permissions,
       zone: { region_id: null, district_id: null, organization_id: null },

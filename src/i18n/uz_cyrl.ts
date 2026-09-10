@@ -147,6 +147,10 @@ export const uz_cyrl = {
     'Уланган E-IMZO’да амалдаги (муддати ўтмаган) сертификат топилмади. Янги сертификат олинг ёки муддати ўтган калитни янгиланг.',
   'eimzo.errors.multipleValidKeys':
     'Бир нечта амалдаги E-IMZO сертификати аниқланди — қайси бири билан имзолаш ноаниқ. Фақат керакли сертификат/калитни улаб қолдиринг ва қайтадан уринг.',
+  // Mock mode only (`lib/eimzo/useMockSigner.ts`): whose PINFL the mock
+  // envelope carries, read from `/auth/me` instead of typed in.
+  'eimzo.mock.signingAs': 'Демо режими: мок ЭРИ билан имзоланади. Сертификат ПИНФЛ (ҳисобингиздан):',
+  'eimzo.mock.pinflMissing': 'Ҳисобингизда ПИНФЛ қайд этилмаган — мок ЭРИ билан имзолаб бўлмайди. Администраторга мурожаат қилинг.',
   'dash.error': "Маълумотларни юклаб бўлмади. Саҳифани янгилаб кўринг.",
   'dash.loading': 'Юкланмоқда…',
   'dash.activePermits.label': 'Амалдаги рухсатномалар',
@@ -1171,9 +1175,6 @@ export const uz_cyrl = {
   'permits.lifecycle.docLabel': "Буйруқ ҳужжати (ПДФ)",
   'permits.lifecycle.docRequiredHint': "Бу қарор учун тасдиқловчи буйруқ/ордер талаб қилинади.",
   'permits.lifecycle.docChooseButton': "Файл танлаш",
-  'permits.lifecycle.pinflLabel': "Сизнинг ЖШШИР (ЖШШИР)",
-  'permits.lifecycle.pinflHelp': "14 хонали рақам — моcк ЭРИ учун киритилади, ҳақиқий Э-ИМЗО калитида автоматик ўқилади.",
-  'permits.lifecycle.pinflError': "14 хонали рақам бўлиши керак.",
   'permits.lifecycle.cancelButton': "Бекор қилиш",
   'permits.lifecycle.confirmSuspend': "Тўхтатиш ва имзолаш",
   'permits.lifecycle.confirmResume': "Фаоллаштириш ва имзолаш",
@@ -1600,9 +1601,6 @@ export const uz_cyrl = {
   'reports.lifecycle.signButton': 'Имзолаш (ЭРИ)',
   'reports.lifecycle.signModalTitle': 'Ҳисоботни имзолаш',
   'reports.lifecycle.signHint': 'Ўрмон хўжалиги раҳбарининг ЭРИ билан имзоланади — бу муҳитда моcк имзо ишлатилади',
-  'reports.lifecycle.pinflLabel': 'Имзоловчининг ЖШШИР рақами',
-  'reports.lifecycle.pinflHelp': '14 хонали рақам — ҳақиқий Э-ИМЗО калитида автоматик ўқилади',
-  'reports.lifecycle.pinflError': '14 хонали тўғри ЖШШИР киритинг',
   'reports.lifecycle.confirmSign': 'Имзолаш',
   'reports.lifecycle.returnButton': 'Қайта ишлашга қайтариш',
   'reports.lifecycle.returnModalTitle': 'Ҳисоботни қайтариш',
@@ -1735,8 +1733,6 @@ export const uz_cyrl = {
   'inspector.actForm.sign.title': "Актни имзолаш",
   'inspector.actForm.sign.violationTypeLabel': "Бузилиш тури",
   'inspector.actForm.sign.violationTypePlaceholder': "Бузилиш турини танланг...",
-  'inspector.actForm.sign.pinflLabel': "ЖШШИР (ЭРИ)",
-  'inspector.actForm.sign.pinflError': "ЖШШИР 14 та рақамдан иборат бўлиши керак.",
   'inspector.actForm.sign.signButton': "ЭРИ билан имзолаш",
   'inspector.actForm.sign.violationCaseOpenedFallback':
     "Акт имзоланди, бузилиш иши очилди. Уни «Ишлар» бўлимидан топинг.",

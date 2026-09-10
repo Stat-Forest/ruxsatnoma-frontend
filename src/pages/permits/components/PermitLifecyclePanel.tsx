@@ -8,9 +8,16 @@ import { useApiErrorText } from '../../../i18n/useApiErrorText';
 import { useLanguage, useT } from '../../../i18n/useT';
 import { Button } from '../../../components/ui/button';
 import { Modal } from '../../../components/ui/Overlay';
-import { FileInput, FormField, Input, Select, Textarea } from '../../../components/ui/FormControls';
+import { FileInput, FormField, Select, Textarea } from '../../../components/ui/FormControls';
 import { ApiError } from '../../../api/errors';
-import { buildMockSignature, eimzoErrorMessageKey, isEimzoMock, PINFL_PATTERN, signDocument } from '../../../lib/eimzo';
+import {
+  buildMockSignature,
+  eimzoErrorMessageKey,
+  isEimzoMock,
+  MockSignerNotice,
+  signDocument,
+  useMockSigner,
+} from '../../../lib/eimzo';
 import { PERMITS_MANAGE } from '../permissions';
 import {
   EXPLANATION_REQUIRED_CODE,
@@ -85,8 +92,7 @@ function LifecycleDecisionModal({
   const errorText = useApiErrorText();
   const [reasonItemId, setReasonItemId] = useState('');
   const [legalBasis, setLegalBasis] = useState('');
-  const [pinfl, setPinfl] = useState('');
-  const [pinflTouched, setPinflTouched] = useState(false);
+  const signer = useMockSigner();
   const [docFile, setDocFile] = useState<{ id: string; name: string } | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
   // Real mode only: `signDocument` runs BEFORE `mutation.mutate`, so its own
@@ -122,19 +128,15 @@ function LifecycleDecisionModal({
     }
   }
 
-  const pinflValid = !isEimzoMock() || PINFL_PATTERN.test(pinfl);
   const canSubmit =
     reasonItemId !== '' &&
+    !signer.blocked &&
     (!requiresLegalBasis || legalBasis.trim().length > 0) &&
     (!requiresDoc || docFile !== null) &&
     !mutation.isPending &&
     !signing;
 
   async function handleSubmit() {
-    if (isEimzoMock() && !PINFL_PATTERN.test(pinfl)) {
-      setPinflTouched(true);
-      return;
-    }
     if (!selectedItem) return;
     const documentBytes = decisionDocumentBytes({
       permitId: permit.id,
@@ -148,7 +150,11 @@ function LifecycleDecisionModal({
     setEimzoErrorKey(null);
     let pkcs7: string;
     if (isEimzoMock()) {
-      pkcs7 = await buildMockSignature({ pinfl, documentBytes });
+      // The envelope carries the signed-in user's own PINFL (`useMockSigner`),
+      // never a typed one — `signer.blocked` already kept the button disabled
+      // when there is none to carry.
+      if (signer.pinfl === null) return;
+      pkcs7 = await buildMockSignature({ pinfl: signer.pinfl, documentBytes, fullName: signer.fullName });
     } else {
       // Real mode: DETACHED, over the exact canonical bytes just built above
       // (`decisions.py::decision_document()`'s own byte-for-byte match) — no
@@ -242,22 +248,7 @@ function LifecycleDecisionModal({
           </FormField>
         )}
 
-        {isEimzoMock() && (
-          <FormField
-            label={t('permits.lifecycle.pinflLabel')}
-            required
-            helperText={t('permits.lifecycle.pinflHelp')}
-            error={pinflTouched && !pinflValid ? t('permits.lifecycle.pinflError') : undefined}
-          >
-            <Input
-              inputMode="numeric"
-              value={pinfl}
-              onChange={(e) => setPinfl(e.target.value.replace(/\D/g, '').slice(0, 14))}
-              onBlur={() => setPinflTouched(true)}
-              placeholder="31708860250017"
-            />
-          </FormField>
-        )}
+        <MockSignerNotice signer={signer} />
 
         {eimzoErrorKey && (
           <div className="p-3 bg-[#FEF2F2] border border-[#FCA5A5] rounded-xl text-xs text-[#991B1B] space-y-1">
