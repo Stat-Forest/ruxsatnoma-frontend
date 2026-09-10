@@ -23,6 +23,7 @@ import { Modal } from '../../../components/ui/Overlay';
 import { Alert } from '../../../components/ui/Feedback';
 import { StatusBadge } from '../../../components/ui/StatusBadge';
 import { Button } from '../../../components/ui/button';
+import { ExportXlsxButton } from '../../../components/ui/ExportXlsxButton';
 import { ApiError } from '../../../api/errors';
 import { useApiErrorText } from '../../../i18n/useApiErrorText';
 import { useLanguage } from '../../../i18n/useT';
@@ -57,13 +58,14 @@ export function TemplatesPage() {
   const [editing, setEditing] = useState<TemplateOut | null | undefined>(undefined);
   const [archiving, setArchiving] = useState<TemplateOut | null>(null);
 
-  const list = useTemplatesList({
+  const queryParams = {
     event_code: applied.event_code || undefined,
     channel: applied.channel || undefined,
     status: applied.status || undefined,
     page,
     page_size: PAGE_SIZE,
-  });
+  };
+  const list = useTemplatesList(queryParams);
   const archive = useArchiveTemplate();
 
   const totalPages = list.data ? Math.max(1, Math.ceil(list.data.total / PAGE_SIZE)) : 1;
@@ -181,6 +183,7 @@ export function TemplatesPage() {
           <Button variant="primary" size="sm" onClick={applyFilters}>
             {L.apply}
           </Button>
+          <ExportXlsxButton path="/api/v1/admin/notification-templates" query={queryParams} />
         </div>
       </div>
 

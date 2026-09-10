@@ -1,4 +1,4 @@
-import { afterAll, afterEach, beforeAll, expect, test } from 'vitest';
+import { afterAll, afterEach, beforeAll, expect, test, vi } from 'vitest';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -221,4 +221,54 @@ test('a click anywhere on a document card opens its editor; an archived card sta
   const draft = screen.getByTestId(`legal-document-row-${DRAFT}`);
   await userEvent.click(within(draft).getByTestId('legal-document-source'));
   expect(await screen.findByTestId('legal-document-number')).toBeInTheDocument();
+});
+
+test('the Excel button asks the server for the export with the applied filter, never paging the list itself', async () => {
+  mockBackend();
+  const listCalls: string[] = [];
+  let exportUrl: URL | null = null;
+  server.use(
+    http.get('*/api/v1/admin/legal-documents', ({ request }) => {
+      listCalls.push(request.url);
+      return HttpResponse.json(page(LIST));
+    }),
+    http.get('*/api/v1/admin/legal-documents/export.xlsx', ({ request }) => {
+      exportUrl = new URL(request.url);
+      return HttpResponse.text('xlsx-bytes', {
+        headers: {
+          'Content-Disposition': 'attachment; filename="meyoriy-hujjatlar-2026-09-11.xlsx"',
+          'X-Export-Total': '3',
+          'X-Export-Rows': '3',
+          'X-Export-Truncated': 'false',
+        },
+      });
+    }),
+  );
+
+  const createObjectURL = vi.fn().mockReturnValue('blob:mock');
+  const revokeObjectURL = vi.fn();
+  URL.createObjectURL = createObjectURL;
+  URL.revokeObjectURL = revokeObjectURL;
+  const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+
+  const user = userEvent.setup();
+  renderPage();
+  await screen.findByTestId(`legal-document-row-${DRAFT}`);
+
+  const statusSelect = screen.getByLabelText('Holati');
+  await user.selectOptions(statusSelect, 'draft');
+  await screen.findByTestId(`legal-document-row-${DRAFT}`);
+  const listCallsBefore = listCalls.length;
+
+  await user.click(screen.getByTestId('export-xlsx'));
+
+  await waitFor(() => expect(createObjectURL).toHaveBeenCalled());
+  expect(clickSpy).toHaveBeenCalled();
+  expect(listCalls.length).toBe(listCallsBefore); // the export never re-fetches the list
+  expect(exportUrl!.searchParams.get('status')).toBe('draft');
+  expect(exportUrl!.searchParams.get('lang')).toBe('uz_latn');
+  expect(exportUrl!.searchParams.has('page')).toBe(false);
+  expect(exportUrl!.searchParams.has('page_size')).toBe(false);
+
+  clickSpy.mockRestore();
 });
