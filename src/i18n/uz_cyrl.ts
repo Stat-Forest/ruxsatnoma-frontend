@@ -2198,4 +2198,16 @@ export const uz_cyrl = {
   'benefitVerification.reject.submit': 'Рад этиш',
   'benefitVerification.reject.cancel': 'Бекор қилиш',
   'benefitVerification.reject.error': 'Рад этиб бўлмади.',
+
+  // Stage 10, F1 — the rules checkbox (ruling #184), the self/legal branch of
+  // the wizard's last step (ruling #183), and the benefit block's
+  // certificate/document requirement for every category (ruling #181).
+  'wizard.step5.rulesCheckboxLabel': 'Мен {rules} билан танишдим ва розиман.',
+  'wizard.step5.rulesLinkText': 'тартиб-қоидалар',
+  'wizard.step5.signApplication': 'Аризани имзолаш',
+  'wizard.step5.signTitle': 'Аризани имзолаш ва топшириш',
+  'wizard.step5.signDesc':
+    'Аризани топшириш учун қуйидаги тугмани босинг — электрон имзо талаб қилинмайди, чунки тизимга OneID ёки E-IMZO орқали киргансиз.',
+  'wizard.step4.benefitProofOk': 'Имтиёзни тасдиқловчи ҳужжат илова қилинди.',
+  'wizard.step4.benefitProofRequired': 'Танланган имтиёз тоифаси учун тасдиқловчи ҳужжат илова қилиниши шарт.',
 };

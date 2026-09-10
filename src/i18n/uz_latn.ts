@@ -2193,4 +2193,16 @@ export const uz_latn = {
   'benefitVerification.reject.submit': 'Rad etish',
   'benefitVerification.reject.cancel': 'Bekor qilish',
   'benefitVerification.reject.error': "Rad etib boʻlmadi.",
+
+  // Stage 10, F1 — the rules checkbox (ruling #184), the self/legal branch of
+  // the wizard's last step (ruling #183), and the benefit block's
+  // certificate/document requirement for every category (ruling #181).
+  'wizard.step5.rulesCheckboxLabel': "Men {rules} bilan tanishdim va roziman.",
+  'wizard.step5.rulesLinkText': "tartib-qoidalar",
+  'wizard.step5.signApplication': "Arizani imzolash",
+  'wizard.step5.signTitle': "Arizani imzolash va topshirish",
+  'wizard.step5.signDesc':
+    "Arizani topshirish uchun quyidagi tugmani bosing — elektron imzo talab qilinmaydi, chunki tizimga OneID yoki E-IMZO orqali kirgansiz.",
+  'wizard.step4.benefitProofOk': "Imtiyozni tasdiqlovchi hujjat ilova qilindi.",
+  'wizard.step4.benefitProofRequired': "Tanlangan imtiyoz toifasi uchun tasdiqlovchi hujjat ilova qilinishi shart.",
 };

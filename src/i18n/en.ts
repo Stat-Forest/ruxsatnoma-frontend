@@ -1974,4 +1974,16 @@ export const en = {
   'benefitVerification.reject.submit': 'Reject',
   'benefitVerification.reject.cancel': 'Cancel',
   'benefitVerification.reject.error': 'Failed to reject.',
+
+  // Stage 10, F1 — the rules checkbox (ruling #184), the self/legal branch of
+  // the wizard's last step (ruling #183), and the benefit block's
+  // certificate/document requirement for every category (ruling #181).
+  'wizard.step5.rulesCheckboxLabel': 'I have read the {rules} and agree to them.',
+  'wizard.step5.rulesLinkText': 'rules',
+  'wizard.step5.signApplication': 'Sign the application',
+  'wizard.step5.signTitle': 'Sign and submit the application',
+  'wizard.step5.signDesc':
+    'Press the button below to submit the application — no electronic signature is required, since you signed in through OneID or E-IMZO.',
+  'wizard.step4.benefitProofOk': 'The supporting document for the benefit is attached.',
+  'wizard.step4.benefitProofRequired': 'A supporting document is required for the chosen benefit category.',
 };

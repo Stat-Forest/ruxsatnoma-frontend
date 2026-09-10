@@ -31,6 +31,8 @@ export type OrganizationOut = components['schemas']['OrganizationOut'];
 export type InvoiceOut = components['schemas']['InvoiceOut'];
 export type CalculationIn = components['schemas']['CalculationIn'];
 export type FileOut = components['schemas']['FileOut'];
+export type SiteSettingsOut = components['schemas']['SiteSettingsOut'];
+export type ApplicationSubmitIn = components['schemas']['ApplicationSubmitIn'];
 
 export interface Paged<T> {
   items: T[];
@@ -118,12 +120,27 @@ export async function getApplicationPackage(id: string): Promise<ArrayBuffer> {
   return data;
 }
 
-export async function submitApplication(id: string, pkcs7: string): Promise<ApplicationOut> {
+/**
+ * Ruling #183/#184: `pkcs7` is optional now — absent for a citizen filing for
+ * themselves (`on_behalf='self'`, a simple signature with no envelope) and
+ * present for a legal-entity filing (unchanged ERI flow); `rules_accepted`
+ * is mandatory on every submission regardless of which path this is
+ * (ruling #184, `applications.rules_accepted_at`).
+ */
+export async function submitApplication(id: string, body: ApplicationSubmitIn): Promise<ApplicationOut> {
   const { data, error } = await api.POST('/api/v1/applications/{application_id}/submit', {
     params: { path: { application_id: id } },
-    body: { pkcs7 },
+    body,
     headers: { 'Idempotency-Key': crypto.randomUUID() },
   });
+  if (error) throw apiError(error);
+  return data;
+}
+
+/** Anonymous — `GET /public/site-settings`, the same read the landing footer
+ *  uses. The wizard's rules checkbox (ruling #184) links to `rules_url`. */
+export async function getSiteSettings(): Promise<SiteSettingsOut> {
+  const { data, error } = await api.GET('/api/v1/public/site-settings', {});
   if (error) throw apiError(error);
   return data;
 }

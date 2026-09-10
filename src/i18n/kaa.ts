@@ -1975,4 +1975,16 @@ export const kaa = {
   'benefitVerification.reject.submit': 'Biykar etiw',
   'benefitVerification.reject.cancel': 'Biykar etiw',
   'benefitVerification.reject.error': 'Biykar etip bolmadı.',
+
+  // Stage 10, F1 — the rules checkbox (ruling #184), the self/legal branch of
+  // the wizard's last step (ruling #183), and the benefit block's
+  // certificate/document requirement for every category (ruling #181).
+  'wizard.step5.rulesCheckboxLabel': 'Men {rules} penen tanıstım hám olar menen kelisemen.',
+  'wizard.step5.rulesLinkText': 'qaǵıydalar',
+  'wizard.step5.signApplication': 'Arzanı qol qoyıw',
+  'wizard.step5.signTitle': 'Arzanı qol qoyıw hám jiberiw',
+  'wizard.step5.signDesc':
+    'Arzanı jiberiw ushın tómendegi túymeni basıń — elektron qol tańba talap etilmeydi, sebebi siz OneID yamasa E-IMZO arqalı kirdińiz.',
+  'wizard.step4.benefitProofOk': 'Jeńillikti tastıyıqlawshı hújjet qosıldı.',
+  'wizard.step4.benefitProofRequired': 'Tańlanǵan jeńillik kategoriyası ushın tastıyıqlawshı hújjet qosılıwı shárt.',
 };

@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
 import { Link, useParams } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
-import { AlertTriangle, ArrowLeft, CreditCard, ExternalLink, RefreshCw } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, CreditCard, ExternalLink, Gift, RefreshCw } from 'lucide-react';
 import { api } from '../api/client';
 import { apiError } from '../api/errors';
 import { Button } from '../components/ui/button';
@@ -10,6 +10,46 @@ import { toApiError } from './permits/apiErrorHelpers';
 import { formatDateTime, formatMoney } from './permits/format';
 import { INVOICE_STATUS_STYLE, getInvoiceStatusLabel } from './permits/statusMeta';
 import { useLanguage } from '../i18n/useT';
+import { getApplicationCard, listClassifierItems } from './applicant/api';
+import { pickName } from './applicant/format';
+import type { UiLanguage } from '../i18n/context';
+
+/** Stage 10, F1 — ruling #185: a benefit-settled invoice is `paid` with
+ *  nothing collected, and the citizen sees why rather than a bare "paid"
+ *  badge. Local to this page, matching `MyPermitPage.tsx`'s own
+ *  `MY_PERMIT_PAGE_I18N` pattern — this file has no shared `useT()` copy of
+ *  its own to extend. */
+const BENEFIT_SETTLED_I18N: Record<UiLanguage, { title: string; withCategory: string; noCategory: string }> = {
+  uz_latn: {
+    title: "Toʻlov talab qilinmaydi — imtiyoz",
+    withCategory:
+      "Ushbu hisob-faktura «{category}» imtiyoz toifasi asosida toʻliq bepul rasmiylashtirildi — toʻlov talab qilinmaydi.",
+    noCategory: "Ushbu hisob-faktura imtiyoz asosida toʻliq bepul rasmiylashtirildi — toʻlov talab qilinmaydi.",
+  },
+  uz_cyrl: {
+    title: "Тўлов талаб қилинмайди — имтиёз",
+    withCategory:
+      "Ушбу ҳисоб-фактура «{category}» имтиёз тоифаси асосида тўлиқ бепул расмийлаштирилди — тўлов талаб қилинмайди.",
+    noCategory: "Ушбу ҳисоб-фактура имтиёз асосида тўлиқ бепул расмийлаштирилди — тўлов талаб қилинмайди.",
+  },
+  ru: {
+    title: 'Оплата не требуется — льгота',
+    withCategory:
+      'Этот счёт полностью оформлен бесплатно по льготной категории «{category}» — оплата не требуется.',
+    noCategory: 'Этот счёт полностью оформлен бесплатно по льготе — оплата не требуется.',
+  },
+  en: {
+    title: 'Nothing to pay — benefit',
+    withCategory: 'This invoice was issued free of charge under the "{category}" benefit category — no payment is due.',
+    noCategory: 'This invoice was issued free of charge under a benefit — no payment is due.',
+  },
+  kaa: {
+    title: "Tólem talap etilmeydi — jeńillik",
+    withCategory:
+      'Bul invois «{category}» jeńillik kategoriyası tiykarında tolıq biykar tólemli ráwishte rásmiylestirildi — tólem talap etilmeydi.',
+    noCategory: 'Bul invois jeńillik tiykarında tolıq biykar tólemli ráwishte rásmiylestirildi — tólem talap etilmeydi.',
+  },
+};
 
 /** B9 — invoice and payment through Payme.
  *
@@ -42,6 +82,20 @@ export function MyInvoicePage() {
     },
     enabled: !!id,
     retry: false,
+  });
+
+  // Ruling #185: only fetched when actually needed — a benefit-settled
+  // invoice, to name the category it was granted under. Everyone else's
+  // invoice page never makes either of these two extra requests.
+  const applicationQuery = useQuery({
+    queryKey: ['application-for-invoice', invoiceQuery.data?.application_id],
+    queryFn: () => getApplicationCard(invoiceQuery.data!.application_id),
+    enabled: !!invoiceQuery.data?.settled_by_benefit,
+  });
+  const benefitCategoriesQuery = useQuery({
+    queryKey: ['classifier-items', 'benefit_categories'],
+    queryFn: () => listClassifierItems('benefit_categories'),
+    enabled: !!invoiceQuery.data?.settled_by_benefit,
   });
 
   const [paymentUrl, setPaymentUrl] = useState<string | null>(null);
@@ -93,6 +147,13 @@ export function MyInvoicePage() {
 
   const invoice = invoiceQuery.data!;
   const canPay = invoice.status === 'pending';
+  const benefitCopy = BENEFIT_SETTLED_I18N[lang] ?? BENEFIT_SETTLED_I18N.uz_latn;
+  const benefitCategoryName = applicationQuery.data?.benefit_category_item_id
+    ? pickName(
+        benefitCategoriesQuery.data?.find((b) => b.id === applicationQuery.data!.benefit_category_item_id)?.name,
+        lang,
+      )
+    : '';
 
   return (
     <div className="max-w-3xl mx-auto space-y-6 font-sans pb-16">
@@ -154,7 +215,19 @@ export function MyInvoicePage() {
         </div>
       </div>
 
-      {canPay && (
+      {invoice.settled_by_benefit ? (
+        <div className="bg-white border border-[#E4E7EA] rounded-2xl p-6 shadow-xs space-y-2">
+          <h2 className="text-base font-bold text-[#1A1F24] flex items-center gap-2">
+            <Gift className="w-5 h-5 text-[#2E7D4F]" /> {benefitCopy.title}
+          </h2>
+          <p className="text-xs text-[#5A646D]">
+            {benefitCategoryName
+              ? benefitCopy.withCategory.replace('{category}', benefitCategoryName)
+              : benefitCopy.noCategory}
+          </p>
+        </div>
+      ) : (
+        canPay && (
         <div className="bg-white border border-[#E4E7EA] rounded-2xl p-6 shadow-xs space-y-4">
           <h2 className="text-base font-bold text-[#1A1F24] flex items-center gap-2">
             <CreditCard className="w-5 h-5 text-[#2E7D4F]" /> Payme orqali toʻlash
@@ -203,6 +276,7 @@ export function MyInvoicePage() {
             </div>
           )}
         </div>
+        )
       )}
     </div>
   );

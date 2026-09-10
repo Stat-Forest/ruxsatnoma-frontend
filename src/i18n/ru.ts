@@ -2161,4 +2161,16 @@ export const ru = {
   'benefitVerification.reject.submit': 'Отклонить',
   'benefitVerification.reject.cancel': 'Отмена',
   'benefitVerification.reject.error': 'Не удалось отклонить.',
+
+  // Stage 10, F1 — чекбокс правил (решение #184), ветка «сам/юрлицо» на
+  // последнем шаге мастера (решение #183) и обязательность справки/документа
+  // для любой категории льготы (решение #181).
+  'wizard.step5.rulesCheckboxLabel': 'Я ознакомлен(а) с {rules} и согласен(на) с ними.',
+  'wizard.step5.rulesLinkText': 'правилами',
+  'wizard.step5.signApplication': 'Подписать заявку',
+  'wizard.step5.signTitle': 'Подписание и подача заявки',
+  'wizard.step5.signDesc':
+    'Для подачи заявки нажмите кнопку ниже — электронная подпись не требуется, так как вы вошли через OneID или E-IMZO.',
+  'wizard.step4.benefitProofOk': 'Документ, подтверждающий льготу, прикреплён.',
+  'wizard.step4.benefitProofRequired': 'Для выбранной категории льготы необходимо прикрепить подтверждающий документ.',
 };
