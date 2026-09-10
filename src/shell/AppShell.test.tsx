@@ -61,6 +61,14 @@ async function renderShell() {
   return render(<App />);
 }
 
+// The unread count refetches on its 30 s interval and whenever the tab
+// regains focus (TanStack Query's `refetchOnWindowFocus`, listening on
+// `visibilitychange`). The tests below need a refetch on demand, so they
+// pretend the tab just came back into view.
+function refocusWindow() {
+  window.dispatchEvent(new Event('visibilitychange'));
+}
+
 test('on a phone the navigation is a drawer, closed by default', async () => {
   window.matchMedia = mockMatchMedia({ '(min-width: 768px)': false });
   await renderShell();
@@ -81,7 +89,7 @@ test('a zero unread count shows no badge at all, not a red "0"', async () => {
   await renderShell();
   expect(await screen.findByTestId('unread-badge')).toHaveTextContent('3');
   count = 0;
-  await userEvent.click(screen.getByTestId('refresh-notifications'));
+  refocusWindow();
   await waitFor(() => expect(screen.queryByTestId('unread-badge')).not.toBeInTheDocument());
 });
 
@@ -92,7 +100,7 @@ test('a session that expires mid-session lands on the login page, not on a broke
       HttpResponse.json({ error: { code: 'ERR-AUTH-002', message: 'idle timeout' } }, { status: 401 }),
     ),
   );
-  await userEvent.click(await screen.findByTestId('refresh-notifications'));
+  refocusWindow();
   expect(await screen.findByTestId('login-page')).toBeInTheDocument();
 });
 

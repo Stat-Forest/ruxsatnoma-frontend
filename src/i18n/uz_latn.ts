@@ -36,7 +36,6 @@ export const uz_latn = {
   'shell.language': 'Til',
   'shell.openMenu': 'Menyu',
   'shell.closeMenu': 'Yopish',
-  'shell.refresh': 'Yangilash',
   'shell.logout': 'Chiqish',
   'login.loginLabel': 'Login',
   'login.passwordLabel': 'Parol',

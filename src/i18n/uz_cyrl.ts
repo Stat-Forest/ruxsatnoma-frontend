@@ -65,7 +65,6 @@ export const uz_cyrl = {
   'shell.language': 'Тил',
   'shell.openMenu': 'Меню',
   'shell.closeMenu': 'Ёпиш',
-  'shell.refresh': 'Янгилаш',
   'shell.logout': 'Чиқиш',
   'login.loginLabel': 'Логин',
   'login.passwordLabel': 'Пароль',

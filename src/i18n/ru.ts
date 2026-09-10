@@ -32,7 +32,6 @@ export const ru = {
   'shell.language': 'Язык',
   'shell.openMenu': 'Меню',
   'shell.closeMenu': 'Закрыть',
-  'shell.refresh': 'Обновить',
   'shell.logout': 'Выйти',
   'login.loginLabel': 'Логин',
   'login.passwordLabel': 'Пароль',
