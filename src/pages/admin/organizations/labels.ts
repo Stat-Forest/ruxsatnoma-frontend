@@ -32,6 +32,7 @@ export const uz_latn = {
   'tree.edit': 'Tahrirlash',
   'tree.archive': 'Arxivlash',
   'tree.noStir': 'STIR koʻrsatilmagan',
+  'tree.noGis': 'Xaritasiz',
 
   'kind.agency': 'Agentlik',
   'kind.territorial': 'Hududiy boshqarma',
@@ -67,6 +68,9 @@ export const uz_latn = {
   'form.paymeAccountId': 'Payme hisob raqami',
   'form.paymeAccountIdHint':
     "Oʻrmon xoʻjaligi bank hisobidan tashqari — toʻlovning qolgan ulushi shu Payme hisobiga oʻtkaziladi. Koʻrsatilmasa, Payme toʻlovni boʻla olmaydi.",
+  'form.gisEnabled': 'GIS xaritasi yoqilgan',
+  'form.gisEnabledHint':
+    "Oʻchirilsa, bu oʻrmon xoʻjaligi konturlarni faqat rekvizitlar (raqami, maydoni) boʻyicha yuritadi — xarita hech qayerda koʻrsatilmaydi.",
   'form.submit': 'Saqlash',
   'form.cancel': 'Bekor qilish',
   'form.loading': 'Yuklanmoqda...',
@@ -114,6 +118,7 @@ export const ru: Labels = {
   'tree.edit': 'Редактировать',
   'tree.archive': 'Архивировать',
   'tree.noStir': 'ИНН не указан',
+  'tree.noGis': 'Без карты',
 
   'kind.agency': 'Агентство',
   'kind.territorial': 'Территориальное управление',
@@ -149,6 +154,9 @@ export const ru: Labels = {
   'form.paymeAccountId': 'Счёт Payme',
   'form.paymeAccountIdHint':
     'Отдельно от банковского счёта лесхоза — остаток платежа переводится на этот счёт Payme. Если не указан, Payme не может разделить платёж.',
+  'form.gisEnabled': 'Карта ГИС включена',
+  'form.gisEnabledHint':
+    'Если выключено, этот лесхоз ведёт контуры только по реквизитам (номер, площадь) — карта нигде не показывается.',
   'form.submit': 'Сохранить',
   'form.cancel': 'Отмена',
   'form.loading': 'Загрузка...',
@@ -193,6 +201,7 @@ export const uz_cyrl: Labels = {
   'tree.edit': 'Таҳрирлаш',
   'tree.archive': 'Архивлаш',
   'tree.noStir': 'СТИР кўрсатилмаган',
+  'tree.noGis': 'Харитасиз',
 
   'kind.agency': 'Агентлик',
   'kind.territorial': 'Ҳудудий бошқарма',
@@ -228,6 +237,9 @@ export const uz_cyrl: Labels = {
   'form.paymeAccountId': 'Payme ҳисоб рақами',
   'form.paymeAccountIdHint':
     'Ўрмон хўжалиги банк ҳисобидан ташқари — тўловнинг қолган улуши шу Payme ҳисобига ўтказилади. Кўрсатилмаса, Payme тўловни бўла олмайди.',
+  'form.gisEnabled': 'ГИС харитаси ёқилган',
+  'form.gisEnabledHint':
+    'Ўчирилса, бу ўрмон хўжалиги контурларни фақат реквизитлар (рақами, майдони) бўйича юритади — харита ҳеч қаерда кўрсатилмайди.',
   'form.submit': 'Сақлаш',
   'form.cancel': 'Бекор қилиш',
   'form.loading': 'Юкланмоқда...',
@@ -272,6 +284,7 @@ export const en: Labels = {
   'tree.edit': 'Edit',
   'tree.archive': 'Archive',
   'tree.noStir': 'TIN (STIR) not specified',
+  'tree.noGis': 'No map',
 
   'kind.agency': 'Agency',
   'kind.territorial': 'Territorial department',
@@ -307,6 +320,9 @@ export const en: Labels = {
   'form.paymeAccountId': 'Payme account ID',
   'form.paymeAccountIdHint':
     'Apart from the forestry bank account — the remainder of the payment is routed to this Payme account. If not specified, Payme cannot split the payment.',
+  'form.gisEnabled': 'GIS map enabled',
+  'form.gisEnabledHint':
+    'When off, this forestry enterprise manages contours by requisites only (number, area) — no map is shown anywhere.',
   'form.submit': 'Save',
   'form.cancel': 'Cancel',
   'form.loading': 'Loading...',
@@ -351,6 +367,7 @@ export const kaa: Labels = {
   'tree.edit': 'Ózgertiw',
   'tree.archive': 'Arxivlew',
   'tree.noStir': 'STIR kórsetilmegen',
+  'tree.noGis': 'Kartasız',
 
   'kind.agency': 'Agentlik',
   'kind.territorial': 'Aymaqlıq basqarma',
@@ -386,6 +403,9 @@ export const kaa: Labels = {
   'form.paymeAccountId': 'Payme esap beti',
   'form.paymeAccountIdHint':
     'Toǵay xojalıǵı bank esap betinen tısqarı — tólemniń qalǵan úlesi usı Payme esap betine ótkeriledi. Kórsetilmese, Payme tólemdi bóle almaydı.',
+  'form.gisEnabled': 'GIS kartası qosılǵan',
+  'form.gisEnabledHint':
+    'Óshirilse, bul toǵay xojalıǵı konturlardı tek rekvizitler (nomeri, maydanı) boyınsha júrgizedi — karta esh jerde kórsetilmeydi.',
   'form.submit': 'Saqlaw',
   'form.cancel': 'Biykar etiw',
   'form.loading': 'Júklenbekte...',

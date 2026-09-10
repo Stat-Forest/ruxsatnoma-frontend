@@ -16,7 +16,7 @@
 import { useState } from 'react';
 import { AlertCircle, Loader2 } from 'lucide-react';
 import { Button } from '../../../components/ui/button';
-import { FormField, Input, Select } from '../../../components/ui/FormControls';
+import { FormField, Input, Select, Switch } from '../../../components/ui/FormControls';
 import { Modal } from '../../../components/ui/Overlay';
 import { ApiError } from '../../../api/errors';
 import { useLanguage } from '../../../i18n/useT';
@@ -58,6 +58,12 @@ interface FormState {
    *  (a bank account). Free-text like `stir`: the backend validates neither
    *  format, it is an opaque id Payme itself assigns. */
   paymeAccountId: string;
+  /** `organizations.gis_enabled` (T12, decision #178) — the central admin's
+   *  switch for whether this leshoz shows a map at all. Meaningful only for
+   *  `kind === 'leshoz'` (the form only renders the control there), but the
+   *  column exists on every organization row, defaulting `true` the same
+   *  way the backend's own `OrganizationIn.gis_enabled` does. */
+  gisEnabled: boolean;
 }
 
 type FieldErrors = Partial<Record<'parentId' | 'code' | 'nameUzCyrl' | 'stir', string>>;
@@ -96,6 +102,7 @@ function blankState(parent: OrganizationOut | undefined, organizations: Organiza
     regionId: parent?.region_id ?? '',
     districtId: '',
     paymeAccountId: '',
+    gisEnabled: true,
   };
 }
 
@@ -115,6 +122,10 @@ function loadedState(org: OrganizationAdminOut): FormState {
     regionId: org.region_id ?? '',
     districtId: org.district_id ?? '',
     paymeAccountId,
+    // `typeof` guard, not `?? true`: a real `false` from the server must
+    // survive, and only an actually-missing field (a fixture predating the
+    // column, or a stale cache) should fall back to the schema's own default.
+    gisEnabled: typeof org.gis_enabled === 'boolean' ? org.gis_enabled : true,
   };
 }
 
@@ -231,14 +242,24 @@ function OrganizationForm({
       // bank `account` may already live in it, written outside this form);
       // PATCH replaces the whole dict when the key is present, so it is only
       // sent — merged over whatever `GET .../{id}` last returned — when the
-      // Payme id actually changed. Left untouched otherwise, the same
-      // "only what changed" reading `stir`/`region_id` already get from the
-      // backend's own `exclude_unset`, applied here on the client side since
-      // this form always resends those regardless of edits.
+      // Payme id actually changed. `gis_enabled` gets the same "only what
+      // changed" treatment for the same reason `patchOrganization`'s own
+      // docstring gives `kind`/`code`: a field resent unconditionally on
+      // every save is a field this form silently owns end to end, and this
+      // one does not — a leshoz's switch must survive an edit that only
+      // touched its name. Left untouched otherwise, the same reading
+      // `stir`/`region_id` already get from the backend's own
+      // `exclude_unset`, applied here on the client side since this form
+      // always resends those regardless of edits.
       const paymeChanged = state.paymeAccountId.trim() !== initial.paymeAccountId.trim();
-      const body = paymeChanged
-        ? { ...shared, requisites: { ...existingRequisites, payme_account_id: state.paymeAccountId.trim() || null } }
-        : shared;
+      const gisEnabledChanged = state.gisEnabled !== initial.gisEnabled;
+      const body = {
+        ...shared,
+        ...(paymeChanged
+          ? { requisites: { ...existingRequisites, payme_account_id: state.paymeAccountId.trim() || null } }
+          : {}),
+        ...(gisEnabledChanged ? { gis_enabled: state.gisEnabled } : {}),
+      };
       update.mutate({ orgId, body }, { onSuccess: onClose });
       return;
     }
@@ -246,12 +267,16 @@ function OrganizationForm({
       // `requisites` is not optional in the generated type (the backend gives
       // it a `{}` default, which openapi-typescript renders as required); bank
       // details are not part of this screen, so a new row starts empty unless
-      // a Payme id was entered.
+      // a Payme id was entered. `gis_enabled` is required the same way — no
+      // "only when it differs" here, unlike the edit path below: a create has
+      // no prior value to diff against, so it is always sent explicitly, the
+      // same as every other field on this object.
       {
         ...shared,
         kind: state.kind,
         code: state.code.trim(),
         requisites: state.paymeAccountId.trim() ? { payme_account_id: state.paymeAccountId.trim() } : {},
+        gis_enabled: state.gisEnabled,
       },
       { onSuccess: onClose },
     );
@@ -418,6 +443,24 @@ function OrganizationForm({
           />
         </FormField>
       </div>
+
+      {/* T12 (decision #178) — the leshoz shows a map at all only while this
+          is on; off, its contours are filed and browsed by requisites alone
+          everywhere else in the app. Shown only for `kind === 'leshoz'`: the
+          column exists on every organization row, but nothing reads it for
+          any other kind, and offering it there would only invite a
+          meaningless toggle. */}
+      {state.kind === 'leshoz' && (
+        <div className="border-t border-[#E4E7EA] pt-4 space-y-1.5">
+          <Switch
+            checked={state.gisEnabled}
+            onChange={(checked) => patch({ gisEnabled: checked })}
+            label={labels['form.gisEnabled']}
+            data-testid="field-gis-enabled"
+          />
+          <p className="text-xs text-[#5A646D]">{labels['form.gisEnabledHint']}</p>
+        </div>
+      )}
 
       {saveError && (
         <p data-testid="org-form-error" role="alert" className="text-sm text-[#991B1B] bg-[#FEF2F2] border border-[#FCA5A5] rounded-md p-3">

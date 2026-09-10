@@ -20,6 +20,7 @@ function org(id: string, kind: string, parent: string | null, code = id): Organi
     region_id: null,
     district_id: null,
     status: 'active',
+    gis_enabled: true,
   };
 }
 
