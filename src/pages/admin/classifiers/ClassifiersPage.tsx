@@ -100,7 +100,10 @@ type FormMode = 'add' | 'edit' | 'supersede';
 interface ItemForm {
   code: string;
   nameUz: string;
+  nameUzCyrl: string;
   nameRu: string;
+  nameKaa: string;
+  nameEn: string;
   validFrom: string;
   validTo: string;
   sortOrder: string;
@@ -111,7 +114,10 @@ function emptyForm(today: string): ItemForm {
   return {
     code: '',
     nameUz: '',
+    nameUzCyrl: '',
     nameRu: '',
+    nameKaa: '',
+    nameEn: '',
     validFrom: today,
     validTo: '',
     sortOrder: '0',
@@ -120,7 +126,7 @@ function emptyForm(today: string): ItemForm {
 }
 
 function formFromItem(item: ClassifierItemOut, mode: FormMode, today: string): ItemForm {
-  const name = item.name as Record<string, unknown>;
+  const name = (item.name ?? {}) as Record<string, unknown>;
   const asString = (value: unknown) => (typeof value === 'string' ? value : '');
   // A successor must start strictly after the predecessor's close — the
   // service refuses anything earlier — so the default is the day after it,
@@ -129,7 +135,10 @@ function formFromItem(item: ClassifierItemOut, mode: FormMode, today: string): I
   return {
     code: item.code,
     nameUz: asString(name.uz_latn),
+    nameUzCyrl: asString(name.uz_cyrl),
     nameRu: asString(name.ru),
+    nameKaa: asString(name.kaa),
+    nameEn: asString(name.en),
     validFrom: mode === 'supersede' ? (earliest > today ? earliest : today) : item.valid_from,
     validTo: mode === 'supersede' ? '' : (item.valid_to ?? ''),
     sortOrder: '0',
@@ -140,7 +149,10 @@ function formFromItem(item: ClassifierItemOut, mode: FormMode, today: string): I
 function buildName(form: ItemForm): LocalizedName {
   const name: LocalizedName = {};
   if (form.nameUz.trim()) name.uz_latn = form.nameUz.trim();
+  if (form.nameUzCyrl.trim()) name.uz_cyrl = form.nameUzCyrl.trim();
   if (form.nameRu.trim()) name.ru = form.nameRu.trim();
+  if (form.nameKaa.trim()) name.kaa = form.nameKaa.trim();
+  if (form.nameEn.trim()) name.en = form.nameEn.trim();
   return name;
 }
 
@@ -217,7 +229,14 @@ export function ClassifiersPage() {
 
   const [archiveTarget, setArchiveTarget] = useState<ClassifierItemOut | null>(null);
   const [creatingClassifier, setCreatingClassifier] = useState(false);
-  const [newClassifier, setNewClassifier] = useState({ code: '', nameUz: '', nameRu: '' });
+  const [newClassifier, setNewClassifier] = useState({
+    code: '',
+    nameUz: '',
+    nameUzCyrl: '',
+    nameRu: '',
+    nameKaa: '',
+    nameEn: '',
+  });
 
   const items = useQuery({
     queryKey: ['admin', 'classifiers', code, onDate],
@@ -261,13 +280,16 @@ export function ClassifiersPage() {
     mutationFn: async () => {
       const name: LocalizedName = {};
       if (newClassifier.nameUz.trim()) name.uz_latn = newClassifier.nameUz.trim();
+      if (newClassifier.nameUzCyrl.trim()) name.uz_cyrl = newClassifier.nameUzCyrl.trim();
       if (newClassifier.nameRu.trim()) name.ru = newClassifier.nameRu.trim();
+      if (newClassifier.nameKaa.trim()) name.kaa = newClassifier.nameKaa.trim();
+      if (newClassifier.nameEn.trim()) name.en = newClassifier.nameEn.trim();
       await createClassifier({ code: newClassifier.code.trim(), name });
     },
     onSuccess: () => {
       setCode(newClassifier.code.trim());
       setCreatingClassifier(false);
-      setNewClassifier({ code: '', nameUz: '', nameRu: '' });
+      setNewClassifier({ code: '', nameUz: '', nameUzCyrl: '', nameRu: '', nameKaa: '', nameEn: '' });
     },
   });
 
@@ -640,7 +662,7 @@ export function ClassifiersPage() {
             />
           </FormField>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             <FormField label={L.fieldNameUz} required htmlFor="field-name-uz">
               <Input
                 id="field-name-uz"
@@ -649,12 +671,36 @@ export function ClassifiersPage() {
                 onChange={(e) => setForm((f) => ({ ...f, nameUz: e.target.value }))}
               />
             </FormField>
+            <FormField label={L.fieldNameUzCyrl} htmlFor="field-name-uz-cyrl">
+              <Input
+                id="field-name-uz-cyrl"
+                data-testid="field-name-uz-cyrl"
+                value={form.nameUzCyrl}
+                onChange={(e) => setForm((f) => ({ ...f, nameUzCyrl: e.target.value }))}
+              />
+            </FormField>
             <FormField label={L.fieldNameRu} htmlFor="field-name-ru">
               <Input
                 id="field-name-ru"
                 data-testid="field-name-ru"
                 value={form.nameRu}
                 onChange={(e) => setForm((f) => ({ ...f, nameRu: e.target.value }))}
+              />
+            </FormField>
+            <FormField label={L.fieldNameKaa} htmlFor="field-name-kaa">
+              <Input
+                id="field-name-kaa"
+                data-testid="field-name-kaa"
+                value={form.nameKaa}
+                onChange={(e) => setForm((f) => ({ ...f, nameKaa: e.target.value }))}
+              />
+            </FormField>
+            <FormField label={L.fieldNameEn} htmlFor="field-name-en">
+              <Input
+                id="field-name-en"
+                data-testid="field-name-en"
+                value={form.nameEn}
+                onChange={(e) => setForm((f) => ({ ...f, nameEn: e.target.value }))}
               />
             </FormField>
           </div>
@@ -806,12 +852,36 @@ export function ClassifiersPage() {
               onChange={(e) => setNewClassifier((c) => ({ ...c, nameUz: e.target.value }))}
             />
           </FormField>
+          <FormField label={L.fieldNameUzCyrl} htmlFor="new-classifier-name-uz-cyrl">
+            <Input
+              id="new-classifier-name-uz-cyrl"
+              data-testid="new-classifier-name-uz-cyrl"
+              value={newClassifier.nameUzCyrl}
+              onChange={(e) => setNewClassifier((c) => ({ ...c, nameUzCyrl: e.target.value }))}
+            />
+          </FormField>
           <FormField label={L.fieldNameRu} htmlFor="new-classifier-name-ru">
             <Input
               id="new-classifier-name-ru"
               data-testid="new-classifier-name-ru"
               value={newClassifier.nameRu}
               onChange={(e) => setNewClassifier((c) => ({ ...c, nameRu: e.target.value }))}
+            />
+          </FormField>
+          <FormField label={L.fieldNameKaa} htmlFor="new-classifier-name-kaa">
+            <Input
+              id="new-classifier-name-kaa"
+              data-testid="new-classifier-name-kaa"
+              value={newClassifier.nameKaa}
+              onChange={(e) => setNewClassifier((c) => ({ ...c, nameKaa: e.target.value }))}
+            />
+          </FormField>
+          <FormField label={L.fieldNameEn} htmlFor="new-classifier-name-en">
+            <Input
+              id="new-classifier-name-en"
+              data-testid="new-classifier-name-en"
+              value={newClassifier.nameEn}
+              onChange={(e) => setNewClassifier((c) => ({ ...c, nameEn: e.target.value }))}
             />
           </FormField>
           {addClassifier.error != null && (

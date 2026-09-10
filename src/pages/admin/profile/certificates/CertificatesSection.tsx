@@ -7,7 +7,15 @@ import { FormField, Input } from '../../../../components/ui/FormControls';
 import { useAuth } from '../../../../auth/useAuth';
 import { useApiErrorText } from '../../../../i18n/useApiErrorText';
 import { useT } from '../../../../i18n/useT';
-import { PINFL_PATTERN, buildMockAttachedSignature } from '../../../../lib/eimzoMock';
+import {
+  buildMockAttachedSignature,
+  EimzoError,
+  eimzoErrorMessageKey,
+  isEimzoMock,
+  isProviderUnreachable,
+  PINFL_PATTERN,
+  signAttached,
+} from '../../../../lib/eimzo';
 import { bindCertificate, listMyCertificates, unbindCertificate } from './api';
 
 const CERTIFICATES_KEY = ['profile', 'certificates'] as const;
@@ -54,7 +62,13 @@ function getStatusBadgeConfig(status: string) {
  * signature — `buildMockAttachedSignature` (ruling R6) signs a throwaway
  * nonce because `POST /certificates` has no document of its own to sign
  * (`CertificateBindIn`'s own docstring: "this route has no document of its
- * own").
+ * own"). Real mode mirrors that exactly: a random client-side nonce, signed
+ * ATTACHED (`signAttached` — `register_certificate` calls `verify_attached`,
+ * never `verify_detached`) and never timestamped, same as the ERI login
+ * challenge in `AuthProvider.tsx` — see `client.ts`'s own docstring for why
+ * neither goes through ruling R5's mandatory-timestamp path. No PINFL/name
+ * box in real mode: the certificate the signer picks in E-IMZO carries that
+ * identity, the same rule task 10 applies everywhere else.
  */
 export function CertificatesSection() {
   const { me } = useAuth();
@@ -71,7 +85,9 @@ export function CertificatesSection() {
   const [unbindingId, setUnbindingId] = useState<string | null>(null);
   const [unbindError, setUnbindError] = useState<string | null>(null);
 
-  const pinflValid = PINFL_PATTERN.test(pinfl);
+  // Mock mode only — a real certificate carries the signer's identity, no
+  // PINFL box to validate.
+  const pinflValid = !isEimzoMock() || PINFL_PATTERN.test(pinfl);
 
   async function handleBind(event: FormEvent) {
     event.preventDefault();
@@ -79,12 +95,18 @@ export function CertificatesSection() {
     setBinding(true);
     setBindError(null);
     try {
-      const pkcs7 = await buildMockAttachedSignature({ pinfl, fullName: fullName.trim() || undefined });
+      const pkcs7 = isEimzoMock()
+        ? await buildMockAttachedSignature({ pinfl, fullName: fullName.trim() || undefined })
+        : await signAttached(crypto.getRandomValues(new Uint8Array(16)));
       await bindCertificate(pkcs7);
       setPinfl('');
       await queryClient.invalidateQueries({ queryKey: CERTIFICATES_KEY });
     } catch (err) {
-      setBindError(errorText(err, t('cabinet.registration.genericError')));
+      if (err instanceof EimzoError || isProviderUnreachable(err)) {
+        setBindError(t(eimzoErrorMessageKey(err)));
+      } else {
+        setBindError(errorText(err, t('cabinet.registration.genericError')));
+      }
     } finally {
       setBinding(false);
     }
@@ -177,17 +199,25 @@ export function CertificatesSection() {
       <section className="bg-white border border-[#E4E7EA] rounded-2xl p-5 sm:p-6 shadow-xs">
         <h2 className="text-base font-bold text-[#1A1F24] mb-3">{t('cabinet.certificates.bind')}</h2>
         <form onSubmit={(e) => void handleBind(e)} noValidate className="space-y-4">
-          <FormField label={t('cabinet.certificates.pinflLabel')} required>
-            <Input
-              data-testid="certificate-pinfl"
-              inputMode="numeric"
-              value={pinfl}
-              onChange={(e) => setPinfl(e.target.value.replace(/\D/g, '').slice(0, 14))}
-            />
-          </FormField>
-          <FormField label={t('cabinet.certificates.fullNameLabel')}>
-            <Input data-testid="certificate-full-name" value={fullName} onChange={(e) => setFullName(e.target.value)} />
-          </FormField>
+          {isEimzoMock() ? (
+            <>
+              <FormField label={t('cabinet.certificates.pinflLabel')} required>
+                <Input
+                  data-testid="certificate-pinfl"
+                  inputMode="numeric"
+                  value={pinfl}
+                  onChange={(e) => setPinfl(e.target.value.replace(/\D/g, '').slice(0, 14))}
+                />
+              </FormField>
+              <FormField label={t('cabinet.certificates.fullNameLabel')}>
+                <Input data-testid="certificate-full-name" value={fullName} onChange={(e) => setFullName(e.target.value)} />
+              </FormField>
+            </>
+          ) : (
+            // Real mode: no PINFL/name box — the certificate the signer
+            // picks in E-IMZO carries that identity (task 10's own rule).
+            <p className="text-xs text-[#5A646D]">{t('cabinet.certificates.realHint')}</p>
+          )}
           {bindError && (
             <div data-testid="bind-error">
               <Alert variant="danger">{bindError}</Alert>

@@ -25,7 +25,13 @@ import { ApiError } from '../../api/errors';
 import { Button } from '../../components/ui/button';
 import { FormField, Input, Textarea } from '../../components/ui/FormControls';
 import { satisfies } from '../../shell/navigation';
-import { buildMockSignature, PINFL_PATTERN } from '../../lib/eimzoMock';
+import {
+  buildMockSignature,
+  eimzoErrorMessageKey,
+  isEimzoMock,
+  PINFL_PATTERN,
+  signDocument,
+} from '../../lib/eimzo';
 import { ConfirmDialog } from './ConfirmDialog';
 import { reportDocumentBytes } from './reportDocument';
 import { reportErrorMessage, reportViolations, violationMessageKey } from './errors';
@@ -72,6 +78,11 @@ export function ReportLifecyclePanel({
   const [pinfl, setPinfl] = useState('');
   const [pinflTouched, setPinflTouched] = useState(false);
   const [comment, setComment] = useState('');
+  // Real mode only: `signDocument` runs BEFORE `sign.mutate`, so its own
+  // failure never reaches `sign.error`/`signErr` below — the same split
+  // `PermitLifecyclePanel.tsx`'s own `eimzoErrorKey` makes.
+  const [eimzoErrorKey, setEimzoErrorKey] = useState<string | null>(null);
+  const [signing, setSigning] = useState(false);
 
   const submit = useSubmitReport(report.id);
   const sign = useSignReport(report.id);
@@ -89,6 +100,7 @@ export function ReportLifecyclePanel({
     setPinfl('');
     setPinflTouched(false);
     setComment('');
+    setEimzoErrorKey(null);
     submit.reset();
     sign.reset();
     returnMutation.reset();
@@ -97,7 +109,7 @@ export function ReportLifecyclePanel({
   }
 
   async function handleConfirmSign() {
-    if (!PINFL_PATTERN.test(pinfl)) {
+    if (isEimzoMock() && !PINFL_PATTERN.test(pinfl)) {
       setPinflTouched(true);
       return;
     }
@@ -110,7 +122,25 @@ export function ReportLifecyclePanel({
       versionNo: report.version_no,
       data: report.data,
     });
-    const pkcs7 = await buildMockSignature({ pinfl, documentBytes });
+    setEimzoErrorKey(null);
+    let pkcs7: string;
+    if (isEimzoMock()) {
+      pkcs7 = await buildMockSignature({ pinfl, documentBytes });
+    } else {
+      // Real mode: DETACHED, over the exact canonical bytes above
+      // (`reports/service.py::sign_report`'s own `_report_bytes` byte-for-byte
+      // match) — no PINFL to type in, the signer's certificate carries that
+      // identity.
+      setSigning(true);
+      try {
+        pkcs7 = await signDocument(new Uint8Array(documentBytes));
+      } catch (err) {
+        setEimzoErrorKey(eimzoErrorMessageKey(err));
+        return;
+      } finally {
+        setSigning(false);
+      }
+    }
     sign.mutate({ pkcs7 }, { onSuccess: closeAll });
   }
 
@@ -199,26 +229,28 @@ export function ReportLifecyclePanel({
           subtitle={t('reports.lifecycle.signHint')}
           confirmLabel={t('reports.lifecycle.confirmSign')}
           cancelLabel={t('reports.lifecycle.cancelButton')}
-          isPending={sign.isPending}
-          confirmDisabled={!PINFL_PATTERN.test(pinfl)}
-          errorMessage={signErr ? reportErrorMessage(t, signErr) : null}
+          isPending={sign.isPending || signing}
+          confirmDisabled={isEimzoMock() && !PINFL_PATTERN.test(pinfl)}
+          errorMessage={eimzoErrorKey ? t(eimzoErrorKey) : signErr ? reportErrorMessage(t, signErr) : null}
           onConfirm={() => void handleConfirmSign()}
           onClose={closeAll}
         >
-          <FormField
-            label={t('reports.lifecycle.pinflLabel')}
-            required
-            helperText={t('reports.lifecycle.pinflHelp')}
-            error={pinflTouched && !PINFL_PATTERN.test(pinfl) ? t('reports.lifecycle.pinflError') : undefined}
-          >
-            <Input
-              inputMode="numeric"
-              value={pinfl}
-              onChange={(e) => setPinfl(e.target.value.replace(/\D/g, '').slice(0, 14))}
-              onBlur={() => setPinflTouched(true)}
-              placeholder="31708860250017"
-            />
-          </FormField>
+          {isEimzoMock() && (
+            <FormField
+              label={t('reports.lifecycle.pinflLabel')}
+              required
+              helperText={t('reports.lifecycle.pinflHelp')}
+              error={pinflTouched && !PINFL_PATTERN.test(pinfl) ? t('reports.lifecycle.pinflError') : undefined}
+            >
+              <Input
+                inputMode="numeric"
+                value={pinfl}
+                onChange={(e) => setPinfl(e.target.value.replace(/\D/g, '').slice(0, 14))}
+                onBlur={() => setPinflTouched(true)}
+                placeholder="31708860250017"
+              />
+            </FormField>
+          )}
         </ConfirmDialog>
       )}
 

@@ -1,23 +1,35 @@
 import { useState } from 'react';
 import type { FormEvent } from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router';
+import { ArrowLeft, ArrowRight, Clock, FileText, QrCode, ShieldCheck, Trees } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { FormField, Input } from '../components/ui/FormControls';
 import { ApiError, RATE_LIMITED } from '../api/errors';
 import { useAuth } from '../auth/useAuth';
-import { useT } from '../i18n/useT';
-import { PINFL_PATTERN } from '../lib/eimzoMock';
+import { useLanguage, useT } from '../i18n/useT';
+import { LANDING_PATHS, landingUrl } from '../lib/landing';
+import { LanguageMenu } from '../shell/LanguageMenu';
+import { EimzoError, PINFL_PATTERN, eimzoErrorMessageKey, isEimzoMock, isProviderUnreachable } from '../lib/eimzo';
 import { peekStoredNext } from './oneIdReturnCache';
 
 type ErrorKind = 'credentials' | 'blocked' | 'rate-limited' | 'connection' | 'oneid' | null;
 
-// ERR-AUTH-001 (wrong credentials), ERR-AUTH-003 (blocked account) and
+// ERR-AUTH-001 (wrong credentials), ERR-AUTH-003 (locked out) and
 // ERR-SYS-006 (rate limited) get three different messages on purpose — the
 // brief's whole reason is that "wrong password" for a locked-out account
 // sends the user in circles. Anything that is not even an ApiError (the
 // backend never answered — a dropped connection, a CORS failure) is its own
 // fourth case: telling someone their password is wrong when their
 // connection dropped is that same defect in a different costume.
+//
+// `ERR-AUTH-003` is a TEMPORARY lockout — `login_max_attempts` failures put
+// `locked_until` `login_lockout_minutes` into the future and it clears
+// itself, so the copy must not send anyone to an administrator (it said
+// exactly that until 2026-09-09, and the wait is 15 minutes by default). An
+// account an administrator really did block (`users.status != 'active'`)
+// never reaches this branch at all: `auth.service.login_password` answers it
+// with `ERR-AUTH-001`, deliberately indistinguishable from a wrong password
+// so the response is not a user-existence oracle.
 function classify(err: unknown): Exclude<ErrorKind, null | 'oneid'> {
   if (!(err instanceof ApiError)) return 'connection';
   if (err.code === RATE_LIMITED) return 'rate-limited';
@@ -48,9 +60,70 @@ function storedMethod(): Method {
   }
 }
 
-export function LoginPage() {
-  const { requestMfa, verifyMfa, startOneId, loginViaEimzo } = useAuth();
+// What the cabinet is for, in three lines beside the card. Until 2026-09-10
+// the page was the card alone on a grey field — no header, no way back to the
+// public site, nothing saying whose system this is — and a citizen arriving
+// from the landing's "Kabinet" button had no way to tell a sign-in from a
+// dead end. The frame around the card is the landing's own header and footer.
+const BENEFITS = [
+  { key: 'login.benefitApply', Icon: FileText },
+  { key: 'login.benefitTrack', Icon: Clock },
+  { key: 'login.benefitDownload', Icon: QrCode },
+] as const;
+
+function Benefits({ compact = false }: { compact?: boolean }) {
   const t = useT();
+  return (
+    <ul className={`flex flex-col ${compact ? 'gap-3' : 'gap-3.5'}`}>
+      {BENEFITS.map(({ key, Icon }) => (
+        <li key={key} className="flex items-center gap-3">
+          {compact ? (
+            <Icon className="w-4 h-4 text-[#2E7D4F] shrink-0" />
+          ) : (
+            <span className="w-9 h-9 rounded-[10px] bg-[#F0F7F1] border border-[#D9EBDC] text-[#2E7D4F] flex items-center justify-center shrink-0">
+              <Icon className="w-[18px] h-[18px]" />
+            </span>
+          )}
+          <span className={compact ? 'text-sm leading-5 text-[#5A646D]' : 'text-[15px] leading-[22px]'}>
+            {t(key)}
+          </span>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+/** The landing's illustration language, quietly: a row of conifers in primary-100. */
+function TreeLine({ className = '' }: { className?: string }) {
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 440 84"
+      fill="none"
+      className={`w-[440px] max-w-full h-[84px] ${className}`}
+    >
+      <g fill="#D9EBDC">
+        <path d="M28 76 40 52h-6l10-16h-5l9-16 9 16h-5l10 16h-6l12 24Z" />
+        <path d="M92 76 104 58h-6l10-14h-5l9-14 9 14h-5l10 14h-6l12 18Z" />
+        <path d="M150 76 166 46h-8l13-20h-6l11-20 11 20h-6l13 20h-8l16 30Z" />
+        <path d="M236 76 246 62h-5l8-11h-4l7-11 7 11h-4l8 11h-5l10 14Z" />
+        <path d="M298 76 312 50h-7l11-18h-5l10-18 10 18h-5l11 18h-7l14 26Z" />
+        <path d="M376 76 386 64h-5l8-10h-4l7-11 7 11h-4l8 10h-5l10 12Z" />
+      </g>
+      <g fill="#C3DEC8">
+        {[46, 110, 174, 252, 318, 392].map((x) => (
+          <rect key={x} x={x} y="76" width="4" height="7" rx="1" />
+        ))}
+      </g>
+      <path d="M2 83h436" stroke="#D9EBDC" strokeWidth="2" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+export function LoginPage() {
+  const { submitPassword, verifyMfa, startOneId, loginViaEimzo } = useAuth();
+  const t = useT();
+  const { backendLang, setLanguage } = useLanguage();
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams] = useSearchParams();
@@ -72,6 +145,12 @@ export function LoginPage() {
   const [fullName, setFullName] = useState('');
   const [badPinfl, setBadPinfl] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  // Real mode only: the message key for one of task 11's five conditions.
+  // Kept apart from `errorKind` above — that state carries a FIXED message
+  // per kind, while an E-IMZO failure's text depends on which of `errors.ts`'s
+  // kinds it was, so the KEY is what this page stores, resolved through `t()`
+  // at render time same as everything else.
+  const [eimzoErrorKey, setEimzoErrorKey] = useState<string | null>(null);
   // Read once, on mount: the backend redirects a failed OneID state check
   // (the `oneid_state` cookie expired — its `max_age` is 600s — or was lost)
   // to `/login?error=oneid`, a full page load. This is the only place that
@@ -86,7 +165,14 @@ export function LoginPage() {
     setErrorKind(null);
     setSubmitting(true);
     try {
-      await requestMfa(loginId, password);
+      // Only the server knows whether a second factor is still in force
+      // (`mfa_enabled`). When it is off the session already exists by the time
+      // this resolves, so showing the code screen would strand a signed-in user
+      // in front of a field nothing checks.
+      if ((await submitPassword(loginId, password)) === 'signed-in') {
+        navigate(next, { replace: true });
+        return;
+      }
       setStep('code');
     } catch (err) {
       setErrorKind(classify(err));
@@ -131,15 +217,102 @@ export function LoginPage() {
     }
   }
 
+  // Real mode: no PINFL/name to validate first — there is nothing typed
+  // into this page at all, the certificate the signer picks in E-IMZO's own
+  // dialog carries the identity. `EimzoError`/`ERR-INT-001`/`ERR-INT-002`
+  // (task 11's five conditions) get their own message; anything else falls
+  // through to the same `classify()` the password/OneID flows already use.
+  async function handleEimzoRealSubmit() {
+    setErrorKind(null);
+    setEimzoErrorKey(null);
+    setSubmitting(true);
+    try {
+      await loginViaEimzo();
+      navigate(next, { replace: true });
+    } catch (err) {
+      if (err instanceof EimzoError || isProviderUnreachable(err)) {
+        setEimzoErrorKey(eimzoErrorMessageKey(err));
+      } else {
+        setErrorKind(classify(err));
+      }
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  const homeUrl = landingUrl(LANDING_PATHS.home);
+
   return (
     <div
       data-testid="login-page"
       data-next={next}
-      className="min-h-screen flex items-center justify-center bg-[#F8F9FA] px-4"
+      className="min-h-screen flex flex-col bg-[#F8F9FA] text-[#1A1F24]"
     >
-      <div className="w-full max-w-sm bg-white border border-[#E4E7EA] rounded-2xl p-6 shadow-sm space-y-5">
-        <div className="text-center">
-          <h1 className="text-xl font-bold text-[#1A1F24]">{t('login.title')}</h1>
+      {/* The landing's header (`PublicLayout.tsx` there), reduced to what an
+          anonymous visitor needs here: the brand as a way home, an explicit
+          way home, and the language. No nav — this page has one job. */}
+      <header className="bg-[#17331B] border-b border-white/15 shadow-md text-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-3">
+          <a href={homeUrl} className="flex items-center gap-3 shrink-0 focus:outline-none">
+            <span className="w-10 h-10 rounded-xl bg-[#2E7D4F] border border-white/20 shadow-md flex items-center justify-center shrink-0">
+              <Trees className="w-5.5 h-5.5" />
+            </span>
+            <span className="hidden sm:block leading-tight whitespace-nowrap">
+              <span className="block text-base font-bold tracking-tight">{t('login.brandName')}</span>
+              <span className="block text-[11px] text-gray-200">{t('login.brandTagline')}</span>
+            </span>
+          </a>
+          <div className="flex items-center gap-2 sm:gap-3">
+            <a
+              href={homeUrl}
+              className="inline-flex h-9 items-center gap-2 rounded-xl border border-[#E4E7EA] px-3 sm:px-4 text-xs font-bold text-white hover:bg-white/20 transition-colors"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              <span>{t('login.backHome')}</span>
+            </a>
+            <LanguageMenu
+              tone="dark"
+              value={backendLang}
+              label={t('shell.language')}
+              onSelect={(code) => {
+                // Anonymous here, so `setLanguage` only writes the browser
+                // (see `I18nProvider`) — the catch is the same backstop the
+                // shell header keeps, for the day this page has a session.
+                setLanguage(code).catch((err: unknown) => {
+                  console.error('Tilni almashtirishda xatolik:', err);
+                });
+              }}
+            />
+          </div>
+        </div>
+      </header>
+
+      <main className="flex-1 flex items-center">
+        <div className="max-w-7xl w-full mx-auto px-4 sm:px-6 py-8 lg:py-14 grid gap-8 lg:grid-cols-[minmax(0,1fr)_440px] lg:gap-20 items-center">
+          <section className="flex flex-col gap-4 lg:gap-6 max-w-[600px]">
+            <span className="text-xs font-bold uppercase tracking-[0.08em] text-[#2E7D4F]">
+              {t('login.eyebrow')}
+            </span>
+            <h1 className="text-[28px] leading-9 lg:text-4xl lg:leading-[44px] font-bold text-[#1A1F24] text-balance">
+              {t('login.heading')}
+            </h1>
+            <p className="text-[15px] leading-[22px] lg:text-base lg:leading-6 text-[#5A646D] max-w-[520px]">
+              {t('login.lead')}
+            </p>
+            <div className="hidden lg:block mt-2">
+              <Benefits />
+            </div>
+            <TreeLine className="hidden lg:block mt-4" />
+          </section>
+
+          <section className="flex flex-col gap-4">
+      {/* The card is indented one level less than its position suggests so
+          the sign-in forms below it — the part of this file every test and
+          every earlier fix is about — keep their lines unchanged. */}
+      <div className="bg-white border border-[#E4E7EA] rounded-2xl p-5 sm:p-8 shadow-sm space-y-5">
+        <div className="space-y-1.5">
+          <h2 className="text-[22px] leading-[30px] font-bold text-[#1A1F24]">{t('login.cardTitle')}</h2>
+          <p className="text-sm text-[#5A646D]">{t('login.cardSubtitle')}</p>
         </div>
 
         <div
@@ -161,6 +334,7 @@ export function LoginPage() {
                 // be 14 digits" alert must not survive a trip to another tab
                 // and back for a form that was never resubmitted.
                 setBadPinfl(false);
+                setEimzoErrorKey(null);
                 try {
                   localStorage.setItem(TAB_KEY, m);
                 } catch {
@@ -204,10 +378,11 @@ export function LoginPage() {
         )}
 
         {method === 'oneid' && (
-          <div className="space-y-4 text-center">
-            <p className="text-xs text-[#123522] bg-[#F0F7F1] border border-[#D9EBDC] rounded-xl p-4 leading-relaxed">
-              {t('login.oneidHint')}
-            </p>
+          <div className="space-y-4">
+            <div className="flex items-start gap-3 text-[13px] leading-5 text-[#123522] bg-[#F0F7F1] border border-[#D9EBDC] rounded-xl p-4">
+              <ShieldCheck className="w-[18px] h-[18px] text-[#2E7D4F] shrink-0 mt-px" />
+              <p>{t('login.oneidHint')}</p>
+            </div>
             <Button
               type="button"
               variant="primary"
@@ -230,11 +405,20 @@ export function LoginPage() {
             >
               {t('login.oneidButton')}
             </Button>
+            {/* Citizens only: a member of staff on the password tab has an
+                account already, and "register through OneID" would send them
+                the wrong way. */}
+            <div className="flex items-center gap-3" aria-hidden="true">
+              <span className="h-px flex-1 bg-[#E4E7EA]" />
+              <span className="text-xs text-[#767F87]">{t('login.firstTime')}</span>
+              <span className="h-px flex-1 bg-[#E4E7EA]" />
+            </div>
+            <p className="text-[13px] leading-5 text-[#5A646D] text-center">{t('login.firstTimeHint')}</p>
           </div>
         )}
 
         {method === 'eimzo' &&
-          (import.meta.env.VITE_EIMZO_MOCK === 'true' ? (
+          (isEimzoMock() ? (
             <form onSubmit={handleEimzoSubmit} className="space-y-4">
               <p className="text-xs text-[#8A6D00] bg-[#FFF8E1] border border-[#FFE082] rounded-xl p-3">
                 {t('login.eimzoMockNotice')}
@@ -274,7 +458,31 @@ export function LoginPage() {
               </Button>
             </form>
           ) : (
-            <p className="text-sm text-[#5A646D]">{t('login.eimzoUnavailable')}</p>
+            // Real mode: no PINFL/name box — task 10's own rule, since a
+            // real certificate carries the identity a mock has none to read
+            // (`AuthContextValue.loginViaEimzo`'s own doc comment). Just the
+            // one action a citizen can take: hand the sign to their own
+            // connected E-IMZO key.
+            <div className="space-y-4">
+              <p className="text-xs text-[#123522] bg-[#F0F7F1] border border-[#D9EBDC] rounded-xl p-4 leading-relaxed">
+                {t('login.eimzoRealHint')}
+              </p>
+              {eimzoErrorKey && (
+                <p data-testid="eimzo-real-error" role="alert" className="text-sm text-[#B91C1C]">
+                  {t(eimzoErrorKey)}
+                </p>
+              )}
+              <Button
+                type="button"
+                variant="primary"
+                fullWidth
+                size="touch"
+                isLoading={submitting}
+                onClick={() => void handleEimzoRealSubmit()}
+              >
+                {t('login.eimzoButton')}
+              </Button>
+            </div>
           ))}
 
         {method === 'password' &&
@@ -340,6 +548,38 @@ export function LoginPage() {
             </form>
           ))}
       </div>
+
+            <a
+              href={landingUrl(LANDING_PATHS.verify)}
+              className="inline-flex items-center justify-center gap-2 min-h-11 text-sm font-semibold text-[#2E7D4F] hover:text-[#23653F]"
+            >
+              <span>{t('login.verifyWithoutLogin')}</span>
+              <ArrowRight className="w-4 h-4" />
+            </a>
+
+            <div className="lg:hidden mt-1">
+              <Benefits compact />
+            </div>
+          </section>
+        </div>
+      </main>
+
+      <footer className="border-t border-[#E4E7EA] bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-5 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-[#767F87]">
+          <span className="text-center sm:text-left">{t('login.footerCopyright')}</span>
+          <nav className="flex items-center gap-6 font-semibold text-[#5A646D]">
+            <a href={landingUrl(LANDING_PATHS.about)} className="hover:text-[#1A1F24]">
+              {t('login.footerHelp')}
+            </a>
+            <a href={landingUrl(LANDING_PATHS.contact)} className="hover:text-[#1A1F24]">
+              {t('login.footerContacts')}
+            </a>
+            <a href={landingUrl(LANDING_PATHS.documents)} className="hover:text-[#1A1F24]">
+              {t('login.footerDocuments')}
+            </a>
+          </nav>
+        </div>
+      </footer>
     </div>
   );
 }

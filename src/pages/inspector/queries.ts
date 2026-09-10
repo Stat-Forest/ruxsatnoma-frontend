@@ -269,6 +269,65 @@ export function useCancelTask() {
   });
 }
 
+/** `GET /admin/users?organization_id=&role_code=inspector` (stage 7.6, ruling
+ *  R6/#138) — the candidate list for the handover dialog, narrowed to the
+ *  shape `reassign_task`'s own zone check accepts in the common case: an
+ *  org-scoped inspector's `_organization_in_actor_zone` reduces to exact
+ *  `organization_id` equality against the TASK's own organization, so this
+ *  is the same comparison the backend makes, not a looser guess. A
+ *  region/district-scoped candidate (no fixed `organization_id` of their
+ *  own) is not offered here — replicating the backend's full region/district
+ *  zone match client-side is out of scope for this dialog; what matters is
+ *  that nobody offered here is EVER refused with `ERR-ACL-002`.
+ *
+ *  `UserAdminOut` is duplicated from `admin/api.ts` rather than imported
+ *  across the track boundary, per this file's own module-boundary
+ *  convention (see header). `enabled: !!organizationId` — a task with no
+ *  organization has no zone to match against, and the backend itself
+ *  refuses that case for any zoned candidate. */
+export type InspectorCandidate = components['schemas']['UserAdminOut'];
+
+export function useEligibleInspectors(organizationId: string | null | undefined) {
+  return useQuery({
+    queryKey: ['inspector', 'eligibleInspectors', organizationId],
+    queryFn: async () => {
+      const { data, error } = await api.GET('/api/v1/admin/users', {
+        params: {
+          query: { organization_id: organizationId!, role_code: 'inspector', status: 'active', page_size: 100 },
+        },
+      });
+      if (error) throw apiError(error);
+      return data.items;
+    },
+    enabled: !!organizationId,
+  });
+}
+
+/** `POST /tasks/{id}/reassign` (ruling R6, `#138`) — the handover: the task
+ *  keeps its id, its due date and its history, only `assigned_to` changes.
+ *  Invalidated the same two ways `useCancelTask` is, so the task card and
+ *  its own detail page both show the new assignee immediately rather than a
+ *  stale one behind a server response that already succeeded (the whole
+ *  point of this project's own recurring finding about screens that succeed
+ *  on the server and claim otherwise). */
+export function useReassignTask() {
+  const queryClient = useQueryClient();
+  return useMutation<TaskOut, ApiError, { taskId: string; newAssigneeId: string }>({
+    mutationFn: async ({ taskId, newAssigneeId }) => {
+      const { data, error } = await api.POST('/api/v1/inspections/tasks/{task_id}/reassign', {
+        params: { path: { task_id: taskId } },
+        body: { new_assignee_id: newAssigneeId },
+      });
+      if (error) throw apiError(error);
+      return data;
+    },
+    onSuccess: (_data, { taskId }) => {
+      void queryClient.invalidateQueries({ queryKey: ['inspector', 'tasks', 'list'] });
+      void queryClient.invalidateQueries({ queryKey: taskKeys.detail(taskId) });
+    },
+  });
+}
+
 // --- Acts ------------------------------------------------------------
 
 export interface ActListFilters {
@@ -425,6 +484,11 @@ export async function uploadActFile(file: File): Promise<{ id: string }> {
 
 export interface CaseListFilters {
   status?: string;
+  /** Ruling R8/#138 (finding F3): every case against ONE applicant, for
+   *  anyone who may already see those cases — the backend runs this filter
+   *  INSIDE `_case_scope`, so a zoned viewer still sees only their own
+   *  zone's cases against that applicant, never another oblast's. */
+  applicant_id?: string;
   page: number;
   page_size: number;
 }

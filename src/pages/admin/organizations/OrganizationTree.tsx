@@ -101,11 +101,25 @@ function OrganizationRow({ node, collapsed, labels, lang, onToggle, onEdit, onAr
           >
             {archived ? labels['status.archived'] : labels['status.active']}
           </span>
+          {/* T12 (decision #178) — makes the switch's effect visible on the
+              row itself, not only inside the edit form: a leshoz with no GIS
+              layer shows contours by requisites everywhere else in the app,
+              so a reader of this tree should not have to open Edit to learn
+              that. Only for a leshoz whose flag is explicitly OFF — every
+              other kind carries the column too, but nothing reads it there. */}
+          {org.kind === 'leshoz' && org.gis_enabled === false && (
+            <span
+              data-testid="org-no-gis"
+              className="shrink-0 px-2 py-0.5 rounded-full border text-[11px] bg-[#FFFBEB] text-[#92400E] border-[#FDE68A]"
+            >
+              {labels['tree.noGis']}
+            </span>
+          )}
         </div>
         <div className="mt-0.5 flex flex-wrap items-center gap-x-2 text-[11px] text-[#5A646D]">
           <span className="font-mono">{org.code}</span>
           <span aria-hidden="true">·</span>
-          <span>{org.stir ? `STIR ${org.stir}` : labels['tree.noStir']}</span>
+          <span>{org.stir ? `${labels['form.stir']} ${org.stir}` : labels['tree.noStir']}</span>
         </div>
       </div>
 

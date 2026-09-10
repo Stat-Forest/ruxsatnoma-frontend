@@ -1,11 +1,12 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { MemoryRouter } from 'react-router';
 import { http, HttpResponse } from 'msw';
 import { setupServer } from 'msw/node';
-import { I18nContext } from '../../../i18n/context';
+import { I18nContext, type UiLanguage } from '../../../i18n/context';
 import { UsersPage } from './UsersPage';
-import { uz_latn as L } from './labels';
+import { uz_latn as L, LABELS, labelsFor } from './labels';
 import {
   DISTRICT_BOSTANLIQ,
   ORG_BURCHMULLA,
@@ -21,15 +22,20 @@ beforeAll(() => server.listen({ onUnhandledRequest: 'error' }));
 afterEach(() => server.resetHandlers());
 afterAll(() => server.close());
 
-function renderUsers(lang: 'uz_latn' | 'ru' = 'uz_latn') {
+function renderUsers(lang: UiLanguage = 'uz_latn') {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   const i18n = { lang, backendLang: lang, t: (key: string) => key, setLanguage: async () => {} };
   return render(
-    <QueryClientProvider client={client}>
-      <I18nContext.Provider value={i18n}>
-        <UsersPage />
-      </I18nContext.Provider>
-    </QueryClientProvider>,
+    // Stage 7.6 (ruling R3/#138): the open-work refusal links to the held
+    // application/task, so `UsersPage` now renders `<Link>` — it needs a
+    // router context even when nothing here navigates.
+    <MemoryRouter>
+      <QueryClientProvider client={client}>
+        <I18nContext.Provider value={i18n}>
+          <UsersPage />
+        </I18nContext.Provider>
+      </QueryClientProvider>
+    </MemoryRouter>,
   );
 }
 
@@ -244,6 +250,79 @@ test('editing sends only the fields that actually changed', async () => {
   expect(body).toEqual({ position: 'Yetakchi mutaxassis' });
 });
 
+// --- Stage 7.6 (ruling R3/#138, finding F4): the open-work refusal --------
+
+test('deleting a user who still holds open work is refused, naming what is held with working links', async () => {
+  server.use(
+    ...referenceHandlers(),
+    http.post('*/api/v1/admin/users/:userId/delete', () =>
+      HttpResponse.json(
+        {
+          error: {
+            code: 'ERR-VAL-001',
+            message: 'validation failed',
+            details: {
+              open_work: [
+                { kind: 'applications', count: 1, ids: ['app0000-0000-4000-8000-000000000001'] },
+                {
+                  kind: 'inspection_tasks',
+                  count: 2,
+                  ids: ['tsk00000-0000-4000-8000-000000000001', 'tsk00000-0000-4000-8000-000000000002'],
+                },
+              ],
+            },
+          },
+        },
+        { status: 422 },
+      ),
+    ),
+  );
+  const ui = userEvent.setup();
+  renderUsers();
+
+  const card = await openCard(ui);
+  await ui.click(card.getByRole('button', { name: L.actionDelete }));
+
+  const refusal = within(await screen.findByTestId('open-work-refusal'));
+  expect(refusal.getByText(L.openWorkTitle)).toBeInTheDocument();
+  expect(refusal.getByText(`${L.openWorkKindApplications} (1):`)).toBeInTheDocument();
+  expect(refusal.getByText(`${L.openWorkKindInspectionTasks} (2):`)).toBeInTheDocument();
+
+  // Each held id is a REAL link to the thing itself, not just named text —
+  // an admin can actually act on the refusal, not merely read it.
+  const links = refusal.getAllByRole('link');
+  expect(links.map((a) => a.getAttribute('href'))).toEqual([
+    '/applications/app0000-0000-4000-8000-000000000001',
+    '/inspections/tasks/tsk00000-0000-4000-8000-000000000001',
+    '/inspections/tasks/tsk00000-0000-4000-8000-000000000002',
+  ]);
+
+  // Nothing was actually deleted — the card still shows the user active.
+  expect(card.getByText('active')).toBeInTheDocument();
+});
+
+test('a user holding nothing deletes without any refusal rendered', async () => {
+  let deleted = false;
+  server.use(
+    // Before `referenceHandlers()`, not after: MSW takes the FIRST matching
+    // handler in one `server.use()` call, so this override must lead.
+    http.get('*/api/v1/admin/users/:userId', () => HttpResponse.json(makeUser({ status: deleted ? 'deleted' : 'active' }))),
+    ...referenceHandlers(),
+    http.post('*/api/v1/admin/users/:userId/delete', () => {
+      deleted = true;
+      return HttpResponse.json(makeUser({ status: 'deleted' }));
+    }),
+  );
+  const ui = userEvent.setup();
+  renderUsers();
+
+  const card = await openCard(ui);
+  await ui.click(card.getByRole('button', { name: L.actionDelete }));
+
+  await waitFor(() => expect(card.getByText('deleted')).toBeInTheDocument());
+  expect(screen.queryByTestId('open-work-refusal')).toBeNull();
+});
+
 test('an empty zone field is cleared explicitly, not silently kept', async () => {
   let body: Record<string, unknown> | null = null;
   server.use(
@@ -265,4 +344,112 @@ test('an empty zone field is cleared explicitly, not silently kept', async () =>
 
   await waitFor(() => expect(body).not.toBeNull());
   expect(body).toEqual({ organization_id: null });
+});
+
+test('all 5 language dictionaries have complete key parity and non-empty strings', () => {
+  const baseKeys = Object.keys(LABELS.uz_latn).sort();
+  const languages: UiLanguage[] = ['uz_latn', 'uz_cyrl', 'ru', 'en', 'kaa'];
+
+  for (const lang of languages) {
+    const dict = LABELS[lang];
+    expect(dict).toBeDefined();
+    const dictKeys = Object.keys(dict).sort();
+    expect(dictKeys).toEqual(baseKeys);
+    for (const key of baseKeys) {
+      expect(dict[key as keyof typeof dict]).toBeTruthy();
+      expect(typeof dict[key as keyof typeof dict]).toBe('string');
+    }
+  }
+});
+
+test('the users page and create modal render correctly in English', async () => {
+  server.use(...referenceHandlers());
+  const ui = userEvent.setup();
+  const enLabels = labelsFor('en');
+  renderUsers('en');
+
+  // Header & stats
+  expect(await screen.findByRole('heading', { name: enLabels.pageTitle })).toBeInTheDocument();
+  expect(screen.getByText(enLabels.pageSubtitle)).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: enLabels.create })).toBeInTheDocument();
+  expect(screen.getByText(enLabels.statTotal)).toBeInTheDocument();
+  expect(within(screen.getByTestId('stat-active')).getByText(enLabels.statActive)).toBeInTheDocument();
+
+  // Filters
+  expect(screen.getByLabelText(enLabels.filterQuery)).toBeInTheDocument();
+  expect(screen.getByLabelText(enLabels.filterRole)).toBeInTheDocument();
+  expect(screen.getByLabelText(enLabels.filterStatus)).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: enLabels.apply })).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: enLabels.reset })).toBeInTheDocument();
+
+  // Wait for table to load
+  const row = (await screen.findByText('Karimov Alisher Baxtiyorovich')).closest('tr')!;
+  expect(within(row).getByText(enLabels.statusActive)).toBeInTheDocument();
+
+  // Table columns
+  expect(screen.getByRole('columnheader', { name: enLabels.colFullName })).toBeInTheDocument();
+  expect(screen.getByRole('columnheader', { name: enLabels.colRole })).toBeInTheDocument();
+  expect(screen.getByRole('columnheader', { name: enLabels.colOrganization })).toBeInTheDocument();
+  expect(screen.getByRole('columnheader', { name: enLabels.colActions })).toBeInTheDocument();
+
+  // Open create modal
+  await ui.click(screen.getByRole('button', { name: enLabels.create }));
+  const form = within(await screen.findByTestId('user-form'));
+  expect(screen.getByRole('heading', { name: enLabels.createTitle })).toBeInTheDocument();
+  expect(screen.getByText(enLabels.createSubtitle)).toBeInTheDocument();
+  expect(form.getByLabelText(enLabels.formLogin)).toBeInTheDocument();
+  expect(form.getByLabelText(enLabels.formFullName)).toBeInTheDocument();
+  expect(form.getByLabelText(enLabels.formRole)).toBeInTheDocument();
+  expect(form.getByText(enLabels.zoneTitle)).toBeInTheDocument();
+  expect(form.getByText(enLabels.zoneWarning)).toBeInTheDocument();
+  expect(form.getByRole('button', { name: enLabels.save })).toBeInTheDocument();
+  expect(form.getByRole('button', { name: enLabels.cancel })).toBeInTheDocument();
+});
+
+test('the users page and create modal render correctly in Karakalpak', async () => {
+  server.use(...referenceHandlers());
+  const ui = userEvent.setup();
+  const kaaLabels = labelsFor('kaa');
+  renderUsers('kaa');
+
+  expect(await screen.findByRole('heading', { name: kaaLabels.pageTitle })).toBeInTheDocument();
+  expect(screen.getByText(kaaLabels.pageSubtitle)).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: kaaLabels.create })).toBeInTheDocument();
+  expect(screen.getByText(kaaLabels.statTotal)).toBeInTheDocument();
+
+  // Wait for table to load
+  await screen.findByText('Karimov Alisher Baxtiyorovich');
+  expect(screen.getByText(kaaLabels.colActions)).toBeInTheDocument();
+
+  // Open create modal
+  await ui.click(screen.getByRole('button', { name: kaaLabels.create }));
+  const form = within(await screen.findByTestId('user-form'));
+  expect(screen.getByRole('heading', { name: kaaLabels.createTitle })).toBeInTheDocument();
+  expect(screen.getByText(kaaLabels.createSubtitle)).toBeInTheDocument();
+  expect(form.getByRole('button', { name: kaaLabels.save })).toBeInTheDocument();
+  expect(form.getByRole('button', { name: kaaLabels.cancel })).toBeInTheDocument();
+});
+
+test('the users page and create modal render correctly in Uzbek Cyrillic', async () => {
+  server.use(...referenceHandlers());
+  const ui = userEvent.setup();
+  const cyrlLabels = labelsFor('uz_cyrl');
+  renderUsers('uz_cyrl');
+
+  expect(await screen.findByRole('heading', { name: cyrlLabels.pageTitle })).toBeInTheDocument();
+  expect(screen.getByText(cyrlLabels.pageSubtitle)).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: cyrlLabels.create })).toBeInTheDocument();
+  expect(screen.getByText(cyrlLabels.statTotal)).toBeInTheDocument();
+
+  // Wait for table to load
+  await screen.findByText('Karimov Alisher Baxtiyorovich');
+  expect(screen.getByText(cyrlLabels.colActions)).toBeInTheDocument();
+
+  // Open create modal
+  await ui.click(screen.getByRole('button', { name: cyrlLabels.create }));
+  const form = within(await screen.findByTestId('user-form'));
+  expect(screen.getByRole('heading', { name: cyrlLabels.createTitle })).toBeInTheDocument();
+  expect(screen.getByText(cyrlLabels.createSubtitle)).toBeInTheDocument();
+  expect(form.getByRole('button', { name: cyrlLabels.save })).toBeInTheDocument();
+  expect(form.getByRole('button', { name: cyrlLabels.cancel })).toBeInTheDocument();
 });

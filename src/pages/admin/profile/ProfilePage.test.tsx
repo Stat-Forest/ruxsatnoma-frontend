@@ -31,7 +31,7 @@ function renderPage(roleCode: string = 'applicant') {
     },
     loading: false,
     authError: null,
-    requestMfa: async () => {},
+    submitPassword: async () => 'mfa-required',
     verifyMfa: async () => {},
     startOneId: async () => {},
     loginViaEimzo: async () => {},

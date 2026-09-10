@@ -308,6 +308,129 @@ test('selecting a published contour in browse mode hands its geometry to the map
   expect(map).toHaveAttribute('data-selected-geometry-type', '');
 });
 
+// T12 (decision #178) — a leshoz with no delivered GIS layer files and
+// edits its contours by requisites alone: the map surfaces are absent, not
+// broken, and a version needs only `declared_area_ha` since there is no
+// `geom` for PostGIS to compute `area_ha` from.
+const ORG_NO_GIS = {
+  id: 'org-2',
+  code: 'xorazm',
+  name: { uz_latn: 'Xorazm LX' },
+  kind: 'leshoz',
+  parent_id: 'org-0',
+  gis_enabled: false,
+};
+
+function referenceHandlersWithNoGisOrg() {
+  return [
+    http.get('*/api/v1/refs/organizations', ({ request }) => {
+      const url = new URL(request.url);
+      const parentId = url.searchParams.get('parent_id');
+      if (!parentId) return HttpResponse.json({ items: [ROOT_ORG], total: 1 });
+      if (parentId === ROOT_ORG.id) return HttpResponse.json({ items: [ORG_NO_GIS], total: 1 });
+      return HttpResponse.json({ items: [], total: 0 });
+    }),
+    http.get('*/api/v1/gis/layers', () =>
+      HttpResponse.json({
+        items: [{ id: 'layer-contours', code: 'contours', name: { uz_latn: 'Konturlar' }, geometry_type: 'MULTIPOLYGON', is_public: true, style: {}, status: 'active' }],
+      }),
+    ),
+  ];
+}
+
+test('creating a contour for a leshoz with no GIS layer skips the map and saves a version by declared area alone', async () => {
+  let versionBody: Record<string, unknown> | null = null;
+  server.use(
+    ...referenceHandlersWithNoGisOrg(),
+    http.get('*/api/v1/gis/contours', () => HttpResponse.json({ items: [], total: 0 })),
+    http.post('*/api/v1/gis/contours', async ({ request }) => {
+      const body = (await request.json()) as { number: string; organization_id: string };
+      return HttpResponse.json(
+        { id: 'c-nogis', layer_id: 'layer-contours', organization_id: body.organization_id, parent_id: null, kind: 'contour', number: body.number, status: 'active' },
+        { status: 201 },
+      );
+    }),
+    http.get('*/api/v1/gis/contours/c-nogis', () => HttpResponse.json({ error: { code: 'ERR-SYS-003', message: 'not found' } }, { status: 404 })),
+    http.post('*/api/v1/gis/contours/c-nogis/versions', async ({ request }) => {
+      versionBody = (await request.json()) as Record<string, unknown>;
+      return HttpResponse.json(
+        {
+          id: 'v-nogis',
+          contour_id: 'c-nogis',
+          version_no: 1,
+          status: 'draft',
+          source: versionBody.source,
+          area_ha: String(versionBody.declared_area_ha),
+          declared_area_ha: versionBody.declared_area_ha,
+          accuracy_m: null,
+          survey_date: null,
+          effective_from: null,
+          approval_doc_id: null,
+          approved_by: null,
+          published_at: null,
+        },
+        { status: 201 },
+      );
+    }),
+  );
+  const ui = userEvent.setup();
+  renderTab(['gis.contours.manage']);
+
+  await ui.click(await screen.findByRole('button', { name: 'gis.contours.newContour' }));
+  await ui.type(screen.getByPlaceholderText('K-001'), 'K-900');
+  const orgSelect = await screen.findByRole('combobox');
+  await waitFor(() => expect(within(orgSelect).getByText('Xorazm LX')).toBeInTheDocument());
+  await ui.selectOptions(orgSelect, 'org-2');
+  await ui.click(screen.getByRole('button', { name: 'gis.contours.form.create' }));
+
+  // No map surface at all — the requisites notice takes its place, and the
+  // version-fields form appears right away, with no shape to draw first.
+  await screen.findByTestId('no-gis-notice');
+  expect(screen.queryByTestId('draw-map-mock')).not.toBeInTheDocument();
+  const saveButton = await screen.findByRole('button', { name: 'gis.contours.form.saveVersion' });
+
+  // Declared area is the only area of record here — Save stays disabled
+  // until it is filled (the DB's own `geom_or_declared_area` CHECK, caught
+  // here instead of round-tripped as a 422).
+  expect(saveButton).toBeDisabled();
+  await ui.type(screen.getByTestId('version-declared-area-input'), '3.5');
+  expect(saveButton).not.toBeDisabled();
+  await ui.click(saveButton);
+
+  const panel = await screen.findByTestId('version-panel');
+  expect(within(panel).getByTestId('version-status-badge')).toHaveTextContent('gis.versions.status.draft');
+  expect(versionBody).not.toBeNull();
+  expect(versionBody).not.toHaveProperty('geom');
+  expect((versionBody as unknown as { declared_area_ha: string }).declared_area_ha).toBe('3.5');
+});
+
+test('a leshoz WITH a GIS layer still draws on the map, unaffected by the switch', async () => {
+  server.use(
+    ...referenceHandlers(),
+    http.get('*/api/v1/gis/contours', () => HttpResponse.json({ items: [], total: 0 })),
+    http.post('*/api/v1/gis/contours', async ({ request }) => {
+      const body = (await request.json()) as { number: string; organization_id: string };
+      return HttpResponse.json(
+        { id: 'c-gis', layer_id: 'layer-contours', organization_id: body.organization_id, parent_id: null, kind: 'contour', number: body.number, status: 'active' },
+        { status: 201 },
+      );
+    }),
+    http.get('*/api/v1/gis/contours/c-gis', () => HttpResponse.json({ error: { code: 'ERR-SYS-003', message: 'not found' } }, { status: 404 })),
+  );
+  const ui = userEvent.setup();
+  renderTab(['gis.contours.manage']);
+
+  await ui.click(await screen.findByRole('button', { name: 'gis.contours.newContour' }));
+  await ui.type(screen.getByPlaceholderText('K-001'), 'K-901');
+  const orgSelect = await screen.findByRole('combobox');
+  await waitFor(() => expect(within(orgSelect).getByText('Burchmulla LX')).toBeInTheDocument());
+  await ui.selectOptions(orgSelect, 'org-1');
+  await ui.click(screen.getByRole('button', { name: 'gis.contours.form.create' }));
+
+  expect(screen.queryByTestId('no-gis-notice')).not.toBeInTheDocument();
+  await waitFor(() => expect(screen.getByTestId('draw-map-mock')).toHaveAttribute('data-active', 'true'));
+});
+
 test('a contour with neither a published card nor a held draft offers "draw first version" to a specialist', async () => {
   server.use(
     ...referenceHandlers(),

@@ -20,6 +20,8 @@ function org(id: string, kind: string, parent: string | null, code = id): Organi
     region_id: null,
     district_id: null,
     status: 'active',
+    // Ruling #178 (stage 9): whether this leshoz shows a map at all.
+    gis_enabled: true,
   };
 }
 

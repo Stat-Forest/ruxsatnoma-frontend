@@ -1,10 +1,13 @@
 import { useState } from 'react';
-import { Bell } from 'lucide-react';
+import { Bell, Loader2 } from 'lucide-react';
 import { Button } from '../../components/ui/button';
 import { Pagination, Tabs } from '../../components/ui/Navigation';
-import { useT } from '../../i18n/useT';
+import { useLanguage, useT } from '../../i18n/useT';
+import { useApiErrorText } from '../../i18n/useApiErrorText';
+import { ApiError } from '../../api/errors';
 import { useMarkAllNotificationsRead, useMarkNotificationRead, useNotifications } from './queries';
 import { formatDateTime } from './format';
+import { translateNotification, translateNotificationSubject } from './translateNotification';
 
 const PAGE_SIZE = 20;
 
@@ -24,6 +27,8 @@ type Filter = 'all' | 'unread';
  */
 export function NotificationsPage() {
   const t = useT();
+  const { lang } = useLanguage();
+  const errorText = useApiErrorText();
   const [filter, setFilter] = useState<Filter>('all');
   const [page, setPage] = useState(1);
 
@@ -41,7 +46,7 @@ export function NotificationsPage() {
   }
 
   return (
-    <div className="max-w-2xl space-y-4 pb-8">
+    <div className="max-w-2xl space-y-4 pb-8" data-testid="notifications-page">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <h1 className="text-lg font-bold text-[#1A1F24]">{t('cabinet.notifications.title')}</h1>
         <Button
@@ -67,7 +72,37 @@ export function NotificationsPage() {
         onChange={changeFilter}
       />
 
-      {!query.isLoading && items.length === 0 && (
+      {markAllRead.isError && (
+        <div
+          role="alert"
+          data-testid="notifications-action-error"
+          className="rounded-xl border border-[#FCA5A5] bg-[#FEF2F2] p-3 text-xs text-[#991B1B]"
+        >
+          {markAllRead.error instanceof ApiError ? errorText(markAllRead.error) : t('cabinet.notifications.actionFailed')}
+        </div>
+      )}
+
+      {query.isError && (
+        <div
+          role="alert"
+          data-testid="notifications-error"
+          className="rounded-2xl border border-[#FCA5A5] bg-[#FEF2F2] p-4 text-sm text-[#991B1B]"
+        >
+          {query.error instanceof ApiError ? errorText(query.error) : t('cabinet.notifications.loadFailed')}
+        </div>
+      )}
+
+      {query.isLoading && (
+        <div
+          data-testid="notifications-loading"
+          className="flex flex-col items-center gap-2 py-12 text-center text-[#5A646D]"
+        >
+          <Loader2 className="w-8 h-8 animate-spin text-[#2E7D4F]" />
+          <p className="text-sm">{t('cabinet.notifications.loading')}</p>
+        </div>
+      )}
+
+      {!query.isLoading && !query.isError && items.length === 0 && (
         <div
           data-testid="notifications-empty"
           className="flex flex-col items-center gap-2 py-12 text-center text-[#5A646D]"
@@ -89,14 +124,18 @@ export function NotificationsPage() {
             >
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2 mb-1 flex-wrap">
-                  {n.subject && <p className="text-sm font-semibold text-[#1A1F24]">{n.subject}</p>}
+                  {n.subject && (
+                    <p className="text-sm font-semibold text-[#1A1F24]">
+                      {translateNotificationSubject(n.subject, lang)}
+                    </p>
+                  )}
                   {!n.read_at && (
                     <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[11px] font-medium bg-[#DCFCE7] text-[#15803D]">
                       {t('cabinet.notifications.filterUnread')}
                     </span>
                   )}
                 </div>
-                <p className="text-sm text-[#1A1F24] break-words">{n.text}</p>
+                <p className="text-sm text-[#1A1F24] break-words">{translateNotification(n.text, lang)}</p>
                 <p className="text-xs text-[#5A646D] mt-1">{formatDateTime(n.created_at)}</p>
               </div>
               {!n.read_at && (
@@ -106,6 +145,7 @@ export function NotificationsPage() {
                   size="sm"
                   data-testid={`mark-read-${n.id}`}
                   disabled={markRead.isPending}
+                  isLoading={markRead.isPending && markRead.variables === n.id}
                   onClick={() => markRead.mutate(n.id)}
                   className="shrink-0 self-end sm:self-auto w-full sm:w-auto justify-center"
                 >

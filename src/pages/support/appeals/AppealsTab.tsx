@@ -91,6 +91,7 @@ export function AppealsTab() {
         columns={columns}
         data={list.data?.items ?? []}
         isLoading={list.isLoading}
+        loadingText={t('support.common.loading')}
         emptyTitle={t('support.appeals.empty')}
         emptyDescription=""
         pagination={{ currentPage: page, totalPages, onPageChange: setPage, totalRecords: total }}

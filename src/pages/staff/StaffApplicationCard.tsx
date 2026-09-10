@@ -17,42 +17,57 @@ import { ReviewActionsPanel } from './components/ReviewActionsPanel';
 const STAFF_CARD_I18N = {
   uz_latn: {
     backToList: 'Arizalar roʻyxatiga qaytish',
+    backToSearch: 'Qidiruvga qaytish',
     cardTitle: 'Ariza kartochkasi',
     noNumber: '(raqamsiz)',
     loading: 'Yuklanmoqda...',
     loadError: 'Ariza yuklanmadi.',
+    notFoundOrNoOrg: 'Ariza topilmadi yoki unga tashkilot biriktirilmagan.',
+    notFoundOrNoOrgDesc: 'Ushbu ariza qoralama holatida boʻlishi yoki masʼul tashkilotga yoʻnaltirilmagan boʻlishi mumkin.',
     submittedAt: 'Topshirilgan:',
   },
   uz_cyrl: {
     backToList: 'Аризалар рўйхатига қайтиш',
+    backToSearch: 'Қидирувга қайтиш',
     cardTitle: 'Ариза карточкаси',
     noNumber: '(рақамсиз)',
     loading: 'Юкланмоқда...',
     loadError: 'Ариза юкланмади.',
+    notFoundOrNoOrg: 'Ариза топилмади ёки унга ташкилот бириктирилмаган.',
+    notFoundOrNoOrgDesc: 'Ушбу ариза қоралама ҳолатида бўлиши ёки масъул ташкилотга йўналтирилмаган бўлиши мумкин.',
     submittedAt: 'Топширилган:',
   },
   ru: {
     backToList: 'Назад к списку заявлений',
+    backToSearch: 'Назад к поиску',
     cardTitle: 'Карточка заявления',
     noNumber: '(без номера)',
     loading: 'Загрузка...',
     loadError: 'Не удалось загрузить заявление.',
+    notFoundOrNoOrg: 'Заявление не найдено или к нему не привязана организация.',
+    notFoundOrNoOrgDesc: 'Данное заявление может находиться в статусе черновика или ещё не направлено в организацию.',
     submittedAt: 'Подано:',
   },
   en: {
     backToList: 'Back to applications list',
+    backToSearch: 'Back to search',
     cardTitle: 'Application card',
     noNumber: '(no number)',
     loading: 'Loading...',
     loadError: 'Failed to load application.',
+    notFoundOrNoOrg: 'Application not found or no organization assigned.',
+    notFoundOrNoOrgDesc: 'This application might be in draft status or not yet routed to an organization.',
     submittedAt: 'Submitted:',
   },
   kaa: {
     backToList: 'Arzalar dizimine qaytıw',
+    backToSearch: 'İzlewge qaytıw',
     cardTitle: 'Arza kartochkası',
     noNumber: '(nómersiz)',
     loading: 'Júklenbekte...',
     loadError: 'Arza júklenbedi.',
+    notFoundOrNoOrg: 'Arza tabılmadı yamasa oǵan shólkem biriktirilmegen.',
+    notFoundOrNoOrgDesc: 'Bul arza dáslepki nusqa jaǵdayında bolıwı yamasa juwapker shólkemge jiberilmegen bolıwı múmkin.',
     submittedAt: 'Tapsırılǵan:',
   },
 };
@@ -85,9 +100,26 @@ export function StaffApplicationCard() {
 
   if (cardQuery.error) {
     const err = cardQuery.error;
+    const isNotFound = err instanceof ApiError && err.code === 'ERR-SYS-003';
     return (
-      <div className="p-6 bg-[#FEF2F2] border border-[#FCA5A5] rounded-2xl text-sm text-[#991B1B]" role="alert">
-        {err instanceof ApiError ? errorText(err) : tr.loadError}
+      <div className="space-y-4" data-testid="staff-card-error">
+        <div className="flex items-center gap-2 text-xs text-[#5A646D] border-b border-[#E4E7EA] pb-3">
+          <Link to="/applications" className="inline-flex items-center gap-1.5 text-[#2E7D4F] font-bold hover:underline">
+            <ArrowLeft className="w-4 h-4" /> {tr.backToList}
+          </Link>
+          <span>/</span>
+          <Link to="/search" className="inline-flex items-center gap-1.5 text-[#2E7D4F] font-bold hover:underline">
+            {tr.backToSearch}
+          </Link>
+        </div>
+        <div className="p-6 bg-[#FEF2F2] border border-[#FCA5A5] rounded-2xl text-sm text-[#991B1B]" role="alert">
+          <p className="font-semibold">{isNotFound ? tr.notFoundOrNoOrg : (err instanceof ApiError ? errorText(err) : tr.loadError)}</p>
+          {isNotFound && (
+            <p className="text-xs text-[#7F1D1D] mt-1.5">
+              {tr.notFoundOrNoOrgDesc}
+            </p>
+          )}
+        </div>
       </div>
     );
   }

@@ -2,13 +2,14 @@ import { useRef, useState } from 'react';
 import { AlertTriangle, CheckCircle2, Copy, Loader2 } from 'lucide-react';
 import { Drawer } from '../../components/ui/Overlay';
 import { Button } from '../../components/ui/button';
-import { FormField, Input } from '../../components/ui/FormControls';
+import { FileInput, FormField, Input } from '../../components/ui/FormControls';
 import { Alert } from '../../components/ui/Feedback';
 import { useAuth } from '../../auth/useAuth';
 import { ApiError } from '../../api/errors';
 import { useApiErrorText } from '../../i18n/useApiErrorText';
 import { useLanguage, useT } from '../../i18n/useT';
 import { formatDateTime, formatMoney } from '../permits/format';
+import { pickName } from '../applicant/format';
 import {
   INVOICE_STATUS_STYLE,
   getInvoiceStatusLabel,
@@ -16,6 +17,7 @@ import {
   getAllocationTargetLabel,
 } from './statusMeta';
 import { uploadFile } from './api';
+import type { InvoiceRecipientOut } from './api';
 import { useAllocationsForInvoice, useFileManualConfirmation, useInvoice } from './queries';
 
 const PAYMENTS_MANAGE = 'payments.manage';
@@ -49,6 +51,7 @@ export function InvoiceDetailDrawer({ invoiceId, onClose }: { invoiceId: string;
       ) : (
         <div className="space-y-6">
           <InvoiceHeader invoice={invoiceQuery.data!} />
+          <RecipientsSection recipients={invoiceQuery.data!.recipients} />
           <LedgerSection invoiceId={invoiceId} allocations={allocationsQuery.data} isLoading={allocationsQuery.isLoading} />
           {canFileManualPaid && invoiceQuery.data!.status === 'pending' && (
             <ManualPaidFilingForm invoiceId={invoiceId} />
@@ -106,6 +109,77 @@ function InvoiceHeader({ invoice }: { invoice: import('./api').InvoiceOut }) {
   );
 }
 
+/** `"50.00"` -> `"50%"` — the same trimmed reading `RecipientsPage.tsx`'s
+ *  own `formatPercent` gives the live directory this snapshot was frozen
+ *  from; duplicated here rather than imported, the same convention
+ *  `applicant/format.ts`'s own header documents for a small display helper. */
+function formatPercent(value: string): string {
+  const num = Number(value);
+  if (!Number.isFinite(num)) return '—';
+  return `${Math.round(num * 100) / 100}%`;
+}
+
+/**
+ * How the invoice divides — `InvoiceOut.recipients` (stage 7.9 task 8), the
+ * split FROZEN at issuance. `null`/absent entirely for a caller without
+ * `payments.view` (an applicant, per that field's own contract) — this
+ * drawer is only ever opened from the accountant's workspace, which always
+ * holds it, but the guard stays defensive rather than assuming that.
+ *
+ * The last row is always the leshoz's own remainder (`kind === "remainder"`,
+ * `recipient_id === null`) — rendered like any other row, not a special
+ * case, the same "no invented label" reasoning `RefundComponentOut`'s own
+ * docstring gives for its symmetric breakdown.
+ */
+function RecipientsSection({ recipients }: { recipients: InvoiceRecipientOut[] | null | undefined }) {
+  const t = useT();
+  const { lang } = useLanguage();
+
+  if (!recipients || recipients.length === 0) return null;
+
+  return (
+    <section data-testid="invoice-recipients-section">
+      <h3 className="mb-2 text-sm font-bold text-[#1A1F24]">{t('accountant.invoices.recipientsTitle')}</h3>
+      <div className="overflow-x-auto rounded-lg border border-[#E4E7EA]">
+        <table className="w-full text-xs">
+          <thead className="bg-[#F8F9FA] text-left font-semibold uppercase tracking-wide text-[#5A646D]">
+            <tr>
+              <th className="px-3 py-2">{t('accountant.invoices.recipientsColName')}</th>
+              <th className="px-3 py-2">{t('accountant.invoices.recipientsColRule')}</th>
+              <th className="px-3 py-2">{t('accountant.invoices.recipientsColPaymeId')}</th>
+              <th className="px-3 py-2 text-right">{t('accountant.invoices.recipientsColAmount')}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {recipients.map((row, i) => (
+              <tr
+                key={row.recipient_id ?? `remainder-${i}`}
+                className="border-t border-[#E4E7EA]"
+                data-testid={`invoice-recipient-row-${row.recipient_id ?? 'leshoz'}`}
+              >
+                <td className="px-3 py-2">{pickName(row.name, lang)}</td>
+                <td className="px-3 py-2 font-mono">
+                  {row.kind === 'percent'
+                    ? formatPercent(row.percent ?? '0')
+                    : row.kind === 'fixed'
+                      ? formatMoney(row.fixed_amount)
+                      : t('accountant.invoices.recipientsRemainder')}
+                </td>
+                <td className="px-3 py-2 font-mono">
+                  {row.payme_account_id ?? (
+                    <span className="italic text-[#9AA3AB]">{t('accountant.invoices.recipientsNoPaymeId')}</span>
+                  )}
+                </td>
+                <td className="px-3 py-2 text-right font-mono">{formatMoney(row.amount)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  );
+}
+
 function LedgerSection({
   allocations,
   isLoading,
@@ -136,19 +210,33 @@ function LedgerSection({
               </tr>
             </thead>
             <tbody>
-              {allocations.map((row) => (
-                <tr key={row.id} className="border-t border-[#E4E7EA]">
-                  <td className="px-3 py-2">{getEntryTypeLabel(row.entry_type, lang)}</td>
-                  <td className="px-3 py-2">{getAllocationTargetLabel(row.target, lang)}</td>
-                  <td className="px-3 py-2">
-                    {row.account ?? (
-                      <span className="italic text-[#9AA3AB]">{t('accountant.invoices.ledgerAccountSettledExternally')}</span>
-                    )}
-                  </td>
-                  <td className="px-3 py-2 text-right font-mono">{formatMoney(row.amount)}</td>
-                  <td className="px-3 py-2 font-mono">{formatDateTime(row.occurred_at)}</td>
-                </tr>
-              ))}
+              {allocations.map((row) => {
+                // A `target="receiver"` row names WHICH configured receiver it
+                // belongs to via `recipient_name` (stage 7.9 task 8/9) — prefer
+                // that over the generic "Qabul qiluvchi" label so three
+                // different receivers render as three distinguishable rows,
+                // not three identical ones. `recipient_name` is absent/empty
+                // only for a receiver whose own name is somehow blank, which
+                // still falls back to the generic label rather than an empty
+                // cell.
+                const targetLabel =
+                  row.target === 'receiver'
+                    ? pickName(row.recipient_name, lang) || getAllocationTargetLabel('receiver', lang)
+                    : getAllocationTargetLabel(row.target, lang);
+                return (
+                  <tr key={row.id} className="border-t border-[#E4E7EA]">
+                    <td className="px-3 py-2">{getEntryTypeLabel(row.entry_type, lang)}</td>
+                    <td className="px-3 py-2">{targetLabel}</td>
+                    <td className="px-3 py-2">
+                      {row.account ?? (
+                        <span className="italic text-[#9AA3AB]">{t('accountant.invoices.ledgerAccountSettledExternally')}</span>
+                      )}
+                    </td>
+                    <td className="px-3 py-2 text-right font-mono">{formatMoney(row.amount)}</td>
+                    <td className="px-3 py-2 font-mono">{formatDateTime(row.occurred_at)}</td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
@@ -252,12 +340,11 @@ function ManualPaidFilingForm({ invoiceId }: { invoiceId: string }) {
             />
           </FormField>
           <FormField label={t('accountant.invoices.manualPaidDocLabel')} htmlFor="manual-paid-doc">
-            <input
+            <FileInput
               ref={fileInputRef}
               id="manual-paid-doc"
-              type="file"
-              onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-              className="block w-full max-w-full text-xs text-[#5A646D] file:mr-2 file:rounded-md file:border-0 file:bg-[#F0F7F1] file:px-2.5 file:py-1.5 file:text-xs file:font-semibold file:text-[#2E7D4F]"
+              value={file}
+              onChange={setFile}
             />
           </FormField>
           {uploadError && <Alert variant="danger">{uploadError}</Alert>}

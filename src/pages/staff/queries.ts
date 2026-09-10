@@ -5,7 +5,7 @@
  */
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '../../api/client';
-import { apiError } from '../../api/errors';
+import { ApiError, apiError } from '../../api/errors';
 import type { components } from '../../api/schema';
 
 export type ApplicationOut = components['schemas']['ApplicationOut'];
@@ -195,6 +195,10 @@ export function useApplicationCard(applicationId: string) {
       // `ApplicationCardOut`'s own docstring above.
       return data as ApplicationCardOut;
     },
+    retry: (failureCount, error) => {
+      if (error instanceof ApiError && error.code === 'ERR-SYS-003') return false;
+      return failureCount < 2;
+    },
   });
 }
 
@@ -209,6 +213,10 @@ export function useApplicationTimeline(applicationId: string) {
       // The response genuinely carries `info_requests` (3.9b task 4); see
       // `ApplicationTimelineOut`'s own docstring above.
       return data as ApplicationTimelineOut;
+    },
+    retry: (failureCount, error) => {
+      if (error instanceof ApiError && error.code === 'ERR-SYS-003') return false;
+      return failureCount < 2;
     },
   });
 }

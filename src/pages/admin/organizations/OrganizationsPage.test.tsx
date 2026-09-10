@@ -13,8 +13,8 @@ import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { setupServer } from 'msw/node';
 import { OrganizationsPage } from './OrganizationsPage';
-import { DICTIONARIES, I18nContext } from '../../../i18n/context';
-import { ru, uz_latn } from './labels';
+import { DICTIONARIES, I18nContext, type UiLanguage } from '../../../i18n/context';
+import { ru, uz_latn, uz_cyrl, en, kaa } from './labels';
 
 const AGENCY = '00000000-0000-4000-8000-000000000001';
 const TERRITORIAL = '00000000-0000-4000-8000-000000000002';
@@ -68,7 +68,13 @@ const ORGS: OrgRow[] = [
     parent_id: TERRITORIAL,
     kind: 'leshoz',
     code: 'burchmulla',
-    name: { uz_cyrl: 'Бурчмулла ўрмон хўжалиги', uz_latn: 'Burchmulla oʻrmon xoʻjaligi', ru: 'Бурчмуллинский лесхоз' },
+    name: {
+      uz_cyrl: 'Бурчмулла ўрмон хўжалиги',
+      uz_latn: 'Burchmulla oʻrmon xoʻjaligi',
+      ru: 'Бурчмуллинский лесхоз',
+      en: 'Burchmulla Forestry Enterprise',
+      kaa: 'Burchmulla toǵay xojalıǵı',
+    },
     stir: '301234567',
     region_id: REGION_TASHKENT,
     district_id: DISTRICT_BOSTANLIQ,
@@ -171,7 +177,7 @@ function adminHandlers() {
   ];
 }
 
-function renderPage(lang: 'uz_latn' | 'ru' = 'uz_latn') {
+function renderPage(lang: UiLanguage = 'uz_latn') {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
   const i18n = {
     lang,
@@ -273,6 +279,9 @@ test('creating an organization sends the parent, kind, code and localized name t
     region_id: REGION_TASHKENT,
     district_id: DISTRICT_ZANGIOTA,
     requisites: {},
+    // T12 (decision #178) — always sent on create, the column's own default
+    // (`blankState`'s starting value), never left for the server to fill in.
+    gis_enabled: true,
   });
 });
 
@@ -368,6 +377,145 @@ test('editing locks the immutable columns and patches only what OrganizationPatc
   });
 });
 
+test('a Payme account id typed on create is written into requisites', async () => {
+  server.use(...refsHandlers(), ...adminHandlers());
+  const { user } = renderPage();
+
+  await screen.findByTestId(`org-row-${AGENCY}`);
+  await user.click(screen.getByTestId('org-create'));
+
+  await user.selectOptions(screen.getByTestId('field-kind'), 'leshoz');
+  await user.selectOptions(screen.getByTestId('field-parent'), TERRITORIAL);
+  await user.type(screen.getByTestId('field-code'), 'chorvoq');
+  await user.type(screen.getByTestId('field-name-uz_cyrl'), 'Чорвоқ ўрмон хўжалиги');
+  await user.type(screen.getByTestId('field-payme-account-id'), '5550001');
+  await user.click(screen.getByTestId('org-form-submit'));
+
+  await vi.waitFor(() => expect(createdBody).not.toBeNull());
+  expect((createdBody as { requisites: unknown }).requisites).toEqual({ payme_account_id: '5550001' });
+});
+
+test('changing the Payme account id on edit merges it into requisites without losing the bank account already there', async () => {
+  server.use(...refsHandlers(), ...adminHandlers());
+  const { user } = renderPage();
+
+  await screen.findByTestId(`org-row-${LESHOZ_A}`);
+  await user.click(screen.getByTestId(`org-edit-${LESHOZ_A}`));
+
+  const paymeField = (await screen.findByTestId('field-payme-account-id')) as HTMLInputElement;
+  // The GET fixture's `requisites` carries a `bank_account` but no
+  // `payme_account_id` — the field starts blank, not "undefined".
+  expect(paymeField.value).toBe('');
+
+  await user.type(paymeField, '5550001');
+  await user.click(screen.getByTestId('org-form-submit'));
+
+  await vi.waitFor(() => expect(patchedBody).not.toBeNull());
+  expect((patchedBody as { requisites: unknown }).requisites).toEqual({
+    bank_account: '20208000000000000001',
+    payme_account_id: '5550001',
+  });
+});
+
+// T12 (decision #178) — the central admin's switch for whether a leshoz
+// shows a map at all.
+test('turning the GIS switch off on create sends gis_enabled: false', async () => {
+  server.use(...refsHandlers(), ...adminHandlers());
+  const { user } = renderPage();
+
+  await screen.findByTestId(`org-row-${AGENCY}`);
+  await user.click(screen.getByTestId('org-create'));
+
+  // `blankState`'s default kind is `leshoz` — the switch is visible with no
+  // extra click.
+  expect(screen.getByTestId('field-kind')).toHaveValue('leshoz');
+  await user.selectOptions(screen.getByTestId('field-parent'), TERRITORIAL);
+  await user.type(screen.getByTestId('field-code'), 'chorvoq');
+  await user.type(screen.getByTestId('field-name-uz_cyrl'), 'Чорвоқ ўрмон хўжалиги');
+
+  const gisSwitch = screen.getByTestId('field-gis-enabled');
+  expect(gisSwitch).toBeChecked();
+  await user.click(gisSwitch);
+  expect(gisSwitch).not.toBeChecked();
+
+  await user.click(screen.getByTestId('org-form-submit'));
+
+  await vi.waitFor(() => expect(createdBody).not.toBeNull());
+  expect((createdBody as { gis_enabled: unknown }).gis_enabled).toBe(false);
+});
+
+test('the GIS switch is not offered for a kind other than leshoz', async () => {
+  server.use(...refsHandlers(), ...adminHandlers());
+  const { user } = renderPage();
+
+  await screen.findByTestId(`org-row-${AGENCY}`);
+  await user.click(screen.getByTestId('org-create'));
+  await user.selectOptions(screen.getByTestId('field-kind'), 'territorial');
+
+  expect(screen.queryByTestId('field-gis-enabled')).not.toBeInTheDocument();
+});
+
+test('flipping only the GIS switch on edit patches just gis_enabled, nothing else', async () => {
+  server.use(...refsHandlers(), ...adminHandlers());
+  const { user } = renderPage();
+
+  await screen.findByTestId(`org-row-${LESHOZ_A}`);
+  await user.click(screen.getByTestId(`org-edit-${LESHOZ_A}`));
+
+  const gisSwitch = await screen.findByTestId('field-gis-enabled');
+  // The GET fixture carries no `gis_enabled` at all — the form defaults a
+  // missing field to `true` (the column's own default), not `false`.
+  expect(gisSwitch).toBeChecked();
+  await user.click(gisSwitch);
+  await user.click(screen.getByTestId('org-form-submit'));
+
+  await vi.waitFor(() => expect(patchedBody).not.toBeNull());
+  expect(patchedBody).toEqual({
+    parent_id: TERRITORIAL,
+    name: {
+      uz_cyrl: 'Бурчмулла ўрмон хўжалиги',
+      uz_latn: 'Burchmulla oʻrmon xoʻjaligi',
+      ru: 'Бурчмуллинский лесхоз',
+    },
+    stir: '301234567',
+    region_id: REGION_TASHKENT,
+    district_id: DISTRICT_BOSTANLIQ,
+    gis_enabled: false,
+  });
+});
+
+test('leaving the GIS switch untouched on edit sends no gis_enabled at all', async () => {
+  server.use(...refsHandlers(), ...adminHandlers());
+  const { user } = renderPage();
+
+  await screen.findByTestId(`org-row-${LESHOZ_A}`);
+  await user.click(screen.getByTestId(`org-edit-${LESHOZ_A}`));
+  await screen.findByTestId('field-gis-enabled');
+
+  const latin = screen.getByTestId('field-name-uz_latn');
+  await user.type(latin, ' (2)');
+  await user.click(screen.getByTestId('org-form-submit'));
+
+  await vi.waitFor(() => expect(patchedBody).not.toBeNull());
+  expect(patchedBody).not.toHaveProperty('gis_enabled');
+});
+
+test('leaving the Payme account id untouched on edit sends no requisites at all', async () => {
+  server.use(...refsHandlers(), ...adminHandlers());
+  const { user } = renderPage();
+
+  await screen.findByTestId(`org-row-${LESHOZ_A}`);
+  await user.click(screen.getByTestId(`org-edit-${LESHOZ_A}`));
+  await screen.findByTestId('field-payme-account-id');
+
+  const latin = screen.getByTestId('field-name-uz_latn');
+  await user.type(latin, ' (2)');
+  await user.click(screen.getByTestId('org-form-submit'));
+
+  await vi.waitFor(() => expect(patchedBody).not.toBeNull());
+  expect(patchedBody).not.toHaveProperty('requisites');
+});
+
 // ── 5. archive ─────────────────────────────────────────────────────────────
 
 test('archiving asks for confirmation before it fires', async () => {
@@ -434,16 +582,36 @@ test('a failed load says so instead of showing an empty hierarchy', async () => 
   expect(await screen.findByTestId('org-tree-error')).toBeInTheDocument();
 });
 
-test('the two label dictionaries carry identical keys', () => {
-  expect(Object.keys(ru).sort()).toEqual(Object.keys(uz_latn).sort());
-  expect(Object.values(ru).every((v) => v.length > 0)).toBe(true);
+test('all five label dictionaries carry identical keys and non-empty values', () => {
+  const baseKeys = Object.keys(uz_latn).sort();
+  expect(baseKeys.length).toBeGreaterThan(0);
+
+  const dicts: Record<UiLanguage, Record<string, string>> = {
+    uz_latn,
+    ru,
+    uz_cyrl,
+    en,
+    kaa,
+  };
+
+  for (const [lang, dict] of Object.entries(dicts)) {
+    expect(Object.keys(dict).sort(), `Keys mismatch in ${lang}`).toEqual(baseKeys);
+    expect(Object.values(dict).every((v) => typeof v === 'string' && v.length > 0), `Empty string in ${lang}`).toBe(true);
+  }
 });
 
-test('the screen speaks Russian when the account does', async () => {
+test.each([
+  ['uz_latn', uz_latn, 'Burchmulla oʻrmon xoʻjaligi'],
+  ['ru', ru, 'Бурчмуллинский лесхоз'],
+  ['uz_cyrl', uz_cyrl, 'Бурчмулла ўрмон хўжалиги'],
+  ['en', en, 'Burchmulla Forestry Enterprise'],
+  ['kaa', kaa, 'Burchmulla toǵay xojalıǵı'],
+] as const)('the screen speaks %s when selected', async (lang, labels, expectedName) => {
   server.use(...refsHandlers(), ...adminHandlers());
-  renderPage('ru');
+  renderPage(lang);
 
   const leshoz = await screen.findByTestId(`org-row-${LESHOZ_A}`);
-  expect(within(leshoz).getByTestId('org-kind')).toHaveTextContent(ru['kind.leshoz']);
-  expect(leshoz).toHaveTextContent('Бурчмуллинский лесхоз');
+  expect(within(leshoz).getByTestId('org-kind')).toHaveTextContent(labels['kind.leshoz']);
+  expect(leshoz).toHaveTextContent(expectedName);
+  expect(screen.getByRole('heading', { level: 1, name: labels['page.title'] })).toBeInTheDocument();
 });

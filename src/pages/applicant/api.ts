@@ -193,10 +193,18 @@ export async function listContours(params: {
  * `bbox` is the viewport, `min_lon,min_lat,max_lon,max_lat`. Sending one is
  * not optional in practice: without it the server answers every published
  * contour the caller may see — ~13,500 rows once the leshozes land — and sets
- * `truncated` to say the answer was clipped. */
-export async function listContourFeatures(bbox: string): Promise<ContourFeatureCollection> {
+ * `truncated` to say the answer was clipped.
+ *
+ * `organizationId` narrows the browsable layer to one leshoz, the same
+ * `organization_id` filter `listContours` already sends to the paged list
+ * (T2, demo remark 2026-09-10) — so picking a leshoz narrows the MAP, not
+ * only the list beside it. */
+export async function listContourFeatures(
+  bbox: string,
+  organizationId?: string | null,
+): Promise<ContourFeatureCollection> {
   const { data, error } = await api.GET('/api/v1/gis/contours/features', {
-    params: { query: { bbox } },
+    params: { query: { bbox, organization_id: organizationId ?? undefined } },
   });
   if (error) throw apiError(error);
   // Through `unknown` because the server's own schema types a feature as an

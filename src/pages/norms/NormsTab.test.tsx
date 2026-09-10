@@ -31,6 +31,8 @@ function norm(over: Partial<NormOut> = {}): NormOut {
     contour_id: CONTOUR_ID,
     activity_type_id: ACTIVITY_TYPE_ID,
     yield_c_per_ha: '12.5000',
+    // Ruling #176 (stage 9): capacity for every activity but grazing.
+    capacity: null,
     season: null,
     rotation: null,
     max_sb: null,

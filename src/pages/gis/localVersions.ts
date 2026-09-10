@@ -110,3 +110,31 @@ export function activeRecalledVersion(contourId: string): RecalledVersion | unde
     (entry) => entry.version.status !== 'published' && entry.version.status !== 'archived',
   );
 }
+
+export interface RecalledPendingVersion {
+  contourId: string;
+  version: VersionOut;
+}
+
+/** Recalls all non-terminal versions awaiting review/approval across all contours
+ * recorded in this browser's localStorage cache. */
+export function recalledPendingReviewVersions(): RecalledPendingVersion[] {
+  const result: RecalledPendingVersion[] = [];
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k && k.startsWith(PREFIX)) {
+        const contourId = k.slice(PREFIX.length);
+        const versions = recalledVersions(contourId);
+        for (const entry of versions) {
+          if (entry.version.status === 'review') {
+            result.push({ contourId, version: entry.version });
+          }
+        }
+      }
+    }
+  } catch {
+    // localStorage unavailable
+  }
+  return result.sort((a, b) => (a.version.id < b.version.id ? 1 : -1));
+}

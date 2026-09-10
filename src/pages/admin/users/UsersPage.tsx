@@ -1,17 +1,20 @@
 import { useMemo, useState } from 'react';
+import { Link } from 'react-router';
 import { Plus, Search } from 'lucide-react';
 import { Alert } from '../../../components/ui/Feedback';
 import { Button } from '../../../components/ui/button';
 import { FormField, Input, Select, Textarea } from '../../../components/ui/FormControls';
 import { Modal } from '../../../components/ui/Overlay';
 import { Tabs } from '../../../components/ui/Navigation';
+import { ApiError } from '../../../api/errors';
+import { useApiErrorText } from '../../../i18n/useApiErrorText';
 import { useLanguage } from '../../../i18n/useT';
 import { formatDateTime } from '../../applicant/format';
 import { pickName } from '../../applicant/format';
 import type { PermissionOut, UserAdminOut, UserCreatedOut } from '../api';
 import { SecretPanel } from './SecretPanel';
 import { UserFormModal } from './UserFormModal';
-import { labelsFor } from './labels';
+import { labelsFor, type UsersLabels } from './labels';
 import {
   useBlockUser,
   useDeleteUser,
@@ -347,6 +350,94 @@ function UserCard({
   );
 }
 
+/**
+ * Stage 7.6 (ruling R3/#138, finding F4): `delete_user` now refuses with
+ * `ERR-VAL-001` and `details.open_work: {kind, count, ids}[]` when the user
+ * still holds unfinished work — `admin.open_work.OpenWork.as_details()` on
+ * the backend. A refusal an admin cannot act on is the same dead end in a
+ * friendlier voice: this is what makes the guard's whole point (naming what
+ * is held) actually reach the screen, rather than collapsing into the same
+ * generic "validation failed" every OTHER `ERR-VAL-001` renders as.
+ */
+interface OpenWorkItem {
+  kind: string;
+  count: number;
+  ids: string[];
+}
+
+function isOpenWorkItem(value: unknown): value is OpenWorkItem {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    typeof (value as OpenWorkItem).kind === 'string' &&
+    typeof (value as OpenWorkItem).count === 'number' &&
+    Array.isArray((value as OpenWorkItem).ids) &&
+    (value as OpenWorkItem).ids.every((id) => typeof id === 'string')
+  );
+}
+
+/** `null` for anything that is not THIS specific refusal shape — a plain
+ *  `ERR-VAL-001` with no `open_work` (or any other error) falls through to
+ *  the generic message the caller already renders for every other failure. */
+function openWorkFromError(error: unknown): OpenWorkItem[] | null {
+  if (!(error instanceof ApiError) || error.code !== 'ERR-VAL-001') return null;
+  const list = (error.details as { open_work?: unknown } | undefined)?.open_work;
+  if (!Array.isArray(list) || list.length === 0) return null;
+  return list.filter(isOpenWorkItem);
+}
+
+/** Where a held id actually leads — the same two routes finding F4 itself
+ *  names (`applications/service.py`'s `assigned_open_application_ids`,
+ *  `inspections/service.py`'s `open_task_ids_for_user`). A kind this map
+ *  has not caught up with (a future provider) still renders its raw id
+ *  rather than a dead link — see the `else` branch in `OpenWorkRefusal`. */
+const OPEN_WORK_LINK_BASE: Record<string, string> = {
+  applications: '/applications',
+  inspection_tasks: '/inspections/tasks',
+};
+
+function openWorkKindLabel(kind: string, labels: Record<keyof UsersLabels, string>): string {
+  if (kind === 'applications') return labels.openWorkKindApplications;
+  if (kind === 'inspection_tasks') return labels.openWorkKindInspectionTasks;
+  return kind;
+}
+
+function OpenWorkRefusal({ items, labels }: { items: OpenWorkItem[]; labels: Record<keyof UsersLabels, string> }) {
+  return (
+    <div
+      data-testid="open-work-refusal"
+      role="alert"
+      className="rounded-md border border-[#FCA5A5] bg-[#FEF2F2] p-3 text-sm text-[#991B1B] space-y-2"
+    >
+      <p className="font-semibold">{labels.openWorkTitle}</p>
+      <ul className="space-y-1.5">
+        {items.map((item) => {
+          const base = OPEN_WORK_LINK_BASE[item.kind];
+          return (
+            <li key={item.kind}>
+              <span className="font-semibold">
+                {openWorkKindLabel(item.kind, labels)} ({item.count}):
+              </span>{' '}
+              {item.ids.map((id, index) => (
+                <span key={id}>
+                  {base ? (
+                    <Link to={`${base}/${id}`} className="underline">
+                      #{id.slice(0, 8)}
+                    </Link>
+                  ) : (
+                    <span className="font-mono">#{id.slice(0, 8)}</span>
+                  )}
+                  {index < item.ids.length - 1 ? ', ' : ''}
+                </span>
+              ))}
+            </li>
+          );
+        })}
+      </ul>
+    </div>
+  );
+}
+
 function UserInfo({
   user,
   onEdit,
@@ -360,10 +451,12 @@ function UserInfo({
 }) {
   const { lang } = useLanguage();
   const L = labelsFor(lang);
+  const errorText = useApiErrorText();
   const unblock = useUnblockUser();
   const remove = useDeleteUser();
   const resetPassword = useResetPassword();
   const resetMfa = useResetMfa();
+  const openWork = remove.error ? openWorkFromError(remove.error) : null;
 
   return (
     <div className="space-y-4">
@@ -414,10 +507,20 @@ function UserInfo({
           >
             {L.actionResetMfa}
           </Button>
-          <Button size="sm" variant="danger" onClick={() => remove.mutate(user.id)}>
+          <Button size="sm" variant="danger" isLoading={remove.isPending} onClick={() => remove.mutate(user.id)}>
             {L.actionDelete}
           </Button>
         </div>
+        {remove.isError &&
+          (openWork && openWork.length > 0 ? (
+            <div className="mt-3">
+              <OpenWorkRefusal items={openWork} labels={L} />
+            </div>
+          ) : (
+            <p className="mt-3 text-xs text-[#B91C1C]" role="alert">
+              {remove.error instanceof ApiError ? errorText(remove.error) : L.actionFailed}
+            </p>
+          ))}
       </div>
     </div>
   );

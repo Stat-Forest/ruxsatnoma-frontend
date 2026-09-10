@@ -304,6 +304,16 @@ function AnnouncementRow({ row, L, lang, audience, onEdit, onPublish, onArchive 
             {[...audience.roleNames, ...audience.regionNames].join(', ')}
           </span>
         )}
+        {/* "Everybody" already means every LOGGED-IN user; this row also
+            leaves the system entirely, and that is a different statement. */}
+        {row.public_on_landing && (
+          <span
+            data-testid="announcement-public-badge"
+            className="mt-1 inline-block px-2 py-0.5 rounded-full bg-[#F0F7F1] border border-[#D9EBDC] text-[10px] font-bold text-[#2E7D4F]"
+          >
+            {L.publicBadge}
+          </span>
+        )}
       </td>
       <td className="p-3">
         <span data-testid="announcement-status">

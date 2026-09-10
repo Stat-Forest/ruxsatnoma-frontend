@@ -1,9 +1,41 @@
 /**
- * Uzbek Cyrillic UI copy. Key set mirrors `uz_latn.ts` exactly.
- * Uzbek (Latin) UI copy (ruling R14). Chosen as the Uzbek map over `uz_cyrl`
- * because the design reference's own UI copy is Latin-script Uzbek, so ported
- * screens stay coherent. A later stage adds `uz_cyrl.ts` and one row in
- * `resolveLanguage` (src/i18n/index.tsx) — nothing else changes shape.
+ * Uzbek (Cyrillic) copy for the E-IMZO messages `src/lib/eimzo/errors.ts`
+ * names (task 11, plus `noValidKey`/`multipleValidKeys` from the fix wave's
+ * finding 5; decision #90 — `uz_latn` is the required language, `uz_cyrl`
+ * optional).
+ *
+ * This standalone record predates `uz_cyrl` below becoming a full,
+ * first-class `UiLanguage` dictionary — it is kept because `errors.test.ts`
+ * asserts against it directly. The same eight strings also live under their
+ * `'eimzo.errors.*'` keys inside the full `uz_cyrl` dictionary further down
+ * this file, so `t()` resolves them the same way it resolves everything
+ * else; keep both copies in sync by hand if either changes.
+ *
+ * Keys mirror `EIMZO_ERROR_MESSAGE_KEYS` in `src/lib/eimzo/errors.ts`
+ * exactly (duplicated as string literals, not imported, to avoid a
+ * dependency from `src/i18n/` back into `src/lib/eimzo/` for these
+ * strings) — `errors.test.ts` asserts the two lists match.
+ */
+export const uz_cyrl_eimzo_errors: Record<string, string> = {
+  'eimzo.errors.notInstalled':
+    'E-IMZO дастури топилмаган ёки ишга туширилмаган. Дастурни ўрнатинг ёки ишга туширинг: e-imzo.uz',
+  'eimzo.errors.outdatedVersion': 'Ўрнатилган E-IMZO версияси эскирган. Уни янгиланг: e-imzo.uz',
+  'eimzo.errors.chromeBlocked':
+    'E-IMZO билан алоқа ўрнатилмади. Аввал E-IMZO дастури ўрнатилган ва ишга туширилганини текширинг. Сўнгра, браузерингиз маҳаллий тармоққа уланишга рухсат сўраса — «Рухсат бериш»ни танланг. Сўров чиқмаса ва Chrome ёки унга ўхшаш браузердан (Edge, Brave, Opera, Yandex Browser) фойдаланаётган бўлсангиз, манзил қаторига киритинг: chrome://flags/#local-network-access-check ва уни «Disabled» ҳолатига ўтказинг — бу саҳифа ҳар бир браузерда ҳам мавжуд бўлавермайди.',
+  'eimzo.errors.wrongPassword': "Калит пароли нотўғри киритилди. Қайтадан уриниб кўринг.",
+  'eimzo.errors.providerUnreachable':
+    'Бу бизнинг хизматимиздаги хато эмас — E-IMZO провайдери ёки унинг VPN алоқаси вақтинча ишламаяпти. Бироздан сўнг қайта уринг.',
+  'eimzo.errors.unknown': 'E-IMZO орқали амални бажаришда кутилмаган хатолик юз берди. Қайтадан уриниб кўринг.',
+  'eimzo.errors.noValidKey':
+    'Уланган E-IMZO’да амалдаги (муддати ўтмаган) сертификат топилмади. Янги сертификат олинг ёки муддати ўтган калитни янгиланг.',
+  'eimzo.errors.multipleValidKeys':
+    'Бир нечта амалдаги E-IMZO сертификати аниқланди — қайси бири билан имзолаш ноаниқ. Фақат керакли сертификат/калитни улаб қолдиринг ва қайтадан уринг.',
+};
+
+/**
+ * Uzbek Cyrillic UI copy. Key set mirrors `uz_latn.ts` exactly — `uz_cyrl` is
+ * a first-class `UiLanguage` (`src/i18n/context.ts`), wired into
+ * `DICTIONARIES` and `TranslationKey`.
  */
 export const uz_cyrl = {
   'nav.dashboard': 'Бош саҳифа',
@@ -35,7 +67,6 @@ export const uz_cyrl = {
   'shell.closeMenu': 'Ёпиш',
   'shell.refresh': 'Янгилаш',
   'shell.logout': 'Чиқиш',
-  'login.title': 'Тизимга кириш',
   'login.loginLabel': 'Логин',
   'login.passwordLabel': 'Пароль',
   'login.codeLabel': 'Тасдиқлаш коди',
@@ -51,7 +82,7 @@ export const uz_cyrl = {
   'login.tabEimzo': 'Э-ИМЗО',
   'login.tabPassword': 'Логин/Пароль',
   'login.oneidHint':
-    'Jismoniy va yuridik shaxslar uchun davlat portali orqali kirish.',
+    "Жисмоний ва юридик шахслар учун давлат портали орқали кириш.",
   'login.oneidButton': 'ОнеИД орқали кириш',
   'login.oneidFailed': "ОнеИД орқали киришда хатолик. Қайта уриниб кўринг.",
   'login.eimzoPinflLabel': 'ЖШШИР',
@@ -60,9 +91,62 @@ export const uz_cyrl = {
   'login.eimzoButton': 'Э-ИМЗО калити билан кириш',
   'login.eimzoBadPinfl': "ЖШШИР 14 та рақамдан иборат бўлиши керак.",
   'login.eimzoMockNotice':
-    'Sinov rejimi: kalit tekshirilmaydi. Haqiqiy E-IMZO — 5.2-bosqich.',
+    'Синов режими: калит текширилмайди. Ҳақиқий Э-ИМЗО НИЦ дан ВПН калити олингач ёқилади.',
   'login.eimzoUnavailable':
-    "E-IMZO kaliti va brauzer plagini talab qilinadi. Bu imkoniyat hali ulanmagan.",
+    "E-IMZO калити ва браузер плагини талаб қилинади. Бу имконият ҳали уланмаган.",
+  'login.eimzoRealHint':
+    'Уланган E-IMZO калитингиз орқали тизимга киринг. Калит паролини E-IMZO дастурининг ўзи сўрайди.',
+  // The page frame (2026-09-10) — see the matching comment in `ru.ts`.
+  'login.brandName': 'ruxsatnoma-urmon.uz',
+  'login.brandTagline': 'Ўрмон хўжалиги давлат портали',
+  'login.backHome': 'Бош саҳифа',
+  'login.eyebrow': 'Шахсий кабинет',
+  'login.heading': 'Шахсий кабинетга кириш',
+  'login.lead':
+    'Ўрмон фонди ерларидан фойдаланиш учун аризалар, кўриб чиқиш жараёни ва тайёр рухсатномалар — бир жойда.',
+  'login.benefitApply': 'Аризани онлайн топшириш — ўрмон хўжалигига бормасдан',
+  'login.benefitTrack': 'Кўриб чиқиш ҳолатини кузатиш',
+  'login.benefitDownload': 'QR-кодли рухсатномани юклаб олиш',
+  'login.cardTitle': 'Кириш',
+  'login.cardSubtitle': 'Кириш усулини танланг',
+  'login.firstTime': 'Порталда биринчи марта?',
+  'login.firstTimeHint': 'Рўйхатдан ўтиш биринчи киришда OneID орқали амалга оширилади — алоҳида ҳисоб керак эмас.',
+  'login.verifyWithoutLogin': 'Рухсатномани кирмасдан текшириш',
+  'login.footerCopyright': '© 2026 Ўрмон ва яшил ҳудудларни кўпайтириш, чўлланишга қарши курашиш агентлиги. Барча ҳуқуқлар ҳимояланган.',
+  'login.footerHelp': 'Ёрдам',
+  'login.footerContacts': 'Алоқа',
+  'login.footerDocuments': 'Ҳужжатлар',
+  // Task 11 — the conditions a citizen actually hits with the real E-IMZO
+  // client (`src/lib/eimzo/errors.ts`), each with an action rather than an
+  // apology. `notInstalled`/`outdatedVersion` name `e-imzo.uz` (the vendor's
+  // own site) rather than a deep link this app cannot verify stays valid.
+  // `chromeBlocked` (fix wave, finding 6): the SAME connection failure as
+  // `notInstalled` — this page cannot tell "E-IMZO is not running" apart
+  // from "the browser silently blocked the connection" from the failure
+  // alone (`client.ts`'s own docstring), and the most common cause is still
+  // simply that E-IMZO is not running. The text therefore names BOTH
+  // actions rather than committing to the browser-gate one alone, and words
+  // the flag as a Chromium fallback rather than a Chrome-only fact — Edge,
+  // Opera, Brave and Yandex Browser all carry a `Chrome/1xx` token and reach
+  // this same message, and not all of them have `chrome://flags` at all.
+  //
+  // These eight literals are also exported standalone as
+  // `uz_cyrl_eimzo_errors` above (kept for `errors.test.ts`, which predates
+  // `uz_cyrl` becoming a full dictionary) — keep the two copies in sync by
+  // hand if either changes.
+  'eimzo.errors.notInstalled':
+    'E-IMZO дастури топилмаган ёки ишга туширилмаган. Дастурни ўрнатинг ёки ишга туширинг: e-imzo.uz',
+  'eimzo.errors.outdatedVersion': 'Ўрнатилган E-IMZO версияси эскирган. Уни янгиланг: e-imzo.uz',
+  'eimzo.errors.chromeBlocked':
+    'E-IMZO билан алоқа ўрнатилмади. Аввал E-IMZO дастури ўрнатилган ва ишга туширилганини текширинг. Сўнгра, браузерингиз маҳаллий тармоққа уланишга рухсат сўраса — «Рухсат бериш»ни танланг. Сўров чиқмаса ва Chrome ёки унга ўхшаш браузердан (Edge, Brave, Opera, Yandex Browser) фойдаланаётган бўлсангиз, манзил қаторига киритинг: chrome://flags/#local-network-access-check ва уни «Disabled» ҳолатига ўтказинг — бу саҳифа ҳар бир браузерда ҳам мавжуд бўлавермайди.',
+  'eimzo.errors.wrongPassword': "Калит пароли нотўғри киритилди. Қайтадан уриниб кўринг.",
+  'eimzo.errors.providerUnreachable':
+    'Бу бизнинг хизматимиздаги хато эмас — E-IMZO провайдери ёки унинг VPN алоқаси вақтинча ишламаяпти. Бироздан сўнг қайта уринг.',
+  'eimzo.errors.unknown': 'E-IMZO орқали амални бажаришда кутилмаган хатолик юз берди. Қайтадан уриниб кўринг.',
+  'eimzo.errors.noValidKey':
+    'Уланган E-IMZO’да амалдаги (муддати ўтмаган) сертификат топилмади. Янги сертификат олинг ёки муддати ўтган калитни янгиланг.',
+  'eimzo.errors.multipleValidKeys':
+    'Бир нечта амалдаги E-IMZO сертификати аниқланди — қайси бири билан имзолаш ноаниқ. Фақат керакли сертификат/калитни улаб қолдиринг ва қайтадан уринг.',
   'dash.error': "Маълумотларни юклаб бўлмади. Саҳифани янгилаб кўринг.",
   'dash.loading': 'Юкланмоқда…',
   'dash.activePermits.label': 'Амалдаги рухсатномалар',
@@ -137,12 +221,12 @@ export const uz_cyrl = {
 
   'cabinet.registration.title': "Рўйхатдан ўтишни якунлаш",
   'cabinet.registration.intro':
-    "Tizimdan foydalanishni davom ettirish uchun bir necha maydonni to'ldiring va telefon raqamingizni tasdiqlang.",
+    "Тизимдан фойдаланишни давом эттириш учун бир неча майдонни тўлдиринг ва телефон рақамингизни тасдиқланг.",
   'cabinet.registration.consentsTitle': 'Розиликлар',
   'cabinet.registration.consentPrivacy': "Махфийлик сиёсатига розиман",
   'cabinet.registration.consentOffer': "Оммавий оферта шартларига розиман",
   'cabinet.registration.consentsStale':
-    "Hujjatlar yangilandi — davom etish uchun roziliklarni qaytadan tasdiqlang.",
+    "Ҳужжатлар янгиланди — давом этиш учун розиликларни қайтадан тасдиқланг.",
   'cabinet.registration.phoneTitle': 'Телефон рақами',
   'cabinet.registration.phoneLabel': 'Телефон рақами',
   'cabinet.registration.phonePlaceholder': '+998901234567',
@@ -158,7 +242,7 @@ export const uz_cyrl = {
   'cabinet.registration.submitting': 'Юборилмоқда…',
   'cabinet.registration.needConsents': "Давом этиш учун иккала розиликни ҳам белгиланг.",
   'cabinet.registration.needPhoneVerified':
-    'Davom etish uchun telefon raqamini tasdiqlang.',
+    "Давом этиш учун телефон рақамини тасдиқланг.",
   'cabinet.registration.needAddress': 'Манзилни киритинг.',
   'cabinet.registration.genericError': "Хатолик юз берди. Қайта уриниб кўринг.",
 
@@ -180,19 +264,19 @@ export const uz_cyrl = {
 
   'cabinet.representation.attachTitle': 'Юридик шахсни бириктириш',
   'cabinet.representation.attachIntro':
-    "STIR raqami va vakolat asosini ko'rsating — E-IMZO orqali, OneID direktorlar reestri orqali yoki ishonchnoma bilan.",
+    "СТИР рақами ва ваколат асосини кўрсатинг — E-IMZO орқали, OneID директорлар реестри орқали ёки ишончнома билан.",
   'cabinet.representation.stirLabel': 'СТИР (9 хонали)',
   'cabinet.representation.invalidStir': '9 хонали рақам бўлиши керак',
   'cabinet.representation.basisLabel': 'Ваколат асоси',
   'cabinet.representation.basisOrgEri': "Ташкилот ЭРИ (Э-ИМЗО)",
   'cabinet.representation.basisOrgEriHint':
-    "Tashkilotning elektron raqamli imzosi bilan tasdiqlanadi.",
+    "Ташкилотнинг электрон рақамли имзоси билан тасдиқланади.",
   'cabinet.representation.basisDirector': 'ОнеИД директорлар реестри',
   'cabinet.representation.basisDirectorHint':
-    "Siz OneID maʼlumotlarida shu tashkilotning rahbari sifatida qayd etilgan boʻlishingiz kerak.",
+    "Сиз OneID маълумотларида шу ташкилотнинг раҳбари сифатида қайд этилган бўлишингиз керак.",
   'cabinet.representation.basisPoa': 'Ишончнома (ПДФ)',
   'cabinet.representation.basisPoaHint':
-    "Ishonchnoma faylini yuklang, amal qilish muddati va tashkilot nomini kiriting.",
+    "Ишончнома файлини юкланг, амал қилиш муддати ва ташкилот номини киритинг.",
   'cabinet.representation.orgNameLabel': 'Ташкилот номи',
   'cabinet.representation.poaFileLabel': 'Ишончнома файли (ПДФ)',
   'cabinet.representation.poaUpload': 'Файлни юклаш',
@@ -215,18 +299,20 @@ export const uz_cyrl = {
   'cabinet.representation.selectOrgLabel': 'Ташкилотни танланг',
   'cabinet.representation.addColleagueTitle': "Вакил қўшиш",
   'cabinet.representation.addColleagueIntro':
-    "Ushbu tashkilot nomidan hujjat topshirishi mumkin bo'lgan yana bir shaxsni qo'shing.",
+    "Ушбу ташкилот номидан ҳужжат топшириши мумкин бўлган яна бир шахсни қўшинг.",
   'cabinet.representation.colleaguePinflLabel': 'Вакил ЖШШИР (ЖШШИР, 14 хонали)',
   'cabinet.representation.invalidPinfl': '14 хонали рақам бўлиши керак',
   'cabinet.representation.addColleagueSubmit': "Қўшиш",
   'cabinet.representation.needOrgEriOrDirector':
-    "Vakil qo'shish uchun tashkilotni ERI yoki OneID direktorlar reestri asosida biriktirgan bo'lishingiz kerak — ishonchnoma asosidagi vakolat bu huquqni bermaydi.",
+    "Вакил қўшиш учун ташкилотни ЭРИ ёки OneID директорлар реестри асосида бириктирган бўлишингиз керак — ишончнома асосидаги ваколат бу ҳуқуқни бермайди.",
   'cabinet.representation.applicantOnly':
-    "Yuridik shaxs vakolatlari faqat ariza beruvchi hisobiga tegishli.",
+    "Юридик шахс ваколатлари фақат ариза берувчи ҳисобига тегишли.",
 
   'cabinet.certificates.title': 'Менинг ЭРИ сертификатларим',
   'cabinet.certificates.intro':
-    "Bu yerda hujjatlarni imzolash uchun biriktirilgan ERI kalitlaringiz roʻyxati.",
+    "Бу ерда ҳужжатларни имзолаш учун бириктирилган ЭРИ калитларингиз рўйхати.",
+  'cabinet.certificates.realHint':
+    'Бириктириш уланган E-IMZO калитингиз орқали амалга ошади. Калит паролини E-IMZO дастурининг ўзи сўрайди.',
   'cabinet.certificates.pinflLabel': 'ЖШШИР (ЖШШИР)',
   'cabinet.certificates.fullNameLabel': 'Исм (сертификат субекти, ихтиёрий)',
   'cabinet.certificates.bind': 'Сертификатни бириктириш',
@@ -245,12 +331,15 @@ export const uz_cyrl = {
   'cabinet.certificates.statusExpired': "Муддати ўтган",
 
   'cabinet.notifications.title': 'Билдиришномалар',
+  'cabinet.notifications.loading': 'Юкланмоқда…',
   'cabinet.notifications.empty': "Билдиришномалар ёқ",
+  'cabinet.notifications.loadFailed': 'Билдиришномалар юкланмади.',
   'cabinet.notifications.markAllRead': "Барчасини ўқилган деб белгилаш",
   'cabinet.notifications.markingAll': 'Бажарилмоқда…',
   'cabinet.notifications.filterAll': 'Барчаси',
   'cabinet.notifications.filterUnread': "Ўқилмаган",
   'cabinet.notifications.markRead': "Ўқилган деб белгилаш",
+  'cabinet.notifications.actionFailed': 'Амални бажариб бўлмади.',
 
   // Cabinet applications
   'cabinet.applications.title': 'Менинг аризаларим',
@@ -298,12 +387,15 @@ export const uz_cyrl = {
 
   // Notifications aliases
   'notifications.title': 'Билдиришномалар',
+  'notifications.loading': 'Юкланмоқда…',
   'notifications.empty': "Билдиришномалар ёқ",
+  'notifications.loadFailed': 'Билдиришномалар юкланмади.',
   'notifications.markAllRead': "Барчасини ўқилган деб белгилаш",
   'notifications.markingAll': 'Бажарилмоқда…',
   'notifications.filterAll': 'Барчаси',
   'notifications.filterUnread': "Ўқилмаган",
   'notifications.markRead': "Ўқилган деб белгилаш",
+  'notifications.actionFailed': 'Амални бажариб бўлмади.',
 
   // Profile extra labels
   'cabinet.profile.activeAccount': 'Фаол ҳисоб',
@@ -319,7 +411,7 @@ export const uz_cyrl = {
   'accountant.common.all': 'Барчаси',
   'accountant.zone.label': 'Сизнинг зонангиз:',
   'accountant.zone.republicWarning':
-    "Sizning hisobingizga tashkilot biriktirilmagan — bu butun respublika boʻyicha barcha hisob-fakturalarni koʻrishingiz mumkinligini anglatadi.",
+    "Сизнинг ҳисобингизга ташкилот бириктирилмаган — бу бутун республика бўйича барча ҳисоб-фактураларни кўришингиз мумкинлигини англатади.",
   'accountant.workspace.title': "Бухгалтерия",
   'accountant.workspace.subtitle': "Ҳисоб-фактуралар, тўловлар, банк ҳисоботлари ва қайтаришлар",
   'accountant.tabs.invoices': 'Ҳисоб-фактуралар',
@@ -368,28 +460,28 @@ export const uz_cyrl = {
   'accountant.invoices.ledgerAccountSettledExternally': "тизимдан ташқарида ҳисобланади",
   'accountant.invoices.manualPaidTitle': "Қўлда тўловни қайд этиш",
   'accountant.invoices.manualPaidHint':
-    "Bank orqali kelgan toʻlovni qayd eting — bu hali toʻlanmadi degani, faqat qayd etildi. Hisob-faktura faqat ikkinchi shaxs (rahbar) tasdiqlagandan keyin toʻlangan hisoblanadi.",
+    "Банк орқали келган тўловни қайд этинг — бу ҳали тўланмади дегани, фақат қайд этилди. Ҳисоб-фактура фақат иккинчи шахс (раҳбар) тасдиқлагандан кейин тўланган ҳисобланади.",
   'accountant.invoices.manualPaidAmountLabel': 'Сумма',
   'accountant.invoices.manualPaidPaidAtLabel': "Тўланган сана ва вақти",
   'accountant.invoices.manualPaidDocLabel': "Банк ҳужжати",
   'accountant.invoices.manualPaidSubmit': 'Қайд этиш',
   'accountant.invoices.manualPaidFiled': "Қайд этилди. Тасдиқлаш раҳбарни кутмоқда.",
   'accountant.invoices.manualPaidMismatch':
-    "Qayd etildi, ammo summa hisob-faktura summasiga mos kelmaydi — bu Nomuvofiqliklar reestrida ochiq yozuv sifatida qoladi.",
+    "Қайд этилди, аммо сумма ҳисоб-фактура суммасига мос келмайди — бу Номувофиқликлар реестрида очиқ ёзув сифатида қолади.",
   'accountant.invoices.manualPaidIdLabel': 'Қайд ИД',
   'accountant.invoices.manualPaidShareHint':
-    "Tasdiqlash uchun ushbu ID'ni tasdiqlovchi shaxsga (rahbarga) yuboring — tizimda kutilayotgan qaydlar roʻyxati yoʻq, faqat ID orqali topiladi.",
+    "Тасдиқлаш учун ушбу ID'ни тасдиқловчи шахсга (раҳбарга) юборинг — тизимда кутилаётган қайдлар рўйхати йўқ, фақат ID орқали топилади.",
   'accountant.invoices.manualPaidUploadFailed': "Ҳужжатни юклашда хатолик юз берди.",
   'accountant.invoices.manualPaidFailed': "Қайд этишда хатолик юз берди.",
 
   'accountant.statements.uploadTitle': 'Банк ҳисоботини юклаш',
   'accountant.statements.uploadSubtitle':
-    "CSV formatidagi bank hisobotini yuklang — qayta ishlash va solishtirish fonda amalga oshiriladi.",
+    "CSV форматидаги банк ҳисоботини юкланг — қайта ишлаш ва солиштириш фонда амалга оширилади.",
   'accountant.statements.fileLabel': 'Файл (CСВ)',
   'accountant.statements.dateLabel': 'Ҳисобот санаси',
   'accountant.statements.columnMapLabel': 'Устунлар мослашуви',
   'accountant.statements.columnMapHint':
-    "Fayldagi ustun sarlavhalarini tizim maydonlariga moslang. Summa, sana va toʻlov maqsadi — majburiy.",
+    "Файлдаги устун сарлавҳаларини тизим майдонларига мосланг. Сумма, сана ва тўлов мақсади — мажбурий.",
   'accountant.statements.colAmount': 'Сумма',
   'accountant.statements.colDate': 'Амалиёт санаси',
   'accountant.statements.colPurpose': "Тўлов мақсади",
@@ -408,10 +500,10 @@ export const uz_cyrl = {
   'accountant.statements.colLine': 'Қатор',
   'accountant.statements.moreOmitted': "яна кўрсатилмаган",
   'accountant.statements.linesTitle': 'Қаторлар',
-  'accountant.statements.emptyLines': "Қаторлар ёқ.",
+  'accountant.statements.emptyLines': "Қаторлар йўқ.",
   'accountant.statements.colMatch': 'Мослик',
   'accountant.statements.updatedAt': 'Яратилди',
-  'accountant.statements.noAccess': "Банк ҳисоботларига кириш ҳуқуқи ёқ.",
+  'accountant.statements.noAccess': "Банк ҳисоботларига кириш ҳуқуқи йўқ.",
 
   'accountant.discrepancies.title': "Номувофиқликлар реестри",
   'accountant.discrepancies.filterOpen': 'Очиқ',
@@ -428,7 +520,7 @@ export const uz_cyrl = {
   'accountant.discrepancies.loadFailed': "Юклашда хатолик юз берди.",
   'accountant.discrepancies.empty': "Ёзувлар топилмади.",
   'accountant.discrepancies.noViewAccess':
-    "Nomuvofiqliklar reestrini koʻrish huquqi yoʻq — bu sizga qaydni ID orqali tasdiqlash/rad etish imkonini bermaydi, pastdagi panel orqali davom eting.",
+    "Номувофиқликлар реестрини кўриш ҳуқуқи йўқ — бу сизга қайдни ID орқали тасдиқлаш/рад этиш имконини бермайди, пастдаги панел орқали давом этинг.",
   'accountant.discrepancies.resolveTitle': "Номувофиқликни ёпиш",
   'accountant.discrepancies.resolveCommentLabel': 'Изоҳ',
   'accountant.discrepancies.resolveDocLabel': "Тасдиқловчи ҳужжат (ихтиёрий)",
@@ -437,9 +529,9 @@ export const uz_cyrl = {
   'accountant.discrepancies.resolveUploadFailed': "Ҳужжатни юклашда хатолик юз берди.",
   'accountant.discrepancies.manualCheckTitle': "Қўлда тўловни тасдиқлаш (текширувчи)",
   'accountant.discrepancies.manualCheckHint':
-    "Quyida sizning tasdigʻingizni kutayotgan qaydlar roʻyxati — bevosita shu yerdan tasdiqlang yoki rad eting.",
-  'accountant.discrepancies.manualByIdHint': "Ёки қайд ИДъсини тўғридан-тўғри киритинг:",
-  'accountant.discrepancies.manualPendingEmpty': "Ҳозирча тасдиқлашингизни кутаётган қайдлар ёқ.",
+    "Қуйида сизнинг тасдиғингизни кутаётган қайдлар рўйхати — бевосита шу ердан тасдиқланг ёки рад этинг.",
+  'accountant.discrepancies.manualByIdHint': "Ёки қайд ИДсини тўғридан-тўғри киритинг:",
+  'accountant.discrepancies.manualPendingEmpty': "Ҳозирча тасдиқлашингизни кутаётган қайдлар йўқ.",
   'accountant.discrepancies.manualPendingLoadFailed': "Кутилаётган қайдлар рўйхатини юклаб бўлмади.",
   'accountant.discrepancies.manualPendingColAmount': 'Сумма',
   'accountant.discrepancies.manualPendingColPaidAt': "Тўланган сана",
@@ -449,7 +541,7 @@ export const uz_cyrl = {
   'accountant.discrepancies.manualConfirmationIdLabel': 'Қайд ИД',
   'accountant.discrepancies.manualRejectReasonLabel': 'Рад этиш сабаби',
   'accountant.discrepancies.manualCheckMakerIsChecker':
-    "Siz bu qaydni qilgan shaxssiz — uni tasdiqlay olmaysiz, boshqa shaxs tasdiqlashi kerak.",
+    "Сиз бу қайдни қилган шахссиз — уни тасдиқлай олмайсиз, бошқа шахс тасдиқлаши керак.",
   'accountant.discrepancies.manualConfirmed': "Тасдиқланди. Ҳисоб-фактура тўланган деб белгиланди.",
   'accountant.discrepancies.manualRejected': "Рад этилди. Ҳисоб-фактура тўланмаган ҳолича қолади.",
   'accountant.discrepancies.manualConfirmButton': 'Тасдиқлаш',
@@ -465,12 +557,12 @@ export const uz_cyrl = {
   'accountant.refunds.colStatus': 'Ҳолати',
   'accountant.refunds.colDue': 'Муддат',
   'accountant.refunds.colRequestedAt': "Сўралган сана",
-  'accountant.refunds.noSuggestion': "Тавсия ёқ",
+  'accountant.refunds.noSuggestion': "Тавсия йўқ",
   'accountant.refunds.loadFailed': "Юклашда хатолик юз берди.",
   'accountant.refunds.empty': "Аризалар топилмади.",
-  'accountant.refunds.noViewAccess': "Қайтаришлар реестрини кўриш ҳуқуқи ёқ.",
+  'accountant.refunds.noViewAccess': "Қайтаришлар реестрини кўриш ҳуқуқи йўқ.",
   'accountant.refunds.approveByIdHint':
-    "Reestrni koʻrish huquqi yoʻq — buxgalter tomonidan koʻrib chiqilgan ariza ID'sini kiriting.",
+    "Реестрни кўриш ҳуқуқи йўқ — бухгалтер томонидан кўриб чиқилган ариза ID'сини киритинг.",
   'accountant.refunds.refundIdLabel': 'Ариза (қайтариш) ИД',
   'accountant.refunds.decisionTitle': "Қарор қабул қилиш",
   'accountant.refunds.approveTitle': "Тасдиқлаш (раҳбар)",
@@ -534,9 +626,9 @@ export const uz_cyrl = {
   'norms.params.banner.title': 'Бош чорва коеффитсиентлари эʼлон қилинмаган',
   'norms.params.banner.countSuffix': 'та бош чорва коеффитсиенти ҳали ҳам «қоралама» ҳолатида.',
   'norms.params.banner.consequence':
-    'Ulardan kamida bittasi eʼlon qilinmaguncha, mamlakat boʻyicha birorta ariza uchun ham yaylov toʻlovini hisoblab boʻlmaydi.',
+    "Улардан камида биттаси эълон қилинмагунча, мамлакат бўйича бирорта ариза учун ҳам яйлов тўловини ҳисоблаб бўлмайди.",
   'norms.params.banner.source':
-    'Haqiqiy qiymatlar VMQ 689-son qarorining 5-ilovasidan kelishi kerak; Agentlik ularni hali taqdim etmagan.',
+    "Ҳақиқий қийматлар ВМҚ 689-сон қарорининг 5-иловасидан келиши керак; Агентлик уларни ҳали тақдим этмаган.",
 
   // F7 — task 4's write screen (create/edit/publish/archive).
   'norms.params.actions.add': 'Параметр қўшиш',
@@ -548,11 +640,11 @@ export const uz_cyrl = {
   'norms.params.form.editTitle': 'Қоида параметрини ўзгартириш',
   'norms.params.form.code': 'Код',
   'norms.params.form.codeHint':
-    "Kichik lotin harflari, raqamlar va «_», ixtiyoriy «:boʻlim» ikki nuqta bilan.",
+    "Кичик лотин ҳарфлари, рақамлар ва «_», ихтиёрий «:бўлим» икки нуқта билан.",
   'norms.params.form.codeInvalid': 'Код «а-з0-9_» форматига мос эмас (кўпи билан 100 белги).',
   'norms.params.form.value': 'Қиймат (ЖСОН)',
   'norms.params.form.valueHint':
-    "Son boricha kiritiladi — 10, satr — qoʻshtirnoqda «0.8», mantiqiy qiymat — true/false.",
+    "Сон борича киритилади — 10, сатр — қўштирноқда «0.8», мантиқий қиймат — true/false.",
   'norms.params.form.valueInvalidNumber': 'Сонни киритинг.',
   'norms.params.form.valueInvalidJson': 'Қийматни ЖСОН сифатида ўқиб бўлмади',
   'norms.params.form.valueRequired': 'Қийматни киритинг — майдон мажбурий.',
@@ -573,10 +665,10 @@ export const uz_cyrl = {
   // qayta ishlatadi.
   'norms.params.publish.title': 'Параметрни эʼлон қилиш',
   'norms.params.publish.question':
-    "Bu parametrni eʼlon qilasizmi? Eʼlon qilingandan soʻng qiymat yangi hisob-kitoblar uchun kuchga kiradi.",
+    "Бу параметрни эълон қиласизми? Эълон қилингандан сўнг қиймат янги ҳисоб-китоблар учун кучга киради.",
   'norms.params.publish.effectiveFromLabel': 'Амал қилиш бошланиши',
   'norms.params.publish.retroactiveWarning':
-    "Amal qilish boshlanish sanasi — oʻtmishda. Qiymat orqaga qaytib kuchga kirgan hisoblanadi.",
+    "Амал қилиш бошланиш санаси — ўтмишда. Қиймат орқага қайтиб кучга кирган ҳисобланади.",
   'norms.params.publish.selfWarning': 'Сиз бу қийматни ўзгартирдингиз ва энди ўзингиз эʼлон қиляпсиз.',
   'norms.params.publish.confirm': 'Эʼлон қилиш',
   'norms.params.publish.cancel': 'Бекор қилиш',
@@ -587,15 +679,15 @@ export const uz_cyrl = {
   // NIMA QILISHI kerakligini aytadi, shunchaki xatolik emas.
   'norms.params.publish.error.notDraft': 'Бу параметр энди қоралама эмас — эʼлон қилиб бўлмайди.',
   'norms.params.publish.error.notMakerChecker':
-    "Bu qoralamani siz yaratgansiz — uni eʼlon qilish huquqiga ega hamkasbingiz eʼlon qilishi kerak.",
+    "Бу қораламани сиз яратгансиз — уни эълон қилиш ҳуқуқига эга ҳамкасбингиз эълон қилиши керак.",
   'norms.params.publish.error.forbidden': 'Сизда параметрларни эʼлон қилиш ҳуқуқи ёқ (нормс.тариффс.публиш).',
   'norms.params.publish.error.periodOverlap':
-    "Shu davrni qamrab oluvchi eʼlon qilingan yozuv allaqachon mavjud — avval uning davrini yoping yoki suring.",
+    "Шу даврни қамраб олувчи эълон қилинган ёзув аллақачон мавжуд — аввал унинг даврини ёпинг ёки суринг.",
   'norms.params.publish.error.generic': 'Параметрни эʼлон қилиб бўлмади.',
 
   'norms.params.archive.title': 'Параметрни архивлаш',
   'norms.params.archive.question':
-    "Bu parametrni arxivlaysizmi? Amal qilish tugash sanasi kechagi kun bilan yopiladi.",
+    "Бу параметрни архивлашингиз керакми? Амал қилиш тугаш санаси кечаги кун билан ёпилади.",
   'norms.params.archive.confirm': 'Архивлаш',
   'norms.params.archive.cancel': 'Бекор қилиш',
   'norms.params.archive.error.generic': 'Параметрни архивлаб бўлмади.',
@@ -610,7 +702,7 @@ export const uz_cyrl = {
   'norms.tariffs.filter.statusAll': 'Барчаси',
   'norms.tariffs.filter.onDate': 'Сана бўйича',
   'norms.tariffs.filter.onDateHint':
-    "Standart — bugun. Roʻyxatda faqat shu sanada amal qiluvchi yozuvlar koʻrinadi; boshlanish sanasi kelajakda boʻlgan qoralama faqat oʻz sanasida koʻrinadi.",
+    "Стандарт — бугун. Рўйхатда фақат шу санада амал қилувчи ёзувлар кўринади; бошланиш санаси келажакда бўлган қоралама фақат ўз санасида кўринади.",
   'norms.tariffs.filter.reset': 'Тиклаш',
   'norms.tariffs.filter.apply': "Қўллаш",
   'norms.tariffs.col.activity': 'Фаолият тури',
@@ -652,7 +744,7 @@ export const uz_cyrl = {
   'norms.tariffs.form.activityTypePlaceholder': 'Танланг…',
   'norms.tariffs.form.livestockGroup': 'Чорва гуруҳи',
   'norms.tariffs.form.livestockGroupHint':
-    "Faqat yaylovda boqish uchun; boshqa faoliyat turlari uchun bo'sh qoldiring.",
+    "Фақат яйловда боқиш учун; бошқа фаолият турлари учун бўш қолдиринг.",
   'norms.tariffs.form.livestockGroupNone': "Қўлланилмайди",
   'norms.tariffs.form.coefficient': 'Коеффитсиент',
   'norms.tariffs.form.coefficientHint': "Сон ≥ 0, вергул дан кейин кўпи билан 6 хона.",
@@ -660,7 +752,7 @@ export const uz_cyrl = {
   'norms.tariffs.form.coefficientError.invalid': 'Мусбат сон киритинг, масалан 1.5.',
   'norms.tariffs.form.coefficientError.negative': 'Коеффитсиент манфий бўлиши мумкин эмас.',
   'norms.tariffs.form.coefficientError.tooManyDigits':
-    "Ahamiyatli raqamlar juda ko'p (jami ko'pi bilan 12 ta, vergul dan keyin ko'pi bilan 6 ta).",
+    "Аҳамиятли рақамлар жуда кўп (жами кўпи билан 12 та, вергулдан кейин кўпи билан 6 та).",
   'norms.tariffs.form.quantityUnit': "Ўлчов бирлиги",
   'norms.tariffs.form.benefitModifiers': 'Имтиёз коеффитсиентлари',
   'norms.tariffs.form.benefitAdd': "Имтиёз қўшиш",
@@ -684,10 +776,10 @@ export const uz_cyrl = {
   // fazosidagi matn bilan.
   'norms.tariffs.publish.title': 'Тарифни эʼлон қилиш',
   'norms.tariffs.publish.question':
-    "Bu tarifni eʼlon qilasizmi? Eʼlon qilingandan soʻng koeffitsient yangi hisob-kitoblar uchun kuchga kiradi.",
+    "Бу тарифни эълон қиласизми? Эълон қилингандан сўнг коэффициент янги ҳисоб-китоблар учун кучга киради.",
   'norms.tariffs.publish.effectiveFromLabel': 'Амал қилиш бошланиши',
   'norms.tariffs.publish.retroactiveWarning':
-    "Amal qilish boshlanish sanasi — oʻtmishda. Tarif orqaga qaytib kuchga kirgan hisoblanadi.",
+    "Амал қилиш бошланиш санаси — ўтмишда. Тариф орқага қайтиб кучга кирган ҳисобланади.",
   'norms.tariffs.publish.selfWarning': 'Сиз бу тарифни ўзгартирдингиз ва энди ўзингиз эʼлон қиляпсиз.',
   'norms.tariffs.publish.confirm': 'Эʼлон қилиш',
   'norms.tariffs.publish.cancel': 'Бекор қилиш',
@@ -696,15 +788,15 @@ export const uz_cyrl = {
   'norms.tariffs.publish.close': 'Ёпиш',
   'norms.tariffs.publish.error.notDraft': 'Бу тариф энди қоралама эмас — эʼлон қилиб бўлмайди.',
   'norms.tariffs.publish.error.notMakerChecker':
-    "Bu qoralamani siz yaratgansiz — uni eʼlon qilish huquqiga ega hamkasbingiz eʼlon qilishi kerak.",
+    "Бу қораламани сиз яратгансиз — уни эълон қилиш ҳуқуқига эга ҳамкасбингиз эълон қилиши керак.",
   'norms.tariffs.publish.error.forbidden': 'Сизда тарифларни эʼлон қилиш ҳуқуқи ёқ (нормс.тариффс.публиш).',
   'norms.tariffs.publish.error.periodOverlap':
-    "Shu davrni qamrab oluvchi eʼlon qilingan yozuv allaqachon mavjud — avval uning davrini yoping yoki suring.",
+    "Шу даврни қамраб олувчи эълон қилинган ёзув аллақачон мавжуд — аввал унинг даврини ёпинг ёки суринг.",
   'norms.tariffs.publish.error.generic': 'Тарифни эʼлон қилиб бўлмади.',
 
   'norms.tariffs.archive.title': 'Тарифни архивлаш',
   'norms.tariffs.archive.question':
-    "Bu tarifni arxivlaysizmi? Amal qilish tugash sanasi kechagi kun bilan yopiladi.",
+    "Бу тарифни архивлашингиз керакми? Амал қилиш тугаш санаси кечаги кун билан ёпилади.",
   'norms.tariffs.archive.confirm': 'Архивлаш',
   'norms.tariffs.archive.cancel': 'Бекор қилиш',
   'norms.tariffs.archive.error.generic': 'Тарифни архивлаб бўлмади.',
@@ -748,21 +840,21 @@ export const uz_cyrl = {
   'norms.norms.transition.cancel': 'Бекор қилиш',
   'norms.norms.transition.submit-review.title': "Кўриб чиқишга юбориш",
   'norms.norms.transition.submit-review.question':
-    "Bu me'yorni lesxoz rahbariga ko'rib chiqish uchun yuborasizmi? Qaytarilgunga qadar tahrirlash imkonsiz bo'ladi.",
+    "Бу меъёрни лесхоз раҳбарига кўриб чиқиш учун юборасизми? Қайтарилгунга қадар таҳрирлаш имконсиз бўлади.",
   'norms.norms.transition.return-to-draft.title': 'Қораламага қайтариш',
   'norms.norms.transition.return-to-draft.question': "Бу меъёрни қайта ишлаш учун қораламага қайтарасизми?",
   'norms.norms.transition.return-to-review.title': "Кўриб чиқишга қайтариш",
   'norms.norms.transition.return-to-review.question':
-    "Bu kelishilgan me'yorni eʼlon qilish o'rniga ko'rib chiqishga qaytarasizmi?",
+    "Бу келишилган меъёрни эълон қилиш ўрнига кўриб чиқишга қайтарасизми?",
   'norms.norms.transition.publish.title': "Меъёрни эʼлон қилиш",
   'norms.norms.transition.publish.question':
-    "Bu me'yorni eʼlon qilasizmi? Limit (shartli bosh) konturning joriy maydoni bo'yicha qat'iylashtiriladi va yangi hisob-kitoblar uchun kuchga kiradi.",
+    "Бу меъёрни эълон қиласизми? Лимит (шартли бош) контурнинг жорий майдони бўйича қатъийлаштирилади ва янги ҳисоб-китоблар учун кучга киради.",
   'norms.norms.transition.archive.title': "Меъёрни архивлаш",
   'norms.norms.transition.archive.question':
-    "Bu me'yorni arxivlaysizmi? Amal qilish tugash sanasi kechagi kun bilan yopiladi.",
+    "Бу меъёрни архивлашингиз керакми? Амал қилиш тугаш санаси кечаги кун билан ёпилади.",
   'norms.norms.transition.approve.title': "Меъёрни келишиш",
   'norms.norms.transition.approve.question':
-    "Bu me'yorni kelishasizmi? Lesxoz rahbarining kelishuvini tasdiqlovchi hujjat talab qilinadi.",
+    "Бу меъёрни келишасизми? Лесхоз раҳбарининг келишувини тасдиқловчи ҳужжат талаб қилинади.",
   'norms.norms.transition.approve.docLabel': 'Келишув ҳужжати',
   'norms.norms.transition.approve.docRequired': "Меъёрни келишиш учун ҳужжат юкланг.",
 
@@ -779,11 +871,11 @@ export const uz_cyrl = {
   'norms.norms.form.activityTypePlaceholder': 'Танланг…',
   'norms.norms.form.yield': 'Ҳосилдорлик, с/га',
   'norms.norms.form.yieldHint':
-    "Faqat yaylov uchun — shartli boshlar limiti shundan hisoblanadi. Boshqa faoliyat turlari uchun bo'sh qoldiring.",
+    "Фақат яйлов учун — шартли бошлар лимити шундан ҳисобланади. Бошқа фаолият турлари учун бўш қолдиринг.",
   'norms.norms.form.yieldError.invalid': 'Мусбат сон киритинг.',
   'norms.norms.form.yieldError.negative': 'Ҳосилдорлик манфий бўлиши мумкин эмас.',
   'norms.norms.form.yieldError.tooManyDigits':
-    "Ahamiyatli raqamlar juda ko'p (jami ko'pi bilan 10 ta, vergul dan keyin ko'pi bilan 4 ta).",
+    "Аҳамиятли рақамлар жуда кўп (жами кўпи билан 10 та, вергулдан кейин кўпи билан 4 та).",
   'norms.norms.form.season': 'Мавсумий ойналар',
   'norms.norms.form.seasonAdd': "Ойна қўшиш",
   'norms.norms.form.seasonHint': "Саналар ОО-КК форматида, масалан яйлов мавсуми учун 05-01 — 09-30.",
@@ -809,16 +901,16 @@ export const uz_cyrl = {
   'norms.norms.action.error.forbidden': 'Сизда бу амал учун ҳуқуқ ёқ.',
   'norms.norms.action.error.outsideZone': "Бу меъёрнинг контури сизнинг жавобгарлик зонангиздан ташқарида.",
   'norms.norms.action.error.centralPublicationRequired':
-    "Me'yorlarni eʼlon qilish markaziy ofisga biriktirilgan (norms_publish_scope sozlamasi).",
+    "Меъёрларни эълон қилиш марказий офисга бириктирилган (norms_publish_scope созламаси).",
   'norms.norms.action.error.badTransition': "Амал энди мавжуд эмас — меъёр ҳолати ўзгарган. Рўйхатни янгиланг.",
   'norms.norms.action.error.periodOverlap':
-    "Shu kontur va faoliyat turi uchun shu davrda amal qiluvchi eʼlon qilingan me'yor allaqachon mavjud.",
+    "Шу контур ва фаолият тури учун шу даврда амал қилувчи эълон қилинган меъёр аллақачон мавжуд.",
   'norms.norms.action.error.noPublishedContour':
-    "Konturning eʼlon qilingan versiyasi yoʻq — avval uni GISda eʼlon qiling.",
+    "Контурнинг эълон қилинган версияси йўқ — аввал уни ГИСда эълон қилинг.",
   'norms.norms.action.error.yieldRequired':
-    "Bu yaylov uchun me'yor — eʼlon qilishdan oldin hosildorlikni (s/ga) kiriting.",
+    "Бу яйлов учун меъёр — эълон қилишдан олдин ҳосилдорликни (ц/га) киритинг.",
   'norms.norms.action.error.geobotanicDocRequired':
-    "Ko'rib chiqishga yuborishdan oldin geobotanik tekshiruv hujjatini biriktiring.",
+    "Кўриб чиқишга юборишдан олдин геоботаник текширув ҳужжатини бириктиринг.",
   'norms.norms.action.error.approvalDocRequired': 'Келишув ҳужжатини бириктиринг.',
   'norms.norms.action.error.submitReview.generic': "Меъёрни кўриб чиқишга юбориб бўлмади.",
   'norms.norms.action.error.returnToDraft.generic': "Меъёрни қораламага қайтариб бўлмади.",
@@ -837,7 +929,9 @@ export const uz_cyrl = {
   'gis.versions.checks.title': 'Топологик текширувлар',
   'gis.versions.checks.run': 'Текшириш',
   'gis.versions.checks.failed': "Текширувни бажариб бўлмади",
-  'gis.versions.checks.skipped': "ўтказиб юборилди",
+  'gis.versions.checks.skipped': "текширилмаган",
+  'gis.versions.checks.skipReason.noGeometry': "геометрия йўқ",
+  'gis.versions.checks.skipReason.layerEmpty': "маълумот қатлами ҳали етказилмаган",
   'gis.versions.checks.blocking': 'тўхтатади',
   'gis.versions.checks.advisory': 'огоҳлантириш',
   'gis.versions.checks.validity': 'Геометрия тўғрилиги',
@@ -880,17 +974,20 @@ export const uz_cyrl = {
   'gis.contours.loadMore': 'Яна юклаш',
   'gis.contours.noPublishedVersion': "Бу контур учун ҳали нашр этилган версия ёқ",
   'gis.contours.overAllocated':
-    "Diqqat: bu konturga umumiy maydonidan ko'proq ruxsatnoma berilgan — shuning uchun band qism umumiy maydondan katta ko'rinadi. Bo'sh qism shu sababli 0 ga sifatida ko'rsatilgan, manfiy emas.",
+    "Диққат: бу контурга умумий майдонидан кўпроқ рухсатнома берилган — шунинг учун банд қисм умумий майдондан катта кўринади. Бўш қисм шу сабабли 0 га сифатида кўрсатилган, манфий эмас.",
   'gis.contours.totalArea': 'Умумий майдон',
   'gis.contours.occupied': 'Банд қисм',
   'gis.contours.noVersionYet': "Бу контур учун ҳали бирорта версия чизилмаган",
   'gis.contours.drawFirstVersion': 'Биринчи версияни чизиш',
   'gis.contours.justCreatedPrefix': 'Контур яратилди:',
   'gis.contours.justCreatedHint':
-    "U hali ro'yxatda ko'rinmaydi — nashr etish uchun avval birinchi versiyasini chizish kerak. Xaritada konturni chizing.",
+    "У ҳали рўйхатда кўринмайди — нашр этиш учун аввал биринчи версиясини чизиш керак. Харитада контурни чизинг.",
   'gis.contours.redraw': "Қайта чизиш (янги версия)",
+  'gis.contours.reviseRequisites': "Реквизитларни ўзгартириш (янги версия)",
   'gis.contours.split': "Бўлиш",
   'gis.contours.drawHint': 'Харитада контурни чизинг',
+  'gis.contours.noMapOrg': 'Бу ўрмон хўжалигида ГИС харитаси уланмаган',
+  'gis.contours.noMapOrgHint': 'Ушбу контур фақат реквизитлар — рақами ва эълон қилинган майдони — бўйича яратилади ва таҳрирланади. Чизадиган геометрия йўқ.',
 
   'gis.contours.form.versionDetails': "Версия маълумотлари",
   'gis.contours.form.saveVersion': 'Версияни сақлаш',
@@ -900,6 +997,8 @@ export const uz_cyrl = {
   'gis.contours.form.number': 'Контур рақами',
   'gis.contours.form.createFailed': "Яратиб бўлмади",
   'gis.contours.form.create': 'Яратиш',
+  'gis.contours.form.noGeometryHint': 'Бу ўрмон хўжалигида ГИС харитаси йўқ — чизиш ўрнига ҳужжатлардаги эълон қилинган майдонни киритинг.',
+  'gis.contours.form.declaredAreaRequired': 'Эълон қилинган майдон мажбурий — уни харитадан ҳисоблаб бўлмайди.',
 
   'gis.contours.split.title': "Контурни бўлиш",
   'gis.contours.split.drawLineHint': "Контурни иккига бўлиш учун унинг устидан чизиқ тортинг",
@@ -997,7 +1096,7 @@ export const uz_cyrl = {
   'staff.infoRequest.panelTitle': 'Текширув ҳаракатлари',
   'staff.infoRequest.pendingBanner': "Аризачидан маʼлумот кутилмоқда",
   'staff.infoRequest.pendingHint':
-    "SLA muddati toʻxtatilgan — arizachi javob bergach, qolgan muddatga davom etadi (asl muddat oʻzgarmaydi).",
+    "SLA муддати тўхтатилган — аризачи жавоб бергач, қолган муддатга давом этади (асл муддат ўзгармайди).",
   'staff.infoRequest.requestedAt': "Сўралган:",
   'staff.infoRequest.returnedBanner': 'Тузатишга қайтарилган',
   'staff.infoRequest.requestInfoButton': "Маʼлумот сўраш",
@@ -1005,15 +1104,15 @@ export const uz_cyrl = {
   'staff.infoRequest.noPermission': "Бу ҳаракатлар учун ваколат ёқ.",
   'staff.infoRequest.requestModalTitle': "Қўшимча маʼлумот сўраш",
   'staff.infoRequest.requestModalSubtitle':
-    "Ariza 'Maʼlumot kutilmoqda' holatiga oʻtadi — SLA muddati shu vaqtga toʻxtatiladi",
+    "Ариза 'Маълумот кутилмоқда' ҳолатига ўтади — SLA муддати шу вақтга тўхтатилади",
   'staff.infoRequest.cancel': 'Бекор қилиш',
   'staff.infoRequest.sendButton': "Сўров юбориш",
   'staff.infoRequest.messageLabel': 'Аризачига савол',
   'staff.infoRequest.messagePlaceholder':
-    "Masalan: kontur chegarasi taqdim etilgan hujjat bilan mos kelmayapti, tasdiqlovchi hujjat yuklang.",
+    "Масалан: контур чегараси тақдим этилган ҳужжат билан мос келмаяпти, тасдиқловчи ҳужжат юкланг.",
   'staff.infoRequest.returnModalTitle': 'Тузатишга қайтариш',
   'staff.infoRequest.returnModalSubtitle':
-    "Ariza 'Tuzatishga qaytarilgan' holatiga oʻtadi — arizachi tuzatib qayta yuboradi",
+    "Ариза 'Тузатишга қайтарилган' ҳолатига ўтади — аризачи тузатиб қайта юборади",
   'staff.infoRequest.reasonLabel': 'Сабаб',
   'staff.infoRequest.selectPlaceholder': 'Танланг...',
   'staff.infoRequest.legalBasisLabel': 'Ҳуқуқий асос (легал_басис)',
@@ -1055,7 +1154,7 @@ export const uz_cyrl = {
   'permits.lifecycle.revokeButton': "Бекор қилиш",
   'permits.lifecycle.noPermission': "Бу ҳаракатлар фақат хўжалик раҳбари (пермитс.манаге) учун.",
   'permits.lifecycle.pendingSignaturesNote':
-    "Ruxsatnoma hali barcha imzolarni olmagan — bu holatda uni na bekor qilib, na muddati tugagan deb belgilab boʻladi. Bu holat Agentlik bilan hal qilinmagan ochiq savol (tz/12 №16).",
+    "Рухсатнома ҳали барча имзоларни олмаган — бу ҳолатда уни на бекор қилиб, на муддати тугаган деб белгилаб бўлади. Бу ҳолат Агентлик билан ҳал қилинмаган очиқ савол (тз/12 №16).",
   'permits.lifecycle.terminalNote': "Бу ҳолатда рухсатнома устида ҳеч қандай ҳаракат мумкин эмас.",
   'permits.lifecycle.suspendModalTitle': "Рухсатномани тўхтатиш",
   'permits.lifecycle.resumeModalTitle': "Рухсатномани қайта фаоллаштириш",
@@ -1084,6 +1183,27 @@ export const uz_cyrl = {
   'permits.lifecycle.errWrongSigner': "Бу қарорни фақат шу ўрмон хўжалигининг раҳбари имзолаши мумкин.",
   'permits.lifecycle.errSignatureInvalid': "Имзо тасдиқланмади — қайтадан урининг.",
   'permits.lifecycle.errUploadFailed': "Файл юкланмади.",
+  // Task 11 — the same reason-keyed E-IMZO signing errors as the eight
+  // `login.*`/`eimzo.errors.*` keys above, but for the PERMIT signature flow
+  // (`PermitSignaturesPanel.tsx`, fix wave finding 4): `ERR-SIGN-001` is told
+  // apart by `details.reason` rather than collapsed into one "not required"
+  // string.
+  'permits.signatures.errors.purposeNotRequired': 'Бу турдаги имзо ҳозирча талаб қилинмайди.',
+  'permits.signatures.errors.signatureInvalid':
+    'Имзо текширувидан ўтмади — ҳужжат ёки E-IMZO калити нотўғри бўлиши мумкин.',
+  'permits.signatures.errors.certificatePinflMismatch': 'Сертификат сизнинг ПИНФЛ/СТИР рақамингизга мос келмайди.',
+  'permits.signatures.errors.signerPinflUnknown':
+    'Тизимда сизнинг ПИНФЛ рақамингиз қайд этилмаган — профилингизни текширинг.',
+  'permits.signatures.errors.certificateRevoked': 'Сертификат бекор қилинган — ундан фойдаланиб бўлмайди.',
+  'permits.signatures.errors.certificateExpired': 'Сертификат муддати тугаган.',
+  'permits.signatures.errors.certificateMissing': 'Сертификат маълумотлари топилмади.',
+  'permits.signatures.errors.certificateInvalidAtSigning': 'Имзолаш вақтида сертификат амал қилмаган.',
+  'permits.signatures.errors.timestampMissing':
+    'Имзода вақт тамғаси (timestamp) йўқ — бундай имзо қабул қилинмайди.',
+  'permits.signatures.errors.certificateOwnedByAnother': 'Бу сертификат бошқа фойдаланувчига тегишли.',
+  'permits.signatures.errors.signRefusedGeneric': 'Имзо рад этилди — қайтадан уриниг.',
+  'permits.signatures.errors.genericSigningError': 'Имзолашда хатолик юз берди.',
+  'permits.signatures.errors.pdfFetchFailed': 'Имзоланадиган ҳужжатни юклаб бўлмади — қайтадан уриниг.',
 
   // --- I1: the prosecutor's read-only registers with export ---------------
   'prosecutor.exportCsv': "CSV экспорт",
@@ -1613,7 +1733,7 @@ export const uz_cyrl = {
   'inspector.actForm.sign.pinflError': "ЖШШИР 14 та рақамдан иборат бўлиши керак.",
   'inspector.actForm.sign.signButton': "ЭРИ билан имзолаш",
   'inspector.actForm.sign.violationCaseOpenedFallback':
-    "Akt imzolandi, buzilish ishi ochildi. Uni «Ishlar» boʻlimidan toping.",
+    "Акт имзоланди, бузилиш иши очилди. Уни «Ишлар» бўлимидан топинг.",
   'inspector.actForm.sign.goToCasesTab': "Ишларга ўтиш",
 
   // --- J1 (stage 6.7): Acts tab + Cases tab (task 6) ----------------------
@@ -1684,6 +1804,7 @@ export const uz_cyrl = {
   'search.filters.query': "Сўров",
   'search.filters.queryPlaceholder': "Рақам, Ф.И.Ш., телефон",
   'search.filters.status': "Ҳолат",
+  'search.filters.allStatuses': "Барча ҳолатлар",
   'search.filters.organization': "Ташкилот",
   'search.filters.allOrganizations': "Барча ташкилотлар",
   'search.filters.activityType': "Фаолият тури",
@@ -1709,6 +1830,12 @@ export const uz_cyrl = {
   'search.export.pdfButton': "ПДФ га экспорт",
   'search.export.download': "Юклаб олиш",
   'search.export.error': "Экспортни бажариб бўлмади",
+  'search.detail.title': "Қидирув натижаси тафсилотлари",
+  'search.detail.kind': "Тури",
+  'search.detail.noOrgDraftNotice': "Ушбу ариза қоралама ҳолатида ва унга ҳали ташкилот бириктирилмаган. Тўлиқ ариза картаси ариза топширилиб, масъул ташкилотга йўналтирилгандан сўнг шаклланади.",
+  'search.detail.noOrg': "Ташкилот бириктирилмаган",
+  'search.detail.openCard': "Карточкани очиш",
+  'search.detail.close': "Ёпиш",
 
   // Archive register (stage 6.9, track T69) — GET /archive + item card + archive/verify.
   'archive.title': "Архив реестри",
@@ -1745,4 +1872,349 @@ export const uz_cyrl = {
   'archive.newItemModal.submit': "Архивлаш",
   'archive.newItemModal.cancel': "Бекор қилиш",
   'archive.newItemModal.error': "Обектни архивлаб бўлмади",
+
+  // --- Chief Forester Dashboard ---
+  'chiefForester.dash.title': "Бош ўрмонбеги бошқарув панели",
+  'chiefForester.dash.subtitle': "Ўрмон хўжалиги ҳудуди, контурлар бандлиги, рухсатномалар ва тасдиқлаш жараёнлари мониторинги",
+  'chiefForester.dash.roleBadge': "Бош ўрмонбеги",
+  'chiefForester.dash.orgLabel': "Ўрмон хўжалиги:",
+  'chiefForester.dash.zoneLabel': "Масъул ҳудуд:",
+  'chiefForester.dash.loading': "Бошқарув панели юкланмоқда...",
+  'chiefForester.dash.error': "Бошқарув панели маълумотларини юклаб бўлмади.",
+  'chiefForester.dash.filters.periodFrom': "Давр — дан",
+  'chiefForester.dash.filters.periodTo': "Давр — гача",
+  'chiefForester.dash.filters.apply': "Қўллаш",
+  'chiefForester.dash.filters.reset': "Тиклаш",
+  'chiefForester.dash.tile.contours.label': "Ўрмон контурлари",
+  'chiefForester.dash.tile.contours.hint': "Назорат остидаги контурлар",
+  'chiefForester.dash.tile.occupancy.label': "Ўртача бандлик даражаси",
+  'chiefForester.dash.tile.occupancy.hint': "Ўрмон фонди ерларидан фойдаланиш",
+  'chiefForester.dash.tile.sbLoad.label': "Чорва юки (шартли бош)",
+  'chiefForester.dash.tile.sbLoad.hint': "Яйлов юки ва меъёр ҳисоби",
+  'chiefForester.dash.tile.permits.label': "Амал қилаётган рухсатномалар",
+  'chiefForester.dash.tile.permits.hint': "Жами берилган",
+  'chiefForester.dash.tile.applications.label': "Тушган аризалар",
+  'chiefForester.dash.tile.applications.hint': "Иш жараёнида",
+  'chiefForester.dash.tile.inspections.label': "Ўрмон назорати",
+  'chiefForester.dash.tile.inspections.hint': "Қайд этилган қонунбузарликлар",
+  'chiefForester.dash.actions.title': "Тезкор вазифалар ва тасдиқлаш",
+  'chiefForester.dash.actions.gisImportsTitle': "Тасдиқланиши кутилаётган GIS импорт пакетлари",
+  'chiefForester.dash.actions.gisImportsEmpty': "Тасдиқлаш учун навбатда турган GIS импорт пакетлари йўқ.",
+  'chiefForester.dash.actions.gisImportsReview': "Кўриб чиқиш",
+  'chiefForester.dash.actions.permitsToSignTitle': "Бош ўрмонбеги имзоси кутилаётган рухсатномалар",
+  'chiefForester.dash.actions.permitsToSignEmpty': "Имзоланиши кутилаётган рухсатномалар мавжуд эмас.",
+  'chiefForester.dash.actions.sign': "Имзолаш",
+  'chiefForester.dash.actions.gisVersionsTitle': "Тасдиқланиши кутилаётган контур версиялари",
+  'chiefForester.dash.actions.gisVersionsEmpty': "Тасдиқлаш учун навбатда турган контур версиялари мавжуд эмас.",
+  'chiefForester.dash.actions.gisVersionsReview': "Кўриб чиқиш",
+  'chiefForester.dash.actions.versionNo': "Версия",
+  'chiefForester.dash.actions.allContours': "Барча контурлар",
+  'chiefForester.dash.actions.allImports': "Барча импортлар",
+  'chiefForester.dash.actions.allPermits': "Барча рухсатномалар",
+  'chiefForester.dash.zoneOverview.title': "Ўрмон хўжалиги ҳудуди ва ресурслар мониторинги",
+  'chiefForester.dash.zoneOverview.totalArea': "Жами назорат майдони",
+  'chiefForester.dash.zoneOverview.occupiedArea': "Банд қилинган майдон",
+  'chiefForester.dash.zoneOverview.availableArea': "Бўш ер майдони",
+  'chiefForester.dash.zoneOverview.occupiedContours': "Банд контурлар",
+  'chiefForester.dash.zoneOverview.partialContours': "Қисман банд",
+  'chiefForester.dash.zoneOverview.freeContours': "Бўш контурлар",
+  'chiefForester.dash.contours.title': "Ўрмон фонди контурлари мониторинги",
+  'chiefForester.dash.contours.subtitle': "Ўрмон хўжалиги тасарруфидаги ер майдонлари ва уларнинг бандлик ҳолати",
+  'chiefForester.dash.contours.colNumber': "Контур №",
+  'chiefForester.dash.contours.colOrg': "Ўрмон хўжалиги",
+  'chiefForester.dash.contours.colArea': "Умумий майдон",
+  'chiefForester.dash.contours.colAvailable': "Бўш майдон",
+  'chiefForester.dash.contours.colStatus': "Ҳолат",
+  'chiefForester.dash.contours.statusOccupied': "Банд",
+  'chiefForester.dash.contours.statusPartial': "Қисман банд",
+  'chiefForester.dash.contours.statusAvailable': "Бўш",
+  'chiefForester.dash.contours.colAction': "Амал",
+  'chiefForester.dash.contours.viewOnMap': "Харитада кўриш",
+  'chiefForester.dash.contours.allOnMap': "Барчасини харитада очиш",
+  'chiefForester.dash.contours.empty': "Ушбу ҳудудда контурлар топилмади.",
+  'chiefForester.dash.quickLinks.title': "Тезкор бўлимлар",
+  'chiefForester.dash.quickLinks.gis': "GIS харитаси ва қатламлар",
+  'chiefForester.dash.quickLinks.gisDesc': "Контурлар, чеклов зоналари ва чегаралар харитаси",
+  'chiefForester.dash.quickLinks.permits': "Ўрмон рухсатномалари",
+  'chiefForester.dash.quickLinks.permitsDesc': "Барча расмийлаштирилган рухсатномалар реестри",
+  'chiefForester.dash.quickLinks.applications': "Фойдаланиш аризалари",
+  'chiefForester.dash.quickLinks.applicationsDesc': "Ўрмон фондидан фойдаланиш бўйича келиб тушган аризалар",
+  'chiefForester.dash.quickLinks.imports': "Геомаълумотлар импорти",
+  'chiefForester.dash.quickLinks.importsDesc': "Shp, GeoJSON, KML қатламларини юклаш ва тасдиқлаш",
+
+  // Wizard and Common FileInput additions
+  'common.chooseFile': "Файлни танлаш",
+  'common.noFileChosen': "Файл танланмаган",
+  'common.fileSelected': "Файл танланди",
+  'common.removeFile': "Файлни ўчириш",
+  'wizard.title': "Янги ариза топшириш",
+  'wizard.subtitle': "Босқичларни кетма-кет тўлдиринг — ҳар бир қадамда қоралама сақланади",
+  'wizard.backToList': "Рўйхатга қайтиш",
+  'wizard.step1.title': "Фаолият тури",
+  'wizard.step1.desc': "Фойдаланиш тури",
+  'wizard.step1.heading': "1. Фаолият турини танланг",
+  'wizard.step1.onBehalfLabel': "Кимнинг номидан топширилади",
+  'wizard.step1.onBehalfSelf': "Ўзим учун (жисмоний шахс)",
+  'wizard.step1.unit': "Бирлик:",
+  'wizard.step2.title': "Майдон",
+  'wizard.step2.desc': "Контур ва давр",
+  'wizard.step2.heading': "2. Майдонни танланг",
+  'wizard.step2.selectedContour': "Танланган контур:",
+  'wizard.step2.periodFrom': "Бошланиш санаси",
+  'wizard.step2.periodTo': "Тугаш санаси",
+  'wizard.step2.searchPlaceholder': "Контур рақами бўйича қидирув...",
+  'wizard.step2.loading': "Юкланмоқда...",
+  'wizard.step2.notFound': "Контурлар топилмади.",
+  'wizard.step2.loadMore': "Яна юклаш",
+  'wizard.step2.totalArea': "Умумий майдон",
+  'wizard.step2.occupiedArea': "Банд қилинган қисм",
+  'wizard.step2.freeArea': "Бўш қисм",
+  'wizard.step2.overAllocated': "Диққат: ушбу контур бўйича умумий майдондан ортиқ рухсатномалар берилган — шунинг учун банд майдон умумий майдондан кўп кўринмоқда. Бўш майдон манфий эмас, 0 га деб ҳисобланди.",
+  'wizard.step2.notMeasured': "Бандлик ҳозирча ҳақиқатда ўлчанмаган — амалдаги рухсатномалар бўйича ҳисобланган.",
+  'wizard.step2.leshozLabel': "Ўрмон хўжалиги",
+  'wizard.step2.allLeshozes': "Барча ўрмон хўжаликлари",
+  'wizard.step2.selectedBadge': "Танланди",
+  'wizard.step2.noMapTitle': "Бу ўрмон хўжалигида ГИС харитаси уланмаган",
+  'wizard.step2.noMapHint': "Контурлар фақат реквизитлар бўйича кўрсатилади: рақами, ташкилот ва майдони.",
+  'wizard.step2.noGeometryForPick': "Ушбу контур учун ГИС харитаси мавжуд эмас — у реквизитлар бўйича рўйхатга олинган.",
+  'wizard.step3.title': "Параметрлар",
+  'wizard.step3.desc': "Миқдор ва нарх",
+  'wizard.step3.heading': "3. Параметрлар",
+  'wizard.step3.livestockType': "Чорва тури",
+  'wizard.step3.headCount': "Бош сони",
+  'wizard.step3.selectPrompt': "Танланг...",
+  'wizard.step3.addLivestock': "Чорва турини қўшиш",
+  'wizard.step3.quantity': "Миқдори",
+  'wizard.step3.benefitCategory': "Имтиёз тоифаси (агар мавжуд бўлса)",
+  'wizard.step3.noBenefit': "Имтиёз йўқ",
+  'wizard.step3.estimatedPrice': "Мўлжалланган нарх",
+  'wizard.step3.pricePrompt': "Нархни ҳисоблаш учун майдон, давр ва миқдорни киритинг.",
+  'wizard.step3.calculating': "Нарх ҳисобланмоқда...",
+  'wizard.step3.priceUnavailableTitle': "Ҳозирча нархни ҳисоблаб бўлмади",
+  'wizard.step3.priceUnavailableDesc': "Зарур меъёрий коэффициент ҳали эълон қилинмаган. Бу тизим хатоси эмас: меъёр расман тасдиқлангач нарх автоматик чиқади.",
+  'wizard.step3.calcFailedTitle': "Ҳисоблаб бўлмади",
+  'wizard.step3.currency': "сўм",
+  'wizard.step3.priceTariffNote': "амалдаги тарифлар бўйича мўлжалланган нарх.",
+  'wizard.step3.loadRatio': "Юклама:",
+  'wizard.step3.conditionalHead': "шартли бош",
+
+  // --- T10 (`docs/plans/09-odilxon-demo-fixes.md`, decisions #177/#179): the
+  // occupancy calendar, the season/minimum-term note, and the benefit
+  // certificate number. ---
+  'wizard.step2.seasonOutOfRange': "Танланган сана ушбу фаолият ва контур учун белгиланган мавсумдан ташқарида.",
+  'wizard.step2.minTermNotice': "Давр муддати камида {days} кун бўлиши керак.",
+  'wizard.step3.certificateNumber': "Гувоҳнома рақами",
+  'wizard.step3.certificateNumberRequired': "Танланган имтиёз тоифаси учун гувоҳнома рақами киритилиши шарт.",
+  'wizard.calendar.heading': "Бандлик тақвими",
+  'wizard.calendar.legendFree': "Бўш",
+  'wizard.calendar.legendPartial': "Қисман банд",
+  'wizard.calendar.legendFull': "Тўлиқ банд",
+  'wizard.calendar.outOfSeason': "Мавсумдан ташқарида",
+  'wizard.calendar.selectedEdge': "Танланган сана",
+  'wizard.calendar.selectedRange': "Танланган давр",
+  'wizard.calendar.remainderLabel': "бўш: {value}",
+  'wizard.calendar.selectFromHint': "Бошланиш санасини танланг",
+  'wizard.calendar.selectToHint': "Тугаш санасини танланг",
+  'wizard.calendar.prevMonth': "Олдинги ой",
+  'wizard.calendar.nextMonth': "Кейинги ой",
+  'wizard.calendar.weekdays': "Ду,Се,Чо,Пай,Жу,Ша,Я",
+
+  'wizard.step4.title': "Ҳужжатлар",
+  'wizard.step4.desc': "Илова қилинадиган файллар",
+  'wizard.step4.heading': "4. Ҳужжатларни илова қилинг",
+  'wizard.step4.docType': "Ҳужжат тури",
+  'wizard.step4.selectDocType': "Танланг...",
+  'wizard.step4.chooseFile': "Файлни танлаш",
+  'wizard.step4.deleteDoc': "Ўчириш",
+  'wizard.step4.selectDocTypeFirst': "Аввал ҳужжат турини танланг.",
+  'wizard.step4.uploadError': "Ҳужжат юклашда хатолик юз берди.",
+  'wizard.step4.notConfigured': "Ҳужжат турлари ҳали созланмаган — файл илова қилиш имконсиз.",
+  'wizard.step4.defaultDocName': "Ҳужжат",
+  'wizard.step5.title': "Юбориш",
+  'wizard.step5.desc': "Текширув ва Э-имзо",
+  'wizard.step5.heading': "5. Якуний текширув",
+  'wizard.step5.checking': "Текширилмоқда...",
+  'wizard.step5.checkError': "Текширувда хатолик юз берди.",
+  'wizard.step5.incompleteWarning': "Ариза тўлиқ тўлдирилмаган — нарх ҳисобланмаган.",
+  'wizard.step5.cannotSubmitTitle': "Топшириб бўлмайди",
+  'wizard.step5.cannotSubmitDesc': "Тўсқинлик қилувчи текширувлар аниқланди. Олдинги босқичларга қайтиб маълумотларни тўғриланг.",
+  'wizard.step5.addressTitle': "Манзил",
+  'wizard.step5.addressDesc': "Рухсатномада кўрсатиладиган манзил профилингизда топилмади — юборишдан олдин киритинг.",
+  'wizard.step5.addressLabel': "Манзил",
+  'wizard.step5.addressRequired': "Манзил киритилиши шарт.",
+  'wizard.step5.eriTitle': "Э-имзо билан тасдиқлаш ва топшириш",
+  'wizard.step5.eriDesc': "Аризани топшириш учун уни электрон рақамли имзо (ЭРИ) билан тасдиқланг. Ушбу муҳитда ЭРИ синов (демо) режимида ишлайди.",
+  'wizard.step5.notSubmittedTitle': "Юборилмади",
+  'wizard.step5.saveAddressAndCalc': "Манзилни сақлаш ва нархни ҳисоблаш",
+  'wizard.step5.signAndSubmit': "Э-имзо билан тасдиқлаш ва юбориш",
+  'wizard.step5.noPinfl': "ЭРИ орқали имзолаш учун зарур ЖШШИР топилмади. Профилингизни текширинг.",
+  'wizard.nav.back': "Орқага",
+  'wizard.nav.next': "Кейингиси",
+  'wizard.checks.gis_validity': "Контур геометрияси тўғрилиги",
+  'wizard.checks.gis_within_fund': "Ўрмон фонди чегарасига кириши",
+  'wizard.checks.gis_overlap': "Бошқа рухсатнома билан кесишмаслиги",
+  'wizard.checks.norm_available': "Меъёрий параметр мавжудлиги",
+  'wizard.checks.norm_season': "Мавсумга мувофиқлиги",
+  'wizard.checks.norm_rotation': "Алмашлаб фойдаланиш қоидаси",
+  'wizard.checks.norm_fire_ban': "Ёнғин хавфи бўйича чеклов",
+  'wizard.checks.norm_restrictions': "Чекловлар (огоҳлантириш)",
+  'wizard.checks.norm_limit': "Юклама нормаси чегараси (MaxSB)",
+  'wizard.checks.pass': "Муваффақиятли",
+  'wizard.checks.fail': "Рад этилди",
+  'wizard.checks.warning': "Огоҳлантириш",
+  'wizard.checks.skipped': "Ўтказиб юборилди",
+  'wizard.checks.layerEmpty': "Ўрмон фонди чегаралари қатлами ҳали тўлиқ киритилмаган — текширув хато эмас, шу сабабли ўтказиб юборилди.",
+  'wizard.checks.noSeason': "Ушбу фаолият тури учун мавсумий чеклов белгиланмаган — текширув талаб этилмайди.",
+  'wizard.checks.loadDetails': "Жорий юклама — {used} шартли бош, рухсат этилган меъёр — {max} шартли бош (бўш қолдиқ — {remaining} шартли бош).",
+  'wizard.checks.loadDetailsNoRemaining': "Жорий юклама — {used} шартли бош, рухсат этилган меъёр — {max} шартли бош.",
+  'wizard.checks.loadDetailsFail': "Сўралган юклама — {used} шартли бош — рухсат этилган {max} шартли бошлик чегарадан ошиб кетмоқда (эркин қолдиқ — {remaining} шартли бош).",
+  'wizard.checks.loadDetailsFailNoRemaining': "Сўралган юклама — {used} шартли бош — рухсат этилган {max} шартли бошлик чегарадан ошиб кетмоқда.",
+  'wizard.checks.capacityDetails': "Сўралган — {requested}, рухсат этилган чегара — {capacity} (эркин қолдиқ — {remaining}).",
+  'wizard.checks.capacityDetailsNoRemaining': "Сўралган — {requested}, рухсат этилган чегара — {capacity}.",
+  'wizard.checks.capacityDetailsFail': "Сўралган — {requested} — рухсат этилган {capacity} чегарадан ошиб кетмоқда (эркин қолдиқ — {remaining}).",
+  'wizard.checks.capacityDetailsFailNoRemaining': "Сўралган — {requested} — рухсат этилган {capacity} чегарадан ошиб кетмоқда.",
+  'wizard.checks.exclusiveOccupied': "Контур {date} санасигача банд. Янги рухсатнома фақат шу санадан кейин мумкин.",
+  'wizard.checks.exclusiveOccupiedUnknown': "Контур сўралган давр учун банд.",
+
+  'nav.ratings': 'Баҳолашлар',
+  'nav.activityTypes': 'Хизматлар каталоги',
+  'nav.legalDocuments': 'Норматив ҳужжатлар',
+  'nav.paymentRecipients': 'Тўлов қабул қилувчилари',
+  'accountant.invoices.recipientsTitle': 'Ҳисоб-фактура қандай бўлинган',
+  'accountant.invoices.recipientsColName': 'Қабул қилувчи',
+  'accountant.invoices.recipientsColRule': 'Қоидаси',
+  'accountant.invoices.recipientsColPaymeId': 'Payme ҳисоби',
+  'accountant.invoices.recipientsColAmount': 'Сумма',
+  'accountant.invoices.recipientsRemainder': 'Қолган қисм (ўрмон хўжалиги)',
+  'accountant.invoices.recipientsNoPaymeId': 'Кўрсатилмаган',
+  'accountant.refunds.noSources': 'Ҳисоб-фактура бўлиниши ҳақида маълумот йўқ.',
+  'accountant.refunds.componentsTotalLabel': 'Жами',
+  'accountant.refunds.componentsMismatchHint': 'Манбалар бўйича суммалар йиғиндиси якуний суммага тенг бўлиши керак.',
+  'gis.map.basemapScheme': 'Харита',
+  'gis.map.basemapSatellite': 'Спутник',
+  'leadership.dash.tile.satisfaction.label': 'Хизматдан мамнунлик',
+  'leadership.dash.tile.satisfaction.hint': 'Баҳолар сони',
+  'inspector.taskDetail.assignedToLabel': 'Ижрочи:',
+  'inspector.taskDetail.handoverTitle': 'Топшириқни бошқа инспекторга топшириш',
+  'inspector.taskDetail.handoverPlaceholder': 'Инспекторни танланг...',
+  'inspector.taskDetail.handoverButton': 'Топшириш',
+  'inspector.taskDetail.handoverCandidatesError': 'Инспекторлар рўйхати юкланмади.',
+  'inspector.cases.filteredByApplicant': 'Фақат шу бузувчининг ишлари кўрсатилмоқда.',
+  'inspector.cases.clearApplicantFilter': 'Барча ишларни кўрсатиш',
+  'inspector.caseDetail.priorCasesLabel': 'Ушбу бузувчининг олдинги ишлари',
+  'activityTypes.title': 'Хизматлар каталоги',
+  'activityTypes.subtitle': 'Ўрмон фондидан фойдаланишнинг олтита тури қонун билан белгиланган — бу ерда улар қўшилмайди ёки ўчириб ташланмайди: фақат номи, тавсифи ва муддати таҳрирланади, ёки хизмат бутунлай ёпилади.',
+  'activityTypes.loading': 'Юкланмоқда…',
+  'activityTypes.loadError': 'Рўйхатни юклаб бўлмади.',
+  'activityTypes.termLabel': 'Муддат',
+  'activityTypes.termDays': 'кун',
+  'activityTypes.descriptionEmpty': 'Тавсиф киритилмаган',
+  'activityTypes.actionEdit': 'Таҳрирлаш',
+  'activityTypes.editTitle': 'Хизматни таҳрирлаш',
+  'activityTypes.fieldNameUz': 'Номи (uz)',
+  'activityTypes.fieldNameRu': 'Номи (ru)',
+  'activityTypes.fieldDescriptionUz': 'Тавсиф (uz)',
+  'activityTypes.fieldDescriptionRu': 'Тавсиф (ru)',
+  'activityTypes.fieldProcessingDays': 'Муддат (кун)',
+  'activityTypes.save': 'Сақлаш',
+  'activityTypes.cancel': 'Бекор қилиш',
+  'activityTypes.errNameRequiresUzLatn': 'Номи: uz_latn (ўзбекча лотин) тили бўш бўлиши мумкин эмас.',
+  'activityTypes.errDescriptionRequiresUzLatn': 'Тавсиф: uz_latn (ўзбекча лотин) тили бўш бўлиши мумкин эмас.',
+  'activityTypes.errProcessingDays': 'Муддат мусбат бутун сон бўлиши керак.',
+  'activityTypes.saveError': 'Сақлаб бўлмади.',
+  'activityTypes.archiveTitle': 'Хизматни ўчириш',
+  'activityTypes.archiveBody': 'Бу хизмат бош саҳифада, нарх калькуляторида ва ариза шаклида кўринмай қолади — бу хизмат бўйича янги ариза бериш ҳам ёпилади.',
+  'activityTypes.archiveConfirm': 'Тасдиқлаш',
+  'activityTypes.archiveCancel': 'Бекор қилиш',
+  'activityTypes.archiveError': 'Хизматни ўчириб бўлмади.',
+  'permitRating.title': 'Хизмат сифатини баҳоланг',
+  'permitRating.subtitle': 'Сизнинг баҳоингиз давлат электрон хизматларини янада такомиллаштиришга хизмат қилади.',
+  'permitRating.option5Title': '5 - Аъло',
+  'permitRating.option5Desc': 'Жуда қулай, тез ва тушунарли',
+  'permitRating.option4Title': '4 - Яхши',
+  'permitRating.option4Desc': 'Яхши, лекин айрим таклифларим бор',
+  'permitRating.option3Title': '3 - Қониқарли',
+  'permitRating.option3Desc': 'Ўртача, тушуниш қийинроқ',
+  'permitRating.option2Title': '2 - Қониқарсиз',
+  'permitRating.option2Desc': 'Камчиликлар мавжуд',
+  'permitRating.option1Title': '1 - Ёмон',
+  'permitRating.option1Desc': 'Жуда ноқулай, жиддий муаммолар бўлди',
+  'permitRating.commentLabel': 'Изоҳ (ихтиёрий)',
+  'permitRating.submitButton': 'Баҳо юбориш',
+  'permitRating.submitError': 'Баҳони юбориб бўлмади.',
+  'permitRating.ratedTitle': 'Баҳоингиз муваффақиятли қабул қилинди!',
+  'permitRating.thankYou': 'Портал хизмати сифатини баҳолаганингиз ва фикр-мулоҳазангиз учун ташаккур билдирамиз.',
+  'permitRating.resultLabel': 'Берилган баҳо:',
+  'permitRating.resultUnit': 'балл',
+  'ratings.title': 'Хизматларни баҳолаш',
+  'ratings.subtitle': 'Фуқаролар рухсатнома олингандан кейин хизмат сифатини шу ерда баҳолайди — ўртача баҳо, баҳолар сони ва ташкилот/хизмат тури бўйича тақсимот танланган давр учун кўрсатилади.',
+  'ratings.loading': 'Юкланмоқда…',
+  'ratings.loadError': 'Маълумотларни юклаб бўлмади.',
+  'ratings.filters.periodFrom': 'Давр — дан',
+  'ratings.filters.periodTo': 'Давр — гача',
+  'ratings.filters.apply': 'Қўллаш',
+  'ratings.filters.reset': 'Тиклаш',
+  'ratings.tile.avgScoreLabel': 'Ўртача баҳо',
+  'ratings.tile.countLabel': 'Баҳолар сони',
+  'ratings.byOrganization.title': 'Ташкилотлар бўйича',
+  'ratings.byOrganization.empty': 'Бу давр учун маълумот йўқ.',
+  'ratings.byActivityType.title': 'Хизмат турлари бўйича',
+  'ratings.byActivityType.empty': 'Бу давр учун маълумот йўқ.',
+  'ratings.feed.title': 'Фикр-мулоҳазалар',
+  'ratings.feed.empty': 'Бу давр учун фикр-мулоҳаза йўқ.',
+  'ratings.feed.colDate': 'Сана',
+  'ratings.feed.colOrganization': 'Ташкилот',
+  'ratings.feed.colActivityType': 'Хизмат тури',
+  'ratings.feed.colScore': 'Баҳо',
+  'ratings.feed.colComment': 'Изоҳ',
+
+  // Stage 9, T11 (decisions.md #179) — the central benefit-verification
+  // office's own workplace: the queue, one claim's own view, verify/reject.
+  'nav.benefitVerification': 'Имтиёзларни текшириш',
+  'benefitVerification.title': 'Имтиёз сертификатларини текшириш',
+  'benefitVerification.subtitle':
+    'Сертификат талаб қиладиган имтиёз даъво қилинган аризалар — бутун республика бўйича',
+  'benefitVerification.filters.status': 'Ҳолат',
+  'benefitVerification.filters.all': 'Барчаси',
+  'benefitVerification.filters.pending': 'Кутилмоқда',
+  'benefitVerification.filters.verified': 'Тасдиқланган',
+  'benefitVerification.filters.rejected': 'Рад этилган',
+  'benefitVerification.col.certificateNo': 'Сертификат рақами',
+  'benefitVerification.col.applicant': 'Аризачи',
+  'benefitVerification.col.activity': 'Фаолият тури',
+  'benefitVerification.col.waiting': 'Кутиш муддати',
+  'benefitVerification.col.status': 'Ҳолат',
+  'benefitVerification.col.view': 'Кўриш',
+  'benefitVerification.status.pending': 'Кутилмоқда',
+  'benefitVerification.status.verified': 'Тасдиқланган',
+  'benefitVerification.status.rejected': 'Рад этилган',
+  'benefitVerification.empty': 'Сертификат талаб қилувчи аризалар топилмади.',
+  'benefitVerification.loading': 'Юкланмоқда…',
+  'benefitVerification.loadError': 'Рўйхатни юклаб бўлмади.',
+  'benefitVerification.detail.title': 'Имтиёз даъвоси',
+  'benefitVerification.detail.certificateNo': 'Сертификат рақами:',
+  'benefitVerification.detail.noCertificateNo': 'Кўрсатилмаган',
+  'benefitVerification.detail.applicant': 'Аризачи (ID):',
+  'benefitVerification.detail.activity': 'Фаолият тури:',
+  'benefitVerification.detail.period': 'Сўралган давр:',
+  'benefitVerification.detail.submittedAt': 'Юборилган сана:',
+  'benefitVerification.detail.status': 'Даъво ҳолати:',
+  'benefitVerification.detail.decidedBy': 'Қарор қабул қилди (ID):',
+  'benefitVerification.detail.decidedAt': 'Қарор санаси:',
+  'benefitVerification.detail.rejectionReason': 'Рад этиш сабаби:',
+  'benefitVerification.detail.loadFailed': 'Даъвони юклаб бўлмади.',
+  'benefitVerification.detail.documents.title': 'Илова қилинган ҳужжатлар',
+  'benefitVerification.detail.documents.empty': 'Ҳужжат бириктирилмаган.',
+  'benefitVerification.detail.documents.download': 'Юклаб олиш',
+  'benefitVerification.detail.documents.fallbackName': 'Ҳужжат',
+  'benefitVerification.actions.verify': 'Тасдиқлаш',
+  'benefitVerification.actions.reject': 'Рад этиш',
+  'benefitVerification.actions.verifyError': 'Тасдиқлаб бўлмади.',
+  'benefitVerification.reject.title': 'Даъвони рад этиш',
+  'benefitVerification.reject.reasonLabel': 'Рад этиш сабаби',
+  'benefitVerification.reject.reasonPlaceholder': 'Сертификат нима учун тасдиқланмаётганини ёзинг',
+  'benefitVerification.reject.reasonRequired': 'Рад этиш сабабини киритиш шарт.',
+  'benefitVerification.reject.submit': 'Рад этиш',
+  'benefitVerification.reject.cancel': 'Бекор қилиш',
+  'benefitVerification.reject.error': 'Рад этиб бўлмади.',
 };

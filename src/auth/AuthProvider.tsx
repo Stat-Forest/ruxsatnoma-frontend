@@ -3,9 +3,10 @@ import type { ReactNode } from 'react';
 import { api, setCsrfToken, setSessionGoneHandler } from '../api/client';
 import { ApiError, apiError, SESSION_GONE } from '../api/errors';
 import type { components } from '../api/schema';
-import { buildMockSignedChallenge } from '../lib/eimzoMock';
+import { buildMockSignedChallenge, isEimzoMock, signAttached } from '../lib/eimzo';
 import { navigation } from '../lib/navigation';
 import { AuthContext } from './AuthContext';
+import type { PasswordStepOutcome } from './AuthContext';
 
 type MeOut = components['schemas']['MeOut'];
 
@@ -78,36 +79,56 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  // Step 1 of login: POST /auth/login. Remembers the mfa_token in a ref
-  // (React state, never storage) so `verifyMfa` can complete the flow.
-  const requestMfa = useCallback(async (loginId: string, password: string) => {
-    const { data, error } = await api.POST('/api/v1/auth/login', {
-      body: { login: loginId, password },
-    });
-    if (error) throw apiError(error);
-    mfaTokenRef.current = data.mfa_token;
-  }, []);
-
-  // Step 2 of login: POST /auth/mfa/verify. This is where the session cookie
-  // and the CSRF token actually arrive. Calling this before `requestMfa` has
-  // succeeded is a client bug, not a case to paper over with an empty token
-  // sent to the server — it fails immediately and locally instead.
-  const verifyMfa = useCallback(async (code: string) => {
-    if (!mfaTokenRef.current) {
-      throw new Error('verifyMfa called before requestMfa succeeded');
-    }
-    const { data, error } = await api.POST('/api/v1/auth/mfa/verify', {
-      body: { mfa_token: mfaTokenRef.current, code },
-    });
-    if (error) throw apiError(error);
-    setCsrfToken(data.csrf_token);
-    setMe(data);
-    // A prior boot's authError (a 500, a CORS blip during the initial
-    // /auth/me) must not survive a login that just succeeded — otherwise
-    // RequireAuth keeps showing "session check failed" forever, even though
-    // `me` is now valid, until a full page reload clears React state.
+  // The moment a session starts, wherever it started: the CSRF token the client
+  // replays, the profile every screen reads, and the clearing of a prior boot's
+  // authError (a 500, a CORS blip during the initial /auth/me) — which must not
+  // survive a login that just succeeded, or RequireAuth keeps showing "session
+  // check failed" over a valid `me` until a full page reload clears it.
+  const applySession = useCallback((next: MeOut) => {
+    setCsrfToken(next.csrf_token);
+    setMe(next);
     setAuthError(null);
   }, []);
+
+  // Step 1 of login: POST /auth/login. Two outcomes, and the CALLER must branch
+  // on the returned one rather than assume a code screen comes next: with the
+  // server's `mfa_enabled` switch off there is no second step at all — the
+  // session cookies and the profile arrive on this very response — and asking
+  // for a code then would block the login on a field nothing verifies.
+  const submitPassword = useCallback(
+    async (loginId: string, password: string): Promise<PasswordStepOutcome> => {
+      const { data, error } = await api.POST('/api/v1/auth/login', {
+        body: { login: loginId, password },
+      });
+      if (error) throw apiError(error);
+      if (!data.mfa_required && data.me) {
+        applySession(data.me);
+        return 'signed-in';
+      }
+      // Held in a ref (React state, never storage) so `verifyMfa` can finish.
+      mfaTokenRef.current = data.mfa_token ?? null;
+      return 'mfa-required';
+    },
+    [applySession],
+  );
+
+  // Step 2 of login: POST /auth/mfa/verify. This is where the session cookie
+  // and the CSRF token arrive when a second factor IS required. Calling it
+  // before `submitPassword` has succeeded is a client bug, not a case to paper
+  // over with an empty token sent to the server — it fails locally instead.
+  const verifyMfa = useCallback(
+    async (code: string) => {
+      if (!mfaTokenRef.current) {
+        throw new Error('verifyMfa called before submitPassword succeeded');
+      }
+      const { data, error } = await api.POST('/api/v1/auth/mfa/verify', {
+        body: { mfa_token: mfaTokenRef.current, code },
+      });
+      if (error) throw apiError(error);
+      applySession(data);
+    },
+    [applySession],
+  );
 
   const startOneId = useCallback(async (next: string) => {
     const { data, error } = await api.GET('/api/v1/auth/oneid/authorize', {});
@@ -136,17 +157,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     navigation.assign(data.redirect_url);
   }, []);
 
-  const loginViaEimzo = useCallback(async (pinfl: string, fullName: string) => {
+  // Real mode: `POST /auth/eimzo/challenge` mints the PROVIDER's own
+  // challenge (120s TTL) — signed ATTACHED, never timestamped (`signAttached`'s
+  // own docstring: `login_via_eimzo`/`verify_signed_challenge` is not
+  // `signatures.service.sign()`, so ruling R5's mandatory timestamp does not
+  // gate it). Mock mode keeps building the same JSON envelope it always did,
+  // from the pinfl/fullName the caller supplies — see this method's own
+  // doc comment on `AuthContextValue` for why real mode ignores both.
+  const loginViaEimzo = useCallback(async (pinfl?: string, fullName?: string) => {
     const { data: challengeData, error: challengeError } = await api.POST(
       '/api/v1/auth/eimzo/challenge',
       {},
     );
     if (challengeError) throw apiError(challengeError);
-    const signed = await buildMockSignedChallenge({
-      challenge: challengeData.challenge,
-      pinfl,
-      fullName,
-    });
+    const signed = isEimzoMock()
+      ? await buildMockSignedChallenge({
+          challenge: challengeData.challenge,
+          pinfl: pinfl ?? '',
+          fullName: fullName ?? '',
+        })
+      : await signAttached(new TextEncoder().encode(challengeData.challenge));
     const { data, error } = await api.POST('/api/v1/auth/eimzo/login', {
       body: { signed_challenge: signed },
     });
@@ -181,7 +211,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         me,
         loading,
         authError,
-        requestMfa,
+        submitPassword,
         verifyMfa,
         startOneId,
         loginViaEimzo,

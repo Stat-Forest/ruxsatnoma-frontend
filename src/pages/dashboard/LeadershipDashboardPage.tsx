@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Award, ClipboardCheck, Clock, CreditCard, Layers } from 'lucide-react';
+import { Award, ClipboardCheck, Clock, CreditCard, Layers, Star } from 'lucide-react';
 import { Alert } from '../../components/ui/Feedback';
 import { ApiError } from '../../api/errors';
 import { useAuth } from '../../auth/useAuth';
@@ -12,7 +12,7 @@ import { OmittedNotice } from './components/OmittedNotice';
 import { RejectionsCard, type RejectionRow } from './components/RejectionsCard';
 import { RiskIndicatorsCard } from './components/RiskIndicatorsCard';
 import { TerritoryDrilldown } from './components/TerritoryDrilldown';
-import { formatCompactMoney, formatDelta, formatPercent } from './format';
+import { formatAvgScore, formatCompactMoney, formatDelta, formatPercent } from './format';
 import { useKpi, useRejectionReasonItems, useTerritorySlice, type KpiParams } from './queries';
 
 /** Today as a plain `YYYY-MM-DD` in the viewer's own zone — the same
@@ -155,6 +155,14 @@ export function LeadershipDashboardPage() {
           hint={`${t('dashboard.inspections.violationsHint')}: ${data.inspections.violations_count}`}
           hintIcon={ClipboardCheck}
           tone={data.inspections.violations_count > 0 ? 'brand' : 'neutral'}
+        />
+        <KpiTile
+          testId="tile-satisfaction"
+          label={t('leadership.dash.tile.satisfaction.label')}
+          value={formatAvgScore(data.satisfaction.avg_score)}
+          hint={`${t('leadership.dash.tile.satisfaction.hint')}: ${data.satisfaction.count}`}
+          hintIcon={Star}
+          tone="neutral"
         />
       </div>
 

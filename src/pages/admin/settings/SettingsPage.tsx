@@ -101,6 +101,42 @@ function sameValue(a: unknown, b: unknown): boolean {
   return JSON.stringify(a ?? null) === JSON.stringify(b ?? null);
 }
 
+/**
+ * The prefix a setting is grouped under: the token before its first `.` or
+ * `_`. Real keys are flat and underscore-joined — `session_absolute_hours`,
+ * `otp_ttl_minutes`, `site_contact_phone` — a dot survives only in this
+ * screen's own tests (`notifications.email_enabled`). Splitting on whichever
+ * separator comes first lets the screen group either convention the same
+ * way, without caring which one a given key happens to use.
+ */
+function groupKey(key: string): string {
+  const match = /^[^._]+/.exec(key);
+  return match ? match[0] : key;
+}
+
+/**
+ * Buckets settings by `groupKey`, preserving the order a prefix first
+ * appears in. This does not sort or reorder rows — `GET /admin/settings`
+ * already returns keys in `SETTING_SPECS` declaration order, one namespace
+ * block after another, so a prefix's rows are contiguous in practice and
+ * this just draws a boundary where the prefix changes.
+ */
+function groupSettings(rows: SettingOut[]): Array<[string, SettingOut[]]> {
+  const order: string[] = [];
+  const buckets = new Map<string, SettingOut[]>();
+  for (const setting of rows) {
+    const prefix = groupKey(setting.key);
+    let bucket = buckets.get(prefix);
+    if (!bucket) {
+      bucket = [];
+      buckets.set(prefix, bucket);
+      order.push(prefix);
+    }
+    bucket.push(setting);
+  }
+  return order.map((prefix) => [prefix, buckets.get(prefix) as SettingOut[]]);
+}
+
 function SettingRow({ setting, copy }: { setting: SettingOut; copy: Copy }) {
   const errorText = useApiErrorText();
   const kind = editorKind(setting.value, setting.default);
@@ -236,7 +272,14 @@ function SettingRow({ setting, copy }: { setting: SettingOut; copy: Copy }) {
           />
         )}
 
-        {kind === 'json' && !error && <p className="text-xs text-[#5A646D]">{copy.jsonHint}</p>}
+        {kind === 'json' && !error && (
+          <p className="text-xs text-[#5A646D]">
+            {/* `site_season_windows` is the one JSON setting an Agency clerk is
+                expected to actually edit; the shape (activity code → month
+                numbers) is not guessable from raw JSON alone. */}
+            {setting.key === 'site_season_windows' ? copy.seasonWindowsHint : copy.jsonHint}
+          </p>
+        )}
 
         <div className="flex flex-wrap items-center gap-3">
           <Button
@@ -276,7 +319,7 @@ function SettingRow({ setting, copy }: { setting: SettingOut; copy: Copy }) {
 export function SettingsPage() {
   const { lang } = useLanguage();
   const errorText = useApiErrorText();
-  const copy: Copy = LABELS[lang];
+  const copy: Copy = LABELS[lang] ?? LABELS.uz_latn;
   const settings = useSettings();
 
   const rows = settings.data ?? [];
@@ -313,9 +356,23 @@ export function SettingsPage() {
           <p className="pb-3 text-xs font-semibold text-[#5A646D]">
             {overriddenCount} {copy.overriddenCount} / {rows.length}
           </p>
-          <div className="divide-y divide-[#E4E7EA] border-t border-[#E4E7EA]">
-            {rows.map((setting) => (
-              <SettingRow key={setting.key} setting={setting} copy={copy} />
+          <div className="border-t border-[#E4E7EA]">
+            {groupSettings(rows).map(([prefix, groupRows], index) => (
+              <section
+                key={prefix}
+                role="group"
+                aria-label={prefix}
+                className={index > 0 ? 'border-t border-[#E4E7EA]' : undefined}
+              >
+                <h2 className="pt-4 text-[11px] font-semibold uppercase tracking-wider text-[#5A646D]">
+                  {prefix}
+                </h2>
+                <div className="divide-y divide-[#E4E7EA]">
+                  {groupRows.map((setting) => (
+                    <SettingRow key={setting.key} setting={setting} copy={copy} />
+                  ))}
+                </div>
+              </section>
             ))}
           </div>
         </div>

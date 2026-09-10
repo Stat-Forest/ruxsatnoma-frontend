@@ -128,3 +128,95 @@ test('a plain {code, message} object (not an ApiError instance) still resolves �
   const rowError = { row: 3, code: 'ERR-GIS-005', message: 'server detail' };
   expect(apiErrorMessage(rowError, 'ru')).toBe('Конфликт состояния GIS-объекта. Обновите страницу.');
 });
+
+// Stage 9, T3 — the exact bug behind the demo screenshot: a reversed date
+// range reached the applicant as the generic "data failed validation"
+// because this map dropped `details.reason` for ERR-VAL-001 entirely
+// (`norms/checks.py::run_checks` and `service.py` both raise it this way).
+test('ERR-VAL-001 names the real cause for each reason the backend sends', () => {
+  const reversed = { code: 'ERR-VAL-001', message: 'x', details: { reason: 'period_reversed' } };
+  const tooLong = { code: 'ERR-VAL-001', message: 'x', details: { reason: 'period_too_long' } };
+  const qtyRequired = { code: 'ERR-VAL-001', message: 'x', details: { reason: 'quantity_required' } };
+
+  expect(apiErrorMessage(reversed, 'ru')).toBe('Дата окончания периода не может быть раньше даты начала.');
+  expect(apiErrorMessage(tooLong, 'ru')).toBe('Запрошенный период превышает допустимый максимум (5 лет).');
+  expect(apiErrorMessage(qtyRequired, 'ru')).toBe('Не указано количество (объём) для выбранного вида деятельности.');
+
+  expect(apiErrorMessage(reversed, 'uz_latn')).toBe(
+    "Davr tugash sanasi boshlanish sanasidan oldin bo'lishi mumkin emas.",
+  );
+  expect(apiErrorMessage(tooLong, 'uz_latn')).toBe(
+    "So'ralgan davr ruxsat etilgan maksimal muddatdan (5 yil) oshib ketdi.",
+  );
+  expect(apiErrorMessage(qtyRequired, 'uz_latn')).toBe(
+    "Tanlangan faoliyat turi uchun miqdor (hajm) ko'rsatilmagan.",
+  );
+});
+
+test('ERR-VAL-001 keeps the generic sentence for a reason this map does not recognise', () => {
+  const unknown = { code: 'ERR-VAL-001', message: 'x', details: { reason: 'something_new' } };
+  const noDetails = { code: 'ERR-VAL-001', message: 'x' };
+  expect(apiErrorMessage(unknown, 'ru')).toBe('Ошибка проверки введённых данных.');
+  expect(apiErrorMessage(noDetails, 'ru')).toBe('Ошибка проверки введённых данных.');
+  expect(apiErrorMessage(noDetails, 'uz_latn')).toBe("Kiritilgan ma'lumotlarni tekshirishda xatolik.");
+});
+
+// `norms.checks.first_blocking_error` wraps the WHOLE check list under
+// `details.checks` — this is the actual shape ERR-NORM-002 is thrown with
+// today (`checks.py`'s `_limit_check` puts the numbers on the failing
+// entry's own `details`, not at the top level).
+test('ERR-NORM-002 names the numbers from the failing check nested under details.checks', () => {
+  const error = {
+    code: 'ERR-NORM-002',
+    message: 'x',
+    details: {
+      checks: [
+        { check: 'norm', result: 'pass', details: {} },
+        {
+          check: 'limit',
+          result: 'fail',
+          details: { used_sb: '160.0', max_sb: 147, committed_sb: '0', remaining_sb: '147', load_source: 'permits' },
+        },
+      ],
+    },
+  };
+  expect(apiErrorMessage(error, 'ru')).toBe(
+    'Запрошено 160 — превышает доступный лимит 147 (свободный остаток — 147).',
+  );
+  expect(apiErrorMessage(error, 'uz_latn')).toBe(
+    "So'ralgan 160 — ruxsat etilgan 147 chegaradan oshib ketmoqda (erkin qoldiq — 147).",
+  );
+});
+
+// The general shape stage 9's T4 is introducing (#176) — requested/capacity/
+// remaining in the activity's own unit, straight at the top level.
+test('ERR-NORM-002 names requested/capacity/remaining with their unit for a general (non-grazing) activity', () => {
+  const error = {
+    code: 'ERR-NORM-002',
+    message: 'x',
+    details: { requested: '12.5', capacity: '10', remaining: '2', unit: 'ha' },
+  };
+  expect(apiErrorMessage(error, 'ru')).toBe(
+    'Запрошено 12,5 ha — превышает доступный лимит 10 ha (свободный остаток — 2 ha).',
+  );
+});
+
+test('ERR-NORM-002 names the date a contour with no capacity frees up', () => {
+  const dated = {
+    code: 'ERR-NORM-002',
+    message: 'x',
+    details: { reason: 'exclusive_occupied', free_from: '2026-12-01' },
+  };
+  const undated = { code: 'ERR-NORM-002', message: 'x', details: { reason: 'exclusive_occupied' } };
+  expect(apiErrorMessage(dated, 'ru')).toBe(
+    'Контур занят до 01.12.2026. Новое разрешение возможно только после этой даты.',
+  );
+  expect(apiErrorMessage(undated, 'ru')).toBe('Контур занят на весь запрошенный период.');
+});
+
+test('ERR-NORM-002 keeps the generic sentence when it recognises none of these shapes', () => {
+  const error = { code: 'ERR-NORM-002', message: 'x', details: { checks: [] } };
+  const noDetails = { code: 'ERR-NORM-002', message: 'x' };
+  expect(apiErrorMessage(error, 'ru')).toBe('Превышен остаток лимита.');
+  expect(apiErrorMessage(noDetails, 'uz_latn')).toBe("Limit qoldig'i oshib ketdi.");
+});

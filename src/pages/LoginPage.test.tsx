@@ -80,6 +80,27 @@ test('login is two steps: password, then the TOTP code', async () => {
   expect(await screen.findByTestId('app-shell')).toBeInTheDocument();
 });
 
+test('with MFA switched off the password alone signs in, with no code step', async () => {
+  // The server's `mfa_enabled` switch is off: /auth/login answers with the
+  // profile and sets the session cookies itself. The code field must never
+  // appear — nothing would verify what was typed into it.
+  let verifyCalls = 0;
+  server.use(
+    http.post('*/auth/login', () =>
+      HttpResponse.json({ mfa_required: false, mfa_token: null, me: ME }),
+    ),
+    http.post('*/auth/mfa/verify', () => {
+      verifyCalls += 1;
+      return HttpResponse.json(ME);
+    }),
+  );
+  render(<App />);
+  await fillAndSubmitPassword('30491823410019', 'Head123!');
+  expect(await screen.findByTestId('app-shell')).toBeInTheDocument();
+  expect(screen.queryByLabelText(/kod/i)).not.toBeInTheDocument();
+  expect(verifyCalls).toBe(0);
+});
+
 test('a wrong password says so and does not advance to the code step', async () => {
   server.use(
     http.post('*/auth/login', () =>
@@ -103,6 +124,24 @@ test('a blocked account says so distinctly, not "wrong password"', async () => {
   await fillAndSubmitPassword('30491823410019', 'Head123!');
   expect(await screen.findByTestId('account-blocked')).toBeInTheDocument();
   expect(screen.queryByTestId('login-error')).not.toBeInTheDocument();
+});
+
+// The copy itself, not only which branch renders: `ERR-AUTH-003` is a
+// self-clearing lockout (`login_lockout_minutes`, 15 by default), and this
+// screen told the user to contact an administrator until 2026-09-09 — advice
+// that is wrong for this code and belongs to no code at all, since an
+// administrator-blocked account answers `ERR-AUTH-001` instead.
+test('the lockout message says it is temporary and does not send anyone to an administrator', async () => {
+  server.use(
+    http.post('*/auth/login', () =>
+      HttpResponse.json({ error: { code: 'ERR-AUTH-003', message: 'account blocked' } }, { status: 429 }),
+    ),
+  );
+  render(<App />);
+  await fillAndSubmitPassword('30491823410019', 'Head123!');
+  const message = (await screen.findByTestId('account-blocked')).textContent ?? '';
+  expect(message.toLowerCase()).toContain('vaqtincha');
+  expect(message.toLowerCase()).not.toContain('administrator');
 });
 
 test('too many attempts is a distinct message, not "wrong password"', async () => {
@@ -208,15 +247,65 @@ it('leaving the E-IMZO tab and coming back clears a stale bad-PINFL alert', asyn
   expect(screen.queryByTestId('eimzo-bad-pinfl')).not.toBeInTheDocument();
 });
 
-it('the E-IMZO tab shows the plugin-required notice when the mock flag is off — the branch every real build shows', async () => {
+it('the E-IMZO tab offers the real sign-in button when the mock flag is off, with no PINFL/name box — the branch every real build shows', async () => {
   // `vite.config.ts` turns the mock on for the whole suite so the form
-  // above can be tested; the flag defaults OFF in every real build, and
-  // nothing else in this file ever exercises that branch. Overridden here
-  // only, not suite-wide — `unstubEnvs` in `vite.config.ts` reverts it once
-  // this test ends.
+  // above can be tested; the flag defaults OFF in every real build (stage
+  // 5.2, task 10), and nothing else in this file ever exercises that
+  // branch. Overridden here only, not suite-wide — `unstubEnvs` in
+  // `vite.config.ts` reverts it once this test ends.
+  //
+  // No PINFL/full-name box: a real certificate carries the signer's
+  // identity, unlike the mock, which has no key to read one from
+  // (`AuthContextValue.loginViaEimzo`'s own doc comment) — this is the one
+  // thing task 10 requires of every real-mode branch.
   vi.stubEnv('VITE_EIMZO_MOCK', 'false');
   render(<App />);
   await userEvent.click(await screen.findByRole('tab', { name: 'E-IMZO' }));
-  expect(await screen.findByText(/E-IMZO kaliti va brauzer plagini talab qilinadi/)).toBeInTheDocument();
+  expect(await screen.findByRole('button', { name: 'E-IMZO kaliti bilan kirish' })).toBeInTheDocument();
   expect(screen.queryByLabelText(/PINFL/)).not.toBeInTheDocument();
+  expect(screen.queryByLabelText(/F\.I\.SH|ФИО/)).not.toBeInTheDocument();
+});
+
+// ── The page frame ───────────────────────────────────────────────────────────
+// Until 2026-09-10 the page was a bare card on a grey field: no way back to
+// the public site, no language, nothing saying whose system this is. It now
+// carries the landing's header (logo, "home", language) and its footer, and
+// every outward link is built from `VITE_LANDING_BASE_URL` — unset here, so
+// the localhost fallback is what these assert.
+
+const LANGUAGE_KEY = 'ruxsatnoma.language';
+
+afterEach(() => {
+  localStorage.removeItem(LANGUAGE_KEY);
+});
+
+it('links back to the public site and to permit verification without signing in', async () => {
+  render(<App />);
+  await screen.findByTestId('login-page');
+  expect(screen.getByRole('link', { name: 'Bosh sahifa' })).toHaveAttribute(
+    'href',
+    'http://localhost:5173/',
+  );
+  expect(screen.getByRole('link', { name: /kirmasdan tekshirish/i })).toHaveAttribute(
+    'href',
+    'http://localhost:5173/check',
+  );
+});
+
+it('lets an anonymous visitor switch language without a session, and remembers it', async () => {
+  // No `PUT /auth/me/language` handler is registered and `onUnhandledRequest`
+  // is 'error': had the anonymous switch tried to write the language to a
+  // profile that does not exist yet, this test would fail on the request.
+  render(<App />);
+  await screen.findByTestId('login-page');
+  await userEvent.click(screen.getByTestId('language-trigger'));
+  await userEvent.click(screen.getByRole('menuitemradio', { name: /Русский/ }));
+  expect(await screen.findByRole('tab', { name: 'Логин/Пароль' })).toBeInTheDocument();
+  expect(localStorage.getItem(LANGUAGE_KEY)).toBe('ru');
+});
+
+it('opens in the language the visitor picked last time', async () => {
+  localStorage.setItem(LANGUAGE_KEY, 'ru');
+  render(<App />);
+  expect(await screen.findByRole('tab', { name: 'Логин/Пароль' })).toBeInTheDocument();
 });
