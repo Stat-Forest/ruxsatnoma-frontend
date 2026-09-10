@@ -21,6 +21,7 @@
 import { useMemo, useState } from 'react';
 import { Pencil, Plus, RotateCcw } from 'lucide-react';
 import { DataTable, type Column } from '../../components/ui/DataTable';
+import { ExportXlsxButton } from '../../components/ui/ExportXlsxButton';
 import { FormField, Select } from '../../components/ui/FormControls';
 import { Alert } from '../../components/ui/Feedback';
 import { StatusBadge, type StatusType } from '../../components/ui/StatusBadge';
@@ -106,15 +107,13 @@ export function NormsTab({ active }: { active: boolean }) {
 
   const canManage = me != null && satisfies(NORMS_MANAGE, me);
 
-  const list = useNormsList(
-    {
-      activity_type_id: applied.activityTypeId || undefined,
-      status: applied.status || undefined,
-      limit: PAGE_SIZE,
-      offset: (page - 1) * PAGE_SIZE,
-    },
-    active,
-  );
+  const queryFilters = {
+    activity_type_id: applied.activityTypeId || undefined,
+    status: applied.status || undefined,
+    limit: PAGE_SIZE,
+    offset: (page - 1) * PAGE_SIZE,
+  };
+  const list = useNormsList(queryFilters, active);
 
   const rows = list.data?.items ?? [];
   const totalPages = list.data ? Math.max(1, Math.ceil(list.data.total / PAGE_SIZE)) : 1;
@@ -239,6 +238,7 @@ export function NormsTab({ active }: { active: boolean }) {
           </FormField>
         </div>
         <div className="flex justify-end gap-2">
+          <ExportXlsxButton path="/api/v1/norms" query={queryFilters} />
           <Button variant="outline" size="sm" leftIcon={<RotateCcw className="h-3.5 w-3.5" />} onClick={resetFilters}>
             {t('norms.norms.filter.reset')}
           </Button>

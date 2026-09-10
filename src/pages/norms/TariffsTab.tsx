@@ -39,6 +39,7 @@
 import { useState } from 'react';
 import { Pencil, Plus, RotateCcw } from 'lucide-react';
 import { DataTable, type Column } from '../../components/ui/DataTable';
+import { ExportXlsxButton } from '../../components/ui/ExportXlsxButton';
 import { FormField, Input, Select } from '../../components/ui/FormControls';
 import { Alert } from '../../components/ui/Feedback';
 import { StatusBadge, type StatusType } from '../../components/ui/StatusBadge';
@@ -178,16 +179,14 @@ export function TariffsTab({ active }: { active: boolean }) {
     archive.reset();
   }
 
-  const list = useTariffsList(
-    {
-      activity_type_id: applied.activityTypeId || undefined,
-      status: applied.status || undefined,
-      on_date: applied.onDate || undefined,
-      limit: PAGE_SIZE,
-      offset: (page - 1) * PAGE_SIZE,
-    },
-    active,
-  );
+  const queryFilters = {
+    activity_type_id: applied.activityTypeId || undefined,
+    status: applied.status || undefined,
+    on_date: applied.onDate || undefined,
+    limit: PAGE_SIZE,
+    offset: (page - 1) * PAGE_SIZE,
+  };
+  const list = useTariffsList(queryFilters, active);
 
   function applyFilters() {
     setApplied(filters);
@@ -316,6 +315,7 @@ export function TariffsTab({ active }: { active: boolean }) {
           </FormField>
         </div>
         <div className="flex justify-end gap-2">
+          <ExportXlsxButton path="/api/v1/tariffs" query={queryFilters} />
           <Button variant="outline" size="sm" leftIcon={<RotateCcw className="h-3.5 w-3.5" />} onClick={resetFilters}>
             {t('norms.tariffs.filter.reset')}
           </Button>
