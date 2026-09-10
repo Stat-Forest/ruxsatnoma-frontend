@@ -103,6 +103,52 @@ test('lists the citizen own refunds with the basis name, the status, the deadlin
   expect(screen.getByText(/10\.09\.2026/)).toBeInTheDocument();
 });
 
+test('the Excel button asks the server for the export, never paging the list itself', async () => {
+  const listCalls: string[] = [];
+  let exportUrl: URL | null = null;
+  server.use(
+    http.get('*/api/v1/refunds', ({ request }) => {
+      listCalls.push(request.url);
+      return HttpResponse.json(page([refund({})]));
+    }),
+    http.get('*/api/v1/invoices', () => HttpResponse.json(page([]))),
+    http.get('*/api/v1/applications', () =>
+      HttpResponse.json({ items: [{ id: APP_ONE, number: 'RX-2026-000010', status: 'PAID' }], total: 1, page: 1, page_size: 100 }),
+    ),
+    http.get('*/api/v1/refs/classifiers/refund_reasons/items', () => HttpResponse.json(REASONS)),
+    http.get('*/api/v1/refunds/export.xlsx', ({ request }) => {
+      exportUrl = new URL(request.url);
+      return HttpResponse.text('xlsx-bytes', {
+        headers: {
+          'Content-Disposition': 'attachment; filename="qaytarishlar-2026-09-11.xlsx"',
+          'X-Export-Total': '1',
+          'X-Export-Rows': '1',
+          'X-Export-Truncated': 'false',
+        },
+      });
+    }),
+  );
+  const createObjectURL = vi.fn().mockReturnValue('blob:mock');
+  URL.createObjectURL = createObjectURL;
+  URL.revokeObjectURL = vi.fn();
+  const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+  const user = userEvent.setup();
+  renderTab();
+
+  await screen.findByText('RX-2026-000010');
+  const listCallsBefore = listCalls.length;
+
+  await user.click(screen.getByTestId('export-xlsx'));
+
+  await waitFor(() => expect(createObjectURL).toHaveBeenCalled());
+  expect(clickSpy).toHaveBeenCalled();
+  expect(listCalls.length).toBe(listCallsBefore); // the export never re-fetches the list
+  expect(exportUrl!.searchParams.get('lang')).toBe('uz_latn');
+  expect(exportUrl!.searchParams.has('application_id')).toBe(false);
+  expect(exportUrl!.searchParams.has('limit')).toBe(false);
+  expect(exportUrl!.searchParams.has('offset')).toBe(false);
+});
+
 test('a failed refunds list keeps the "file a request" button visible above the error', async () => {
   server.use(
     http.get('*/api/v1/refunds', () => HttpResponse.json({ error: { code: 'ERR-SYS-001', message: 'boom' } }, { status: 500 })),

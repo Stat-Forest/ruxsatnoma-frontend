@@ -4,6 +4,7 @@ import { Button } from '../../components/ui/button';
 import { FileInput, FormField, Input, Textarea } from '../../components/ui/FormControls';
 import { Modal } from '../../components/ui/Overlay';
 import { Alert } from '../../components/ui/Feedback';
+import { ExportXlsxButton } from '../../components/ui/ExportXlsxButton';
 import { useAuth } from '../../auth/useAuth';
 import { ApiError } from '../../api/errors';
 import { useApiErrorText } from '../../i18n/useApiErrorText';
@@ -73,13 +74,14 @@ function ReconciliationRegister({ canResolve }: { canResolve: boolean }) {
     <section className="rounded-2xl border border-[#E4E7EA] bg-white shadow-xs">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#E4E7EA] p-4">
         <h2 className="text-sm font-bold text-[#1A1F24]">{t('accountant.discrepancies.title')}</h2>
-        <div className="flex gap-1.5 w-full sm:w-auto">
+        <div className="flex flex-wrap items-center gap-1.5 w-full sm:w-auto">
           <Button size="sm" className="flex-1 sm:flex-initial" variant={status === 'open' ? 'primary' : 'outline'} onClick={() => setStatus('open')}>
             {t('accountant.discrepancies.filterOpen')}
           </Button>
           <Button size="sm" className="flex-1 sm:flex-initial" variant={status === 'resolved' ? 'primary' : 'outline'} onClick={() => setStatus('resolved')}>
             {t('accountant.discrepancies.filterResolved')}
           </Button>
+          <ExportXlsxButton path="/api/v1/payments/reconciliations" query={{ status }} />
         </div>
       </div>
 
@@ -255,7 +257,10 @@ function ManualConfirmationCheckPanel() {
 
   return (
     <section className="rounded-2xl border border-[#E4E7EA] bg-white p-4 shadow-xs" data-testid="manual-check-panel">
-      <h2 className="mb-1 text-sm font-bold text-[#1A1F24]">{t('accountant.discrepancies.manualCheckTitle')}</h2>
+      <div className="mb-1 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+        <h2 className="text-sm font-bold text-[#1A1F24]">{t('accountant.discrepancies.manualCheckTitle')}</h2>
+        <ExportXlsxButton path="/api/v1/payments/manual-confirmations" query={{ status: 'pending_check' }} />
+      </div>
       <p className="mb-3 text-xs text-[#5A646D]">{t('accountant.discrepancies.manualCheckHint')}</p>
 
       <ManualConfirmationsPendingList

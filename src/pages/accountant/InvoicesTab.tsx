@@ -4,6 +4,7 @@ import { Button } from '../../components/ui/button';
 import { FormField, Input, Select } from '../../components/ui/FormControls';
 import { Pagination } from '../../components/ui/Navigation';
 import { Alert } from '../../components/ui/Feedback';
+import { ExportXlsxButton } from '../../components/ui/ExportXlsxButton';
 import { ApiError } from '../../api/errors';
 import { useLanguage, useT } from '../../i18n/useT';
 import { formatDateTime, formatMoney, shortId } from '../permits/format';
@@ -33,12 +34,13 @@ export function InvoicesTab() {
   const [status, setStatus] = useState<InvoiceStatus | ''>('');
   const [page, setPage] = useState(1);
 
-  const listQuery = useInvoicesList({
+  const queryFilters = {
     application_id: applicationId ?? undefined,
     status: status || undefined,
     limit: PAGE_SIZE,
     offset: (page - 1) * PAGE_SIZE,
-  });
+  };
+  const listQuery = useInvoicesList(queryFilters);
 
   const statusOptions = [
     { value: '', label: t('accountant.common.all') },
@@ -124,6 +126,7 @@ export function InvoicesTab() {
                 options={statusOptions}
               />
             </FormField>
+            <ExportXlsxButton path="/api/v1/invoices" query={queryFilters} />
           </div>
         </div>
 
