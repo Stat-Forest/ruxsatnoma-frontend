@@ -233,6 +233,81 @@ describe('translateNotification', () => {
     });
   });
 
+  describe('Manual payment confirmed (Image 1 & 2)', () => {
+    const rawManualCyrillic =
+      'RX-2026-000005 аризаси бўйича 2200000.00 сўм тўлов қўлда тасдиқланди.';
+
+    it('translates to en', () => {
+      expect(translateNotification(rawManualCyrillic, 'en')).toBe(
+        'Payment of 2200000.00 UZS confirmed manually for application RX-2026-000005.',
+      );
+    });
+
+    it('translates to ru', () => {
+      expect(translateNotification(rawManualCyrillic, 'ru')).toBe(
+        'По заявке RX-2026-000005 подтверждена оплата 2200000.00 сум вручную.',
+      );
+    });
+
+    it('translates to uz_latn', () => {
+      expect(translateNotification(rawManualCyrillic, 'uz_latn')).toBe(
+        "RX-2026-000005 arizasi bo'yicha 2200000.00 so'm to'lov qo'lda tasdiqlandi.",
+      );
+    });
+
+    it('translates to uz_cyrl', () => {
+      expect(translateNotification(rawManualCyrillic, 'uz_cyrl')).toBe(
+        'RX-2026-000005 аризаси бўйича 2200000.00 сўм тўлов қўлда тасдиқланди.',
+      );
+    });
+
+    it('translates to kaa', () => {
+      expect(translateNotification(rawManualCyrillic, 'kaa')).toBe(
+        'RX-2026-000005 arzası boyınsha 2200000.00 sum tólem qolda tastıyıqlandı.',
+      );
+    });
+
+    it('translates manual payment with permit issuance notice', () => {
+      const withNotice =
+        'RX-2026-000005 аризаси бўйича 2200000.00 сўм тўлов қўлда тасдиқланди. Рухсатномани расмийлаштиринг.';
+      expect(translateNotification(withNotice, 'en')).toBe(
+        'Payment of 2200000.00 UZS confirmed manually for application RX-2026-000005. Issue the permit.',
+      );
+      expect(translateNotification(withNotice, 'ru')).toBe(
+        'По заявке RX-2026-000005 подтверждена оплата 2200000.00 сум вручную. Оформите разрешение.',
+      );
+      expect(translateNotification(withNotice, 'kaa')).toBe(
+        'RX-2026-000005 arzası boyınsha 2200000.00 sum tólem qolda tastıyıqlandı. Ruxsatnamanı rásmiylestiriń.',
+      );
+      expect(translateNotification(withNotice, 'uz_latn')).toBe(
+        "RX-2026-000005 arizasi bo'yicha 2200000.00 so'm to'lov qo'lda tasdiqlandi. Ruxsatnomani rasmiylashtiring.",
+      );
+    });
+
+    it('handles manual payment without amount', () => {
+      const noAmtManual = 'RX-2026-000005 аризаси бўйича тўлов қўлда тасдиқланди.';
+      expect(translateNotification(noAmtManual, 'en')).toBe(
+        'Payment confirmed manually for application RX-2026-000005.',
+      );
+      expect(translateNotification(noAmtManual, 'ru')).toBe(
+        'По заявке RX-2026-000005 подтверждена оплата вручную.',
+      );
+      expect(translateNotification(noAmtManual, 'kaa')).toBe(
+        'RX-2026-000005 arzası boyınsha tólem qolda tastıyıqlandı.',
+      );
+      expect(translateNotification(noAmtManual, 'uz_latn')).toBe(
+        "RX-2026-000005 arizasi bo'yicha to'lov qo'lda tasdiqlandi.",
+      );
+    });
+
+    it('handles generic manual payment confirmation', () => {
+      expect(translateNotification('Тўлов қўлда тасдиқланди', 'en')).toBe('Payment confirmed manually');
+      expect(translateNotification('Toʻlov qoʻlda tasdiqlandi', 'ru')).toBe('Оплата подтверждена вручную');
+      expect(translateNotification('Payment confirmed manually', 'kaa')).toBe('Tólem qolda tastıyıqlandı');
+      expect(translateNotification('Tólem qolda tastıyıqlandı', 'uz_latn')).toBe('Toʻlov qoʻlda tasdiqlandi');
+    });
+  });
+
   describe('translateNotificationSubject', () => {
     it('translates known subject terms', () => {
       expect(translateNotificationSubject('Ariza beruvchi', 'en')).toBe('Applicant');
