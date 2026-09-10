@@ -7,7 +7,7 @@ import { RequireAuth } from './auth/RequireAuth';
 import { LoginPage } from './pages/LoginPage';
 import { OneIdReturnPage } from './pages/OneIdReturnPage';
 import { UsersPage } from './pages/UsersPage';
-import { BenefitVerificationPage } from './pages/benefits/BenefitVerificationPage';
+import { BeekeepersPage } from './pages/beekeepers/BeekeepersPage';
 import { AnnouncementsPage } from './pages/admin/announcements/AnnouncementsPage';
 import { LegalDocumentsPage } from './pages/admin/legalDocuments/LegalDocumentsPage';
 import { ActivityTypesPage } from './pages/admin/activities/ActivityTypesPage';
@@ -73,7 +73,7 @@ const CHILD_PAGES: Record<string, ReactNode> = {
   '/reports': <ReportsPage />,
   '/ratings': <RatingsPage />,
   '/inspections': <InspectionsPage />,
-  '/benefits/verification': <BenefitVerificationPage />,
+  '/beekeepers': <BeekeepersPage />,
   '/admin/users': <UsersPage />,
   '/admin/roles': <RolesPage />,
   '/admin/organizations': <OrganizationsPage />,

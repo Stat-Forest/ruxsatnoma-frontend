@@ -304,7 +304,16 @@ export function useApprove(applicationId: string) {
 export interface RejectInput {
   pkcs7: string;
   reason_item_id: string;
-  legal_basis: string;
+  /**
+   * Optional (ruling #182, `ApplicationRejectIn.legal_basis` in
+   * `schema.d.ts`): when the application's own benefit claim is `rejected`,
+   * the leshoz's own verify/reject pair already recorded a reason, and
+   * `decision.reject` fills `legal_basis` from `benefit_rejection_reason`
+   * when the caller leaves it out. `SignDecisionModal` sends `null` rather
+   * than an empty string in that case — an empty string would still read as
+   * "given but blank" to a caller that only checked `!== undefined`.
+   */
+  legal_basis?: string | null;
 }
 
 export function useReject(applicationId: string) {
@@ -314,6 +323,62 @@ export function useReject(applicationId: string) {
       const { data, error } = await api.POST('/api/v1/applications/{application_id}/reject', {
         params: { path: { application_id: applicationId } },
         body: input,
+      });
+      if (error) throw apiError(error);
+      return data;
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['staff', 'application', applicationId] });
+      void queryClient.invalidateQueries({ queryKey: ['staff', 'applications'] });
+    },
+  });
+}
+
+// --- Stage 10, F2 (rulings #181/#182): the benefit claim block on the ------
+// application card. Moved from the retired `src/pages/benefits/` (stage 9,
+// T11) — same routes, now reached from the card of the ONE application
+// carrying the claim rather than from a country-wide queue (`benefits.verify`
+// moved to `executor_staff`/`executor_head`, in zone; the central role,
+// renamed `beekeeping_registrar`, keeps the register instead — see
+// `src/pages/beekeepers/`).
+
+export type BenefitClaimDetailOut = components['schemas']['BenefitClaimDetailOut'];
+export type BenefitVerificationStatus = ApplicationOut['benefit_verification_status'];
+
+/** `pending -> verified`. Invalidating the PREFIX `['staff', 'application',
+ *  applicationId]` (not just that exact key) also invalidates the timeline — React Query
+ *  matches a partial key by default — so the panel's status/decided-by and
+ *  `DecisionPanel`'s approve gate both refresh from the one invalidation,
+ *  the same way `useApprove`/`useReject` already rely on for the rest of
+ *  the card. */
+export function useVerifyBenefitClaim(applicationId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async () => {
+      const { data, error } = await api.POST('/api/v1/applications/benefit-verifications/{application_id}/verify', {
+        params: { path: { application_id: applicationId } },
+      });
+      if (error) throw apiError(error);
+      return data;
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['staff', 'application', applicationId] });
+      void queryClient.invalidateQueries({ queryKey: ['staff', 'applications'] });
+    },
+  });
+}
+
+/** `pending -> rejected`. `reason` is MANDATORY at the wire
+ *  (`BenefitClaimRejectIn.reason`, `min_length=1`) — `RejectClaimModal`
+ *  never lets an empty one reach this call, the server refuses one too
+ *  (422 `ERR-VAL-001`) as the actual backstop. */
+export function useRejectBenefitClaim(applicationId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (reason: string) => {
+      const { data, error } = await api.POST('/api/v1/applications/benefit-verifications/{application_id}/reject', {
+        params: { path: { application_id: applicationId } },
+        body: { reason },
       });
       if (error) throw apiError(error);
       return data;

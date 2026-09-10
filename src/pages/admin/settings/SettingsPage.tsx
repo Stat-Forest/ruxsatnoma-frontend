@@ -39,6 +39,49 @@ type Copy = Record<keyof typeof uz_latn, string>;
 type EditorKind = 'boolean' | 'number' | 'string' | 'json';
 
 /**
+ * Stage 10, F3 (ruling #184): `site_rules_url` is the first setting this
+ * screen gives a human label to — every other row still shows only its raw
+ * key plus the server's own English `description` (module docstring: this
+ * screen does not invent translations for a key it has never seen). A
+ * label here is different — copy for a key THIS screen was told to name —
+ * so it goes through the same `Copy`/`LABELS` mechanism as the rest of the
+ * page's own strings, keyed by setting key rather than by page string.
+ */
+const KEY_LABELS: Partial<Record<string, keyof Copy>> = {
+  site_rules_url: 'siteRulesUrlLabel',
+};
+
+/**
+ * A one-line hint under the editor, keyed by setting key — the general
+ * form of what used to be `site_season_windows`'s own special case (below,
+ * `kind === 'json'` only). Kept as a second map, rather than folding
+ * `site_season_windows` in here too: that hint explains a JSON SHAPE and
+ * only ever makes sense next to the JSON editor, while this one is a plain
+ * cross-reference that applies regardless of editor kind.
+ */
+const KEY_HINTS: Partial<Record<string, keyof Copy>> = {
+  site_rules_url: 'siteRulesUrlHint',
+};
+
+/**
+ * Setting keys whose STRING value this screen refuses to save unless it
+ * parses as an absolute `http`/`https` URL — the smallest validation idiom
+ * this page has: `parseDraft` had none before `site_rules_url` (every other
+ * typed setting is either unconstrained text, a number, or JSON), so this
+ * is one lookup rather than a per-key branch inside the parser itself.
+ */
+const URL_VALIDATED_KEYS = new Set(['site_rules_url']);
+
+function isAbsoluteHttpUrl(text: string): boolean {
+  try {
+    const url = new URL(text);
+    return url.protocol === 'http:' || url.protocol === 'https:';
+  } catch {
+    return false;
+  }
+}
+
+/**
  * The editor follows the current value's runtime type — that is the only
  * type information the contract offers. `null` and `undefined` are the one
  * exception: they describe no shape, so the default (which is a real value
@@ -76,11 +119,14 @@ function toDisplayText(value: unknown): string {
 
 type ParseResult = { value: unknown } | { error: string };
 
-function parseDraft(kind: EditorKind, text: string, flag: boolean, copy: Copy): ParseResult {
+function parseDraft(kind: EditorKind, text: string, flag: boolean, copy: Copy, key: string): ParseResult {
   switch (kind) {
     case 'boolean':
       return { value: flag };
     case 'string':
+      if (URL_VALIDATED_KEYS.has(key) && !isAbsoluteHttpUrl(text)) {
+        return { error: copy.invalidUrl };
+      }
       return { value: text };
     case 'number': {
       const trimmed = text.trim();
@@ -151,7 +197,7 @@ function SettingRow({ setting, copy }: { setting: SettingOut; copy: Copy }) {
 
   const mutation = useUpdateSetting();
 
-  const draft = parseDraft(kind, text, flag, copy);
+  const draft = parseDraft(kind, text, flag, copy, setting.key);
   const dirty = 'error' in draft ? true : !sameValue(draft.value, setting.value);
   const inputId = `setting-input-${setting.key}`;
 
@@ -188,6 +234,14 @@ function SettingRow({ setting, copy }: { setting: SettingOut; copy: Copy }) {
       }`}
     >
       <div className="min-w-0 md:w-1/2">
+        {KEY_LABELS[setting.key] && (
+          <p
+            data-testid={`setting-label-${setting.key}`}
+            className="text-sm font-semibold text-[#1A1F24]"
+          >
+            {copy[KEY_LABELS[setting.key] as keyof Copy]}
+          </p>
+        )}
         <div className="flex flex-wrap items-center gap-2">
           <label
             htmlFor={inputId}
@@ -278,6 +332,15 @@ function SettingRow({ setting, copy }: { setting: SettingOut; copy: Copy }) {
                 expected to actually edit; the shape (activity code → month
                 numbers) is not guessable from raw JSON alone. */}
             {setting.key === 'site_season_windows' ? copy.seasonWindowsHint : copy.jsonHint}
+          </p>
+        )}
+
+        {/* Stage 10, F3: a cross-reference hint, independent of editor
+            kind — unlike the JSON-shape hint above, which only ever makes
+            sense next to a JSON editor. */}
+        {KEY_HINTS[setting.key] && (
+          <p data-testid={`setting-hint-${setting.key}`} className="text-xs text-[#5A646D]">
+            {copy[KEY_HINTS[setting.key] as keyof Copy]}
           </p>
         )}
 

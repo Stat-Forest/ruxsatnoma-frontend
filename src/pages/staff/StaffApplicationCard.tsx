@@ -13,6 +13,7 @@ import { DocumentsPanel } from './components/DocumentsPanel';
 import { HistoryPanel } from './components/HistoryPanel';
 import { DecisionPanel } from './components/DecisionPanel';
 import { ReviewActionsPanel } from './components/ReviewActionsPanel';
+import { BenefitClaimPanel } from './components/BenefitClaimPanel';
 
 const STAFF_CARD_I18N = {
   uz_latn: {
@@ -185,6 +186,7 @@ export function StaffApplicationCard() {
 
         <div className="space-y-4">
           <ReviewActionsPanel card={card} timeline={timelineQuery.data} />
+          <BenefitClaimPanel card={card} />
           <ConclusionsPanel card={card} />
           <DecisionPanel card={card} />
         </div>

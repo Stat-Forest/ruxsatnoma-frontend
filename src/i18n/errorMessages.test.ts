@@ -220,3 +220,92 @@ test('ERR-NORM-002 keeps the generic sentence when it recognises none of these s
   expect(apiErrorMessage(error, 'ru')).toBe('Превышен остаток лимита.');
   expect(apiErrorMessage(noDetails, 'uz_latn')).toBe("Limit qoldig'i oshib ketdi.");
 });
+
+// Stage 10, F2 (rulings #181/#182) — `decision.approve` refuses with these
+// two `reason`s while the leshoz's own benefit-claim verify/reject has not
+// cleared the application; `DecisionPanel`'s disabled Approve button is the
+// proactive guard, this map is the backstop for the race it cannot see.
+test('ERR-APP-004 names the benefit-claim cause when the backend sends one', () => {
+  const unverified = { code: 'ERR-APP-004', message: 'x', details: { reason: 'benefit_unverified' } };
+  const rejectedWithReason = {
+    code: 'ERR-APP-004',
+    message: 'x',
+    details: { reason: 'benefit_rejected', benefit_rejection_reason: 'Sertifikat muddati oʻtgan' },
+  };
+  const rejectedNoReason = { code: 'ERR-APP-004', message: 'x', details: { reason: 'benefit_rejected' } };
+
+  expect(apiErrorMessage(unverified, 'ru')).toBe('Заявка на льготу ещё не проверена.');
+  expect(apiErrorMessage(rejectedWithReason, 'ru')).toBe('Льгота отклонена: Sertifikat muddati oʻtgan');
+  expect(apiErrorMessage(rejectedNoReason, 'ru')).toBe('Льгота отклонена.');
+
+  expect(apiErrorMessage(unverified, 'uz_latn')).toBe("Imtiyoz da'vosi hali tekshirilmagan.");
+  expect(apiErrorMessage(rejectedNoReason, 'uz_latn')).toBe('Imtiyoz rad etilgan.');
+});
+
+test('ERR-APP-004 keeps the generic sentence for every other reason', () => {
+  const badTransition = { code: 'ERR-APP-004', message: 'x', details: { reason: 'bad_transition' } };
+  const noDetails = { code: 'ERR-APP-004', message: 'x' };
+  expect(apiErrorMessage(badTransition, 'ru')).toBe('Недопустимый переход статуса заявки. Обновите страницу.');
+  expect(apiErrorMessage(noDetails, 'uz_latn')).toBe("Ariza holatini bunday o'zgartirib bo'lmaydi. Sahifani yangilang.");
+});
+
+// Stage 10, F1 — ruling #181: the benefit-certificate check against the
+// Beekeeping Union's own register, named by `details.reason` the same way
+// `ERR-VAL-001` already is.
+test('ERR-APP-003 names the benefit-certificate reason the backend sends', () => {
+  const required = { code: 'ERR-APP-003', message: 'x', details: { reason: 'benefit_certificate_required' } };
+  const unknown = { code: 'ERR-APP-003', message: 'x', details: { reason: 'benefit_certificate_unknown' } };
+  const notYours = { code: 'ERR-APP-003', message: 'x', details: { reason: 'benefit_certificate_not_yours' } };
+  const noReason = { code: 'ERR-APP-003', message: 'x' };
+
+  expect(apiErrorMessage(required, 'ru')).toBe(
+    'Не указан номер справки/свидетельства для выбранной льготной категории.',
+  );
+  expect(apiErrorMessage(unknown, 'ru')).toBe('Такой номер справки/свидетельства не найден в реестре.');
+  expect(apiErrorMessage(notYours, 'ru')).toBe('Этот номер справки/свидетельства зарегистрирован на другое лицо.');
+  expect(apiErrorMessage(noReason, 'ru')).toBe('Неполный комплект документов.');
+
+  expect(apiErrorMessage(required, 'uz_latn')).toBe(
+    "Tanlangan imtiyoz toifasi uchun guvohnoma/ma'lumotnoma raqami ko'rsatilmagan.",
+  );
+  expect(apiErrorMessage(unknown, 'uz_latn')).toBe("Bunday guvohnoma/ma'lumotnoma raqami reyestrda topilmadi.");
+  expect(apiErrorMessage(notYours, 'uz_latn')).toBe("Bu guvohnoma/ma'lumotnoma raqami boshqa shaxsga ro'yxatga olingan.");
+});
+
+// Ruling #183: a simple signature's own refusal reasons, plus the real-mode
+// envelope ones — all told apart only by `details.reason`, same as above.
+test('ERR-SIGN-001 names the reason the backend sends', () => {
+  const notAllowed = { code: 'ERR-SIGN-001', message: 'x', details: { reason: 'simple_signature_not_allowed' } };
+  const pinflUnknown = { code: 'ERR-SIGN-001', message: 'x', details: { reason: 'signer_pinfl_unknown' } };
+  const invalid = { code: 'ERR-SIGN-001', message: 'x', details: { reason: 'signature_invalid' } };
+  const changed = { code: 'ERR-SIGN-001', message: 'x', details: { reason: 'package_changed' } };
+  const noReason = { code: 'ERR-SIGN-001', message: 'x' };
+
+  expect(apiErrorMessage(notAllowed, 'ru')).toBe(
+    'Простая подпись без ключа допустима только для гражданина, подающего заявку от своего имени — для этой заявки нужна электронная цифровая подпись (ЭЦП).',
+  );
+  expect(apiErrorMessage(pinflUnknown, 'ru')).toBe('Не удалось определить ПИНФЛ подписанта — обратитесь в поддержку.');
+  expect(apiErrorMessage(invalid, 'ru')).toBe('Электронная подпись не прошла проверку.');
+  expect(apiErrorMessage(changed, 'ru')).toBe(
+    'Данные заявки изменились после формирования пакета — обновите страницу и попробуйте снова.',
+  );
+  expect(apiErrorMessage(noReason, 'ru')).toBe('Ошибка подписания.');
+
+  expect(apiErrorMessage(notAllowed, 'uz_latn')).toBe(
+    "Kalitsiz oddiy imzo faqat o'zi uchun ariza topshirayotgan fuqaroga ruxsat etilgan — bu ariza uchun elektron raqamli imzo (ERI) kerak.",
+  );
+  expect(apiErrorMessage(pinflUnknown, 'uz_latn')).toBe(
+    "Imzolovchining JSHSHIR raqami aniqlanmadi — qo'llab-quvvatlash xizmatiga murojaat qiling.",
+  );
+});
+
+// Ruling #184: normally unreachable through the UI (the sign button stays
+// disabled until the checkbox is ticked), but a defensive server refusal
+// must still read as a sentence, not the raw field name.
+test('ERR-APP-001 gives rules_accepted a human label instead of the raw field name', () => {
+  const error = { code: 'ERR-APP-001', message: 'x', details: { missing: ['rules_accepted'] } };
+  expect(apiErrorMessage(error, 'ru')).toBe('Не заполнено обязательное поле: «Согласен с правилами».');
+  expect(apiErrorMessage(error, 'uz_latn')).toBe(
+    "Majburiy maydon to'ldirilmagan: «Qoidalar bilan tanishdim».",
+  );
+});

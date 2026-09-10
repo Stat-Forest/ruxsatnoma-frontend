@@ -47,6 +47,7 @@ function card(over: Partial<ApplicationCardOut> = {}): ApplicationCardOut {
     benefit_verified_by: null,
     benefit_verified_at: null,
     benefit_rejection_reason: null,
+    rules_accepted_at: null,
     rejection_reason_item_id: null,
     assigned_org_id: null,
     assigned_user_id: 'u0000000-0000-4000-8000-000000000001',
@@ -208,4 +209,93 @@ test('a real-mode signing failure shows a distinct message and never reaches the
 
   expect(await screen.findByText(eimzo.EIMZO_ERROR_MESSAGE_KEYS.wrong_password)).toBeInTheDocument();
   expect(called).toBe(false);
+});
+
+// Stage 10, F2 (rulings #181/#182): the leshoz's own benefit-claim
+// verify/reject is a mandatory block before a decision — Approve is
+// disabled, with an explanatory line, while it is still `pending` or
+// `rejected`, matching the server's own `ERR-APP-004` refusal
+// (`benefit_unverified`/`benefit_rejected`).
+test('approve is disabled with an explanation while the benefit claim is pending', () => {
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
+  const initial = card({ status: 'IN_REVIEW', benefit_verification_status: 'pending' });
+  renderPanel(initial, client);
+
+  expect(screen.getByTestId('approve-button')).toBeDisabled();
+  expect(screen.getByText('staff.decision.benefit.approveBlockedPending')).toBeInTheDocument();
+  // Reject stays available — the head may still reject the whole application.
+  expect(screen.getByText('Rad etish')).toBeEnabled();
+});
+
+test('approve is disabled with the leshoz\'s own reason while the benefit claim is rejected', () => {
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
+  const initial = card({
+    status: 'IN_REVIEW',
+    benefit_verification_status: 'rejected',
+    benefit_rejection_reason: 'Sertifikat muddati oʻtgan',
+  });
+  renderPanel(initial, client);
+
+  expect(screen.getByTestId('approve-button')).toBeDisabled();
+  expect(
+    screen.getByText('staff.decision.benefit.approveBlockedRejectedPrefix Sertifikat muddati oʻtgan'),
+  ).toBeInTheDocument();
+});
+
+test('approve stays enabled once the benefit claim is verified', () => {
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
+  const initial = card({ status: 'IN_REVIEW', benefit_verification_status: 'verified', benefit_verified_by: null });
+  renderPanel(initial, client);
+
+  expect(screen.getByTestId('approve-button')).toBeEnabled();
+  expect(screen.queryByText('staff.decision.benefit.approveBlockedPending')).not.toBeInTheDocument();
+});
+
+test('legal_basis becomes optional in the reject form once the benefit claim is rejected, and a blank field sends null', async () => {
+  const reasonId = 'rj000000-0000-4000-8000-000000000001';
+  server.use(
+    http.get('*/api/v1/refs/classifiers/:code/items', ({ params }) =>
+      params.code === 'rejection_reasons'
+        ? HttpResponse.json([{ id: reasonId, code: 'RJ-01', name: { uz_latn: 'Hujjatlar toʻliq emas' }, props: {}, valid_from: '2026-01-01', valid_to: null, status: 'active' }])
+        : HttpResponse.json([]),
+    ),
+    http.get('*/api/v1/applications/:id/package', () => new HttpResponse(new Uint8Array([1, 2, 3]).buffer)),
+  );
+  let receivedBody: unknown = null;
+  server.use(
+    http.post('*/api/v1/applications/:id/reject', async ({ request }) => {
+      receivedBody = await request.json();
+      return HttpResponse.json({ status: 'REJECTED' });
+    }),
+  );
+
+  const user = userEvent.setup();
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
+  const initial = card({
+    status: 'IN_REVIEW',
+    benefit_verification_status: 'rejected',
+    benefit_rejection_reason: 'Sertifikat muddati oʻtgan',
+  });
+  client.setQueryData(['staff', 'application', initial.id], initial);
+  renderPanel(initial, client);
+
+  await user.click(screen.getByText('Rad etish'));
+  expect(await screen.findByText('staff.decision.benefit.legalBasisOptionalHint')).toBeInTheDocument();
+
+  await screen.findByText('Hujjatlar toʻliq emas');
+  const reasonSelect = screen.getByDisplayValue('Tanlang...');
+  await user.selectOptions(reasonSelect, 'Hujjatlar toʻliq emas');
+
+  const pinflInput = screen.getByPlaceholderText('31207854315218');
+  await user.type(pinflInput, '30260904000003');
+
+  // `legal_basis` left blank — the submit button must still enable, since
+  // the verifier's own reason will be used.
+  const submitButton = screen.getByText('Rad etish va imzolash');
+  await waitFor(() => expect(submitButton.closest('button')).toBeEnabled());
+  await user.click(submitButton);
+
+  await waitFor(() => expect(receivedBody).not.toBeNull());
+  expect((receivedBody as { legal_basis: unknown }).legal_basis).toBeNull();
+  expect((receivedBody as { reason_item_id: unknown }).reason_item_id).toBe(reasonId);
 });

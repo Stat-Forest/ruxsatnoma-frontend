@@ -63,6 +63,7 @@ export function application(overrides: Partial<ApplicationOut> = {}): Applicatio
     benefit_verified_by: null,
     benefit_verified_at: null,
     benefit_rejection_reason: null,
+    rules_accepted_at: null,
     rejection_reason_item_id: null,
     assigned_org_id: null,
     assigned_user_id: null,
@@ -109,6 +110,7 @@ export function invoice(overrides: Partial<InvoiceOut> = {}): InvoiceOut {
     status: 'paid',
     issued_at: '2026-04-10T10:00:00+05:00',
     due_at: '2026-04-20T10:00:00+05:00',
+    settled_by_benefit: false,
     paid_at: '2026-04-12T10:00:00+05:00',
     ...overrides,
   };

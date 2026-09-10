@@ -2513,7 +2513,10 @@ export interface paths {
          *     would reject the object's own signer before the service ever got a
          *     chance to say otherwise (lesson: a permission check alone is not enough
          *     on a read path that also needs an ownership check). Ordered by
-         *     `(signed_at, id)` and paged from its first commit (lessons).
+         *     `(signed_at, id)` and paged from its first commit (lessons). `kind`
+         *     (ruling #183) narrows the list to `'eri'` or `'simple'` — unfiltered,
+         *     like `object_type`, no `Literal`: the service reads it as a plain
+         *     equality filter, and an unrecognised value simply matches nothing.
          */
         get: operations["list_signatures_api_v1_signatures_get"];
         put?: never;
@@ -2548,28 +2551,69 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/applications/benefit-verifications": {
+    "/api/v1/beekeepers": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /**
-         * List Benefit Claims
-         * @description Every application carrying a certificate-bearing benefit claim,
-         *     country-wide — this role's whole surface (ruling #179).
-         *
-         *     `verification_status`, when given, narrows to exactly that value;
-         *     `not_required` is a valid value of the wire enum but can never match a
-         *     row this office is allowed to see (`repo.CERTIFICATE_BEARING_STATUSES`
-         *     excludes it), so passing it answers an EMPTY page rather than a 422 —
-         *     `GET /applications`'s own "entitled to nothing gets an empty page, never
-         *     a 403" rule, restated here for a filter instead of the caller's identity.
-         */
-        get: operations["list_benefit_claims_api_v1_applications_benefit_verifications_get"];
+        /** List Beekeepers */
+        get: operations["list_beekeepers_api_v1_beekeepers_get"];
+        put?: never;
+        /** Create Beekeeper */
+        post: operations["create_beekeeper_api_v1_beekeepers_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/beekeepers/lookup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Lookup Beekeeper */
+        get: operations["lookup_beekeeper_api_v1_beekeepers_lookup_get"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/beekeepers/{beekeeper_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Patch Beekeeper */
+        patch: operations["patch_beekeeper_api_v1_beekeepers__beekeeper_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/beekeepers/{beekeeper_id}/remove": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Remove Beekeeper */
+        post: operations["remove_beekeeper_api_v1_beekeepers__beekeeper_id__remove_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2585,14 +2629,15 @@ export interface paths {
         };
         /**
          * Get Benefit Claim
-         * @description The claim plus its supporting document(s) — everything the office
+         * @description The claim plus its supporting document(s) — everything the reviewer
          *     needs to decide.
          *
-         *     404 `ERR-SYS-003` for an id that does not exist AND for a real
-         *     application carrying no certificate-bearing claim — the same answer,
-         *     because anything else would make this route an application-existence
-         *     oracle for a document full of personal data (`benefit_verification.py`'s
-         *     own module docstring).
+         *     404 `ERR-SYS-003` for an id that does not exist, for an application
+         *     outside the caller's zone, and for a real application carrying no
+         *     certificate-bearing claim — the same answer for all three, because
+         *     anything else would make this route an application-existence oracle for
+         *     a document full of personal data (`benefit_verification.py`'s own module
+         *     docstring).
          */
         get: operations["get_benefit_claim_api_v1_applications_benefit_verifications__application_id__get"];
         put?: never;
@@ -2614,8 +2659,10 @@ export interface paths {
         put?: never;
         /**
          * Verify Benefit Claim
-         * @description `pending -> verified`. 404 `ERR-SYS-003` on the same two cases as the
-         *     read above; 409 `ERR-APP-004` (`reason="not_pending"`) if this claim was
+         * @description `pending -> verified`. 404 `ERR-SYS-003` for an id that does not exist
+         *     or an application outside the caller's zone; 409 `ERR-APP-004`
+         *     (`reason="not_in_review"`) when the application itself is not
+         *     `IN_REVIEW`; 409 `ERR-APP-004` (`reason="not_pending"`) if this claim was
          *     already decided.
          */
         post: operations["verify_benefit_claim_api_v1_applications_benefit_verifications__application_id__verify_post"];
@@ -2873,12 +2920,16 @@ export interface paths {
          *     resolved once; `ctx.save()` runs before the response so a replay returns
          *     the stored 200 rather than allocating a second number.
          *
-         *     400 `ERR-APP-001` (missing fields, NAMED); 409 `ERR-APP-004` in any status
-         *     but DRAFT; 422 `ERR-APP-003` for a benefit claim with no supporting
-         *     document; 409 `ERR-GIS-005` for a contour with no published version;
-         *     `ERR-GIS-001/002/005` or `ERR-NORM-001/002/003/006` when a BLOCKING check
-         *     fails — the difference from the pre-check, which reports the identical
-         *     result as data; 422 `ERR-SIGN-001` for an invalid signature; 409
+         *     400 `ERR-APP-001` (missing fields, NAMED — ruling #184's `rules_accepted`
+         *     is one of them, `false` unless the caller explicitly sends `true`); 409
+         *     `ERR-APP-004` in any status but DRAFT; 422 `ERR-APP-003` for a benefit
+         *     claim with no certificate number, no supporting document, or one the
+         *     auto-verifier seam (ruling #182) reports `unknown`/`not_yours`; 409
+         *     `ERR-GIS-005` for a contour with no published version; `ERR-GIS-001/002/005`
+         *     or `ERR-NORM-001/002/003/006` when a BLOCKING check fails — the difference
+         *     from the pre-check, which reports the identical result as data; 422
+         *     `ERR-SIGN-001` for an invalid signature, or (ruling #183) `pkcs7` absent on
+         *     a `on_behalf="legal"` filing (`simple_signature_not_allowed`); 409
          *     `ERR-APP-002` with the existing number when another active application
          *     already covers this plot and period.
          */
@@ -3242,12 +3293,18 @@ export interface paths {
          * Reject Application
          * @description IN_REVIEW -> REJECTED, with the grounds `tz/04` С8 requires.
          *
-         *     `reason_item_id` and `legal_basis` are REQUIRED fields of the body, so a
-         *     refusal with no grounds is 422 `ERR-VAL-001` from pydantic — before the
-         *     handler, and therefore before a signature could be spent on a request that
-         *     cannot succeed. A `reason_item_id` outside the `rejection_reasons`
-         *     classifier, or archived, is the service's own 422 `ERR-VAL-001`
-         *     (`unknown_rejection_reason`), still ahead of the ERI.
+         *     `reason_item_id` is a REQUIRED field of the body, so a refusal naming no
+         *     reason at all is 422 `ERR-VAL-001` from pydantic — before the handler, and
+         *     therefore before a signature could be spent on a request that cannot
+         *     succeed. A `reason_item_id` outside the `rejection_reasons` classifier, or
+         *     archived, is the service's own 422 `ERR-VAL-001` (`unknown_rejection_
+         *     reason`), still ahead of the ERI.
+         *
+         *     `legal_basis` is OPTIONAL at the wire (ruling #182): omitted while the
+         *     application's own benefit claim is `rejected`, the leshoz's own reason
+         *     for THAT becomes the grounds for this; omitted otherwise, still 422
+         *     `ERR-VAL-001` (`legal_basis_required`) — the mandatory-grounds rule
+         *     intact, just enforced one layer in.
          *
          *     No role limit: decision #29 caps what a head may GRANT. 404 and 409 exactly
          *     as on `/approve` above.
@@ -4987,6 +5044,33 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/public/applications/check": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Check Application Status
+         * @description Task 4: status without logging in. `phone` is compared against the
+         *     applicant's own contact on file (`service.check_application_status`'s own
+         *     docstring) — not validated as a real phone shape here, for the identical
+         *     reason `check_appeal_status` above does not validate its own
+         *     `phone`/`email`: an unparsable value simply never matches anything, the
+         *     same `found: false` an unknown number gets. Shares `_APPEAL_STATUS_LIMIT`'s
+         *     bucket rather than a new settings key — both are the same shape of
+         *     low-volume, anonymous "check my status" call.
+         */
+        get: operations["check_application_status_api_v1_public_applications_check_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/public/open-data/layers": {
         parameters: {
             query?: never;
@@ -5030,6 +5114,76 @@ export interface paths {
         };
         /** Open Data Stats */
         get: operations["open_data_stats_api_v1_public_open_data_stats_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/public/site-settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Site Settings
+         * @description Feeds the landing footer — an explicit whitelist, never a proxy of
+         *     `system_settings` (`service.site_settings`).
+         */
+        get: operations["site_settings_api_v1_public_site_settings_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/public/activity-seasons": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Public Activity Seasons
+         * @description The REAL season windows (stage 8 fix wave finding 1) — replaces the
+         *     deleted `site_season_windows` settings key. Resolved through the SAME
+         *     function the blocking check itself calls
+         *     (`norms.checks.resolve_effective_windows`); see `service.
+         *     public_activity_seasons` for what `is_default` means and why every
+         *     window here is `[]`. Shares `_OPEN_DATA_LIMIT`'s bucket rather than a new
+         *     settings key — the same low-volume, cacheable-read shape as
+         *     `/site-settings` and `/ratings/summary` beside it.
+         */
+        get: operations["public_activity_seasons_api_v1_public_activity_seasons_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/public/ratings/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Rating Summary
+         * @description The national citizen-rating average — suppressed below the threshold
+         *     (#174, `service.rating_summary`): `average`/`histogram` are `null` and
+         *     `published` is `false` until enough citizens have rated a permit.
+         */
+        get: operations["rating_summary_api_v1_public_ratings_summary_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -6344,6 +6498,8 @@ export interface components {
             submitted_at: string | null;
             /** Decided At */
             decided_at: string | null;
+            /** Rules Accepted At */
+            rules_accepted_at: string | null;
             /**
              * Created At
              * Format: date-time
@@ -6612,6 +6768,8 @@ export interface components {
             submitted_at: string | null;
             /** Decided At */
             decided_at: string | null;
+            /** Rules Accepted At */
+            rules_accepted_at: string | null;
             /**
              * Created At
              * Format: date-time
@@ -6798,6 +6956,8 @@ export interface components {
             submitted_at: string | null;
             /** Decided At */
             decided_at: string | null;
+            /** Rules Accepted At */
+            rules_accepted_at: string | null;
             /**
              * Created At
              * Format: date-time
@@ -6854,11 +7014,21 @@ export interface components {
          *     requires of a refusal BY the state: an RJ-* reason from the
          *     `rejection_reasons` classifier AND a legal basis.
          *
-         *     **Both are REQUIRED here rather than validated in the service**, which is
-         *     what makes «missing grounds» a 422 `ERR-VAL-001` before the request body is
-         *     ever handed to a function that could reach `sign()` — a signature must never
-         *     be spent on a request that cannot succeed. `min_length=1` closes the half a
-         *     plain `str` would leave open: an empty legal basis is a missing one.
+         *     **`reason_item_id` is REQUIRED here rather than validated in the
+         *     service**, which is what makes a missing one a 422 `ERR-VAL-001` before
+         *     the request body is ever handed to a function that could reach `sign()` —
+         *     a signature must never be spent on a request that cannot succeed.
+         *
+         *     **`legal_basis` is OPTIONAL** (ruling #182): when the application's own
+         *     benefit claim was `rejected` by the leshoz's own verify/reject pair, that
+         *     verdict IS the grounds for rejecting the application too, and the head
+         *     need not retype it — `decision.reject` fills `legal_basis` from the
+         *     claim's own `benefit_rejection_reason` when the caller leaves it out.
+         *     Every OTHER case keeps the ORIGINAL rule intact: a missing `legal_basis`
+         *     is refused (`ERR-VAL-001`, `reason="legal_basis_required"`) before
+         *     `sign()` is ever reached, exactly as when it was required at the wire.
+         *     `min_length=1` closes the half a plain `str` would leave open when one
+         *     IS given: an empty legal basis is a missing one.
          *
          *     This is the opposite of `ApplicationCancelIn` beside it, whose reason is
          *     optional because a citizen withdrawing their own application owes nobody an
@@ -6873,7 +7043,7 @@ export interface components {
              */
             reason_item_id: string;
             /** Legal Basis */
-            legal_basis: string;
+            legal_basis?: string | null;
         };
         /**
          * ApplicationRequestInfoIn
@@ -6945,20 +7115,68 @@ export interface components {
             legal_basis: string;
         };
         /**
+         * ApplicationStatusOut
+         * @description `GET /public/applications/check` — status without logging in (task 4).
+         *
+         *     Same "no oracle" posture as `AppealStatusOut`: an unknown `number` and a
+         *     `number` whose `phone` does not match answer identically, every field
+         *     `None` but `found`. What this shape may NEVER carry — the applicant's
+         *     name, the contour geometry, the calculated sum, attachments, the
+         *     reviewing official — stays behind the cabinet login; only the status,
+         *     its human label, the activity, the leshoz and what happens next cross
+         *     this boundary.
+         */
+        ApplicationStatusOut: {
+            /** Found */
+            found: boolean;
+            /** Number */
+            number?: string | null;
+            /** Status */
+            status?: string | null;
+            status_label?: components["schemas"]["LocalizedName"] | null;
+            /** Activity Type */
+            activity_type?: string | null;
+            /** Organization */
+            organization?: string | null;
+            /** Next Step */
+            next_step?: string | null;
+            /** Submitted At */
+            submitted_at?: string | null;
+        };
+        /**
          * ApplicationSubmitIn
          * @description `POST /applications/{id}/submit` — the detached PKCS#7 the client
-         *     produced over the bytes `GET /applications/{id}/package` served, and
-         *     nothing else.
+         *     produced over the bytes `GET /applications/{id}/package` served, plus
+         *     ruling #184's mandatory acceptance.
          *
          *     The package itself is deliberately NOT echoed back in the body: the server
          *     signs what IT computes (`service._package_bytes`), and a client-supplied
          *     copy would only give an attacker a second thing to disagree with. What the
          *     client signed is proven by the signature verifying, not by it being
          *     re-sent.
+         *
+         *     **`pkcs7` is now OPTIONAL** (ruling #183): a citizen filing for themselves
+         *     (`on_behalf="self"`) signs with the button and posts no envelope at all —
+         *     `service.submit` calls `signatures.service.sign_simple` over the SAME
+         *     package bytes `sign()` would otherwise verify. A legal entity, or an
+         *     envelope actually posted, is unchanged: `sign()` runs exactly as before.
+         *
+         *     **`rules_accepted` is mandatory** (ruling #184, decisions.md): `false`
+         *     (the default, so an old client that never learned the field is refused
+         *     rather than silently accepted) is one of the fields `service._assert_
+         *     complete` treats as MISSING — 400 `ERR-APP-001` naming `rules_accepted`
+         *     alongside `contour_id`/`activity_type_id`/etc., not a separate check with
+         *     its own reason. The server stamps `applications.rules_accepted_at` from
+         *     its OWN clock; the client's claim is a gate, never a timestamp source.
          */
         ApplicationSubmitIn: {
             /** Pkcs7 */
-            pkcs7: string;
+            pkcs7?: string | null;
+            /**
+             * Rules Accepted
+             * @default false
+             */
+            rules_accepted: boolean;
         };
         /**
          * ApplicationTimelineOut
@@ -7103,23 +7321,124 @@ export interface components {
             /** Kind */
             kind: string;
         };
+        /** BeekeeperCreateIn */
+        BeekeeperCreateIn: {
+            /** Certificate No */
+            certificate_no: string;
+            /** Pinfl */
+            pinfl: string;
+            /** Passport Series */
+            passport_series: string;
+            /** Passport Number */
+            passport_number: string;
+            /** Stir */
+            stir?: string | null;
+            /** Full Name */
+            full_name: string;
+            /** Farm Name */
+            farm_name?: string | null;
+        };
+        /**
+         * BeekeeperLookupOut
+         * @description `GET /beekeepers/lookup` — ruling #182's "honest auto-fill": whatever a
+         *     user who has signed in through OneID left in their own profile snapshot.
+         *     `passport_series`/`passport_number` are nullable — OneID's own `passport`
+         *     field is a single string this seam splits into the two the register's
+         *     form wants, and not every profile carries one (auth/service.py's own
+         *     docstring: "what the provider returns today is evidence, not a
+         *     promise").
+         */
+        BeekeeperLookupOut: {
+            /** Full Name */
+            full_name: string;
+            /** Passport Series */
+            passport_series: string | null;
+            /** Passport Number */
+            passport_number: string | null;
+        };
+        /** BeekeeperOut */
+        BeekeeperOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Certificate No */
+            certificate_no: string;
+            /** Pinfl */
+            pinfl: string;
+            /** Passport Series */
+            passport_series: string;
+            /** Passport Number */
+            passport_number: string;
+            /** Stir */
+            stir: string | null;
+            /** Full Name */
+            full_name: string;
+            /** Farm Name */
+            farm_name: string | null;
+            /** Status */
+            status: string;
+            /** Removed Reason */
+            removed_reason: string | null;
+            /**
+             * Created By
+             * Format: uuid
+             */
+            created_by: string;
+            /** Updated By */
+            updated_by: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /**
+         * BeekeeperPatchIn
+         * @description All fields optional; only keys present in the request are touched
+         *     (`exclude_unset=True`), the convention `LegalDocumentPatchIn` established.
+         *     No `status`/`removed_reason` here — removal is its own route
+         *     (`POST /{id}/remove`), never a status value a patch could slip in.
+         */
+        BeekeeperPatchIn: {
+            /** Certificate No */
+            certificate_no?: string | null;
+            /** Pinfl */
+            pinfl?: string | null;
+            /** Passport Series */
+            passport_series?: string | null;
+            /** Passport Number */
+            passport_number?: string | null;
+            /** Stir */
+            stir?: string | null;
+            /** Full Name */
+            full_name?: string | null;
+            /** Farm Name */
+            farm_name?: string | null;
+        };
+        /** BeekeeperRemoveIn */
+        BeekeeperRemoveIn: {
+            /** Reason */
+            reason: string;
+        };
         /**
          * BenefitClaimDetailOut
-         * @description `GET /applications/benefit-verifications/{id}` — the verifier's own
-         *     single-item read. `GET /applications/benefit-verifications` (the list)
-         *     answers `Page[ApplicationOut]` directly and needs no schema of its own:
-         *     every column this office cares about is already on that shape, including
-         *     the five ruling #179 added.
+         * @description `GET /applications/benefit-verifications/{id}` — the leshoz reviewer's
+         *     single-claim read, plus its supporting document.
          *
-         *     Deliberately NOT `ApplicationCardOut`: that shape is built by `service.
-         *     get_card`, which gates through `service._readable_application` — a
-         *     function this role never satisfies (it holds no `applications.view_any`
-         *     and, being central, no zone match either), so reusing it would 404 the
-         *     very role it is meant to serve. `documents` is the one thing beyond the
-         *     application's own columns this office needs on the DETAIL read (`tz/06`
-         *     §Льготы: the certificate's supporting file, attached through the ordinary
-         *     document mechanism — see `repo.list_documents`) — left off the list
-         *     response so paging the queue costs one query, not one plus N.
+         *     Deliberately NOT `ApplicationCardOut`: that shape is `service.get_card`'s,
+         *     with `items`/`checks`/`calculation`/`conclusions`/`sla_overdue` this route
+         *     has no use for — the reviewer already sees the whole card through
+         *     `GET /applications/{id}` and reaches this route to decide ONE thing.
+         *     `documents` is the one addition beyond the application's own columns
+         *     (`tz/06` §Льготы: the certificate's supporting file, attached through the
+         *     ordinary document mechanism — see `repo.list_documents`).
          */
         BenefitClaimDetailOut: {
             /**
@@ -7204,6 +7523,8 @@ export interface components {
             submitted_at: string | null;
             /** Decided At */
             decided_at: string | null;
+            /** Rules Accepted At */
+            rules_accepted_at: string | null;
             /**
              * Created At
              * Format: date-time
@@ -8609,6 +8930,11 @@ export interface components {
             paid_at: string | null;
             /** Recipients */
             recipients?: components["schemas"]["InvoiceRecipientOut"][] | null;
+            /**
+             * Settled By Benefit
+             * @default false
+             */
+            settled_by_benefit: boolean;
         };
         /**
          * InvoiceRecipientOut
@@ -9673,6 +9999,17 @@ export interface components {
             /** Page Size */
             page_size: number;
         };
+        /** Page[BeekeeperOut] */
+        Page_BeekeeperOut_: {
+            /** Items */
+            items: components["schemas"]["BeekeeperOut"][];
+            /** Total */
+            total: number;
+            /** Page */
+            page: number;
+            /** Page Size */
+            page_size: number;
+        };
         /** Page[CalculationOut] */
         Page_CalculationOut_: {
             /** Items */
@@ -10473,7 +10810,9 @@ export interface components {
         };
         /**
          * PermitSignIn
-         * @description `POST /permits/{id}/signatures`: one of the four ERI signature lines.
+         * @description `POST /permits/{id}/signatures`: one of the four ERI signature lines —
+         *     or, since ruling #183, the holder's simple signature with no envelope at
+         *     all.
          *
          *     `purpose` is a plain bounded string, deliberately NOT a `Literal` over
          *     `signers.PURPOSE_ROLES`. The required set is admin-editable data (ruling 7),
@@ -10486,12 +10825,20 @@ export interface components {
          *     There is no `document` field. The bytes signed are the permit's own stored
          *     PDF, never anything the client supplies (ruling 3) — a caller who could name
          *     the document could sign something other than the permit.
+         *
+         *     `pkcs7` is OPTIONAL (ruling #183): a citizen acting for themselves signs
+         *     with a button, and posts a body carrying no envelope at all. Absent, it is
+         *     NOT automatically a simple signature — `permits.service.add_signature`
+         *     decides who may take that path (the holder purpose, `on_behalf='self'`)
+         *     and refuses everyone else with `ERR-SIGN-001` `simple_signature_not_
+         *     allowed`. WITH `pkcs7` present, nothing about this route changes for
+         *     anyone, whatever the purpose or the application's `on_behalf`.
          */
         PermitSignIn: {
             /** Purpose */
             purpose: string;
             /** Pkcs7 */
-            pkcs7: string;
+            pkcs7?: string | null;
         };
         /**
          * PermitSignatureOut
@@ -10534,11 +10881,10 @@ export interface components {
             purpose: string;
             /** Signer User Id */
             signer_user_id: string | null;
-            /**
-             * Certificate Id
-             * Format: uuid
-             */
-            certificate_id: string;
+            /** Kind */
+            kind: string;
+            /** Certificate Id */
+            certificate_id: string | null;
             /**
              * Signed At
              * Format: date-time
@@ -10606,6 +10952,40 @@ export interface components {
             /** Checks */
             checks: components["schemas"]["ApplicationCheckOut"][];
             calculation: components["schemas"]["PrecheckCalculationOut"] | null;
+        };
+        /**
+         * PublicActivitySeasonOut
+         * @description One activity's effective season with no leshoz specified — `GET
+         *     /public/activity-seasons` (stage 8 fix wave finding 1, supersedes the R3
+         *     half of decision #175).
+         *
+         *     `windows` is the raw JSONB list `norms.checks.resolve_effective_windows`
+         *     returns (`{"from": "MM-DD", "to": "MM-DD"}` dicts, `norms.schemas.
+         *     EffectiveSeasonOut`'s own shape) — never re-validated into a stricter
+         *     model here, for the identical reason that route gives: a pre-existing
+         *     row may predate the window's own edge validation, and turning an already
+         *     tolerated malformed window into a 500 on a READ endpoint would be worse
+         *     than showing it as-is.
+         *
+         *     `windows` is always `[]` and `season_source` always `"none"` on this
+         *     anonymous route: with no leshoz named there is no `activity_seasons`
+         *     dictionary row to fall back to and no contour whose norm could override
+         *     it, so nothing is configured to show here — never "open all year".
+         *     `is_default` marks that on every row: a real leshoz's own window, reached
+         *     through the authenticated `GET /activity-seasons/effective`
+         *     (`norms.service.effective_season`), may differ.
+         */
+        PublicActivitySeasonOut: {
+            /** Activity Type Code */
+            activity_type_code: string;
+            /** Windows */
+            windows: {
+                [key: string]: unknown;
+            }[];
+            /** Season Source */
+            season_source: string;
+            /** Is Default */
+            is_default: boolean;
         };
         /**
          * PublicActivityTypeOut
@@ -10687,6 +11067,10 @@ export interface components {
             signatures_valid: boolean;
             /** Holder */
             holder: string;
+            /** Contour */
+            contour?: {
+                [key: string]: unknown;
+            } | null;
         };
         /**
          * PublicCheckMiss
@@ -10879,6 +11263,30 @@ export interface components {
             activity_type_name: {
                 [key: string]: unknown;
             };
+        };
+        /**
+         * RatingSummaryOut
+         * @description The landing's single national number for citizens' post-issuance
+         *     ratings (#174) — suppressed below `service.OPEN_DATA_K_ANONYMITY`: below
+         *     it `published` is `False` and BOTH `average` and `histogram` are `None`,
+         *     never a number computed from a handful of rows and presented as if it
+         *     meant something nationally. `count` is always the true count, published
+         *     or not — it is what lets the front end say "not enough ratings yet"
+         *     instead of just hiding the block.
+         */
+        RatingSummaryOut: {
+            /** Published */
+            published: boolean;
+            /** Average */
+            average: string | null;
+            /** Count */
+            count: number;
+            /** Histogram */
+            histogram: {
+                [key: string]: number;
+            } | null;
+            /** Threshold */
+            threshold: number;
         };
         /**
          * RatingsBreakdownRow
@@ -11842,13 +12250,12 @@ export interface components {
             object_id: string;
             /** Purpose */
             purpose: string;
+            /** Kind */
+            kind: string;
             /** Signer User Id */
             signer_user_id: string | null;
-            /**
-             * Certificate Id
-             * Format: uuid
-             */
-            certificate_id: string;
+            /** Certificate Id */
+            certificate_id: string | null;
             /** Doc Hash */
             doc_hash: string;
             /** Signature Value */
@@ -11864,6 +12271,56 @@ export interface components {
             };
             /** Verification Status */
             verification_status: string;
+        };
+        /** SiteContactsOut */
+        SiteContactsOut: {
+            /** Phone */
+            phone: string;
+            /** Email */
+            email: string;
+            address: components["schemas"]["SiteTextOut"];
+            hours: components["schemas"]["SiteTextOut"];
+            social: components["schemas"]["SiteSocialOut"];
+        };
+        /**
+         * SiteSettingsOut
+         * @description Feeds the landing footer in one anonymous request (ruling R3) — an
+         *     explicit whitelist of `system_settings` keys, never a proxy of the store.
+         *
+         *     `season_windows` used to ride along here (`site_season_windows`'s six
+         *     hard-coded month lists) until the stage 8 fix wave (finding 1) deleted
+         *     that key: it disagreed with the real, per-leshoz windows
+         *     `norms.models.ActivitySeason` and `norms.checks._season_check` had
+         *     started enforcing by the time this branch merged. `GET
+         *     /public/activity-seasons` (`PublicActivitySeasonOut` below) replaces it.
+         *
+         *     `rules_url` (stage 10, ruling #184) is the document the applicant accepts
+         *     before signing — `site_rules_url`, edited on the H7 screen — read here
+         *     because the wizard's checkbox links to it and the adminka's public read
+         *     is this route, the same reason the footer's contacts are.
+         */
+        SiteSettingsOut: {
+            contacts: components["schemas"]["SiteContactsOut"];
+            /** Rules Url */
+            rules_url: string;
+        };
+        /** SiteSocialOut */
+        SiteSocialOut: {
+            /** Telegram */
+            telegram?: string | null;
+            /** Youtube */
+            youtube?: string | null;
+        };
+        /**
+         * SiteTextOut
+         * @description Two languages only: the landing falls back to `uz_latn` for the other
+         *     three UI languages (#90).
+         */
+        SiteTextOut: {
+            /** Uz Latn */
+            uz_latn: string;
+            /** Ru */
+            ru: string;
         };
         /** SlaKpiOut */
         SlaKpiOut: {
@@ -12535,7 +12992,8 @@ export interface components {
         };
         /**
          * TimelineSignatureRow
-         * @description One ERI signature as the timeline shows it.
+         * @description One signature as the timeline shows it — ERI, or a citizen's simple
+         *     one (ruling #183: `kind`, and then `certificate_id` is NULL).
          *
          *     A REDUCED view of a `signatures` row, not `signatures.schemas.SignatureOut`
          *     — exactly the choice `permits.schemas.PermitSignatureRow` made and for the
@@ -12562,11 +13020,10 @@ export interface components {
             purpose: string;
             /** Signer User Id */
             signer_user_id: string | null;
-            /**
-             * Certificate Id
-             * Format: uuid
-             */
-            certificate_id: string;
+            /** Kind */
+            kind: string;
+            /** Certificate Id */
+            certificate_id: string | null;
             /**
              * Signed At
              * Format: date-time
@@ -18044,6 +18501,7 @@ export interface operations {
             query: {
                 object_type: string;
                 object_id: string;
+                kind?: string | null;
                 page?: number;
                 page_size?: number;
             };
@@ -18104,10 +18562,11 @@ export interface operations {
             };
         };
     };
-    list_benefit_claims_api_v1_applications_benefit_verifications_get: {
+    list_beekeepers_api_v1_beekeepers_get: {
         parameters: {
             query?: {
-                verification_status?: ("not_required" | "pending" | "verified" | "rejected") | null;
+                q?: string | null;
+                status?: string | null;
                 page?: number;
                 page_size?: number;
             };
@@ -18123,7 +18582,141 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Page_ApplicationOut_"];
+                    "application/json": components["schemas"]["Page_BeekeeperOut_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_beekeeper_api_v1_beekeepers_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BeekeeperCreateIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BeekeeperOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    lookup_beekeeper_api_v1_beekeepers_lookup_get: {
+        parameters: {
+            query: {
+                pinfl: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BeekeeperLookupOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    patch_beekeeper_api_v1_beekeepers__beekeeper_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                beekeeper_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BeekeeperPatchIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BeekeeperOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    remove_beekeeper_api_v1_beekeepers__beekeeper_id__remove_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                beekeeper_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BeekeeperRemoveIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BeekeeperOut"];
                 };
             };
             /** @description Validation Error */
@@ -21779,6 +22372,38 @@ export interface operations {
             };
         };
     };
+    check_application_status_api_v1_public_applications_check_get: {
+        parameters: {
+            query: {
+                number: string;
+                phone: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApplicationStatusOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     open_data_layers_api_v1_public_open_data_layers_get: {
         parameters: {
             query?: never;
@@ -21848,6 +22473,66 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["OpenDataStatsOut"];
+                };
+            };
+        };
+    };
+    site_settings_api_v1_public_site_settings_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SiteSettingsOut"];
+                };
+            };
+        };
+    };
+    public_activity_seasons_api_v1_public_activity_seasons_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicActivitySeasonOut"][];
+                };
+            };
+        };
+    };
+    rating_summary_api_v1_public_ratings_summary_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RatingSummaryOut"];
                 };
             };
         };

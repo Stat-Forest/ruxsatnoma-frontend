@@ -5,7 +5,7 @@ import { useAuth } from '../../../auth/useAuth';
 import { Button } from '../../../components/ui/button';
 import { ApiError } from '../../../api/errors';
 import { useApiErrorText } from '../../../i18n/useApiErrorText';
-import { useLanguage } from '../../../i18n/useT';
+import { useLanguage, useT } from '../../../i18n/useT';
 import { useApprove, useReject, useStartReview, type ApplicationCardOut } from '../queries';
 import { shortId, statusLabel } from '../format';
 import { formatPermitNumber } from '../../permits/format';
@@ -116,6 +116,7 @@ const DECISION_PANEL_I18N = {
 export function DecisionPanel({ card }: { card: ApplicationCardOut }) {
   const { me } = useAuth();
   const { lang } = useLanguage();
+  const t = useT();
   const tr = DECISION_PANEL_I18N[lang] ?? DECISION_PANEL_I18N.uz_latn;
   const errorText = useApiErrorText();
   const [modalMode, setModalMode] = useState<DecisionMode | null>(null);
@@ -137,6 +138,19 @@ export function DecisionPanel({ card }: { card: ApplicationCardOut }) {
   const canReview = me.is_superuser || me.permissions.includes(REVIEW_PERMISSION);
   const canDecide = me.is_superuser || me.permissions.includes(DECIDE_PERMISSION);
 
+  // Rulings #181/#182: the leshoz's own verify/reject pair on the benefit
+  // claim (`BenefitClaimPanel`) is a mandatory block before a decision —
+  // `approve` refuses 409 `ERR-APP-004` (`reason="benefit_unverified"` /
+  // `"benefit_rejected"`) exactly for these two statuses. Disabled here
+  // proactively, matching the server's own refusal, rather than only
+  // discovered from the error `SignDecisionModal` would otherwise show
+  // after a wasted signature; `errorMessages.ts`'s own reason-aware
+  // `ERR-APP-004` copy is the backstop for the race this button cannot see
+  // (another reviewer decides the claim between render and click).
+  const benefitPending = card.benefit_verification_status === 'pending';
+  const benefitRejected = card.benefit_verification_status === 'rejected';
+  const approveBlockedByBenefit = benefitPending || benefitRejected;
+
   function closeModal() {
     setModalMode(null);
     approve.reset();
@@ -153,7 +167,7 @@ export function DecisionPanel({ card }: { card: ApplicationCardOut }) {
     });
   }
 
-  function handleRejectSubmit(input: { pkcs7: string; reason_item_id: string; legal_basis: string }) {
+  function handleRejectSubmit(input: { pkcs7: string; reason_item_id: string; legal_basis: string | null }) {
     reject.mutate(input, {
       onSuccess: () => {
         setDecided('rejected');
@@ -241,9 +255,18 @@ export function DecisionPanel({ card }: { card: ApplicationCardOut }) {
               fullWidth
               leftIcon={<CheckCircle2 className="w-4 h-4" />}
               onClick={() => setModalMode('approve')}
+              disabled={approveBlockedByBenefit}
+              data-testid="approve-button"
             >
               {tr.approveBtn}
             </Button>
+            {approveBlockedByBenefit && (
+              <p className="text-[11px] text-[#B45309] bg-[#FFFBEB] p-2 rounded-lg border border-[#FDE68A]" role="status">
+                {benefitPending
+                  ? t('staff.decision.benefit.approveBlockedPending')
+                  : `${t('staff.decision.benefit.approveBlockedRejectedPrefix')} ${card.benefit_rejection_reason ?? ''}`}
+              </p>
+            )}
             <Button
               variant="danger"
               fullWidth
@@ -271,6 +294,7 @@ export function DecisionPanel({ card }: { card: ApplicationCardOut }) {
           applicationId={card.id}
           isSubmitting={modalMode === 'approve' ? approve.isPending : reject.isPending}
           error={modalMode === 'approve' ? approve.error : reject.error}
+          benefitRejectionReason={benefitRejected ? card.benefit_rejection_reason : null}
           onClose={closeModal}
           onSubmitApprove={handleApproveSubmit}
           onSubmitReject={handleRejectSubmit}

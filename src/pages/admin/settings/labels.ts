@@ -37,6 +37,12 @@ export const uz_latn = {
   invalidJson: 'JSON notoʻgʻri',
   invalidNumber: 'Raqam kiriting',
   saveFailed: 'Saqlanmadi',
+  // Stage 10, F3 (ruling #184): `site_rules_url`'s label and hint, and the
+  // client-side check for every URL-shaped setting.
+  siteRulesUrlLabel: 'Ariza berishda qabul qilinadigan qoidalar (havola)',
+  siteRulesUrlHint:
+    'Arizachining «Qoidalar bilan tanishdim» katakchasi shu havolaga olib boradi.',
+  invalidUrl: 'Toʻliq havola kiriting: http:// yoki https:// bilan boshlanishi kerak.',
 } as const;
 
 export const ru: Record<keyof typeof uz_latn, string> = {
@@ -61,6 +67,9 @@ export const ru: Record<keyof typeof uz_latn, string> = {
   invalidJson: 'Некорректный JSON',
   invalidNumber: 'Введите число',
   saveFailed: 'Не удалось сохранить',
+  siteRulesUrlLabel: 'Правила, принимаемые при подаче заявления (ссылка)',
+  siteRulesUrlHint: 'Чекбокс заявителя «Я ознакомился с правилами» ведёт на эту ссылку.',
+  invalidUrl: 'Введите полную ссылку: она должна начинаться с http:// или https://.',
 };
 
 export const uz_cyrl: Record<keyof typeof uz_latn, string> = {
@@ -85,6 +94,9 @@ export const uz_cyrl: Record<keyof typeof uz_latn, string> = {
   invalidJson: 'JSON нотўғри',
   invalidNumber: 'Рақам киритинг',
   saveFailed: 'Сақланмади',
+  siteRulesUrlLabel: 'Ариза беришда қабул қилинадиган қоидалар (ҳавола)',
+  siteRulesUrlHint: 'Аризачининг «Қоидалар билан танишдим» катакчаси шу ҳаволага олиб боради.',
+  invalidUrl: 'Тўлиқ ҳавола киритинг: http:// ёки https:// билан бошланиши керак.',
 };
 
 export const en: Record<keyof typeof uz_latn, string> = {
@@ -109,6 +121,9 @@ export const en: Record<keyof typeof uz_latn, string> = {
   invalidJson: 'Invalid JSON',
   invalidNumber: 'Enter a number',
   saveFailed: 'Failed to save',
+  siteRulesUrlLabel: 'Rules accepted when filing an application (link)',
+  siteRulesUrlHint: 'The applicant’s “I have read the rules” checkbox links to this URL.',
+  invalidUrl: 'Enter a full URL starting with http:// or https://.',
 };
 
 export const kaa: Record<keyof typeof uz_latn, string> = {
@@ -133,6 +148,9 @@ export const kaa: Record<keyof typeof uz_latn, string> = {
   invalidJson: 'JSON nadurıs',
   invalidNumber: 'San kiritiń',
   saveFailed: 'Saqlanbadı',
+  siteRulesUrlLabel: 'Ariza beriwde qabıl etilgen qaǵıydalar (siltewi)',
+  siteRulesUrlHint: 'Arzashınıń «Qaǵıydalar menen tanıstım» katakshesi usı siltewge alıp baradı.',
+  invalidUrl: 'Tolıq siltewdi kiritiń: http:// yamasa https:// menen baslanıwı kerek.',
 };
 
 import type { UiLanguage } from '../../../i18n/context';

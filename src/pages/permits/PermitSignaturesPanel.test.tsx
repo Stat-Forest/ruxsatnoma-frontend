@@ -25,6 +25,8 @@ import * as eimzo from '../../lib/eimzo';
 import { PermitSignaturesPanel } from './PermitSignaturesPanel';
 
 type PermitCardOut = components['schemas']['PermitCardOut'];
+type PermitSignatureRow = components['schemas']['PermitSignatureRow'];
+type SignatureOut = components['schemas']['SignatureOut'];
 
 function authValue(): AuthContextValue {
   return {
@@ -95,7 +97,53 @@ function permitCard(over: Partial<PermitCardOut> = {}): PermitCardOut {
   } as PermitCardOut;
 }
 
-const server = setupServer();
+// Stage 10, F3: `PermitSignaturesPanel` now also fetches `GET
+// /api/v1/signatures?object_type=permit&object_id=…` (ruling #183, to learn
+// each row's `kind`), so every test needs a handler for it — a default,
+// empty-list one here, overridden per test via `server.use(...)` where the
+// scenario actually needs signature rows.
+function emptySignaturesPage() {
+  return HttpResponse.json({ items: [], total: 0, page: 1, page_size: 20 });
+}
+
+/** The reduced row `permit.signatures` carries (`PermitSignatureRow` —
+ *  `kind` and a nullable `certificate_id` since the stage 10 integration,
+ *  no `verification`): drives `validRow`/`invalidAttempts` matching. */
+function permitSignatureRow(over: Partial<PermitSignatureRow> = {}): PermitSignatureRow {
+  return {
+    id: 'sig00000-0000-4000-8000-000000000001',
+    purpose: 'permit_recipient',
+    signer_user_id: 'u0000000-0000-4000-8000-000000000001',
+    kind: 'eri',
+    certificate_id: 'cert0000-0000-4000-8000-000000000001',
+    signed_at: '2026-09-05T08:00:00Z',
+    verification_status: 'valid',
+    ...over,
+  };
+}
+
+/** The full row `GET /api/v1/signatures` answers (`SignatureOut` — `kind`,
+ *  nullable `certificate_id`, the raw `verification` payload) — what this
+ *  panel now fetches to tell a `simple` signature apart from an `eri` one. */
+function signatureOut(over: Partial<SignatureOut> = {}): SignatureOut {
+  return {
+    id: 'sig00000-0000-4000-8000-000000000001',
+    object_type: 'permit',
+    object_id: 'p1000000-0000-4000-8000-000000000001',
+    purpose: 'permit_recipient',
+    kind: 'eri',
+    signer_user_id: 'u0000000-0000-4000-8000-000000000001',
+    certificate_id: 'cert0000-0000-4000-8000-000000000001',
+    doc_hash: 'deadbeef',
+    signature_value: 'MOCK-PKCS7',
+    signed_at: '2026-09-05T08:00:00Z',
+    verification: {},
+    verification_status: 'valid',
+    ...over,
+  };
+}
+
+const server = setupServer(http.get('*/api/v1/signatures', emptySignaturesPage));
 beforeAll(() => server.listen({ onUnhandledRequest: 'error' }));
 afterEach(() => {
   server.resetHandlers();
@@ -260,4 +308,96 @@ test('real mode: no PINFL/STIR box, and a sign fetches the PDF then calls signDo
   await vi.waitFor(() => expect(onSigned).toHaveBeenCalledTimes(1));
   expect(signDocumentSpy).toHaveBeenCalledTimes(1);
   expect(sentPkcs7).toBe('REAL-PKCS7');
+});
+
+// Stage 10, F3 (ruling #183): the holder's simple signature.
+test('a simple signature renders masked as "Oddiy imzo", with the time and never a certificate field', async () => {
+  const permit = permitCard({
+    signatures: [permitSignatureRow({ id: 'sig00000-0000-4000-8000-000000000009', purpose: 'permit_recipient' })],
+    missing_signatures: ['permit_head', 'permit_chief_forester', 'permit_accountant'],
+  });
+  server.use(
+    http.get('*/api/v1/signatures', () =>
+      HttpResponse.json({
+        items: [
+          signatureOut({
+            id: 'sig00000-0000-4000-8000-000000000009',
+            purpose: 'permit_recipient',
+            kind: 'simple',
+            certificate_id: null,
+            verification: { kind: 'simple', pinfl: '30212345678911', auth_method: 'oneid', ip: '10.0.0.1' },
+          }),
+        ],
+        total: 1,
+        page: 1,
+        page_size: 20,
+      }),
+    ),
+  );
+
+  renderPanel(permit, () => {});
+
+  expect(await screen.findByText('Oddiy imzo')).toBeInTheDocument();
+  expect(screen.getByText('302•••••••••11')).toBeInTheDocument();
+  expect(screen.queryByText('30212345678911')).not.toBeInTheDocument();
+  await screen.findByText('Imzolangan:');
+});
+
+test('an eri signature is unchanged: no "Oddiy imzo" badge, no PINFL row', async () => {
+  const permit = permitCard({
+    signatures: [permitSignatureRow({ id: 'sig00000-0000-4000-8000-000000000010', purpose: 'permit_head' })],
+    missing_signatures: ['permit_chief_forester', 'permit_accountant', 'permit_recipient'],
+  });
+  server.use(
+    http.get('*/api/v1/signatures', () =>
+      HttpResponse.json({
+        items: [signatureOut({ id: 'sig00000-0000-4000-8000-000000000010', purpose: 'permit_head', kind: 'eri' })],
+        total: 1,
+        page: 1,
+        page_size: 20,
+      }),
+    ),
+  );
+
+  renderPanel(permit, () => {});
+
+  await screen.findByText('Imzolangan:');
+  expect(screen.queryByText('Oddiy imzo')).not.toBeInTheDocument();
+  expect(screen.queryByTestId('signature-simple-badge')).not.toBeInTheDocument();
+});
+
+// `GET /signatures` gates on the caller already holding a valid row of
+// their own (or oversight) — a viewer this refuses for still sees the row
+// itself (`permit.signatures`), and since the stage 10 integration the card
+// row carries `kind`: the badge shows for EVERY viewer of the card, only the
+// masked PINFL (from `verification`, card-less) needs the full list.
+test('a simple card row this viewer cannot look up in the full list still says "Oddiy imzo", without a PINFL', async () => {
+  const permit = permitCard({
+    signatures: [
+      permitSignatureRow({
+        id: 'sig00000-0000-4000-8000-000000000011',
+        purpose: 'permit_recipient',
+        kind: 'simple',
+        certificate_id: null,
+      }),
+    ],
+    missing_signatures: ['permit_head', 'permit_chief_forester', 'permit_accountant'],
+  });
+  // No override: the suite-wide default handler answers an empty list.
+  renderPanel(permit, () => {});
+
+  await screen.findByText('Imzolangan:');
+  expect(screen.getByTestId('signature-simple-badge')).toBeInTheDocument();
+  expect(screen.queryByText('PINFL')).not.toBeInTheDocument();
+});
+
+test('an eri card row this viewer cannot look up in the full list renders as an ordinary signed row', async () => {
+  const permit = permitCard({
+    signatures: [permitSignatureRow({ id: 'sig00000-0000-4000-8000-000000000012', purpose: 'permit_head' })],
+    missing_signatures: ['permit_chief_forester', 'permit_accountant', 'permit_recipient'],
+  });
+  renderPanel(permit, () => {});
+
+  await screen.findByText('Imzolangan:');
+  expect(screen.queryByTestId('signature-simple-badge')).not.toBeInTheDocument();
 });

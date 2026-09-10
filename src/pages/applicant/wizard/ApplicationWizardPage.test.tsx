@@ -99,6 +99,49 @@ function authValueWithAddress(address: string | null): AuthContextValue {
   return { ...base, me: { ...base.me!, applicant: { ...base.me!.applicant!, address } } };
 }
 
+const LEGAL_ENTITY_ID = 'ap100000-0000-4000-8000-0000000000ff';
+
+// Ruling #183: `on_behalf='legal'` is the ONLY path that still goes through
+// ERI (mock or real) — every test that exercises that machinery now needs a
+// representation to select, not the bare `AUTH_VALUE` fixture (self).
+function authValueLegal(): AuthContextValue {
+  const base = authValue('uz');
+  const entity = {
+    ...base.me!.applicant!,
+    id: LEGAL_ENTITY_ID,
+    kind: 'legal',
+    pinfl: null,
+    stir: '302345678',
+    name: '"Chorvador" MChJ',
+    address: 'Namangan sh., Navoiy 1',
+  };
+  return {
+    ...base,
+    me: {
+      ...base.me!,
+      representations: [
+        {
+          id: 'rep00000-0000-4000-8000-000000000001',
+          applicant: entity,
+          basis: 'poa',
+          valid_from: '2026-01-01',
+          valid_until: null,
+          status: 'active',
+        },
+      ],
+    },
+  };
+}
+
+// Step 1's on-behalf picker is the only `combobox` there (`FormField`
+// renders its label as plain text, not an `htmlFor` binding) — must run
+// BEFORE `chooseActivity`/`driveToStep5`, the same order the existing
+// address-less-entity test already established.
+async function selectLegalEntity() {
+  await screen.findByText('Pichanchilik');
+  await userEvent.selectOptions(screen.getByRole('combobox'), LEGAL_ENTITY_ID);
+}
+
 const server = setupServer(
   http.get('*/api/v1/refs/activity-types', () =>
     HttpResponse.json([{ id: ACTIVITY_ID, code: 'haymaking', name: { uz_latn: 'Pichanchilik' }, quantity_unit: 'ga' }]),
@@ -142,6 +185,12 @@ const server = setupServer(
     () => new HttpResponse(new ArrayBuffer(8), { headers: { 'Content-Type': 'application/octet-stream' } }),
   ),
   http.post('*/api/v1/applications/:id/submit', () => HttpResponse.json({ id: APPLICATION_ID })),
+  // Ruling #184: the rules checkbox links here — fetched unconditionally on
+  // mount, so every test in this file needs it handled, not only the ones
+  // that reach step 5.
+  http.get('*/api/v1/public/site-settings', () =>
+    HttpResponse.json({ contacts: { phone: '+998 71 200 00 00' }, rules_url: 'https://lex.uz/docs/2770948' }),
+  ),
 );
 beforeAll(() => server.listen({ onUnhandledRequest: 'error' }));
 afterEach(() => server.resetHandlers());
@@ -154,7 +203,11 @@ afterAll(() => server.close());
 // the wizard actually navigates to — "back to list" and a successful
 // submit's redirect — so a proceeded navigation has somewhere to land
 // instead of rendering react-router's own "no route matched" error.
-function renderWizard(auth: AuthContextValue = AUTH_VALUE, lang: UiLanguage = 'uz_latn') {
+function renderWizard(
+  auth: AuthContextValue = AUTH_VALUE,
+  lang: UiLanguage = 'uz_latn',
+  initialPath = '/my/applications/new',
+) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
   const dict = DICTIONARIES[lang] ?? DICTIONARIES.uz_latn;
   const i18n = {
@@ -169,7 +222,7 @@ function renderWizard(auth: AuthContextValue = AUTH_VALUE, lang: UiLanguage = 'u
       { path: '/my/applications', element: <div>applications-list</div> },
       { path: '/my/applications/:id', element: <div>application-card</div> },
     ],
-    { initialEntries: ['/my/applications/new'] },
+    { initialEntries: [initialPath] },
   );
   const utils = render(
     <QueryClientProvider client={client}>
@@ -209,16 +262,25 @@ async function driveToStep5(lang: UiLanguage = 'uz_latn') {
   await userEvent.click(await screen.findByRole('button', { name: new RegExp(dict['wizard.nav.next']) }));
 }
 
+// Ruling #184: the checkbox that gates the sign button on every path — its
+// own gating is asserted directly in a dedicated test below; every other
+// test that needs to actually PRESS the button ticks it first through here.
+async function acceptRules() {
+  await userEvent.click(await screen.findByRole('checkbox'));
+}
+
 // Drives the wizard to step 5 and triggers a submit that the server refuses
 // with a real domain error — the exact call site F4 named
 // (`docs/plans/07.3-findings.md`): `ApplicationWizardPage.tsx`'s
 // `handleSignAndSubmit` used to render the server's own Russian string
 // verbatim as `${code}: ${message}`, regardless of the applicant's own
-// interface language.
+// interface language. Self-filing only (the default `AUTH_VALUE` fixture
+// carries no representations) — ruling #183's own button label.
 async function driveToSubmitFailure(lang: UiLanguage = 'uz_latn') {
   await driveToStep5(lang);
   const dict = DICTIONARIES[lang] ?? DICTIONARIES.uz_latn;
-  const signButton = await screen.findByRole('button', { name: new RegExp(dict['wizard.step5.signAndSubmit']) });
+  await acceptRules();
+  const signButton = await screen.findByRole('button', { name: new RegExp(dict['wizard.step5.signApplication']) });
   await waitFor(() => expect(signButton).toBeEnabled());
   await userEvent.click(signButton);
 }
@@ -253,10 +315,19 @@ test.each([
 // fallback). It was restored by source reading alone — nothing asserted it.
 // This test drives the wizard end to end only far enough to prove the wiring,
 // not to exercise every step's own behaviour.
+//
+// Ruling #183: the mock/real ERI machinery below is exercised ONLY for a
+// `legal` filing now — a `self` filing never builds an envelope at all
+// (covered separately below). `applicant.name` signed here is still the
+// SIGNED-IN citizen's own name (`me.applicant`, the representative), never
+// the entity's — unaffected by which one is being filed for.
 test('signing and submitting passes the signed-in applicant’s own name into the mock signature', async () => {
-  renderWizard();
+  const auth = authValueLegal();
+  renderWizard(auth);
+  await selectLegalEntity();
 
   await driveToStep5();
+  await acceptRules();
 
   // Step 5 — precheck resolves, then sign and submit.
   const signButton = await screen.findByRole('button', { name: /ERI bilan imzolash va yuborish/ });
@@ -275,21 +346,27 @@ test('signing and submitting passes the signed-in applicant’s own name into th
 test('real mode: sign calls signDocument over the exact package bytes (DETACHED)', async () => {
   vi.spyOn(eimzo, 'isEimzoMock').mockReturnValue(false);
   const signDocumentSpy = vi.spyOn(eimzo, 'signDocument').mockResolvedValue('REAL-PKCS7');
-  let sentPkcs7 = '';
+  let sentBody: { pkcs7?: string; rules_accepted?: boolean } = {};
   server.use(
     http.post('*/api/v1/applications/:id/submit', async ({ request }) => {
-      sentPkcs7 = ((await request.json()) as { pkcs7: string }).pkcs7;
+      sentBody = (await request.json()) as typeof sentBody;
       return HttpResponse.json({ id: APPLICATION_ID });
     }),
   );
-  renderWizard();
+  const auth = authValueLegal();
+  renderWizard(auth);
+  await selectLegalEntity();
 
   await driveToStep5();
+  await acceptRules();
   const signButton = await screen.findByRole('button', { name: /ERI bilan imzolash va yuborish/ });
   await waitFor(() => expect(signButton).toBeEnabled());
   await userEvent.click(signButton);
 
-  await waitFor(() => expect(sentPkcs7).toBe('REAL-PKCS7'));
+  // A legal filing still carries the envelope AND the mandatory acceptance
+  // (ruling #184) in the same body.
+  await waitFor(() => expect(sentBody.pkcs7).toBe('REAL-PKCS7'));
+  expect(sentBody.rules_accepted).toBe(true);
   expect(signDocumentSpy).toHaveBeenCalledTimes(1);
 });
 
@@ -303,9 +380,12 @@ test('a real-mode signing failure shows a distinct message and never reaches sub
       return HttpResponse.json({ id: APPLICATION_ID });
     }),
   );
-  renderWizard();
+  const auth = authValueLegal();
+  renderWizard(auth);
+  await selectLegalEntity();
 
   await driveToStep5();
+  await acceptRules();
   const signButton = await screen.findByRole('button', { name: /ERI bilan imzolash va yuborish/ });
   await waitFor(() => expect(signButton).toBeEnabled());
   await userEvent.click(signButton);
@@ -316,6 +396,32 @@ test('a real-mode signing failure shows a distinct message and never reaches sub
   expect(called).toBe(false);
 });
 
+// Ruling #183: the OTHER half of the branch — a `self` filing posts no
+// envelope at all, and never touches the mock/real ERI machinery above.
+test('a self filing (the default fixture) signs with a plain button: no pkcs7, rules_accepted true, no envelope built', async () => {
+  let sentBody: { pkcs7?: string | null; rules_accepted?: boolean } = {};
+  server.use(
+    http.post('*/api/v1/applications/:id/submit', async ({ request }) => {
+      sentBody = (await request.json()) as typeof sentBody;
+      return HttpResponse.json({ id: APPLICATION_ID });
+    }),
+  );
+  // Counted rather than asserted absent: the mock is module-level and
+  // carries calls from earlier (legal-filing) tests in this file.
+  const signaturesBefore = vi.mocked(buildMockSignature).mock.calls.length;
+  renderWizard();
+
+  await driveToStep5();
+  await acceptRules();
+  const signButton = await screen.findByRole('button', { name: new RegExp(UZ['wizard.step5.signApplication']) });
+  await waitFor(() => expect(signButton).toBeEnabled());
+  await userEvent.click(signButton);
+
+  await waitFor(() => expect(sentBody.rules_accepted).toBe(true));
+  expect(sentBody.pkcs7).toBeUndefined();
+  expect(vi.mocked(buildMockSignature).mock.calls.length).toBe(signaturesBefore);
+});
+
 // Ruling #113 (`docs/decisions.md`): the address requisite is gated at
 // SUBMIT. `CompleteRegistrationGate.tsx` is the only place that ever WROTE
 // an address, and it was optional there, so an account that registered
@@ -323,6 +429,7 @@ test('a real-mode signing failure shows a distinct message and never reaches sub
 // that account gets asked.
 test('an account with no address is asked for it in step 5, and can submit once it is filled in', async () => {
   let seenAddressBody: unknown = null;
+  let sentBody: { pkcs7?: string; rules_accepted?: boolean } = {};
   const auth = authValueWithAddress(null);
   server.use(
     http.patch('*/api/v1/auth/applicants/:applicantId/address', async ({ request }) => {
@@ -332,10 +439,21 @@ test('an account with no address is asked for it in step 5, and can submit once 
         address: "Farg'ona sh., Mustaqillik ko'chasi 5",
       });
     }),
+    http.post('*/api/v1/applications/:id/submit', async ({ request }) => {
+      sentBody = (await request.json()) as typeof sentBody;
+      return HttpResponse.json({ id: APPLICATION_ID });
+    }),
   );
+  // Counted rather than asserted absent: the mock is module-level and
+  // carries calls from earlier (legal-filing) tests in this file.
+  const signaturesBefore = vi.mocked(buildMockSignature).mock.calls.length;
   renderWizard(auth);
 
   await driveToStep5();
+  // Ruling #184: the rules checkbox gates this same button too — ticked
+  // once, up front, so the address-related disabling below is isolated to
+  // the address itself.
+  await acceptRules();
 
   // The button says what the first press DOES: an address-less account has no
   // price yet (`missing_for_pricing` counts the blank address), so pressing it
@@ -353,19 +471,19 @@ test('an account with no address is asked for it in step 5, and can submit once 
   await userEvent.click(saveButton);
 
   await waitFor(() => expect(seenAddressBody).toEqual({ address: "Farg'ona sh., Mustaqillik ko'chasi 5" }));
-  // Nothing is signed by that first press. Counted rather than asserted
-  // absent: the mock is module-level and carries calls from earlier tests in
-  // this file.
-  const signaturesBefore = vi.mocked(buildMockSignature).mock.calls.length;
-
-  // Now it signs.
-  const signButton = await screen.findByRole('button', { name: /ERI bilan imzolash va yuborish/ });
+  // Nothing is signed by that first press, and this is a `self` filing (the
+  // default fixture carries no representations) — no envelope is EVER built.
   expect(vi.mocked(buildMockSignature).mock.calls.length).toBe(signaturesBefore);
+
+  // Now it signs — ruling #183's plain button, not the ERI one.
+  const signButton = await screen.findByRole('button', { name: new RegExp(UZ['wizard.step5.signApplication']) });
   await userEvent.click(signButton);
   // `saveApplicantAddress` hands back an `ApplicantOut`, not a whole
   // `MeOut` — the wizard adopts it through `refreshMe()`, not `applyMe()`.
   await waitFor(() => expect(auth.refreshMe).toHaveBeenCalled());
-  await waitFor(() => expect(buildMockSignature).toHaveBeenCalled());
+  await waitFor(() => expect(sentBody.rules_accepted).toBe(true));
+  expect(sentBody.pkcs7).toBeUndefined();
+  expect(vi.mocked(buildMockSignature).mock.calls.length).toBe(signaturesBefore);
 });
 
 // Ruling #113, the representative's case: the address that gets printed is
@@ -419,6 +537,7 @@ test('a representative filing for an address-less legal entity is asked for the 
   await screen.findByText('Pichanchilik');
   await userEvent.selectOptions(screen.getByRole('combobox'), entity.id);
   await driveToStep5();
+  await acceptRules();
 
   const saveButton = await screen.findByRole('button', {
     name: /Manzilni saqlash va narxni hisoblash/,
@@ -438,7 +557,7 @@ test('an account that already has an address is never asked for one', async () =
 
   await driveToStep5();
 
-  await screen.findByRole('button', { name: /ERI bilan imzolash va yuborish/ });
+  await screen.findByRole('button', { name: /Arizani imzolash/ });
   expect(screen.queryByLabelText(/Manzil/)).not.toBeInTheDocument();
 });
 
@@ -602,8 +721,9 @@ test('no leave-confirmation is asked before any draft exists (step 1, nothing ch
 test('a successful submit navigates straight through, without asking to leave', async () => {
   const { router } = renderWizard();
   await driveToStep5();
+  await acceptRules();
 
-  const signButton = await screen.findByRole('button', { name: /ERI bilan imzolash va yuborish/ });
+  const signButton = await screen.findByRole('button', { name: new RegExp(UZ['wizard.step5.signApplication']) });
   await waitFor(() => expect(signButton).toBeEnabled());
   await userEvent.click(signButton);
 
@@ -700,7 +820,11 @@ test('the minimum term is stated before any date is picked, and enforced once a 
   await waitFor(() => expect(screen.getByRole('button', { name: new RegExp(UZ['wizard.nav.next']) })).toBeEnabled());
 });
 
-test('the benefit certificate number is required before Next when the category needs one, and reaches the PATCH', async () => {
+// Ruling #181: the certificate number is mandatory for EVERY benefit
+// category now — there is no `props.requires_certificate` switch any more,
+// so this fixture deliberately carries `props: {}` to prove the field is
+// still required regardless.
+test('the benefit certificate number is required before Next for ANY chosen category (no per-item switch), and reaches the PATCH', async () => {
   server.use(
     http.get('*/api/v1/refs/classifiers/:code/items', ({ params }) => {
       if (params.code === 'benefit_categories') {
@@ -709,7 +833,7 @@ test('the benefit certificate number is required before Next when the category n
             id: 'benefit-1',
             code: 'veteran',
             name: { uz_latn: 'Urush faxriysi' },
-            props: { requires_certificate: true },
+            props: {},
             valid_from: '2020-01-01',
             valid_to: null,
             status: 'active',
@@ -755,7 +879,11 @@ test('the benefit certificate number is required before Next when the category n
   await waitFor(() => expect(lastPatchBody).toMatchObject({ benefit_certificate_no: 'AB-12345' }));
 });
 
-test('the certificate field is hidden, and nothing is sent, for a category that does not require one', async () => {
+// Ruling #181: the certificate field appears for ANY chosen category — a
+// second item with equally bare `props: {}` is enough to show it is not
+// reading the flag at all any more (the old test this replaces proved the
+// opposite premise, which stage 10 makes false).
+test('the certificate field is shown for a SECOND category with no special props either', async () => {
   server.use(
     http.get('*/api/v1/refs/classifiers/:code/items', ({ params }) => {
       if (params.code === 'benefit_categories') {
@@ -764,6 +892,42 @@ test('the certificate field is hidden, and nothing is sent, for a category that 
             id: 'benefit-2',
             code: 'other',
             name: { uz_latn: 'Boshqa imtiyoz' },
+            props: {},
+            valid_from: '2020-01-01',
+            valid_to: null,
+            status: 'active',
+          },
+        ]);
+      }
+      return HttpResponse.json([]);
+    }),
+  );
+  renderWizard();
+
+  await chooseActivity();
+  await userEvent.click(await screen.findByText('pick-contour'));
+  fireEvent.change(screen.getByLabelText(new RegExp(UZ['wizard.step2.periodFrom'])), { target: { value: '2026-01-01' } });
+  fireEvent.change(screen.getByLabelText(new RegExp(UZ['wizard.step2.periodTo'])), { target: { value: '2026-06-01' } });
+  await userEvent.click(screen.getByRole('button', { name: new RegExp(UZ['wizard.nav.next']) }));
+
+  await userEvent.type(await screen.findByLabelText(new RegExp(UZ['wizard.step3.quantity'])), '5');
+  await userEvent.selectOptions(await screen.findByRole('combobox'), 'benefit-2');
+
+  expect(await screen.findByLabelText(new RegExp(UZ['wizard.step3.certificateNumber']))).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: new RegExp(UZ['wizard.nav.next']) })).toBeDisabled();
+});
+
+// Choosing "no benefit" (clearing the selection) is the one way to make the
+// certificate optional again — not a per-item classifier flag.
+test('clearing the benefit selection hides the certificate field again and sends null', async () => {
+  server.use(
+    http.get('*/api/v1/refs/classifiers/:code/items', ({ params }) => {
+      if (params.code === 'benefit_categories') {
+        return HttpResponse.json([
+          {
+            id: 'benefit-1',
+            code: 'veteran',
+            name: { uz_latn: 'Urush faxriysi' },
             props: {},
             valid_from: '2020-01-01',
             valid_to: null,
@@ -790,8 +954,10 @@ test('the certificate field is hidden, and nothing is sent, for a category that 
   await userEvent.click(screen.getByRole('button', { name: new RegExp(UZ['wizard.nav.next']) }));
 
   await userEvent.type(await screen.findByLabelText(new RegExp(UZ['wizard.step3.quantity'])), '5');
-  await userEvent.selectOptions(await screen.findByRole('combobox'), 'benefit-2');
+  await userEvent.selectOptions(await screen.findByRole('combobox'), 'benefit-1');
+  expect(await screen.findByLabelText(new RegExp(UZ['wizard.step3.certificateNumber']))).toBeInTheDocument();
 
+  await userEvent.selectOptions(await screen.findByRole('combobox'), '');
   expect(screen.queryByLabelText(new RegExp(UZ['wizard.step3.certificateNumber']))).not.toBeInTheDocument();
   await userEvent.click(screen.getByRole('button', { name: new RegExp(UZ['wizard.nav.next']) }));
 
@@ -833,4 +999,272 @@ test('clicking a different activity re-selects instead of advancing', async () =
 
   await userEvent.click(screen.getByText('Asalarichilik'));
   expect(await screen.findByText('pick-contour')).toBeInTheDocument();
+});
+
+// ─── Stage 10, F1 (rulings #181, #183, #184) ──────────────────────────────
+// The rules checkbox, the self/legal branch at signing, the new submit
+// refusals, and the benefit block's certificate/document requirement for
+// EVERY category.
+
+test('the rules checkbox gates the sign button and links to rules_url', async () => {
+  renderWizard();
+  await driveToStep5();
+
+  const signButton = await screen.findByRole('button', { name: new RegExp(UZ['wizard.step5.signApplication']) });
+  expect(signButton).toBeDisabled();
+
+  const link = await screen.findByRole('link', { name: UZ['wizard.step5.rulesLinkText'] });
+  expect(link).toHaveAttribute('href', 'https://lex.uz/docs/2770948');
+
+  await acceptRules();
+  await waitFor(() => expect(signButton).toBeEnabled());
+});
+
+test('a simple-signature refusal (ERR-SIGN-001, simple_signature_not_allowed) is shown at the sign button', async () => {
+  server.use(
+    http.post('*/api/v1/applications/:id/submit', () =>
+      HttpResponse.json(
+        { error: { code: 'ERR-SIGN-001', message: 'x', details: { reason: 'simple_signature_not_allowed' } } },
+        { status: 422 },
+      ),
+    ),
+  );
+  renderWizard();
+
+  await driveToSubmitFailure();
+
+  expect(
+    await screen.findByText(
+      "Kalitsiz oddiy imzo faqat o'zi uchun ariza topshirayotgan fuqaroga ruxsat etilgan — bu ariza uchun elektron raqamli imzo (ERI) kerak.",
+    ),
+  ).toBeInTheDocument();
+});
+
+// Ruling #181: a benefit-certificate refusal the client could not have
+// caught itself (the number LOOKS filled in, but the register disagrees) is
+// shown AT THE FIELD, not only as a step-5 banner — the wizard sends the
+// applicant back to step 3 for it.
+test('a benefit-certificate refusal (ERR-APP-003, benefit_certificate_unknown) sends the applicant back to step 3 and shows it at the field', async () => {
+  server.use(
+    http.get('*/api/v1/refs/classifiers/:code/items', ({ params }) => {
+      if (params.code === 'benefit_categories') {
+        return HttpResponse.json([
+          {
+            id: 'benefit-1',
+            code: 'veteran',
+            name: { uz_latn: 'Urush faxriysi' },
+            props: {},
+            valid_from: '2020-01-01',
+            valid_to: null,
+            status: 'active',
+          },
+        ]);
+      }
+      if (params.code === 'doc_types') {
+        return HttpResponse.json([
+          {
+            id: 'doctype-proof',
+            code: 'benefit_proof',
+            name: { uz_latn: 'Imtiyozni tasdiqlovchi hujjat' },
+            props: {},
+            valid_from: '2020-01-01',
+            valid_to: null,
+            status: 'active',
+          },
+        ]);
+      }
+      return HttpResponse.json([]);
+    }),
+    // The proof is already on the card: step 4's gate is fail-closed (review
+    // finding 3), so reaching the sign button needs a real `benefit_proof`
+    // row, not an unloaded doc-type list.
+    http.get('*/api/v1/applications/:id', () =>
+      HttpResponse.json({
+        id: APPLICATION_ID,
+        documents: [{ id: 'doc-1', doc_type_item_id: 'doctype-proof', file_id: 'file-1' }],
+        items: [],
+      }),
+    ),
+    http.post('*/api/v1/applications/:id/submit', () =>
+      HttpResponse.json(
+        { error: { code: 'ERR-APP-003', message: 'x', details: { reason: 'benefit_certificate_unknown' } } },
+        { status: 422 },
+      ),
+    ),
+  );
+  renderWizard();
+
+  await chooseActivity();
+  await userEvent.click(await screen.findByText('pick-contour'));
+  fireEvent.change(screen.getByLabelText(new RegExp(UZ['wizard.step2.periodFrom'])), { target: { value: '2026-01-01' } });
+  fireEvent.change(screen.getByLabelText(new RegExp(UZ['wizard.step2.periodTo'])), { target: { value: '2026-06-01' } });
+  await userEvent.click(screen.getByRole('button', { name: new RegExp(UZ['wizard.nav.next']) }));
+
+  await userEvent.type(await screen.findByLabelText(new RegExp(UZ['wizard.step3.quantity'])), '5');
+  await userEvent.selectOptions(await screen.findByRole('combobox'), 'benefit-1');
+  await userEvent.type(await screen.findByLabelText(new RegExp(UZ['wizard.step3.certificateNumber'])), 'AB-99999');
+  await userEvent.click(screen.getByRole('button', { name: new RegExp(UZ['wizard.nav.next']) })); // step3 -> step4
+  await userEvent.click(await screen.findByRole('button', { name: new RegExp(UZ['wizard.nav.next']) })); // step4 -> step5
+
+  await acceptRules();
+  const signButton = await screen.findByRole('button', { name: new RegExp(UZ['wizard.step5.signApplication']) });
+  await waitFor(() => expect(signButton).toBeEnabled());
+  await userEvent.click(signButton);
+
+  expect(await screen.findByText(UZ['wizard.step3.heading'])).toBeInTheDocument();
+  expect(await screen.findByText("Bunday guvohnoma/ma'lumotnoma raqami reyestrda topilmadi.")).toBeInTheDocument();
+});
+
+// Ruling #181: the supporting document is required exactly like the
+// certificate number — checked once step 4 is reached, and cleared the
+// moment a document of the right type lands.
+test('the benefit_proof document is required before step 4\'s Next once a category is chosen', async () => {
+  let documents: { id: string; doc_type_item_id: string; file_id: string }[] = [];
+  server.use(
+    http.get('*/api/v1/refs/classifiers/:code/items', ({ params }) => {
+      if (params.code === 'benefit_categories') {
+        return HttpResponse.json([
+          {
+            id: 'benefit-1',
+            code: 'veteran',
+            name: { uz_latn: 'Urush faxriysi' },
+            props: {},
+            valid_from: '2020-01-01',
+            valid_to: null,
+            status: 'active',
+          },
+        ]);
+      }
+      if (params.code === 'doc_types') {
+        return HttpResponse.json([
+          {
+            id: 'doctype-proof',
+            code: 'benefit_proof',
+            name: { uz_latn: 'Imtiyozni tasdiqlovchi hujjat' },
+            props: {},
+            valid_from: '2020-01-01',
+            valid_to: null,
+            status: 'active',
+          },
+        ]);
+      }
+      return HttpResponse.json([]);
+    }),
+    http.get('*/api/v1/applications/:id', () => HttpResponse.json({ id: APPLICATION_ID, documents, items: [] })),
+    http.post('*/api/v1/applications/:id/documents', async ({ request }) => {
+      const body = (await request.json()) as { doc_type_item_id: string; file_id: string };
+      const doc = { id: 'doc-1', doc_type_item_id: body.doc_type_item_id, file_id: body.file_id };
+      documents = [...documents, doc];
+      return HttpResponse.json(doc);
+    }),
+    http.post('*/api/v1/files', () => HttpResponse.json({ id: 'file-1' })),
+  );
+  renderWizard();
+
+  await chooseActivity();
+  await userEvent.click(await screen.findByText('pick-contour'));
+  fireEvent.change(screen.getByLabelText(new RegExp(UZ['wizard.step2.periodFrom'])), { target: { value: '2026-01-01' } });
+  fireEvent.change(screen.getByLabelText(new RegExp(UZ['wizard.step2.periodTo'])), { target: { value: '2026-06-01' } });
+  await userEvent.click(screen.getByRole('button', { name: new RegExp(UZ['wizard.nav.next']) }));
+
+  await userEvent.type(await screen.findByLabelText(new RegExp(UZ['wizard.step3.quantity'])), '5');
+  await userEvent.selectOptions(await screen.findByRole('combobox'), 'benefit-1');
+  await userEvent.type(await screen.findByLabelText(new RegExp(UZ['wizard.step3.certificateNumber'])), 'AB-1');
+  await userEvent.click(screen.getByRole('button', { name: new RegExp(UZ['wizard.nav.next']) })); // -> step4
+
+  const nextButton = await screen.findByRole('button', { name: new RegExp(UZ['wizard.nav.next']) });
+  expect(await screen.findByText(UZ['wizard.step4.benefitProofRequired'])).toBeInTheDocument();
+  expect(nextButton).toBeDisabled();
+
+  await userEvent.selectOptions(screen.getByRole('combobox'), 'doctype-proof');
+  const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
+  await userEvent.upload(fileInput, new File(['x'], 'proof.pdf', { type: 'application/pdf' }));
+
+  await waitFor(() => expect(screen.getByText(UZ['wizard.step4.benefitProofOk'])).toBeInTheDocument());
+  await waitFor(() => expect(nextButton).toBeEnabled());
+});
+
+// Stage 10 review, finding 3: the gate used to OPEN when the doc-type list
+// did not carry `benefit_proof` (not loaded, or not configured) — step 4
+// printed the green "attached" sentence over an empty list and the citizen
+// met the refusal only at the sign button. Fail-closed now, like the backend.
+test('an unknown benefit_proof doc type keeps step 4 shut instead of waving the claim through', async () => {
+  server.use(
+    http.get('*/api/v1/refs/classifiers/:code/items', ({ params }) => {
+      if (params.code === 'benefit_categories') {
+        return HttpResponse.json([
+          { id: 'benefit-1', code: 'veteran', name: { uz_latn: 'Urush faxriysi' }, props: {}, valid_from: '2020-01-01', valid_to: null, status: 'active' },
+        ]);
+      }
+      // `doc_types` answers without `benefit_proof`.
+      return HttpResponse.json([]);
+    }),
+    http.get('*/api/v1/applications/:id', () =>
+      HttpResponse.json({ id: APPLICATION_ID, documents: [{ id: 'doc-1', doc_type_item_id: 'some-other-type', file_id: 'file-1' }], items: [] }),
+    ),
+  );
+  renderWizard();
+
+  await chooseActivity();
+  await userEvent.click(await screen.findByText('pick-contour'));
+  fireEvent.change(screen.getByLabelText(new RegExp(UZ['wizard.step2.periodFrom'])), { target: { value: '2026-01-01' } });
+  fireEvent.change(screen.getByLabelText(new RegExp(UZ['wizard.step2.periodTo'])), { target: { value: '2026-06-01' } });
+  await userEvent.click(screen.getByRole('button', { name: new RegExp(UZ['wizard.nav.next']) }));
+
+  await userEvent.type(await screen.findByLabelText(new RegExp(UZ['wizard.step3.quantity'])), '5');
+  await userEvent.selectOptions(await screen.findByRole('combobox'), 'benefit-1');
+  await userEvent.type(await screen.findByLabelText(new RegExp(UZ['wizard.step3.certificateNumber'])), 'AB-1');
+  await userEvent.click(screen.getByRole('button', { name: new RegExp(UZ['wizard.nav.next']) })); // -> step4
+
+  const nextButton = await screen.findByRole('button', { name: new RegExp(UZ['wizard.nav.next']) });
+  expect(await screen.findByText(UZ['wizard.step4.benefitProofRequired'])).toBeInTheDocument();
+  expect(screen.queryByText(UZ['wizard.step4.benefitProofOk'])).not.toBeInTheDocument();
+  expect(nextButton).toBeDisabled();
+});
+
+// A resumed draft must restore WHO it is filed for — the last step's
+// self/legal branch reads local `onBehalf` state, which defaults to 'self'
+// unless the hydration explicitly restores it from the card.
+test('resuming a legal draft restores the representation, not the self default', async () => {
+  server.use(
+    http.get('*/api/v1/applications/:id', () =>
+      HttpResponse.json({
+        id: APPLICATION_ID,
+        on_behalf: 'legal',
+        applicant_id: LEGAL_ENTITY_ID,
+        activity_type_id: ACTIVITY_ID,
+        contour_id: 'contour-1',
+        requested_area_ha: '12',
+        period_from: '2026-01-01',
+        period_to: '2026-06-01',
+        quantity: '5',
+        documents: [],
+        items: [],
+      }),
+    ),
+  );
+  renderWizard(authValueLegal(), 'uz_latn', `/my/applications/new?draft=${APPLICATION_ID}`);
+
+  // Resuming never auto-advances the step — still step 1, but the on-behalf
+  // dropdown is never touched in this test, only restored from the card.
+  await screen.findByText('Pichanchilik');
+  const next = () => screen.getByRole('button', { name: new RegExp(UZ['wizard.nav.next']) });
+  await waitFor(() => expect(next()).toBeEnabled());
+  await userEvent.click(next());
+
+  await screen.findByText(UZ['wizard.step2.heading']);
+  await waitFor(() => expect(next()).toBeEnabled());
+  await userEvent.click(next());
+
+  await screen.findByText(UZ['wizard.step3.heading']);
+  await waitFor(() => expect(next()).toBeEnabled());
+  await userEvent.click(next());
+
+  await screen.findByText(UZ['wizard.step4.heading']);
+  await userEvent.click(next());
+
+  await acceptRules();
+  // The LEGAL branch's own button — proof `onBehalf` came from the card,
+  // not the 'self' default.
+  expect(await screen.findByRole('button', { name: /ERI bilan imzolash va yuborish/ })).toBeInTheDocument();
 });
