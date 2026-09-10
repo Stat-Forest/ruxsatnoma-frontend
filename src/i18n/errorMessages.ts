@@ -149,6 +149,10 @@ const ru: Record<string, ErrorCopy> = {
         return 'Такой номер справки/свидетельства не найден в реестре.';
       case 'benefit_certificate_not_yours':
         return 'Этот номер справки/свидетельства зарегистрирован на другое лицо.';
+      case 'benefit_claim_needs_a_document':
+        return 'К заявке на льготу не приложен подтверждающий документ.';
+      case 'benefit_doc_type_not_configured':
+        return 'Тип документа для подтверждения льготы не настроен — обратитесь в поддержку.';
       default:
         return 'Неполный комплект документов.';
     }
@@ -168,6 +172,8 @@ const ru: Record<string, ErrorCopy> = {
         const reason = str(details, 'benefit_rejection_reason');
         return reason ? `Льгота отклонена: ${reason}` : 'Льгота отклонена.';
       }
+      case 'not_in_review':
+        return 'Льготу можно проверить только по заявке, взятой в работу.';
       default:
         return 'Недопустимый переход статуса заявки. Обновите страницу.';
     }
@@ -313,6 +319,10 @@ const uz_latn: Record<string, ErrorCopy> = {
         return "Bunday guvohnoma/ma'lumotnoma raqami reyestrda topilmadi.";
       case 'benefit_certificate_not_yours':
         return "Bu guvohnoma/ma'lumotnoma raqami boshqa shaxsga ro'yxatga olingan.";
+      case 'benefit_claim_needs_a_document':
+        return "Imtiyoz da'vosiga tasdiqlovchi hujjat biriktirilmagan.";
+      case 'benefit_doc_type_not_configured':
+        return "Imtiyozni tasdiqlovchi hujjat turi sozlanmagan — qo'llab-quvvatlash xizmatiga murojaat qiling.";
       default:
         return "Hujjatlar to'plami to'liq emas.";
     }
@@ -326,6 +336,8 @@ const uz_latn: Record<string, ErrorCopy> = {
         const reason = str(details, 'benefit_rejection_reason');
         return reason ? `Imtiyoz rad etilgan: ${reason}` : 'Imtiyoz rad etilgan.';
       }
+      case 'not_in_review':
+        return "Imtiyozni faqat ko'rib chiqishga olingan ariza bo'yicha tekshirish mumkin.";
       default:
         return "Ariza holatini bunday o'zgartirib bo'lmaydi. Sahifani yangilang.";
     }

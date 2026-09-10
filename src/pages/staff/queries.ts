@@ -345,30 +345,8 @@ export function useReject(applicationId: string) {
 export type BenefitClaimDetailOut = components['schemas']['BenefitClaimDetailOut'];
 export type BenefitVerificationStatus = ApplicationOut['benefit_verification_status'];
 
-/** `GET /applications/benefit-verifications/{id}` — the claim plus its
- *  supporting document(s). `enabled` lets the caller skip the request
- *  entirely for `benefit_verification_status === 'not_required'`, the same
- *  way `useContour` skips a null id. 404 `ERR-SYS-003` both for a stranger
- *  and for an application carrying no claim — `BenefitClaimPanel` never
- *  calls this for the latter case, since it already knows the status from
- *  the card. */
-export function useBenefitClaim(applicationId: string, enabled: boolean) {
-  return useQuery({
-    queryKey: ['staff', 'application', applicationId, 'benefit-claim'],
-    queryFn: async () => {
-      const { data, error } = await api.GET('/api/v1/applications/benefit-verifications/{application_id}', {
-        params: { path: { application_id: applicationId } },
-      });
-      if (error) throw apiError(error);
-      return data;
-    },
-    enabled,
-  });
-}
-
 /** `pending -> verified`. Invalidating the PREFIX `['staff', 'application',
- *  applicationId]` (not just that exact key) also invalidates this claim's
- *  own `useBenefitClaim` cache entry above and the timeline — React Query
+ *  applicationId]` (not just that exact key) also invalidates the timeline — React Query
  *  matches a partial key by default — so the panel's status/decided-by and
  *  `DecisionPanel`'s approve gate both refresh from the one invalidation,
  *  the same way `useApprove`/`useReject` already rely on for the rest of

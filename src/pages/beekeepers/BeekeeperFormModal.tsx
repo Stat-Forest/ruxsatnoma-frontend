@@ -65,6 +65,7 @@ export function BeekeeperFormModal({ mode, beekeeper, onClose }: BeekeeperFormMo
   const [form, setForm] = useState<FormState>(beekeeper ? formFrom(beekeeper) : emptyForm());
   const [looking, setLooking] = useState(false);
   const [lookupApplied, setLookupApplied] = useState(false);
+  const [lookupError, setLookupError] = useState<string | null>(null);
 
   function set<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -72,6 +73,7 @@ export function BeekeeperFormModal({ mode, beekeeper, onClose }: BeekeeperFormMo
 
   async function handlePinflBlur() {
     setLookupApplied(false);
+    setLookupError(null);
     if (!PINFL_PATTERN.test(form.pinfl)) return;
     setLooking(true);
     try {
@@ -87,9 +89,11 @@ export function BeekeeperFormModal({ mode, beekeeper, onClose }: BeekeeperFormMo
       }
       // A 404 (`lookupBeekeeper` -> `null`) changes nothing — the common
       // case, not an error the operator needs to see.
-    } catch {
-      // A real failure (network, 500): this is a convenience auto-fill, not
-      // a value the form depends on — the operator keeps typing by hand.
+    } catch (err) {
+      // A real failure (403, 500, network) is SAID, under the field — the
+      // stage 10 review found it swallowed, indistinguishable from "nobody
+      // with this PINFL has signed in". The form still works by hand.
+      setLookupError(errorText(err));
     } finally {
       setLooking(false);
     }
@@ -140,7 +144,12 @@ export function BeekeeperFormModal({ mode, beekeeper, onClose }: BeekeeperFormMo
       }
     >
       <div className="space-y-4">
-        <FormField label={t('beekeepers.form.fieldPinfl')} required helperText={t('beekeepers.form.pinflHint')}>
+        <FormField
+          label={t('beekeepers.form.fieldPinfl')}
+          required
+          helperText={t('beekeepers.form.pinflHint')}
+          error={lookupError ?? undefined}
+        >
           <Input
             inputMode="numeric"
             value={form.pinfl}

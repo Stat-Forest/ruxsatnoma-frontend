@@ -127,6 +127,9 @@ function applicationCard(over: Partial<ApplicationCardOut> = {}): ApplicationCar
 }
 
 const server = setupServer(
+  // `PermitSignaturesPanel` reads the full signature rows for the masked
+  // PINFL line (F3); an empty page is what a holder who has not signed sees.
+  http.get('*/api/v1/signatures', () => HttpResponse.json({ items: [], total: 0, page: 1, page_size: 20 })),
   http.get('*/api/v1/refs/activity-types', () => HttpResponse.json([])),
   http.get('*/api/v1/refs/organizations', () => HttpResponse.json({ items: [], total: 0 })),
   http.get('*/api/v1/gis/contours/:id', () => HttpResponse.json({ id: 'c0000000-0000-4000-8000-000000000001', number: 'C-1' })),
@@ -184,11 +187,14 @@ test('a self-filed, still-unsigned permit hides the old E-IMZO row for the holde
   );
   renderPermitPage();
 
-  await screen.findByText('Ruxsatnomani imzolash');
-  // Ruling #183: a citizen never meets an E-IMZO dialog at all — the old
-  // "E-IMZO bilan imzolash" row PermitSignaturesPanel would otherwise render
-  // for the recipient purpose must not be on screen alongside the plain one.
+  await screen.findByTestId('signature-simple-form');
+  // Ruling #183: a citizen never meets an E-IMZO dialog at all — the holder's
+  // slot is the plain button, and no "E-IMZO bilan imzolash" row exists for
+  // it. The counter still reads the permit's own `missing_signatures`
+  // (review finding 1: the first version filtered them and reported "1 of 4"
+  // signed on an unsigned permit).
   expect(screen.queryByText('E-IMZO bilan imzolash')).not.toBeInTheDocument();
+  expect(screen.getByText('Imzolangan 0 dan 4')).toBeInTheDocument();
 });
 
 test('a legal filing keeps the unchanged ERI flow, and shows no plain-button panel', async () => {
@@ -264,6 +270,6 @@ test('a refused holder signature shows the server reason in the plain-button pan
   await userEvent.click(signButton);
 
   expect(
-    await screen.findByText("Imzolovchining JSHSHIR raqami aniqlanmadi — qo'llab-quvvatlash xizmatiga murojaat qiling."),
+    await screen.findByText('Tizimda sizning PINFL raqamingiz qayd etilmagan — profilingizni tekshiring.'),
   ).toBeInTheDocument();
 });

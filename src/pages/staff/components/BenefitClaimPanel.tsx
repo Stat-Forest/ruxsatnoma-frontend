@@ -7,7 +7,6 @@ import { useApiErrorText } from '../../../i18n/useApiErrorText';
 import { useLanguage, useT } from '../../../i18n/useT';
 import {
   useBenefitCategories,
-  useBenefitClaim,
   useDocTypes,
   useVerifyBenefitClaim,
   fileUrl,
@@ -18,6 +17,9 @@ import { localizedName } from '../format';
 import { RejectClaimModal } from './RejectClaimModal';
 
 const VERIFY_PERMISSION = 'benefits.verify';
+// The one `doc_types` code a claim is proven with (backend
+// `applications.service.BENEFIT_DOC_TYPE_CODE`, seeded by migration 0024).
+const BENEFIT_PROOF_CODE = 'benefit_proof';
 
 const STATUS_BADGE_CLASS: Record<Exclude<BenefitVerificationStatus, 'not_required'>, string> = {
   pending: 'bg-[#FFFBEB] text-[#B45309] border-[#FDE68A]',
@@ -43,14 +45,19 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
  * country-wide queue (stage 9, T11): the leshoz now decides it as part of
  * its own review, not a central office.
  *
- * Verify/reject (visible to a `benefits.verify` holder only, while
- * `pending`) call the SAME two routes stage 9 used
- * (`GET/POST /applications/benefit-verifications/{id}...`), now reached
- * from the ONE application carrying the claim rather than from a shared
- * queue — 404 `ERR-SYS-003` outside the caller's zone or once the
- * application leaves `IN_REVIEW`, the server's own backstop for the same
- * race `DecisionPanel`'s disabled Approve button guards against on the
- * client.
+ * Everything shown here is ON THE CARD — category, number, status and the
+ * `benefit_proof` documents out of `card.documents` — so the block costs no
+ * request of its own and renders for every viewer of the card. The stage 10
+ * review found the first version fetching `GET /applications/benefit-
+ * verifications/{id}` for everyone: that route is gated on `benefits.verify`,
+ * and a chief forester, an accountant or a prosecutor got a red ACL error
+ * where the documents should have been.
+ *
+ * Verify/reject (a `benefits.verify` holder, while the claim is `pending` AND
+ * the application is `IN_REVIEW` — the server answers 409 `not_in_review`
+ * otherwise, and a button that leads there is a button that lies) call the
+ * SAME two routes stage 9 used, now reached from the ONE application
+ * carrying the claim rather than from a shared queue.
  *
  * A `verified` claim with `benefit_verified_by === null` means the Union
  * register confirmed it automatically at filing (ruling #182's apiary
@@ -64,7 +71,6 @@ export function BenefitClaimPanel({ card }: { card: ApplicationCardOut }) {
   const [rejecting, setRejecting] = useState(false);
 
   const status = card.benefit_verification_status;
-  const claim = useBenefitClaim(card.id, status !== 'not_required');
   const benefitCategories = useBenefitCategories();
   const docTypes = useDocTypes();
   const verify = useVerifyBenefitClaim(card.id);
@@ -72,6 +78,15 @@ export function BenefitClaimPanel({ card }: { card: ApplicationCardOut }) {
   if (status === 'not_required') return null;
 
   const canVerify = !!me && (me.is_superuser || me.permissions.includes(VERIFY_PERMISSION));
+  const inReview = card.status === 'IN_REVIEW';
+  // The claim's own documents: `benefit_proof` rows of the card. While the
+  // doc-type list is unknown nothing is hidden — every document is listed,
+  // each named by its type — rather than an empty list that reads as "no
+  // proof attached".
+  const proofTypeId = docTypes.data?.find((d) => d.code === BENEFIT_PROOF_CODE)?.id;
+  const proofDocuments = proofTypeId
+    ? card.documents.filter((doc) => doc.doc_type_item_id === proofTypeId)
+    : card.documents;
   const categoryName = card.benefit_category_item_id
     ? localizedName(benefitCategories.data?.find((c) => c.id === card.benefit_category_item_id)?.name, lang)
     : null;
@@ -112,17 +127,13 @@ export function BenefitClaimPanel({ card }: { card: ApplicationCardOut }) {
         <h4 className="text-xs font-bold uppercase tracking-wider text-[#5A646D] mb-2">
           {t('staff.benefitClaim.documents.title')}
         </h4>
-        {claim.isLoading ? (
+        {docTypes.isLoading ? (
           <p className="text-xs text-[#5A646D]">…</p>
-        ) : claim.error ? (
-          <p className="text-xs text-[#991B1B]" role="alert">
-            {claim.error instanceof ApiError ? errorText(claim.error) : t('staff.benefitClaim.loadFailed')}
-          </p>
-        ) : !claim.data || claim.data.documents.length === 0 ? (
+        ) : proofDocuments.length === 0 ? (
           <p className="text-xs text-[#5A646D]">{t('staff.benefitClaim.documents.empty')}</p>
         ) : (
           <div className="space-y-2">
-            {claim.data.documents.map((doc) => (
+            {proofDocuments.map((doc) => (
               <div
                 key={doc.id}
                 className="p-3 border border-[#E4E7EA] rounded-xl flex items-center justify-between gap-3"
@@ -157,7 +168,13 @@ export function BenefitClaimPanel({ card }: { card: ApplicationCardOut }) {
         </p>
       )}
 
-      {status === 'pending' && canVerify && (
+      {status === 'pending' && canVerify && !inReview && (
+        <p className="text-xs text-[#B45309] pt-2" data-testid="benefit-claim-not-in-review">
+          {t('staff.benefitClaim.notInReview')}
+        </p>
+      )}
+
+      {status === 'pending' && canVerify && inReview && (
         <div className="flex gap-2 pt-2">
           <Button
             variant="primary"

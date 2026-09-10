@@ -313,10 +313,14 @@ export function ApplicationWizardPage() {
   // position (the exact bug `respond_info`'s own fix wave, docs/status.md,
   // exists to avoid repeating here).
   const benefitProofDocTypeId = docTypesQuery.data?.find((d) => d.code === 'benefit_proof')?.id;
+  // FAIL-CLOSED, like the backend's `_assert_benefit_documents`: while the
+  // doc-type list has not loaded, or `benefit_proof` is not in it, the gate
+  // stays SHUT — the stage 10 review found it open in exactly that state,
+  // with step 4 printing a green "document attached" over an empty list.
   const hasBenefitProofDoc =
     !requiresCertificate ||
-    !benefitProofDocTypeId ||
-    (cardQuery.data?.documents ?? []).some((d) => d.doc_type_item_id === benefitProofDocTypeId);
+    (!!benefitProofDocTypeId &&
+      (cardQuery.data?.documents ?? []).some((d) => d.doc_type_item_id === benefitProofDocTypeId));
 
   function invalidateCard() {
     if (applicationId) void queryClient.invalidateQueries({ queryKey: ['wizard-card', applicationId] });
@@ -547,6 +551,17 @@ export function ApplicationWizardPage() {
         setStep(3);
         return;
       }
+      // The document half of the same claim (`_assert_benefit_documents`):
+      // the file lives on step 4, so that is where the citizen is sent.
+      if (
+        err instanceof ApiError &&
+        err.code === 'ERR-APP-003' &&
+        (reason === 'benefit_claim_needs_a_document' || reason === 'benefit_doc_type_not_configured')
+      ) {
+        setSubmitError(errorText(err));
+        setStep(4);
+        return;
+      }
       setSubmitError(
         err instanceof EimzoError || isProviderUnreachable(err)
           ? t(eimzoErrorMessageKey(err))
@@ -680,8 +695,14 @@ export function ApplicationWizardPage() {
           <h2 className="text-sm font-bold text-[#1A1F24] uppercase tracking-wider">{t('wizard.step1.heading')}</h2>
           {me && me.representations.length > 0 && (
             <FormField label={t('wizard.step1.onBehalfLabel')}>
+              {/* Frozen once the draft exists: `on_behalf` is a property of
+                  the application row, never PATCHed, and ruling #183 makes
+                  the signing path depend on it — flipping it here after
+                  the fact would send a `self` draft to E-IMZO or a `legal`
+                  one to the button (stage 10 review, finding 4). */}
               <Select
                 value={onBehalf === 'legal' ? representationApplicantId : ''}
+                disabled={!!applicationId}
                 onChange={(e) => {
                   if (!e.target.value) {
                     setOnBehalf('self');

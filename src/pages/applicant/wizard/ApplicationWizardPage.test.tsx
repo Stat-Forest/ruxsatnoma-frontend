@@ -1060,8 +1060,31 @@ test('a benefit-certificate refusal (ERR-APP-003, benefit_certificate_unknown) s
           },
         ]);
       }
+      if (params.code === 'doc_types') {
+        return HttpResponse.json([
+          {
+            id: 'doctype-proof',
+            code: 'benefit_proof',
+            name: { uz_latn: 'Imtiyozni tasdiqlovchi hujjat' },
+            props: {},
+            valid_from: '2020-01-01',
+            valid_to: null,
+            status: 'active',
+          },
+        ]);
+      }
       return HttpResponse.json([]);
     }),
+    // The proof is already on the card: step 4's gate is fail-closed (review
+    // finding 3), so reaching the sign button needs a real `benefit_proof`
+    // row, not an unloaded doc-type list.
+    http.get('*/api/v1/applications/:id', () =>
+      HttpResponse.json({
+        id: APPLICATION_ID,
+        documents: [{ id: 'doc-1', doc_type_item_id: 'doctype-proof', file_id: 'file-1' }],
+        items: [],
+      }),
+    ),
     http.post('*/api/v1/applications/:id/submit', () =>
       HttpResponse.json(
         { error: { code: 'ERR-APP-003', message: 'x', details: { reason: 'benefit_certificate_unknown' } } },
@@ -1159,6 +1182,44 @@ test('the benefit_proof document is required before step 4\'s Next once a catego
 
   await waitFor(() => expect(screen.getByText(UZ['wizard.step4.benefitProofOk'])).toBeInTheDocument());
   await waitFor(() => expect(nextButton).toBeEnabled());
+});
+
+// Stage 10 review, finding 3: the gate used to OPEN when the doc-type list
+// did not carry `benefit_proof` (not loaded, or not configured) — step 4
+// printed the green "attached" sentence over an empty list and the citizen
+// met the refusal only at the sign button. Fail-closed now, like the backend.
+test('an unknown benefit_proof doc type keeps step 4 shut instead of waving the claim through', async () => {
+  server.use(
+    http.get('*/api/v1/refs/classifiers/:code/items', ({ params }) => {
+      if (params.code === 'benefit_categories') {
+        return HttpResponse.json([
+          { id: 'benefit-1', code: 'veteran', name: { uz_latn: 'Urush faxriysi' }, props: {}, valid_from: '2020-01-01', valid_to: null, status: 'active' },
+        ]);
+      }
+      // `doc_types` answers without `benefit_proof`.
+      return HttpResponse.json([]);
+    }),
+    http.get('*/api/v1/applications/:id', () =>
+      HttpResponse.json({ id: APPLICATION_ID, documents: [{ id: 'doc-1', doc_type_item_id: 'some-other-type', file_id: 'file-1' }], items: [] }),
+    ),
+  );
+  renderWizard();
+
+  await chooseActivity();
+  await userEvent.click(await screen.findByText('pick-contour'));
+  fireEvent.change(screen.getByLabelText(new RegExp(UZ['wizard.step2.periodFrom'])), { target: { value: '2026-01-01' } });
+  fireEvent.change(screen.getByLabelText(new RegExp(UZ['wizard.step2.periodTo'])), { target: { value: '2026-06-01' } });
+  await userEvent.click(screen.getByRole('button', { name: new RegExp(UZ['wizard.nav.next']) }));
+
+  await userEvent.type(await screen.findByLabelText(new RegExp(UZ['wizard.step3.quantity'])), '5');
+  await userEvent.selectOptions(await screen.findByRole('combobox'), 'benefit-1');
+  await userEvent.type(await screen.findByLabelText(new RegExp(UZ['wizard.step3.certificateNumber'])), 'AB-1');
+  await userEvent.click(screen.getByRole('button', { name: new RegExp(UZ['wizard.nav.next']) })); // -> step4
+
+  const nextButton = await screen.findByRole('button', { name: new RegExp(UZ['wizard.nav.next']) });
+  expect(await screen.findByText(UZ['wizard.step4.benefitProofRequired'])).toBeInTheDocument();
+  expect(screen.queryByText(UZ['wizard.step4.benefitProofOk'])).not.toBeInTheDocument();
+  expect(nextButton).toBeDisabled();
 });
 
 // A resumed draft must restore WHO it is filed for — the last step's

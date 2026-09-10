@@ -119,6 +119,27 @@ test('the PINFL lookup autofills the name and passport on a 200 and stays silent
   expect(screen.queryByTestId('beekeeper-form-error')).not.toBeInTheDocument();
 });
 
+// Stage 10 review, finding 6: a 403/500 on the lookup was swallowed like a
+// 404 — the registrar could not tell "nobody signed in" from "the service
+// is down". Said under the field now; the form still works by hand.
+test('a failing PINFL lookup (not a 404) is said under the field', async () => {
+  server.use(
+    http.get('*/api/v1/beekeepers/lookup', () =>
+      HttpResponse.json({ error: { code: 'ERR-ACL-001', message: 'forbidden' } }, { status: 403 }),
+    ),
+  );
+  const user = userEvent.setup();
+  renderPage();
+
+  await user.click(await screen.findByTestId('beekeeper-create-button'));
+  await user.type(screen.getByTestId('beekeeper-form-pinfl'), '30260904000003');
+  await user.tab();
+
+  expect(await screen.findByText(/huquq/i)).toBeInTheDocument();
+  expect(screen.queryByTestId('beekeeper-lookup-applied')).not.toBeInTheDocument();
+  expect(screen.getByTestId('beekeeper-form-full-name')).toHaveValue('');
+});
+
 test('create posts the typed body', async () => {
   let receivedBody: unknown = null;
   server.use(

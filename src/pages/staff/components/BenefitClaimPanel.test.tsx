@@ -71,15 +71,8 @@ function card(over: Partial<ApplicationCardOut> = {}): ApplicationCardOut {
   };
 }
 
-function claimDetail(over: Record<string, unknown> = {}) {
-  return {
-    ...card(),
-    documents: [
-      { id: 'doc-1', doc_type_item_id: DOC_TYPE_ID, file_id: 'file-1', note: null, created_at: '2026-09-01T10:00:00Z' },
-    ],
-    ...over,
-  };
-}
+const PROOF_DOC = { id: 'doc-1', doc_type_item_id: DOC_TYPE_ID, file_id: 'file-1', note: null, created_at: '2026-09-01T10:00:00Z' };
+const OTHER_DOC = { id: 'doc-2', doc_type_item_id: 'd0000000-0000-4000-8000-00000000ffff', file_id: 'file-2', note: null, created_at: '2026-09-01T10:00:00Z' };
 
 function authValue(permissions: string[]): AuthContextValue {
   return {
@@ -142,38 +135,48 @@ test('renders nothing when the application carries no benefit claim', () => {
   expect(container).toBeEmptyDOMElement();
 });
 
-test('a pending claim shows the certificate, category and documents, plus verify/reject for a benefits.verify holder', async () => {
-  server.use(http.get('*/api/v1/applications/benefit-verifications/:id', () => HttpResponse.json(claimDetail())));
-  renderPanel(card(), ['benefits.verify']);
+test('a pending claim shows the certificate, category and the benefit_proof documents off the card, plus verify/reject for a benefits.verify holder', async () => {
+  // No handler for `GET /applications/benefit-verifications/:id` on purpose:
+  // the panel must not call it (review finding 2 — the route is gated on
+  // `benefits.verify`, and a viewer without it saw a red ACL error).
+  renderPanel(card({ status: 'IN_REVIEW', documents: [PROOF_DOC, OTHER_DOC] }), ['benefits.verify']);
 
   expect(screen.getByTestId('benefit-claim-panel')).toBeInTheDocument();
   expect(screen.getByText('CERT-001')).toBeInTheDocument();
   await waitFor(() => expect(screen.getByText('Asalarichilik uyushmasi aʼzosi')).toBeInTheDocument());
   await waitFor(() => expect(screen.getByText('Imtiyoz sertifikati')).toBeInTheDocument());
+  // The other document of the application is not the claim's proof.
+  expect(screen.getAllByText('staff.benefitClaim.documents.download')).toHaveLength(1);
   expect(screen.getByTestId('verify-claim-button')).toBeInTheDocument();
   expect(screen.getByTestId('open-reject-claim-modal')).toBeInTheDocument();
 });
 
-test('a pending claim offers no verify/reject action without benefits.verify', async () => {
-  server.use(http.get('*/api/v1/applications/benefit-verifications/:id', () => HttpResponse.json(claimDetail())));
-  renderPanel(card(), ['applications.decide']);
+test('a pending claim offers no verify/reject action without benefits.verify, and still lists the proof', async () => {
+  renderPanel(card({ status: 'IN_REVIEW', documents: [PROOF_DOC] }), ['applications.decide']);
 
   await screen.findByTestId('benefit-claim-panel');
+  await waitFor(() => expect(screen.getByText('Imtiyoz sertifikati')).toBeInTheDocument());
   expect(screen.queryByTestId('verify-claim-button')).not.toBeInTheDocument();
   expect(screen.queryByTestId('open-reject-claim-modal')).not.toBeInTheDocument();
 });
 
-test('verifying posts to the verify route and a document with no attachments shows the empty message', async () => {
+test('before the application is taken into review the verifier sees the hint, not the buttons', async () => {
+  renderPanel(card({ status: 'SUBMITTED', documents: [PROOF_DOC] }), ['benefits.verify']);
+
+  await screen.findByTestId('benefit-claim-not-in-review');
+  expect(screen.queryByTestId('verify-claim-button')).not.toBeInTheDocument();
+});
+
+test('verifying posts to the verify route and a claim with no attachments shows the empty message', async () => {
   let verifyCalled = false;
   server.use(
-    http.get('*/api/v1/applications/benefit-verifications/:id', () => HttpResponse.json(claimDetail({ documents: [] }))),
     http.post('*/api/v1/applications/benefit-verifications/:id/verify', () => {
       verifyCalled = true;
       return HttpResponse.json(card({ benefit_verification_status: 'verified' }));
     }),
   );
   const user = userEvent.setup();
-  renderPanel(card(), ['benefits.verify']);
+  renderPanel(card({ status: 'IN_REVIEW' }), ['benefits.verify']);
 
   expect(await screen.findByText('staff.benefitClaim.documents.empty')).toBeInTheDocument();
   await user.click(screen.getByTestId('verify-claim-button'));
@@ -183,7 +186,6 @@ test('verifying posts to the verify route and a document with no attachments sho
 test('rejecting with a reason posts it to the reject route', async () => {
   let receivedBody: unknown = null;
   server.use(
-    http.get('*/api/v1/applications/benefit-verifications/:id', () => HttpResponse.json(claimDetail())),
     http.post('*/api/v1/applications/benefit-verifications/:id/reject', async ({ request }) => {
       receivedBody = await request.json();
       return HttpResponse.json(card({ benefit_verification_status: 'rejected' }));
@@ -203,9 +205,6 @@ test('rejecting with a reason posts it to the reject route', async () => {
 });
 
 test('a verified claim with no verifier reads the Union-register sentence, not "decided by nobody"', async () => {
-  server.use(
-    http.get('*/api/v1/applications/benefit-verifications/:id', () => HttpResponse.json(claimDetail({ benefit_verification_status: 'verified', benefit_verified_by: null }))),
-  );
   renderPanel(card({ benefit_verification_status: 'verified', benefit_verified_by: null }), ['benefits.verify']);
 
   expect(await screen.findByText('staff.benefitClaim.registryVerified')).toBeInTheDocument();
@@ -213,9 +212,6 @@ test('a verified claim with no verifier reads the Union-register sentence, not "
 });
 
 test('a verified claim WITH a human verifier shows no register sentence', async () => {
-  server.use(
-    http.get('*/api/v1/applications/benefit-verifications/:id', () => HttpResponse.json(claimDetail({ benefit_verification_status: 'verified', benefit_verified_by: VERIFIER_ID }))),
-  );
   renderPanel(card({ benefit_verification_status: 'verified', benefit_verified_by: VERIFIER_ID }), ['benefits.verify']);
 
   await screen.findByTestId('benefit-claim-panel');
@@ -223,9 +219,6 @@ test('a verified claim WITH a human verifier shows no register sentence', async 
 });
 
 test('a rejected claim shows the leshoz\'s own reason', async () => {
-  server.use(
-    http.get('*/api/v1/applications/benefit-verifications/:id', () => HttpResponse.json(claimDetail({ benefit_verification_status: 'rejected' }))),
-  );
   renderPanel(
     card({ benefit_verification_status: 'rejected', benefit_rejection_reason: 'Sertifikat muddati oʻtgan' }),
     ['benefits.verify'],
