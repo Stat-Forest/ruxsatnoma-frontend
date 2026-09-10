@@ -234,15 +234,14 @@ function signErrorMessage(t: (key: string) => string, lang: string, err: ApiErro
 }
 
 /**
- * Whether a just-completed signature for a purpose was a SIMPLE one
- * (ruling #183) is not on `PermitCardOut.signatures`: `PermitSignatureRow`
- * deliberately drops `kind`/`verification` (`app/modules/permits/schemas.py`
- * module docstring — "3.8's own `GET /signatures?object_type=permit&
- * object_id=…` answers the full row for anyone who needs it, so this card
- * does not have to") and even keeps `certificate_id` non-nullable, a shape
- * only an `eri` row can have. This panel is exactly that "anyone who needs
- * it", so it fetches the full list once per permit and matches rows back to
- * `permit.signatures` by `id`.
+ * `PermitCardOut.signatures` rows carry `kind` since the stage 10
+ * integration (the backend review found the card answering 500 on a simple
+ * row, and widened `PermitSignatureRow` with `kind` + a nullable
+ * `certificate_id`) — so the «Oddiy imzo» badge reads the card row and is
+ * visible to every viewer of the card. What the card still does NOT carry
+ * is `verification`, where a simple row keeps the signer's PINFL; for the
+ * masked PINFL line this panel fetches the full list once per permit and
+ * matches rows back to `permit.signatures` by `id`.
  *
  * Best-effort, not required: `GET /signatures` gates on the caller already
  * holding a VALID row of their OWN on this object, or `signatures.view_any`
@@ -411,7 +410,7 @@ function SignatureSlot({
     // /signatures` call could see it — `undefined` (still loading, or
     // refused) renders exactly as an `eri` row always has.
     const full = fullSignatures.get(validRow.id);
-    const isSimple = full?.kind === 'simple';
+    const isSimple = validRow.kind === 'simple' || full?.kind === 'simple';
     const simplePinfl = full && isSimple ? extractPinfl(full.verification) : null;
     return (
       <div className="border border-[#86EFAC] bg-[#F0F7F1] rounded-xl p-4 space-y-2 text-xs">

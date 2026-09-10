@@ -10881,11 +10881,10 @@ export interface components {
             purpose: string;
             /** Signer User Id */
             signer_user_id: string | null;
-            /**
-             * Certificate Id
-             * Format: uuid
-             */
-            certificate_id: string;
+            /** Kind */
+            kind: string;
+            /** Certificate Id */
+            certificate_id: string | null;
             /**
              * Signed At
              * Format: date-time
@@ -12993,7 +12992,8 @@ export interface components {
         };
         /**
          * TimelineSignatureRow
-         * @description One ERI signature as the timeline shows it.
+         * @description One signature as the timeline shows it — ERI, or a citizen's simple
+         *     one (ruling #183: `kind`, and then `certificate_id` is NULL).
          *
          *     A REDUCED view of a `signatures` row, not `signatures.schemas.SignatureOut`
          *     — exactly the choice `permits.schemas.PermitSignatureRow` made and for the
@@ -13020,11 +13020,10 @@ export interface components {
             purpose: string;
             /** Signer User Id */
             signer_user_id: string | null;
-            /**
-             * Certificate Id
-             * Format: uuid
-             */
-            certificate_id: string;
+            /** Kind */
+            kind: string;
+            /** Certificate Id */
+            certificate_id: string | null;
             /**
              * Signed At
              * Format: date-time

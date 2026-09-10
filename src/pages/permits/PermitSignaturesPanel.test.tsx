@@ -106,14 +106,15 @@ function emptySignaturesPage() {
   return HttpResponse.json({ items: [], total: 0, page: 1, page_size: 20 });
 }
 
-/** The reduced row `permit.signatures` always carries (`PermitSignatureRow`
- *  — no `kind`, `certificate_id` non-nullable): drives `validRow`/
- *  `invalidAttempts` matching, same as before ruling #183. */
+/** The reduced row `permit.signatures` carries (`PermitSignatureRow` —
+ *  `kind` and a nullable `certificate_id` since the stage 10 integration,
+ *  no `verification`): drives `validRow`/`invalidAttempts` matching. */
 function permitSignatureRow(over: Partial<PermitSignatureRow> = {}): PermitSignatureRow {
   return {
     id: 'sig00000-0000-4000-8000-000000000001',
     purpose: 'permit_recipient',
     signer_user_id: 'u0000000-0000-4000-8000-000000000001',
+    kind: 'eri',
     certificate_id: 'cert0000-0000-4000-8000-000000000001',
     signed_at: '2026-09-05T08:00:00Z',
     verification_status: 'valid',
@@ -367,15 +368,36 @@ test('an eri signature is unchanged: no "Oddiy imzo" badge, no PINFL row', async
 
 // `GET /signatures` gates on the caller already holding a valid row of
 // their own (or oversight) — a viewer this refuses for still sees the row
-// itself (`permit.signatures`), just without knowing its `kind`.
-test('a valid row this viewer cannot look up in the full list renders as an ordinary signed row, not "Oddiy imzo"', async () => {
+// itself (`permit.signatures`), and since the stage 10 integration the card
+// row carries `kind`: the badge shows for EVERY viewer of the card, only the
+// masked PINFL (from `verification`, card-less) needs the full list.
+test('a simple card row this viewer cannot look up in the full list still says "Oddiy imzo", without a PINFL', async () => {
   const permit = permitCard({
-    signatures: [permitSignatureRow({ id: 'sig00000-0000-4000-8000-000000000011', purpose: 'permit_head' })],
-    missing_signatures: ['permit_chief_forester', 'permit_accountant', 'permit_recipient'],
+    signatures: [
+      permitSignatureRow({
+        id: 'sig00000-0000-4000-8000-000000000011',
+        purpose: 'permit_recipient',
+        kind: 'simple',
+        certificate_id: null,
+      }),
+    ],
+    missing_signatures: ['permit_head', 'permit_chief_forester', 'permit_accountant'],
   });
   // No override: the suite-wide default handler answers an empty list.
   renderPanel(permit, () => {});
 
   await screen.findByText('Imzolangan:');
-  expect(screen.queryByText('Oddiy imzo')).not.toBeInTheDocument();
+  expect(screen.getByTestId('signature-simple-badge')).toBeInTheDocument();
+  expect(screen.queryByText('PINFL')).not.toBeInTheDocument();
+});
+
+test('an eri card row this viewer cannot look up in the full list renders as an ordinary signed row', async () => {
+  const permit = permitCard({
+    signatures: [permitSignatureRow({ id: 'sig00000-0000-4000-8000-000000000012', purpose: 'permit_head' })],
+    missing_signatures: ['permit_chief_forester', 'permit_accountant', 'permit_recipient'],
+  });
+  renderPanel(permit, () => {});
+
+  await screen.findByText('Imzolangan:');
+  expect(screen.queryByTestId('signature-simple-badge')).not.toBeInTheDocument();
 });
