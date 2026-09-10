@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Loader2, Plus, Scissors } from 'lucide-react';
+import { Loader2, MapPinOff, Plus, Scissors } from 'lucide-react';
 import { useAuth } from '../../../auth/useAuth';
 import { Button } from '../../../components/ui/button';
 import { Alert } from '../../../components/ui/Feedback';
@@ -32,12 +32,19 @@ type WorkMode = 'browse' | 'draw-new' | 'edit-draft' | 'split';
 /** The small form for the fields `VersionIn` needs beyond geometry itself —
  * shown once a shape has been drawn (a new contour's first version, or a
  * redraw of a held draft). Local to this file: it is a handful of fields
- * with no reuse elsewhere. */
+ * with no reuse elsewhere.
+ *
+ * `requireDeclaredArea` (T12, decision #178) is set whenever the owning
+ * leshoz has no GIS layer: `geom` is never sent for such a version, and the
+ * DB's own `geom_or_declared_area` CHECK then makes `declared_area_ha` the
+ * ONLY area of record — the Save button stays disabled until it is filled,
+ * catching that 422 here instead of round-tripping to the server for it. */
 function VersionFieldsForm({
   initial,
   onSubmit,
   onCancel,
   isPending,
+  requireDeclaredArea = false,
   t,
 }: {
   // Loose on purpose: pre-fills from either a `VersionIn` about to be sent or
@@ -48,6 +55,7 @@ function VersionFieldsForm({
   onSubmit: (fields: Omit<VersionIn, 'geom'>) => void;
   onCancel: () => void;
   isPending: boolean;
+  requireDeclaredArea?: boolean;
   t: (key: string) => string;
 }) {
   const { lang } = useLanguage();
@@ -55,12 +63,14 @@ function VersionFieldsForm({
   const [declaredAreaHa, setDeclaredAreaHa] = useState(initial?.declared_area_ha?.toString() ?? '');
   const [surveyDate, setSurveyDate] = useState(initial?.survey_date ?? '');
   const [effectiveFrom, setEffectiveFrom] = useState(initial?.effective_from ?? '');
+  const canSubmit = !requireDeclaredArea || declaredAreaHa.trim() !== '';
 
   return (
     <div className="bg-white border border-[#E4E7EA] rounded-2xl p-4 shadow-xs space-y-3" data-testid="version-fields-form">
       <h3 className="text-xs font-bold uppercase tracking-wider text-[#5A646D]">
         {t('gis.contours.form.versionDetails')}
       </h3>
+      {requireDeclaredArea && <Alert variant="info">{t('gis.contours.form.noGeometryHint')}</Alert>}
       <div className="grid grid-cols-2 gap-3 text-xs">
         <label className="space-y-1">
           <span className="text-[#5A646D]">{t('gis.versions.source')}</span>
@@ -77,12 +87,16 @@ function VersionFieldsForm({
           />
         </label>
         <label className="space-y-1">
-          <span className="text-[#5A646D]">{t('gis.versions.declaredAreaHa')}</span>
+          <span className="text-[#5A646D]">
+            {t('gis.versions.declaredAreaHa')}
+            {requireDeclaredArea ? ' *' : ''}
+          </span>
           <Input
             type="number"
             step="0.0001"
             value={declaredAreaHa}
             onChange={(e) => setDeclaredAreaHa(e.target.value)}
+            data-testid="version-declared-area-input"
           />
         </label>
         <label className="space-y-1">
@@ -94,11 +108,15 @@ function VersionFieldsForm({
           <Input type="date" value={effectiveFrom} onChange={(e) => setEffectiveFrom(e.target.value)} />
         </label>
       </div>
+      {requireDeclaredArea && !canSubmit && (
+        <p className="text-[11px] text-[#B45309]">{t('gis.contours.form.declaredAreaRequired')}</p>
+      )}
       <div className="flex gap-2">
         <Button
           variant="primary"
           size="sm"
           isLoading={isPending}
+          disabled={!canSubmit}
           className="cursor-pointer"
           onClick={() =>
             onSubmit({
@@ -115,6 +133,25 @@ function VersionFieldsForm({
           {t('gis.contours.form.cancel')}
         </Button>
       </div>
+    </div>
+  );
+}
+
+/** Same footprint as `DrawMap`'s own default height, so swapping it out for
+ * this notice does not jump the layout — takes the map's place for a
+ * geometry-less contour (T12, decision #178: its leshoz has no GIS layer,
+ * or this particular version was filed by requisites alone). A blank map
+ * canvas with nothing on it would read as broken, not absent. */
+function NoGisNotice({ t }: { t: (key: string) => string }) {
+  return (
+    <div
+      data-testid="no-gis-notice"
+      className="flex flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-[#D9EBDC] bg-[#F7FAF7] px-6 text-center"
+      style={{ height: '420px' }}
+    >
+      <MapPinOff className="w-8 h-8 text-[#8FA396]" aria-hidden="true" />
+      <p className="text-sm font-semibold text-[#3D4B41]">{t('gis.contours.noMapOrg')}</p>
+      <p className="max-w-sm text-xs text-[#5A646D]">{t('gis.contours.noMapOrgHint')}</p>
     </div>
   );
 }
@@ -205,6 +242,11 @@ export function ContoursTab({ t }: { t: (key: string) => string }) {
   // so this is the one place its number appears at all until it has a
   // version.
   const [pendingContourNumber, setPendingContourNumber] = useState<string | null>(null);
+  // The organization the operator picked for a brand-new contour (T12) —
+  // `cardQuery` is disabled for `pendingContourId` (see below), so this is
+  // the only place `gisEnabled` below can learn its org before a card ever
+  // exists for it.
+  const [pendingOrgId, setPendingOrgId] = useState<string | null>(null);
   const [splitLine, setSplitLine] = useState<LineString | null>(null);
   // Bumped after a version mutation to force the panel to re-read the
   // localStorage cache (React state, not the cache itself, drives render).
@@ -233,6 +275,16 @@ export function ContoursTab({ t }: { t: (key: string) => string }) {
     for (const o of orgOptions) map.set(o.id, o.label);
     return map;
   }, [orgOptions]);
+  // `OrganizationOut.gis_enabled` (decision #178). `!== false` defaults an
+  // org this browser has not loaded yet to "has a map" — the same direction
+  // `ContourPicker`'s own copy of this lookup takes, for the same reason: a
+  // map that turns out to have nothing to draw is recoverable, hiding one
+  // that exists is not.
+  const orgHasGis = useMemo(() => {
+    const map = new Map<string, boolean>();
+    for (const o of organizationsQuery.data ?? []) map.set(o.id, o.gis_enabled !== false);
+    return map;
+  }, [organizationsQuery.data]);
 
   const filtered = useMemo(() => {
     const items = contoursQuery.data?.items ?? [];
@@ -240,6 +292,19 @@ export function ContoursTab({ t }: { t: (key: string) => string }) {
     const needle = search.trim().toLowerCase();
     return items.filter((c) => c.number.toLowerCase().includes(needle));
   }, [contoursQuery.data, search]);
+
+  // The org behind whichever contour is currently in play, from whichever
+  // source actually has it yet: the published card first (it always carries
+  // `organization_id`), the list row second (covers the gap before the card
+  // has loaded), and — for a contour this operator just created themselves,
+  // which `cardQuery` never fetches (see its own `enabled` below) —
+  // `pendingOrgId`, the one place that organization is remembered at all
+  // until a version gives the contour a card.
+  const selectedOrgId =
+    cardQuery.data?.organization_id ??
+    filtered.find((c) => c.id === selectedContourId)?.organization_id ??
+    (selectedContourId === pendingContourId ? pendingOrgId : null);
+  const gisEnabled = selectedOrgId ? (orgHasGis.get(selectedOrgId) ?? true) : true;
 
   const held = selectedContourId ? activeRecalledVersion(selectedContourId) : undefined;
   // Re-read on every tick bump — see `recallTick` above.
@@ -267,20 +332,29 @@ export function ContoursTab({ t }: { t: (key: string) => string }) {
     setShowCreateForm(false);
     setPendingContourId(contour.id);
     setPendingContourNumber(contour.number);
+    setPendingOrgId(contour.organization_id);
     setSelectedContourId(contour.id);
     setMode('draw-new');
   }
 
   async function handleSaveVersion(fields: Omit<VersionIn, 'geom'>) {
-    if (!drawnGeometry) return;
+    // A drawn shape is required UNLESS this org has no GIS layer at all
+    // (T12, decision #178) — there, `geom` is never sent and
+    // `declared_area_ha` (enforced required by `VersionFieldsForm` itself
+    // via `requireDeclaredArea`) becomes the area of record instead.
+    if (!drawnGeometry && gisEnabled) return;
     const contourId = pendingContourId ?? selectedContourId;
     if (!contourId) return;
     // `useCreateVersion(contourId)` above already records the result (with
-    // this same geometry) in `localVersions` on success.
-    await createVersion.mutateAsync({ ...fields, geom: drawnGeometry as unknown as Record<string, unknown> });
+    // this same geometry, or none) in `localVersions` on success.
+    await createVersion.mutateAsync({
+      ...fields,
+      ...(drawnGeometry ? { geom: drawnGeometry as unknown as Record<string, unknown> } : {}),
+    });
     setDrawnGeometry(null);
     setPendingContourId(null);
     setPendingContourNumber(null);
+    setPendingOrgId(null);
     setMode('browse');
     setRecallTick((n) => n + 1);
   }
@@ -472,7 +546,7 @@ export function ContoursTab({ t }: { t: (key: string) => string }) {
                   className="cursor-pointer"
                   onClick={() => setMode('edit-draft')}
                 >
-                  {t('gis.contours.redraw')}
+                  {gisEnabled ? t('gis.contours.redraw') : t('gis.contours.reviseRequisites')}
                 </Button>
               )}
 
@@ -492,25 +566,29 @@ export function ContoursTab({ t }: { t: (key: string) => string }) {
         </div>
 
         <div className="space-y-3">
-          <DrawMap
-            geometryType={mode === 'split' ? 'LineString' : 'Polygon'}
-            active={mode !== 'browse'}
-            referenceGeometry={mode === 'edit-draft' || mode === 'split' ? knownGeometry : null}
-            selectedGeometry={mode === 'browse' ? knownGeometry : null}
-            browsableFeatures={featuresQuery.data as never}
-            onViewportChange={setBbox}
-            onDrawFinish={(geometry) => {
-              if (mode === 'split') {
-                setSplitLine(geometry as LineString);
-                return;
-              }
-              setDrawnGeometry(geometry);
-            }}
-          />
+          {gisEnabled ? (
+            <DrawMap
+              geometryType={mode === 'split' ? 'LineString' : 'Polygon'}
+              active={mode !== 'browse'}
+              referenceGeometry={mode === 'edit-draft' || mode === 'split' ? knownGeometry : null}
+              selectedGeometry={mode === 'browse' ? knownGeometry : null}
+              browsableFeatures={featuresQuery.data as never}
+              onViewportChange={setBbox}
+              onDrawFinish={(geometry) => {
+                if (mode === 'split') {
+                  setSplitLine(geometry as LineString);
+                  return;
+                }
+                setDrawnGeometry(geometry);
+              }}
+            />
+          ) : (
+            <NoGisNotice t={t} />
+          )}
 
-          {isDrawing && !drawnGeometry && <Alert variant="info">{t('gis.contours.drawHint')}</Alert>}
+          {isDrawing && gisEnabled && !drawnGeometry && <Alert variant="info">{t('gis.contours.drawHint')}</Alert>}
 
-          {isDrawing && drawnGeometry && (
+          {isDrawing && (drawnGeometry || !gisEnabled) && (
             <VersionFieldsForm
               initial={mode === 'edit-draft' ? held?.version : undefined}
               onSubmit={handleSaveVersion}
@@ -519,8 +597,10 @@ export function ContoursTab({ t }: { t: (key: string) => string }) {
                 setMode('browse');
                 setPendingContourId(null);
                 setPendingContourNumber(null);
+                setPendingOrgId(null);
               }}
               isPending={createVersion.isPending}
+              requireDeclaredArea={!gisEnabled}
               t={t}
             />
           )}

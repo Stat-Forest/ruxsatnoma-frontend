@@ -279,6 +279,9 @@ test('creating an organization sends the parent, kind, code and localized name t
     region_id: REGION_TASHKENT,
     district_id: DISTRICT_ZANGIOTA,
     requisites: {},
+    // T12 (decision #178) — always sent on create, the column's own default
+    // (`blankState`'s starting value), never left for the server to fill in.
+    gis_enabled: true,
   });
 });
 
@@ -412,6 +415,89 @@ test('changing the Payme account id on edit merges it into requisites without lo
     bank_account: '20208000000000000001',
     payme_account_id: '5550001',
   });
+});
+
+// T12 (decision #178) — the central admin's switch for whether a leshoz
+// shows a map at all.
+test('turning the GIS switch off on create sends gis_enabled: false', async () => {
+  server.use(...refsHandlers(), ...adminHandlers());
+  const { user } = renderPage();
+
+  await screen.findByTestId(`org-row-${AGENCY}`);
+  await user.click(screen.getByTestId('org-create'));
+
+  // `blankState`'s default kind is `leshoz` — the switch is visible with no
+  // extra click.
+  expect(screen.getByTestId('field-kind')).toHaveValue('leshoz');
+  await user.selectOptions(screen.getByTestId('field-parent'), TERRITORIAL);
+  await user.type(screen.getByTestId('field-code'), 'chorvoq');
+  await user.type(screen.getByTestId('field-name-uz_cyrl'), 'Чорвоқ ўрмон хўжалиги');
+
+  const gisSwitch = screen.getByTestId('field-gis-enabled');
+  expect(gisSwitch).toBeChecked();
+  await user.click(gisSwitch);
+  expect(gisSwitch).not.toBeChecked();
+
+  await user.click(screen.getByTestId('org-form-submit'));
+
+  await vi.waitFor(() => expect(createdBody).not.toBeNull());
+  expect((createdBody as { gis_enabled: unknown }).gis_enabled).toBe(false);
+});
+
+test('the GIS switch is not offered for a kind other than leshoz', async () => {
+  server.use(...refsHandlers(), ...adminHandlers());
+  const { user } = renderPage();
+
+  await screen.findByTestId(`org-row-${AGENCY}`);
+  await user.click(screen.getByTestId('org-create'));
+  await user.selectOptions(screen.getByTestId('field-kind'), 'territorial');
+
+  expect(screen.queryByTestId('field-gis-enabled')).not.toBeInTheDocument();
+});
+
+test('flipping only the GIS switch on edit patches just gis_enabled, nothing else', async () => {
+  server.use(...refsHandlers(), ...adminHandlers());
+  const { user } = renderPage();
+
+  await screen.findByTestId(`org-row-${LESHOZ_A}`);
+  await user.click(screen.getByTestId(`org-edit-${LESHOZ_A}`));
+
+  const gisSwitch = await screen.findByTestId('field-gis-enabled');
+  // The GET fixture carries no `gis_enabled` at all — the form defaults a
+  // missing field to `true` (the column's own default), not `false`.
+  expect(gisSwitch).toBeChecked();
+  await user.click(gisSwitch);
+  await user.click(screen.getByTestId('org-form-submit'));
+
+  await vi.waitFor(() => expect(patchedBody).not.toBeNull());
+  expect(patchedBody).toEqual({
+    parent_id: TERRITORIAL,
+    name: {
+      uz_cyrl: 'Бурчмулла ўрмон хўжалиги',
+      uz_latn: 'Burchmulla oʻrmon xoʻjaligi',
+      ru: 'Бурчмуллинский лесхоз',
+    },
+    stir: '301234567',
+    region_id: REGION_TASHKENT,
+    district_id: DISTRICT_BOSTANLIQ,
+    gis_enabled: false,
+  });
+});
+
+test('leaving the GIS switch untouched on edit sends no gis_enabled at all', async () => {
+  server.use(...refsHandlers(), ...adminHandlers());
+  const { user } = renderPage();
+
+  await screen.findByTestId(`org-row-${LESHOZ_A}`);
+  await user.click(screen.getByTestId(`org-edit-${LESHOZ_A}`));
+  await screen.findByTestId('field-gis-enabled');
+
+  const latin = screen.getByTestId('field-name-uz_latn');
+  await user.type(latin, ' (2)');
+  await user.click(screen.getByTestId('org-form-submit'));
+
+  await vi.waitFor(() => expect(patchedBody).not.toBeNull());
+  expect(patchedBody).not.toHaveProperty('gis_enabled');
 });
 
 test('leaving the Payme account id untouched on edit sends no requisites at all', async () => {
