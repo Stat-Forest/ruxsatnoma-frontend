@@ -1965,6 +1965,26 @@ export const uz_latn = {
   'wizard.step3.priceTariffNote': "amaldagi tariflar boʻyicha moʻljallangan narx.",
   'wizard.step3.loadRatio': "Yuklama:",
   'wizard.step3.conditionalHead': "shartli bosh",
+
+  // --- T10 (`docs/plans/09-odilxon-demo-fixes.md`, decisions #177/#179): the
+  // occupancy calendar, the season/minimum-term note, and the benefit
+  // certificate number. ---
+  'wizard.step2.seasonOutOfRange': "Tanlangan sana ushbu faoliyat va kontur uchun belgilangan mavsumdan tashqarida.",
+  'wizard.step2.minTermNotice': "Davr muddati kamida {days} kun boʻlishi kerak.",
+  'wizard.step3.certificateNumber': "Guvohnoma raqami",
+  'wizard.step3.certificateNumberRequired': "Tanlangan imtiyoz toifasi uchun guvohnoma raqami kiritilishi shart.",
+  'wizard.calendar.heading': "Bandlik taqvimi",
+  'wizard.calendar.legendFree': "Boʻsh",
+  'wizard.calendar.legendPartial': "Qisman band",
+  'wizard.calendar.legendFull': "Toʻliq band",
+  'wizard.calendar.outOfSeason': "Mavsumdan tashqarida",
+  'wizard.calendar.remainderLabel': "boʻsh: {value}",
+  'wizard.calendar.selectFromHint': "Boshlanish sanasini tanlang",
+  'wizard.calendar.selectToHint': "Tugash sanasini tanlang",
+  'wizard.calendar.prevMonth': "Oldingi oy",
+  'wizard.calendar.nextMonth': "Keyingi oy",
+  'wizard.calendar.weekdays': "Du,Se,Cho,Pay,Ju,Sha,Ya",
+
   'wizard.step4.title': "Hujjatlar",
   'wizard.step4.desc': "Ilova qilinadigan fayllar",
   'wizard.step4.heading': "4. Hujjatlarni ilova qiling",

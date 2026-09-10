@@ -1744,6 +1744,26 @@ export const en = {
   'wizard.step3.priceTariffNote': 'estimated price under current tariffs.',
   'wizard.step3.loadRatio': 'Load:',
   'wizard.step3.conditionalHead': 'conditional heads',
+
+  // --- T10 (`docs/plans/09-odilxon-demo-fixes.md`, decisions #177/#179): the
+  // occupancy calendar, the season/minimum-term note, and the benefit
+  // certificate number. ---
+  'wizard.step2.seasonOutOfRange': 'The selected date falls outside the season set for this activity and plot.',
+  'wizard.step2.minTermNotice': 'The period must be at least {days} days.',
+  'wizard.step3.certificateNumber': 'Certificate number',
+  'wizard.step3.certificateNumberRequired': 'The selected benefit category requires a certificate number.',
+  'wizard.calendar.heading': 'Occupancy calendar',
+  'wizard.calendar.legendFree': 'Free',
+  'wizard.calendar.legendPartial': 'Partly taken',
+  'wizard.calendar.legendFull': 'Fully booked',
+  'wizard.calendar.outOfSeason': 'Outside the season',
+  'wizard.calendar.remainderLabel': 'free: {value}',
+  'wizard.calendar.selectFromHint': 'Pick the start date',
+  'wizard.calendar.selectToHint': 'Pick the end date',
+  'wizard.calendar.prevMonth': 'Previous month',
+  'wizard.calendar.nextMonth': 'Next month',
+  'wizard.calendar.weekdays': 'Mo,Tu,We,Th,Fr,Sa,Su',
+
   'wizard.step4.title': 'Documents',
   'wizard.step4.desc': 'Attached files',
   'wizard.step4.heading': '4. Attach documents',

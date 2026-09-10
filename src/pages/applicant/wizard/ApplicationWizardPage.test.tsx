@@ -104,6 +104,34 @@ const server = setupServer(
   ),
   http.get('*/api/v1/refs/livestock-types', () => HttpResponse.json([])),
   http.get('*/api/v1/refs/classifiers/:code/items', () => HttpResponse.json([])),
+  // T10: unrestricted by default (no windows, no minimum term) — the same
+  // "no dictionary row and no norm windows" meaning `season_source: "none"`
+  // already carries, so a test that doesn't care about the season/occupancy
+  // calendar sees the wizard behave exactly as it did before this track.
+  http.get('*/api/v1/activity-seasons/effective', () =>
+    HttpResponse.json({
+      activity_type_id: ACTIVITY_ID,
+      organization_id: 'org-1',
+      contour_id: 'contour-1',
+      windows: [],
+      season_source: 'none',
+      min_term_days: null,
+      min_term_source: 'none',
+    }),
+  ),
+  http.get('*/api/v1/gis/contours/:contourId/occupancy', () =>
+    HttpResponse.json({
+      contour_id: 'contour-1',
+      activity_type_id: ACTIVITY_ID,
+      period_from: '2020-01-01',
+      period_to: '2020-01-31',
+      capacity: null,
+      unit: 'ga',
+      exclusive: false,
+      load_source: 'none',
+      periods: [],
+    }),
+  ),
   http.post('*/api/v1/applications', () => HttpResponse.json({ id: APPLICATION_ID })),
   http.patch('*/api/v1/applications/:id', () => HttpResponse.json({ id: APPLICATION_ID })),
   http.get('*/api/v1/applications/:id', () => HttpResponse.json({ id: APPLICATION_ID, documents: [], items: [] })),
@@ -591,4 +619,174 @@ test('beforeunload is prevented while a draft exists, and not before one does', 
   const after = new Event('beforeunload', { cancelable: true });
   window.dispatchEvent(after);
   expect(after.defaultPrevented).toBe(true);
+});
+
+// ─── T10 (`docs/plans/09-odilxon-demo-fixes.md`, decisions #177/#179) ─────
+// Season/minimum-term validation on the native period inputs (the
+// `OccupancyCalendar` component's own behaviour — the season windows, the
+// wrap-around case, the three occupancy colours, the minimum-term disabling
+// — is covered directly in `OccupancyCalendar.test.tsx` and
+// `seasonCalendar.test.ts`), and the benefit certificate-number field.
+
+test('a date outside the effective season is refused in the field, before any request leaves the browser', async () => {
+  server.use(
+    http.get('*/api/v1/activity-seasons/effective', () =>
+      HttpResponse.json({
+        activity_type_id: ACTIVITY_ID,
+        organization_id: 'org-1',
+        contour_id: 'contour-1',
+        windows: [{ from: '05-01', to: '09-30' }],
+        season_source: 'activity_season',
+        min_term_days: null,
+        min_term_source: 'none',
+      }),
+    ),
+  );
+  renderWizard();
+
+  await userEvent.click(await screen.findByText('Pichanchilik'));
+  await userEvent.click(await screen.findByText('pick-contour'));
+
+  fireEvent.change(screen.getByLabelText(new RegExp(UZ['wizard.step2.periodFrom'])), { target: { value: '2026-01-01' } });
+  fireEvent.change(screen.getByLabelText(new RegExp(UZ['wizard.step2.periodTo'])), { target: { value: '2026-01-15' } });
+
+  expect(await screen.findByText(UZ['wizard.step2.seasonOutOfRange'])).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: new RegExp(UZ['wizard.nav.next']) })).toBeDisabled();
+
+  // Inside the effective window (May–September), the same pair is accepted.
+  fireEvent.change(screen.getByLabelText(new RegExp(UZ['wizard.step2.periodFrom'])), { target: { value: '2026-05-01' } });
+  fireEvent.change(screen.getByLabelText(new RegExp(UZ['wizard.step2.periodTo'])), { target: { value: '2026-06-01' } });
+  await waitFor(() => expect(screen.getByRole('button', { name: new RegExp(UZ['wizard.nav.next']) })).toBeEnabled());
+});
+
+test('the minimum term is stated before any date is picked, and enforced once a too-short pair is', async () => {
+  server.use(
+    http.get('*/api/v1/activity-seasons/effective', () =>
+      HttpResponse.json({
+        activity_type_id: ACTIVITY_ID,
+        organization_id: 'org-1',
+        contour_id: 'contour-1',
+        windows: [],
+        season_source: 'none',
+        min_term_days: 30,
+        min_term_source: 'activity_season',
+      }),
+    ),
+  );
+  renderWizard();
+
+  await userEvent.click(await screen.findByText('Pichanchilik'));
+  await userEvent.click(await screen.findByText('pick-contour'));
+
+  fireEvent.change(screen.getByLabelText(new RegExp(UZ['wizard.step2.periodFrom'])), { target: { value: '2026-01-01' } });
+
+  // Stated up front, as a helper note, before an end date narrows it into
+  // an error — the applicant sees "not less than 30 days" rather than
+  // discovering it from a refusal.
+  expect(await screen.findByText('Davr muddati kamida 30 kun boʻlishi kerak.')).toBeInTheDocument();
+
+  fireEvent.change(screen.getByLabelText(new RegExp(UZ['wizard.step2.periodTo'])), { target: { value: '2026-01-10' } }); // 9-day span
+  expect(await screen.findByText('Davr muddati kamida 30 kun boʻlishi kerak.')).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: new RegExp(UZ['wizard.nav.next']) })).toBeDisabled();
+
+  fireEvent.change(screen.getByLabelText(new RegExp(UZ['wizard.step2.periodTo'])), { target: { value: '2026-02-01' } }); // 31-day span
+  await waitFor(() => expect(screen.getByRole('button', { name: new RegExp(UZ['wizard.nav.next']) })).toBeEnabled());
+});
+
+test('the benefit certificate number is required before Next when the category needs one, and reaches the PATCH', async () => {
+  server.use(
+    http.get('*/api/v1/refs/classifiers/:code/items', ({ params }) => {
+      if (params.code === 'benefit_categories') {
+        return HttpResponse.json([
+          {
+            id: 'benefit-1',
+            code: 'veteran',
+            name: { uz_latn: 'Urush faxriysi' },
+            props: { requires_certificate: true },
+            valid_from: '2020-01-01',
+            valid_to: null,
+            status: 'active',
+          },
+        ]);
+      }
+      return HttpResponse.json([]);
+    }),
+  );
+  let lastPatchBody: unknown = null;
+  server.use(
+    http.patch('*/api/v1/applications/:id', async ({ request }) => {
+      lastPatchBody = await request.json();
+      return HttpResponse.json({ id: APPLICATION_ID });
+    }),
+  );
+  renderWizard();
+
+  await userEvent.click(await screen.findByText('Pichanchilik'));
+  await userEvent.click(await screen.findByText('pick-contour'));
+  fireEvent.change(screen.getByLabelText(new RegExp(UZ['wizard.step2.periodFrom'])), { target: { value: '2026-01-01' } });
+  fireEvent.change(screen.getByLabelText(new RegExp(UZ['wizard.step2.periodTo'])), { target: { value: '2026-06-01' } });
+  await userEvent.click(screen.getByRole('button', { name: new RegExp(UZ['wizard.nav.next']) }));
+
+  await userEvent.type(await screen.findByLabelText(new RegExp(UZ['wizard.step3.quantity'])), '5');
+  // The benefit `Select` is the only `combobox` on step 3 for a non-grazing
+  // activity — same idiom the on-behalf picker's own test already uses,
+  // since `FormField` renders its label as plain text next to `htmlFor`,
+  // and the label text here contains parentheses that would need escaping
+  // for a literal `RegExp` match.
+  await userEvent.selectOptions(await screen.findByRole('combobox'), 'benefit-1');
+
+  const certificateInput = await screen.findByLabelText(new RegExp(UZ['wizard.step3.certificateNumber']));
+  const nextButton = screen.getByRole('button', { name: new RegExp(UZ['wizard.nav.next']) });
+  // The field is required BEFORE the backend ever has a chance to refuse
+  // with `ERR-APP-003`/`benefit_certificate_required`.
+  expect(nextButton).toBeDisabled();
+
+  await userEvent.type(certificateInput, 'AB-12345');
+  await waitFor(() => expect(nextButton).toBeEnabled());
+  await userEvent.click(nextButton);
+
+  await waitFor(() => expect(lastPatchBody).toMatchObject({ benefit_certificate_no: 'AB-12345' }));
+});
+
+test('the certificate field is hidden, and nothing is sent, for a category that does not require one', async () => {
+  server.use(
+    http.get('*/api/v1/refs/classifiers/:code/items', ({ params }) => {
+      if (params.code === 'benefit_categories') {
+        return HttpResponse.json([
+          {
+            id: 'benefit-2',
+            code: 'other',
+            name: { uz_latn: 'Boshqa imtiyoz' },
+            props: {},
+            valid_from: '2020-01-01',
+            valid_to: null,
+            status: 'active',
+          },
+        ]);
+      }
+      return HttpResponse.json([]);
+    }),
+  );
+  let lastPatchBody: unknown = null;
+  server.use(
+    http.patch('*/api/v1/applications/:id', async ({ request }) => {
+      lastPatchBody = await request.json();
+      return HttpResponse.json({ id: APPLICATION_ID });
+    }),
+  );
+  renderWizard();
+
+  await userEvent.click(await screen.findByText('Pichanchilik'));
+  await userEvent.click(await screen.findByText('pick-contour'));
+  fireEvent.change(screen.getByLabelText(new RegExp(UZ['wizard.step2.periodFrom'])), { target: { value: '2026-01-01' } });
+  fireEvent.change(screen.getByLabelText(new RegExp(UZ['wizard.step2.periodTo'])), { target: { value: '2026-06-01' } });
+  await userEvent.click(screen.getByRole('button', { name: new RegExp(UZ['wizard.nav.next']) }));
+
+  await userEvent.type(await screen.findByLabelText(new RegExp(UZ['wizard.step3.quantity'])), '5');
+  await userEvent.selectOptions(await screen.findByRole('combobox'), 'benefit-2');
+
+  expect(screen.queryByLabelText(new RegExp(UZ['wizard.step3.certificateNumber']))).not.toBeInTheDocument();
+  await userEvent.click(screen.getByRole('button', { name: new RegExp(UZ['wizard.nav.next']) }));
+
+  await waitFor(() => expect(lastPatchBody).toMatchObject({ benefit_certificate_no: null }));
 });

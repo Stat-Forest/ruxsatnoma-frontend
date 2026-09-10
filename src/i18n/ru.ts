@@ -1937,6 +1937,26 @@ export const ru = {
   'wizard.step3.priceTariffNote': 'ориентировочная цена по действующим тарифам.',
   'wizard.step3.loadRatio': 'Нагрузка:',
   'wizard.step3.conditionalHead': 'усл. голов',
+
+  // --- T10 (`docs/plans/09-odilxon-demo-fixes.md`, decisions #177/#179): the
+  // occupancy calendar, the season/minimum-term note, and the benefit
+  // certificate number. ---
+  'wizard.step2.seasonOutOfRange': 'Выбранная дата вне сезона, установленного для этого вида деятельности и участка.',
+  'wizard.step2.minTermNotice': 'Срок периода должен быть не менее {days} дней.',
+  'wizard.step3.certificateNumber': 'Номер удостоверения',
+  'wizard.step3.certificateNumberRequired': 'Для выбранной категории льготы необходимо указать номер удостоверения.',
+  'wizard.calendar.heading': 'Календарь занятости',
+  'wizard.calendar.legendFree': 'Свободно',
+  'wizard.calendar.legendPartial': 'Частично занято',
+  'wizard.calendar.legendFull': 'Полностью занято',
+  'wizard.calendar.outOfSeason': 'Вне сезона',
+  'wizard.calendar.remainderLabel': 'свободно: {value}',
+  'wizard.calendar.selectFromHint': 'Выберите дату начала',
+  'wizard.calendar.selectToHint': 'Выберите дату окончания',
+  'wizard.calendar.prevMonth': 'Предыдущий месяц',
+  'wizard.calendar.nextMonth': 'Следующий месяц',
+  'wizard.calendar.weekdays': 'Пн,Вт,Ср,Чт,Пт,Сб,Вс',
+
   'wizard.step4.title': 'Документы',
   'wizard.step4.desc': 'Прикрепляемые файлы',
   'wizard.step4.heading': '4. Прикрепите документы',

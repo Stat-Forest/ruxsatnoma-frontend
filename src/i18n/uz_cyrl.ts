@@ -1967,6 +1967,26 @@ export const uz_cyrl = {
   'wizard.step3.priceTariffNote': "амалдаги тарифлар бўйича мўлжалланган нарх.",
   'wizard.step3.loadRatio': "Юклама:",
   'wizard.step3.conditionalHead': "шартли бош",
+
+  // --- T10 (`docs/plans/09-odilxon-demo-fixes.md`, decisions #177/#179): the
+  // occupancy calendar, the season/minimum-term note, and the benefit
+  // certificate number. ---
+  'wizard.step2.seasonOutOfRange': "Танланган сана ушбу фаолият ва контур учун белгиланган мавсумдан ташқарида.",
+  'wizard.step2.minTermNotice': "Давр муддати камида {days} кун бўлиши керак.",
+  'wizard.step3.certificateNumber': "Гувоҳнома рақами",
+  'wizard.step3.certificateNumberRequired': "Танланган имтиёз тоифаси учун гувоҳнома рақами киритилиши шарт.",
+  'wizard.calendar.heading': "Бандлик тақвими",
+  'wizard.calendar.legendFree': "Бўш",
+  'wizard.calendar.legendPartial': "Қисман банд",
+  'wizard.calendar.legendFull': "Тўлиқ банд",
+  'wizard.calendar.outOfSeason': "Мавсумдан ташқарида",
+  'wizard.calendar.remainderLabel': "бўш: {value}",
+  'wizard.calendar.selectFromHint': "Бошланиш санасини танланг",
+  'wizard.calendar.selectToHint': "Тугаш санасини танланг",
+  'wizard.calendar.prevMonth': "Олдинги ой",
+  'wizard.calendar.nextMonth': "Кейинги ой",
+  'wizard.calendar.weekdays': "Ду,Се,Чо,Пай,Жу,Ша,Я",
+
   'wizard.step4.title': "Ҳужжатлар",
   'wizard.step4.desc': "Илова қилинадиган файллар",
   'wizard.step4.heading': "4. Ҳужжатларни илова қилинг",
