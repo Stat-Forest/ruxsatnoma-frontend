@@ -32,6 +32,8 @@ export const uz_latn = {
   enabled: 'Yoqilgan',
   disabled: 'Oʻchirilgan',
   jsonHint: 'JSON koʻrinishida kiriting',
+  seasonWindowsHint:
+    'Format: faoliyat kodi → oy raqamlari roʻyxati (1–12). Masalan: {"grazing": [4, 5, 6]}',
   invalidJson: 'JSON notoʻgʻri',
   invalidNumber: 'Raqam kiriting',
   saveFailed: 'Saqlanmadi',
@@ -54,6 +56,8 @@ export const ru: Record<keyof typeof uz_latn, string> = {
   enabled: 'Включено',
   disabled: 'Выключено',
   jsonHint: 'Введите значение в формате JSON',
+  seasonWindowsHint:
+    'Формат: код деятельности → список номеров месяцев (1–12). Например: {"grazing": [4, 5, 6]}',
   invalidJson: 'Некорректный JSON',
   invalidNumber: 'Введите число',
   saveFailed: 'Не удалось сохранить',
@@ -76,6 +80,8 @@ export const uz_cyrl: Record<keyof typeof uz_latn, string> = {
   enabled: 'Ёқилган',
   disabled: 'Ўчирилган',
   jsonHint: 'JSON кўринишида киритинг',
+  seasonWindowsHint:
+    'Формат: фаолият коди → ой рақамлари рўйхати (1–12). Масалан: {"grazing": [4, 5, 6]}',
   invalidJson: 'JSON нотўғри',
   invalidNumber: 'Рақам киритинг',
   saveFailed: 'Сақланмади',
@@ -98,6 +104,8 @@ export const en: Record<keyof typeof uz_latn, string> = {
   enabled: 'Enabled',
   disabled: 'Disabled',
   jsonHint: 'Enter value as JSON',
+  seasonWindowsHint:
+    'Format: activity code → list of month numbers (1-12). Example: {"grazing": [4, 5, 6]}',
   invalidJson: 'Invalid JSON',
   invalidNumber: 'Enter a number',
   saveFailed: 'Failed to save',
@@ -120,6 +128,8 @@ export const kaa: Record<keyof typeof uz_latn, string> = {
   enabled: 'Qosılǵan',
   disabled: 'Óshirilgen',
   jsonHint: 'JSON kórinisinde kiritiń',
+  seasonWindowsHint:
+    'Format: iskerlik kodı → aylar sanları dizimi (1-12). Mısalı: {"grazing": [4, 5, 6]}',
   invalidJson: 'JSON nadurıs',
   invalidNumber: 'San kiritiń',
   saveFailed: 'Saqlanbadı',
