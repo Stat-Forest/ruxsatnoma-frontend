@@ -62,6 +62,7 @@ function card(over: Partial<ApplicationCardOut> = {}): ApplicationCardOut {
     benefit_verified_by: null,
     benefit_verified_at: null,
     benefit_rejection_reason: null,
+    rules_accepted_at: null,
     rejection_reason_item_id: null,
     assigned_org_id: null,
     assigned_user_id: null,
