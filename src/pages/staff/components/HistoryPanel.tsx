@@ -1,6 +1,6 @@
 import { ArrowRight, ShieldCheck, ShieldX } from 'lucide-react';
 import type { ApplicationTimelineOut } from '../queries';
-import { formatDateTime, shortId, statusLabel } from '../format';
+import { formatDateTime, historyStatusLabel, shortId } from '../format';
 import { useLanguage } from '../../../i18n/useT';
 
 const HISTORY_PANEL_I18N = {
@@ -123,9 +123,9 @@ export function HistoryPanel({ timeline }: { timeline: ApplicationTimelineOut })
               <div key={entry.id} className="border border-[#E4E7EA] rounded-xl p-3 space-y-1.5">
                 <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
                   <div className="flex items-center gap-1.5 font-bold text-[#1A1F24]">
-                    <span>{entry.from_status ? statusLabel(entry.from_status, lang) : '—'}</span>
+                    <span>{entry.from_status ? historyStatusLabel(entry.from_status, lang) : '—'}</span>
                     <ArrowRight className="w-3.5 h-3.5 text-[#5A646D]" />
-                    <span className="text-[#2E7D4F]">{statusLabel(entry.to_status, lang)}</span>
+                    <span className="text-[#2E7D4F]">{historyStatusLabel(entry.to_status, lang)}</span>
                   </div>
                   <span className="font-mono text-[11px] text-[#5A646D]">{formatDateTime(entry.occurred_at)}</span>
                 </div>

@@ -2,13 +2,13 @@ import type { StatusType } from '../../components/ui/StatusBadge';
 import type { ApplicationStatus } from './api';
 
 /** `StatusBadge` (the shared design-system component) only ships six visual
- * kinds; `ApplicationStatus` (tz/05) has fourteen. This maps every one of
- * them onto a badge kind plus the Uzbek label this track's screens show —
- * kept here, once, so B6's list and B8's card never disagree about what a
- * status looks like. */
+ * kinds; `ApplicationStatus` (tz/05) has thirteen — `DRAFT` left the
+ * vocabulary in stage 12 (plan 12, R1/R11): an application exists only from
+ * the moment it is filed. This maps every REMAINING one onto a badge kind
+ * plus the Uzbek label this track's screens show — kept here, once, so
+ * B6's list and B8's card never disagree about what a status looks like. */
 export const STATUS_LABELS_I18N: Record<string, Record<ApplicationStatus, string>> = {
   uz_latn: {
-    DRAFT: 'Qoralama',
     SUBMITTED: 'Yuborildi',
     IN_REVIEW: "Ko'rib chiqilmoqda",
     PENDING_INFO: "Ma'lumot so'ralmoqda",
@@ -24,7 +24,6 @@ export const STATUS_LABELS_I18N: Record<string, Record<ApplicationStatus, string
     ARCHIVED: 'Arxivlandi',
   },
   uz_cyrl: {
-    DRAFT: 'Қоралама',
     SUBMITTED: 'Юборилди',
     IN_REVIEW: 'Кўриб чиқилмоқда',
     PENDING_INFO: 'Маълумот сўралмоқда',
@@ -40,7 +39,6 @@ export const STATUS_LABELS_I18N: Record<string, Record<ApplicationStatus, string
     ARCHIVED: 'Архивланди',
   },
   ru: {
-    DRAFT: 'Черновик',
     SUBMITTED: 'Отправлено',
     IN_REVIEW: 'На рассмотрении',
     PENDING_INFO: 'Запрос информации',
@@ -56,7 +54,6 @@ export const STATUS_LABELS_I18N: Record<string, Record<ApplicationStatus, string
     ARCHIVED: 'В архиве',
   },
   en: {
-    DRAFT: 'Draft',
     SUBMITTED: 'Submitted',
     IN_REVIEW: 'Under review',
     PENDING_INFO: 'Information requested',
@@ -72,7 +69,6 @@ export const STATUS_LABELS_I18N: Record<string, Record<ApplicationStatus, string
     ARCHIVED: 'Archived',
   },
   kaa: {
-    DRAFT: 'Dáslepki nusqa',
     SUBMITTED: 'Jiberildi',
     IN_REVIEW: 'Kórip shıǵılmaqta',
     PENDING_INFO: 'Maǵlıwmat soralmaqta',
@@ -97,7 +93,6 @@ export function getStatusLabel(status: ApplicationStatus, lang: string = 'uz_lat
 }
 
 export const STATUS_BADGE_KIND: Record<ApplicationStatus, StatusType> = {
-  DRAFT: 'draft',
   SUBMITTED: 'pending',
   IN_REVIEW: 'pending',
   PENDING_INFO: 'warning',
@@ -114,7 +109,6 @@ export const STATUS_BADGE_KIND: Record<ApplicationStatus, StatusType> = {
 };
 
 export const ALL_STATUSES: ApplicationStatus[] = [
-  'DRAFT',
   'SUBMITTED',
   'IN_REVIEW',
   'PENDING_INFO',
