@@ -255,10 +255,20 @@ export function OccupancyCalendar({
             colorClass = 'bg-[#FEF2F2] border-[#FCA5A5] text-[#991B1B]';
             statusLabel = t('wizard.calendar.legendFull');
           }
+          // The PICKED range overrides the availability colour instead of
+          // decorating it (Oybek, 2026-09-10, from the stand): a free day was
+          // pale green and a chosen day was the same pale green with a thin
+          // ring, so the applicant could not tell what they had actually
+          // selected. The two edges are solid dark green with white text, the
+          // days between them a filled green — neither can be mistaken for
+          // "free". The remainder still prints inside the cell, so a partly
+          // taken day that is also selected keeps saying how much is left.
           if (isFrom || isTo) {
-            colorClass += ' ring-2 ring-[#2E7D4F] ring-offset-1';
+            colorClass = 'bg-[#123522] border-[#123522] text-white';
+            statusLabel = t('wizard.calendar.selectedEdge');
           } else if (inRange) {
-            colorClass += ' outline outline-1 outline-[#2E7D4F]/40';
+            colorClass = 'bg-[#86EFAC] border-[#2E7D4F] text-[#123522]';
+            statusLabel = t('wizard.calendar.selectedRange');
           }
 
           const label = remainderText
@@ -302,6 +312,10 @@ export function OccupancyCalendar({
         </span>
         <span className="flex items-center gap-1.5">
           <span className="w-3 h-3 rounded-sm bg-[#F3F4F6] border border-[#E4E7EA]" /> {t('wizard.calendar.outOfSeason')}
+        </span>
+        <span className="inline-flex items-center gap-1">
+          <span className="w-3 h-3 rounded-sm bg-[#123522] border border-[#123522]" />{' '}
+          {t('wizard.calendar.selectedEdge')}
         </span>
       </div>
     </div>

@@ -36,6 +36,7 @@ vi.mock('../../../lib/eimzoMock', async (importOriginal) => {
 });
 
 const ACTIVITY_ID = 'a0000000-0000-4000-8000-000000000001';
+const OTHER_ACTIVITY_ID = 'a0000000-0000-4000-8000-000000000002';
 const APPLICATION_ID = 'ap000000-0000-4000-8000-000000000001';
 const APPLICANT_NAME = 'Aliyev Vali Applicant';
 
@@ -182,14 +183,20 @@ function renderWizard(auth: AuthContextValue = AUTH_VALUE, lang: UiLanguage = 'u
   return { router, ...utils };
 }
 
+/** Choosing the activity takes TWO clicks on the same card: the first
+ *  selects and stays on step 1, the second moves on (Oybek, 2026-09-10 — one
+ *  click both chose and navigated, leaving no moment to see what had been
+ *  chosen). Every test that only needs to GET past step 1 goes through here. */
+async function chooseActivity(name = 'Pichanchilik') {
+  await userEvent.click(await screen.findByText(name));
+  await userEvent.click(await screen.findByText(name));
+}
+
 // Drives the wizard through steps 1–4 (activity, contour + period, quantity,
 // documents) to step 5, where precheck fires automatically.
 async function driveToStep5(lang: UiLanguage = 'uz_latn') {
   const dict = DICTIONARIES[lang] ?? DICTIONARIES.uz_latn;
-  // T1: choosing the activity type advances to step 2 by itself — no
-  // separate "Next" click needed here any more. `findByText('pick-contour')`
-  // polls until that advance (an async draft-create + patch) lands.
-  await userEvent.click(await screen.findByText('Pichanchilik'));
+  await chooseActivity();
 
   await userEvent.click(await screen.findByText('pick-contour'));
   fireEvent.change(screen.getByLabelText(new RegExp(dict['wizard.step2.periodFrom'])), { target: { value: '2026-01-01' } });
@@ -453,7 +460,7 @@ const UZ = DICTIONARIES.uz_latn;
 test('choosing the activity type advances to step 2 by itself, and the Next button stays in place', async () => {
   renderWizard();
 
-  await userEvent.click(await screen.findByText('Pichanchilik'));
+  await chooseActivity();
 
   expect(await screen.findByText(UZ['wizard.step2.heading'])).toBeInTheDocument();
   // Not removed (Oybek: "not removed, merely no longer the only way
@@ -471,7 +478,7 @@ test('a reversed period is named in the field and blocks Next before any request
   );
   renderWizard();
 
-  await userEvent.click(await screen.findByText('Pichanchilik'));
+  await chooseActivity();
   await userEvent.click(await screen.findByText('pick-contour'));
   // The activity-type PATCH already landed by the time step 2 renders —
   // count from here, not from zero.
@@ -492,7 +499,7 @@ test('a reversed period is named in the field and blocks Next before any request
 test('a period longer than 5×366 days is named in the field and blocks Next', async () => {
   renderWizard();
 
-  await userEvent.click(await screen.findByText('Pichanchilik'));
+  await chooseActivity();
   await userEvent.click(await screen.findByText('pick-contour'));
 
   fireEvent.change(screen.getByLabelText(new RegExp(UZ['wizard.step2.periodFrom'])), { target: { value: '2020-01-01' } });
@@ -505,7 +512,7 @@ test('a period longer than 5×366 days is named in the field and blocks Next', a
 test('each date input constrains the other via native min/max', async () => {
   renderWizard();
 
-  await userEvent.click(await screen.findByText('Pichanchilik'));
+  await chooseActivity();
   await userEvent.click(await screen.findByText('pick-contour'));
 
   fireEvent.change(screen.getByLabelText(new RegExp(UZ['wizard.step2.periodFrom'])), { target: { value: '2026-01-01' } });
@@ -531,7 +538,7 @@ test('the stepper returns to a COMPLETED step reached earlier', async () => {
 
 test('a step ahead of the furthest one reached stays inert', async () => {
   renderWizard();
-  await userEvent.click(await screen.findByText('Pichanchilik'));
+  await chooseActivity();
   await screen.findByText('pick-contour'); // now on step 2, furthest reached is 2
 
   const step4Buttons = screen.getAllByLabelText(/^4:/);
@@ -555,7 +562,7 @@ test('a step already reached stays clickable even after going further back than 
 
 test('leaving mid-draft via in-app navigation asks first, and the draft is kept if cancelled', async () => {
   const { router } = renderWizard();
-  await userEvent.click(await screen.findByText('Pichanchilik')); // draft now exists
+  await chooseActivity(); // draft exists after the first click; the second moves on
   await screen.findByText('pick-contour');
 
   await userEvent.click(screen.getByRole('button', { name: new RegExp(UZ['wizard.backToList']) }));
@@ -573,7 +580,7 @@ test('leaving mid-draft via in-app navigation asks first, and the draft is kept 
 
 test('leaving mid-draft via in-app navigation proceeds once confirmed', async () => {
   const { router } = renderWizard();
-  await userEvent.click(await screen.findByText('Pichanchilik'));
+  await chooseActivity();
   await screen.findByText('pick-contour');
 
   await userEvent.click(screen.getByRole('button', { name: new RegExp(UZ['wizard.backToList']) }));
@@ -613,7 +620,7 @@ test('beforeunload is prevented while a draft exists, and not before one does', 
   window.dispatchEvent(before);
   expect(before.defaultPrevented).toBe(false);
 
-  await userEvent.click(screen.getByText('Pichanchilik'));
+  await chooseActivity();
   await screen.findByText('pick-contour'); // draft now exists
 
   const after = new Event('beforeunload', { cancelable: true });
@@ -644,7 +651,7 @@ test('a date outside the effective season is refused in the field, before any re
   );
   renderWizard();
 
-  await userEvent.click(await screen.findByText('Pichanchilik'));
+  await chooseActivity();
   await userEvent.click(await screen.findByText('pick-contour'));
 
   fireEvent.change(screen.getByLabelText(new RegExp(UZ['wizard.step2.periodFrom'])), { target: { value: '2026-01-01' } });
@@ -675,7 +682,7 @@ test('the minimum term is stated before any date is picked, and enforced once a 
   );
   renderWizard();
 
-  await userEvent.click(await screen.findByText('Pichanchilik'));
+  await chooseActivity();
   await userEvent.click(await screen.findByText('pick-contour'));
 
   fireEvent.change(screen.getByLabelText(new RegExp(UZ['wizard.step2.periodFrom'])), { target: { value: '2026-01-01' } });
@@ -721,7 +728,7 @@ test('the benefit certificate number is required before Next when the category n
   );
   renderWizard();
 
-  await userEvent.click(await screen.findByText('Pichanchilik'));
+  await chooseActivity();
   await userEvent.click(await screen.findByText('pick-contour'));
   fireEvent.change(screen.getByLabelText(new RegExp(UZ['wizard.step2.periodFrom'])), { target: { value: '2026-01-01' } });
   fireEvent.change(screen.getByLabelText(new RegExp(UZ['wizard.step2.periodTo'])), { target: { value: '2026-06-01' } });
@@ -776,7 +783,7 @@ test('the certificate field is hidden, and nothing is sent, for a category that 
   );
   renderWizard();
 
-  await userEvent.click(await screen.findByText('Pichanchilik'));
+  await chooseActivity();
   await userEvent.click(await screen.findByText('pick-contour'));
   fireEvent.change(screen.getByLabelText(new RegExp(UZ['wizard.step2.periodFrom'])), { target: { value: '2026-01-01' } });
   fireEvent.change(screen.getByLabelText(new RegExp(UZ['wizard.step2.periodTo'])), { target: { value: '2026-06-01' } });
@@ -789,4 +796,41 @@ test('the certificate field is hidden, and nothing is sent, for a category that 
   await userEvent.click(screen.getByRole('button', { name: new RegExp(UZ['wizard.nav.next']) }));
 
   await waitFor(() => expect(lastPatchBody).toMatchObject({ benefit_certificate_no: null }));
+});
+
+test('choosing an activity takes two clicks: the first selects, the second moves on', async () => {
+  renderWizard();
+  await screen.findByText('Pichanchilik');
+
+  // First click: chosen, and still on step 1 — the applicant gets a moment to
+  // see WHAT was chosen before the screen changes under them.
+  await userEvent.click(screen.getByText('Pichanchilik'));
+  await waitFor(() => expect(screen.getByText('Pichanchilik')).toBeInTheDocument());
+  expect(screen.queryByText('pick-contour')).not.toBeInTheDocument();
+
+  // Second click on the SAME card: now it advances.
+  await userEvent.click(screen.getByText('Pichanchilik'));
+  expect(await screen.findByText('pick-contour')).toBeInTheDocument();
+});
+
+test('clicking a different activity re-selects instead of advancing', async () => {
+  server.use(
+    http.get('*/api/v1/refs/activity-types', () =>
+      HttpResponse.json([
+        { id: ACTIVITY_ID, code: 'haymaking', name: { uz_latn: 'Pichanchilik' }, quantity_unit: 'ga' },
+        { id: OTHER_ACTIVITY_ID, code: 'apiary', name: { uz_latn: 'Asalarichilik' }, quantity_unit: 'hive' },
+      ]),
+    ),
+  );
+  renderWizard();
+  await screen.findByText('Pichanchilik');
+
+  await userEvent.click(screen.getByText('Pichanchilik'));
+  // Correcting a misclick must NOT carry the applicant forward on the wrong
+  // activity — which is the very thing the second click exists to prevent.
+  await userEvent.click(screen.getByText('Asalarichilik'));
+  expect(screen.queryByText('pick-contour')).not.toBeInTheDocument();
+
+  await userEvent.click(screen.getByText('Asalarichilik'));
+  expect(await screen.findByText('pick-contour')).toBeInTheDocument();
 });

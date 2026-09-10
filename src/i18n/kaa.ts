@@ -1767,6 +1767,8 @@ export const kaa = {
   'wizard.calendar.legendPartial': 'Jarım-jartılay bánt',
   'wizard.calendar.legendFull': 'Tolıq bánt',
   'wizard.calendar.outOfSeason': 'Máwsımnan sırtta',
+  'wizard.calendar.selectedEdge': "Saylanǵan sáne",
+  'wizard.calendar.selectedRange': "Saylanǵan dáwir",
   'wizard.calendar.remainderLabel': 'bos: {value}',
   'wizard.calendar.selectFromHint': 'Baslanıw sánesin tańlań',
   'wizard.calendar.selectToHint': 'Tamamlanıw sánesin tańlań',
