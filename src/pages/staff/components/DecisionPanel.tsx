@@ -3,14 +3,13 @@ import { Link } from 'react-router';
 import { AlertTriangle, ArrowUpCircle, Award, CheckCircle2, Inbox, XCircle } from 'lucide-react';
 import { useAuth } from '../../../auth/useAuth';
 import { Button } from '../../../components/ui/button';
-import { ApiError } from '../../../api/errors';
-import { useApiErrorText } from '../../../i18n/useApiErrorText';
 import { useLanguage, useT } from '../../../i18n/useT';
-import { useApprove, useReject, useStartReview, type ApplicationCardOut } from '../queries';
+import { useApprove, useReject, type ApplicationCardOut } from '../queries';
 import { shortId, statusLabel } from '../format';
 import { formatPermitNumber } from '../../permits/format';
 import { usePermitForApplication } from '../../permits/usePermitForApplication';
 import { SignDecisionModal, type DecisionMode } from './SignDecisionModal';
+import { StartReviewConfirmModal } from './StartReviewConfirmModal';
 
 const REVIEW_PERMISSION = 'applications.review';
 const DECIDE_PERMISSION = 'applications.decide';
@@ -28,7 +27,6 @@ const DECISION_PANEL_I18N = {
     rejectedText: 'Ariza rad etildi.',
     takeReviewBtn: 'Koʻrib chiqishga olish',
     notReviewedYet: 'Ariza hali ijroga olinmagan. Buni ijrochi tashkilot xodimi (applications.review) bajaradi.',
-    errorText: 'Xatolik',
     unassignedWarning: 'Bu darajada hali hech kim arizani ishga olmagan (assigned_user_id boʻsh).',
     approveBtn: 'Tasdiqlash',
     rejectBtn: 'Rad etish',
@@ -47,7 +45,6 @@ const DECISION_PANEL_I18N = {
     rejectedText: 'Ариза рад этилди.',
     takeReviewBtn: 'Кўриб чиқишга олиш',
     notReviewedYet: 'Ариза ҳали ижрога олинмаган. Буни ижрочи ташкилот ходими (applications.review) бажаради.',
-    errorText: 'Хатолик',
     unassignedWarning: 'Бу даражада ҳали ҳеч ким аризани ишга олмаган (assigned_user_id бўш).',
     approveBtn: 'Тасдиқлаш',
     rejectBtn: 'Рад этиш',
@@ -66,7 +63,6 @@ const DECISION_PANEL_I18N = {
     rejectedText: 'Заявление отклонено.',
     takeReviewBtn: 'Взять на рассмотрение',
     notReviewedYet: 'Заявление еще не взято в работу. Это действие сотрудника организации (applications.review).',
-    errorText: 'Ошибка',
     unassignedWarning: 'На этом уровне заявление еще никто не взял в работу (assigned_user_id пуст).',
     approveBtn: 'Утвердить',
     rejectBtn: 'Отклонить',
@@ -85,7 +81,6 @@ const DECISION_PANEL_I18N = {
     rejectedText: 'Application rejected.',
     takeReviewBtn: 'Take for review',
     notReviewedYet: 'Application is not taken into work yet. Staff reviewer (applications.review) performs this.',
-    errorText: 'Error',
     unassignedWarning: 'No one has assigned this application at this level yet (assigned_user_id is empty).',
     approveBtn: 'Approve',
     rejectBtn: 'Reject',
@@ -104,7 +99,6 @@ const DECISION_PANEL_I18N = {
     rejectedText: 'Arza biykar etildi.',
     takeReviewBtn: 'Kórip shıǵıwǵa alıw',
     notReviewedYet: 'Arza háli orınlawǵa alınbaǵan. Bunı orınlawshı shólkem xızmetkeri (applications.review) atqaradı.',
-    errorText: 'Qátelik',
     unassignedWarning: 'Bul dárejede háli hesh kim arzanı iske almaǵan (assigned_user_id bos).',
     approveBtn: 'Tastıyıqlaw',
     rejectBtn: 'Biykar etiw',
@@ -118,12 +112,12 @@ export function DecisionPanel({ card }: { card: ApplicationCardOut }) {
   const { lang } = useLanguage();
   const t = useT();
   const tr = DECISION_PANEL_I18N[lang] ?? DECISION_PANEL_I18N.uz_latn;
-  const errorText = useApiErrorText();
   const [modalMode, setModalMode] = useState<DecisionMode | null>(null);
   const [forwardedTo, setForwardedTo] = useState<string | null>(null);
   const [decided, setDecided] = useState<'approved' | 'rejected' | null>(null);
 
-  const startReview = useStartReview(card.id);
+  // Confirmed in its own modal — one click alone must not move the application.
+  const [confirmStart, setConfirmStart] = useState(false);
   const approve = useApprove(card.id);
   const reject = useReject(card.id);
 
@@ -226,8 +220,7 @@ export function DecisionPanel({ card }: { card: ApplicationCardOut }) {
             variant="primary"
             fullWidth
             leftIcon={<Inbox className="w-4 h-4" />}
-            isLoading={startReview.isPending}
-            onClick={() => startReview.mutate()}
+            onClick={() => setConfirmStart(true)}
           >
             {tr.takeReviewBtn}
           </Button>
@@ -236,11 +229,6 @@ export function DecisionPanel({ card }: { card: ApplicationCardOut }) {
             {tr.notReviewedYet}
           </p>
         ))}
-      {startReview.error && (
-        <p className="text-xs text-[#B91C1C]" role="alert">
-          {startReview.error instanceof ApiError ? errorText(startReview.error) : tr.errorText}
-        </p>
-      )}
 
       {card.status === 'IN_REVIEW' &&
         (canDecide ? (
@@ -287,6 +275,8 @@ export function DecisionPanel({ card }: { card: ApplicationCardOut }) {
           {tr.noActionsAllowed}
         </p>
       )}
+
+      {confirmStart && <StartReviewConfirmModal application={card} onClose={() => setConfirmStart(false)} />}
 
       {modalMode && (
         <SignDecisionModal

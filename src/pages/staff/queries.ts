@@ -264,25 +264,6 @@ export function useStartReview(applicationId: string) {
   });
 }
 
-/** Same mutation, callable from a worklist row without navigating to the
- * card first — "taking an application into work" is one of the worklist's
- * own jobs per the task brief. */
-export function useStartReviewRow() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: async (applicationId: string) => {
-      const { data, error } = await api.POST('/api/v1/applications/{application_id}/start-review', {
-        params: { path: { application_id: applicationId } },
-      });
-      if (error) throw apiError(error);
-      return data;
-    },
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['staff', 'applications'] });
-    },
-  });
-}
-
 export function useApprove(applicationId: string) {
   const queryClient = useQueryClient();
   return useMutation({

@@ -1993,6 +1993,13 @@ export const en = {
   'staff.decision.benefit.approveBlockedRejectedPrefix': 'Benefit claim rejected:',
   'staff.decision.benefit.legalBasisOptionalHint':
     "Left blank, the verifier's own rejection reason is used as the legal basis.",
+  // `StartReviewConfirmModal` — the question before an application is taken into review.
+  'staff.startReview.confirm.title': 'Take this application into review?',
+  'staff.startReview.confirm.bodyPrefix': 'Application',
+  'staff.startReview.confirm.bodyEffect': 'will move to "In review" and be assigned to you.',
+  'staff.startReview.confirm.button': 'Take into review',
+  'staff.startReview.confirm.cancel': 'Cancel',
+  'staff.startReview.confirm.error': 'Could not take it into review.',
   'beekeepers.title': 'Beekeeper register',
   'beekeepers.subtitle': "The Union member certificate register — a claim on an application is matched against it",
   'beekeepers.filters.q': 'Search',
