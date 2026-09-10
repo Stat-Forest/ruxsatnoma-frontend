@@ -9,7 +9,7 @@
  * (`help.repo.list_faq`), so the reader never re-sorts what it receives.
  */
 import { useMemo, useState } from 'react';
-import { Loader2 } from 'lucide-react';
+import { ChevronDown, Loader2 } from 'lucide-react';
 import { FormField, Select } from '../../../components/ui/FormControls';
 import { ApiError } from '../../../api/errors';
 import { useApiErrorText } from '../../../i18n/useApiErrorText';
@@ -135,11 +135,17 @@ export function FaqReaderTab() {
 function FaqItem({ item, lang }: { item: FaqOut; lang: string }) {
   return (
     <details
-      className="rounded-xl border border-[#E4E7EA] bg-white p-4 open:shadow-xs break-words"
+      className="group rounded-xl border border-[#E4E7EA] bg-white p-4 open:shadow-xs break-words"
       data-testid={`faq-item-${item.id}`}
     >
-      <summary className="cursor-pointer text-sm font-semibold text-[#1A1F24] marker:content-none break-words">
-        {pickName(item.question, lang)}
+      {/* The native marker is hidden, so the chevron is the only cue that
+          the row expands — without it the question reads as a plain card. */}
+      <summary className="flex cursor-pointer select-none items-center justify-between gap-3 text-sm font-semibold text-[#1A1F24] marker:content-none [&::-webkit-details-marker]:hidden">
+        <span className="min-w-0 break-words">{pickName(item.question, lang)}</span>
+        <ChevronDown
+          aria-hidden="true"
+          className="h-4 w-4 shrink-0 text-[#5A646D] transition-transform group-open:rotate-180"
+        />
       </summary>
       <p className="mt-3 whitespace-pre-wrap text-sm leading-relaxed text-[#5A646D] break-words">
         {pickName(item.answer, lang)}
