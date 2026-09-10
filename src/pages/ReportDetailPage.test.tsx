@@ -94,7 +94,7 @@ afterAll(() => server.close());
 function authValue(roleCode: string, permissions: string[], organizationId: string | null): AuthContextValue {
   return {
     me: {
-      user: { id: 'u1', full_name: 'Test User', login: 'test', phone: null, email: null, must_change_password: false, language: 'uz_latn' },
+      user: { id: 'u1', full_name: 'Test User', login: 'test', phone: null, email: null, must_change_password: false, pinfl: null, language: 'uz_latn' },
       role: { code: roleCode, name: {} },
       permissions,
       zone: { region_id: null, district_id: null, organization_id: organizationId },

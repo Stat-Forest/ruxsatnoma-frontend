@@ -64,7 +64,7 @@ function report(over: Partial<ReportOut> = {}): ReportOut {
 function authValue(roleCode: string, permissions: string[], organizationId: string | null): AuthContextValue {
   return {
     me: {
-      user: { id: 'u1', full_name: 'Test User', login: 'test', phone: null, email: null, must_change_password: false, language: 'uz_latn' },
+      user: { id: 'u1', full_name: 'Test User', login: 'test', phone: null, email: null, must_change_password: false, pinfl: '12345678901234', language: 'uz_latn' },
       role: { code: roleCode, name: {} },
       permissions,
       zone: { region_id: null, district_id: null, organization_id: organizationId },
@@ -200,7 +200,6 @@ test('sign refused server-side with ERR-SIGN-001 renders the signer message', as
   renderPanel(report({ status: 'submitted' }), authValue('executor_head', ['reports.sign'], ORG_ID));
 
   await user.click(await screen.findByTestId('report-action-sign'));
-  await user.type(screen.getByPlaceholderText('31708860250017'), '12345678901234');
   await user.click(screen.getByTestId('confirm-dialog-confirm'));
 
   await waitFor(() => expect(screen.getByTestId('confirm-dialog-error')).toBeInTheDocument());

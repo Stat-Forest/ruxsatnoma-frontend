@@ -12,12 +12,13 @@
  * mock ERI gate: it builds the exact envelope `MockEimzo.verify_attached`/
  * `verify_detached` expect, here, matching their shape byte for byte.
  *
- * **Why a PINFL field asks the operator to type it.** A real E-IMZO client
- * reads the signer's identity off their own inserted key; nothing here has
- * one to read, and `GET /auth/me` does not expose the caller's own `pinfl`
- * (`UserOut` — `app/modules/auth/schemas.py` — carries only
- * `full_name/login/phone/email/must_change_password/language`). Ownership is
- * proven on the backend by comparing this value against `users.pinfl`
+ * **Where the PINFL comes from.** A real E-IMZO client reads the signer's
+ * identity off their own inserted key; nothing here has one to read, so the
+ * staff call sites take it from `GET /auth/me` (`UserOut.pinfl`) through
+ * `useMockSigner` (`./eimzo/useMockSigner.ts`), and the applicant wizard from
+ * `applicant.pinfl` — never from a typed field, which used to turn every typo
+ * into `certificate_pinfl_mismatch`. Ownership is still proven on the
+ * backend by comparing this value against `users.pinfl`
  * (`signatures/service.py::_ownership_reason`) — a personal (14-digit)
  * certificate whose PINFL does not match the signed-in user's own is refused
  * as `signer_pinfl_unknown`/`certificate_pinfl_mismatch`, same as a real

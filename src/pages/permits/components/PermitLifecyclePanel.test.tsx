@@ -67,6 +67,7 @@ function authValue(permissions: string[]): AuthContextValue {
         phone: null,
         email: null,
         must_change_password: false,
+        pinfl: '31708860250017',
         language: 'uz_latn',
       },
       role: { code: 'executor_head', name: {} },
@@ -209,7 +210,6 @@ test('resume (no document required) signs the canonical bytes byte-for-byte', as
 
   const reasonSelect = await screen.findByDisplayValue('permits.lifecycle.selectPlaceholder');
   await user.selectOptions(reasonSelect, 'Sabab bartaraf etildi');
-  await user.type(screen.getByPlaceholderText('31708860250017'), '31708860250017');
   await user.click(screen.getByText('permits.lifecycle.confirmResume'));
 
   await waitFor(() => expect(sentBody).toBeDefined());

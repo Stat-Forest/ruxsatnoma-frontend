@@ -12,13 +12,19 @@
  */
 import { useState } from 'react';
 import { PenTool } from 'lucide-react';
-import { useAuth } from '../../../auth/useAuth';
 import { useLanguage, useT } from '../../../i18n/useT';
 import { Button } from '../../../components/ui/button';
-import { FormField, Input, Select } from '../../../components/ui/FormControls';
+import { FormField, Select } from '../../../components/ui/FormControls';
 import { ApiError } from '../../../api/errors';
 import { useApiErrorText } from '../../../i18n/useApiErrorText';
-import { buildMockSignature, eimzoErrorMessageKey, isEimzoMock, PINFL_PATTERN, signDocument } from '../../../lib/eimzo';
+import {
+  buildMockSignature,
+  eimzoErrorMessageKey,
+  isEimzoMock,
+  MockSignerNotice,
+  signDocument,
+  useMockSigner,
+} from '../../../lib/eimzo';
 import { pickLocalizedName } from '../format';
 import { actPackageBytes } from '../actPackage';
 import { useSignAct, useViolationTypes, type ActCardOut, type ActOut } from '../queries';
@@ -36,10 +42,8 @@ export function ActSignCard({ act, onSigned }: ActSignCardProps) {
   const t = useT();
   const { lang } = useLanguage();
   const errorText = useApiErrorText();
-  const { me } = useAuth();
+  const signer = useMockSigner();
   const [violationTypeId, setViolationTypeId] = useState('');
-  const [pinfl, setPinfl] = useState('');
-  const [pinflTouched, setPinflTouched] = useState(false);
   // Real mode only: `signDocument` runs BEFORE `signAct.mutate`, so its own
   // failure never reaches `signAct.error`/`apiError` below — the same split
   // `PermitSignaturesPanel.tsx`/`PermitLifecyclePanel.tsx` make.
@@ -52,21 +56,13 @@ export function ActSignCard({ act, onSigned }: ActSignCardProps) {
   // `service.py::sign_act` — mandatory exactly when the act's own `result`
   // is `'violation'`, never otherwise (`ERR-VAL-001 violation_type_required`).
   const requiresViolationType = act.result === 'violation';
-  // Mock mode only — a real certificate carries the signer's identity, no
-  // PINFL box to validate (task 10's own rule, `ActSignCard`'s equivalent
-  // named in the brief).
-  const pinflValid = !isEimzoMock() || PINFL_PATTERN.test(pinfl);
-  // `pinflValid` is deliberately NOT part of `canSubmit` — the same choice
-  // `SignDecisionModal.tsx`/`PermitLifecyclePanel.tsx` make: with it here, a
-  // blank PINFL would simply disable the button with no explanation. It
-  // stays clickable so `handleSign` runs its own check and says why.
-  const canSubmit = (!requiresViolationType || violationTypeId !== '') && !signAct.isPending && !signing;
+  // `signer.blocked` (mock mode, no PINFL on the account) disables the
+  // button; `MockSignerNotice` below says why — there is nothing the
+  // inspector could type to fix it.
+  const canSubmit =
+    (!requiresViolationType || violationTypeId !== '') && !signAct.isPending && !signing && !signer.blocked;
 
   async function handleSign() {
-    if (isEimzoMock() && !PINFL_PATTERN.test(pinfl)) {
-      setPinflTouched(true);
-      return;
-    }
     setEimzoErrorKey(null);
     const documentBytes = actPackageBytes({
       id: act.id,
@@ -79,7 +75,8 @@ export function ActSignCard({ act, onSigned }: ActSignCardProps) {
     });
     let pkcs7: string;
     if (isEimzoMock()) {
-      pkcs7 = await buildMockSignature({ pinfl, documentBytes, fullName: me?.user.full_name });
+      if (signer.pinfl === null) return;
+      pkcs7 = await buildMockSignature({ pinfl: signer.pinfl, documentBytes, fullName: signer.fullName });
     } else {
       // Real mode: DETACHED — `sign_act` verifies against the exact
       // canonical bytes above (`actPackage.ts`'s own docstring), no PINFL
@@ -130,22 +127,7 @@ export function ActSignCard({ act, onSigned }: ActSignCardProps) {
         </FormField>
       )}
 
-      {isEimzoMock() && (
-        <FormField
-          label={t('inspector.actForm.sign.pinflLabel')}
-          required
-          error={pinflTouched && !pinflValid ? t('inspector.actForm.sign.pinflError') : undefined}
-        >
-          <Input
-            touchSize
-            inputMode="numeric"
-            value={pinfl}
-            onChange={(e) => setPinfl(e.target.value.replace(/\D/g, '').slice(0, 14))}
-            onBlur={() => setPinflTouched(true)}
-            placeholder="31708860250017"
-          />
-        </FormField>
-      )}
+      <MockSignerNotice signer={signer} />
 
       {eimzoErrorKey && (
         <div className="p-3 bg-[#FEF2F2] border border-[#FCA5A5] rounded-xl text-xs text-[#991B1B]" role="alert">

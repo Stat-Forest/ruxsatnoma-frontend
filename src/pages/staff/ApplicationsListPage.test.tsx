@@ -76,6 +76,7 @@ function authValue(permissions: string[]): AuthContextValue {
         phone: null,
         email: null,
         must_change_password: false,
+        pinfl: null,
         language: 'uz_latn',
       },
       role: { code: 'prosecutor', name: {} },

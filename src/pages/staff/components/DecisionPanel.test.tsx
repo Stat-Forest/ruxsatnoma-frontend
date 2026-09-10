@@ -67,7 +67,7 @@ function card(over: Partial<ApplicationCardOut> = {}): ApplicationCardOut {
   };
 }
 
-function authValue(): AuthContextValue {
+function authValue(pinfl: string | null = '30260904000003'): AuthContextValue {
   return {
     me: {
       user: {
@@ -77,6 +77,7 @@ function authValue(): AuthContextValue {
         phone: null,
         email: null,
         must_change_password: false,
+        pinfl,
         language: 'uz_latn',
       },
       role: { code: 'executor_head', name: {} },
@@ -101,7 +102,7 @@ beforeAll(() => server.listen({ onUnhandledRequest: 'error' }));
 afterEach(() => server.resetHandlers());
 afterAll(() => server.close());
 
-function renderPanel(initial: ApplicationCardOut, client: QueryClient) {
+function renderPanel(initial: ApplicationCardOut, client: QueryClient, auth: AuthContextValue = authValue()) {
   function Harness() {
     return <DecisionPanel card={initial} />;
   }
@@ -109,7 +110,7 @@ function renderPanel(initial: ApplicationCardOut, client: QueryClient) {
   return render(
     <QueryClientProvider client={client}>
       <I18nContext.Provider value={i18n}>
-        <AuthContext.Provider value={authValue()}>
+        <AuthContext.Provider value={auth}>
           <MemoryRouter>
             <Harness />
           </MemoryRouter>
@@ -138,8 +139,6 @@ test('approving moves the card past IN_REVIEW without a manual reload', async ()
   renderPanel(initial, client);
 
   await user.click(screen.getByText('Tasdiqlash'));
-  const pinflInput = await screen.findByPlaceholderText('31207854315218');
-  await user.type(pinflInput, '30260904000003');
   await user.click(screen.getByText('Tasdiqlash va imzolash'));
 
   await screen.findByText(/Ariza tasdiqlandi/);
@@ -148,6 +147,59 @@ test('approving moves the card past IN_REVIEW without a manual reload', async ()
   expect(
     client.getQueryState(['staff', 'application', 'a1000000-0000-4000-8000-000000000001'])?.isInvalidated,
   ).toBe(true);
+});
+
+// The mock envelope carries the signed-in user's own PINFL (`useMockSigner`,
+// read from `/auth/me`) — there is no box to type one into any more. A typed
+// PINFL used to come back as `certificate_pinfl_mismatch` on the first typo,
+// indistinguishable from a stranger's key.
+test('mock mode: no PINFL box, the envelope carries the signed-in user\'s own PINFL', async () => {
+  const user = userEvent.setup();
+  let sentPkcs7: string | null = null;
+  server.use(
+    http.get('*/api/v1/applications/:id/package', () => new HttpResponse(new Uint8Array([1, 2, 3]).buffer)),
+    http.post('*/api/v1/applications/:id/approve', async ({ request }) => {
+      sentPkcs7 = ((await request.json()) as { pkcs7: string }).pkcs7;
+      return HttpResponse.json({ status: 'INVOICED', forwarded_to_organization: null });
+    }),
+  );
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
+  renderPanel(card({ status: 'IN_REVIEW' }), client);
+
+  await user.click(screen.getByText('Tasdiqlash'));
+  expect(screen.queryByPlaceholderText('31207854315218')).toBeNull();
+  expect(screen.queryByRole('textbox')).toBeNull();
+  expect(await screen.findByTestId('mock-signer-notice')).toHaveTextContent('30260904000003');
+  await user.click(screen.getByText('Tasdiqlash va imzolash'));
+
+  await screen.findByText(/Ariza tasdiqlandi/);
+  const decoded = JSON.parse(
+    new TextDecoder().decode(
+      Uint8Array.from(atob(sentPkcs7!.replace(/-/g, '+').replace(/_/g, '/')), (c) => c.charCodeAt(0)),
+    ),
+  );
+  expect(decoded.pinfl_or_stir).toBe('30260904000003');
+  expect(decoded.subject).toBe('CN=Rahbarov Aziz');
+});
+
+// A staff account with no PINFL recorded cannot sign under the mock — the
+// backend would refuse with `signer_pinfl_unknown`; the modal says so up
+// front and keeps the button disabled rather than letting the round trip
+// fail.
+test('mock mode: an account with no PINFL sees why and cannot sign', async () => {
+  const user = userEvent.setup();
+  server.use(
+    http.get('*/api/v1/applications/:id/package', () => new HttpResponse(new Uint8Array([1, 2, 3]).buffer)),
+  );
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
+  renderPanel(card({ status: 'IN_REVIEW' }), client, authValue(null));
+
+  await user.click(screen.getByText('Tasdiqlash'));
+  expect(await screen.findByRole('alert')).toHaveTextContent('eimzo.mock.pinflMissing');
+  // Stays disabled once the package has loaded too — the only gate left is
+  // the missing PINFL, not the not-yet-fetched document.
+  await waitFor(() => expect(screen.queryByText(/GET \.\.\.\/package/)).toBeNull());
+  expect(screen.getByText('Tasdiqlash va imzolash').closest('button')).toBeDisabled();
 });
 
 // Finding 2 (review of stage 5.2): `SignDecisionModal` was still hardwired
@@ -286,8 +338,6 @@ test('legal_basis becomes optional in the reject form once the benefit claim is 
   const reasonSelect = screen.getByDisplayValue('Tanlang...');
   await user.selectOptions(reasonSelect, 'Hujjatlar toʻliq emas');
 
-  const pinflInput = screen.getByPlaceholderText('31207854315218');
-  await user.type(pinflInput, '30260904000003');
 
   // `legal_basis` left blank — the submit button must still enable, since
   // the verifier's own reason will be used.

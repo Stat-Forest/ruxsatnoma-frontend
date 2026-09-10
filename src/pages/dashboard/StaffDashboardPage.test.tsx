@@ -28,6 +28,7 @@ function authValue(permissions: string[] = ['dashboard.view'], isSuperuser = fal
         phone: null,
         email: null,
         must_change_password: false,
+        pinfl: null,
         language: 'uz_latn',
       },
       role: { code: 'executor_staff', name: {} },

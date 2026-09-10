@@ -29,7 +29,7 @@ const APPLICANT_ID = 'ap000000-0000-4000-8000-000000000001';
 function authValue(): AuthContextValue {
   return {
     me: {
-      user: { id: 'u1', full_name: 'Aliyev Vali', login: 'applicant1', phone: null, email: null, must_change_password: false, language: 'uz_latn' },
+      user: { id: 'u1', full_name: 'Aliyev Vali', login: 'applicant1', phone: null, email: null, must_change_password: false, pinfl: null, language: 'uz_latn' },
       role: { code: 'applicant', name: {} },
       permissions: [],
       zone: { region_id: null, district_id: null, organization_id: null },
