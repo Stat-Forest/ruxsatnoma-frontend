@@ -1990,6 +1990,8 @@ export const uz_cyrl = {
   'wizard.calendar.legendPartial': "Қисман банд",
   'wizard.calendar.legendFull': "Тўлиқ банд",
   'wizard.calendar.outOfSeason': "Мавсумдан ташқарида",
+  'wizard.calendar.selectedEdge': "Танланган сана",
+  'wizard.calendar.selectedRange': "Танланган давр",
   'wizard.calendar.remainderLabel': "бўш: {value}",
   'wizard.calendar.selectFromHint': "Бошланиш санасини танланг",
   'wizard.calendar.selectToHint': "Тугаш санасини танланг",

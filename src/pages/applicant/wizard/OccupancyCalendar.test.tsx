@@ -254,3 +254,31 @@ test('completing a range and then clicking again starts a NEW selection', async 
   await userEvent.click(earlierDay);
   expect(onSelectRange).toHaveBeenCalledWith('2026-03-05', '');
 });
+
+test('a picked day cannot be mistaken for a free one', async () => {
+  // Oybek, 2026-09-10, from the dev stand: a free day was pale green and a
+  // chosen day was the SAME pale green with a thin ring, so the applicant
+  // could not tell what they had actually selected. The picked range now
+  // overrides the availability colour rather than decorating it.
+  renderCalendar({ periodFrom: '2026-03-10', periodTo: '2026-03-12' });
+
+  const edge = await screen.findByRole('button', { name: /10\.03\.2026/ });
+  const middle = await screen.findByRole('button', { name: /11\.03\.2026/ });
+  const free = await screen.findByRole('button', { name: /20\.03\.2026/ });
+
+  // The two edges are solid dark green with white text; the day between them
+  // is a filled green; neither shares the free day's own class.
+  expect(edge.className).toContain('bg-[#123522]');
+  expect(middle.className).toContain('bg-[#86EFAC]');
+  // Whatever an UNPICKED day looks like, it must not look like a picked one:
+  // that is the whole complaint, and asserting the picked classes are absent
+  // survives a later change to the availability palette.
+  expect(free.className).not.toContain('bg-[#123522]');
+  expect(free.className).not.toContain('bg-[#86EFAC]');
+  expect(free.getAttribute('title')).not.toMatch(/Tanlangan/);
+
+  // And it is said in words too, not only in colour — a calendar read by
+  // someone who cannot distinguish these greens must still work.
+  expect(edge.getAttribute('title')).toMatch(/Tanlangan sana/);
+  expect(middle.getAttribute('title')).toMatch(/Tanlangan davr/);
+});

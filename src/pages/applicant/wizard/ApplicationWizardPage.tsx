@@ -348,7 +348,16 @@ export function ApplicationWizardPage() {
     setSubmitError(null);
     setActivityTypeId(id);
     await ensureDraftAndPatchActivity(id);
-    goToStep(2);
+    // TWO clicks, not one (Oybek, 2026-09-10, after trying the one-click
+    // version on the stand): the first click SELECTS and stays put, a second
+    // click on the SAME card moves on. A single click that both chose and
+    // navigated gave no moment to see what had been chosen, and misreading
+    // one card for its neighbour cost a step back every time. Clicking a
+    // DIFFERENT card selects that one instead of advancing — otherwise
+    // correcting a misclick would carry the applicant forward on the wrong
+    // activity, which is the very thing this change exists to prevent.
+    // The footer's "Next" button still works, and always did.
+    if (activityTypeId === id) goToStep(2);
   }
 
   async function goNext() {

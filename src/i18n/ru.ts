@@ -1960,6 +1960,8 @@ export const ru = {
   'wizard.calendar.legendPartial': 'Частично занято',
   'wizard.calendar.legendFull': 'Полностью занято',
   'wizard.calendar.outOfSeason': 'Вне сезона',
+  'wizard.calendar.selectedEdge': "Выбранная дата",
+  'wizard.calendar.selectedRange': "Выбранный период",
   'wizard.calendar.remainderLabel': 'свободно: {value}',
   'wizard.calendar.selectFromHint': 'Выберите дату начала',
   'wizard.calendar.selectToHint': 'Выберите дату окончания',

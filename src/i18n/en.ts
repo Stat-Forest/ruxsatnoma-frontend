@@ -1767,6 +1767,8 @@ export const en = {
   'wizard.calendar.legendPartial': 'Partly taken',
   'wizard.calendar.legendFull': 'Fully booked',
   'wizard.calendar.outOfSeason': 'Outside the season',
+  'wizard.calendar.selectedEdge': "Selected date",
+  'wizard.calendar.selectedRange': "Selected range",
   'wizard.calendar.remainderLabel': 'free: {value}',
   'wizard.calendar.selectFromHint': 'Pick the start date',
   'wizard.calendar.selectToHint': 'Pick the end date',

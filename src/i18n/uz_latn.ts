@@ -1988,6 +1988,8 @@ export const uz_latn = {
   'wizard.calendar.legendPartial': "Qisman band",
   'wizard.calendar.legendFull': "Toʻliq band",
   'wizard.calendar.outOfSeason': "Mavsumdan tashqarida",
+  'wizard.calendar.selectedEdge': "Tanlangan sana",
+  'wizard.calendar.selectedRange': "Tanlangan davr",
   'wizard.calendar.remainderLabel': "boʻsh: {value}",
   'wizard.calendar.selectFromHint': "Boshlanish sanasini tanlang",
   'wizard.calendar.selectToHint': "Tugash sanasini tanlang",
