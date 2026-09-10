@@ -5,6 +5,7 @@ import { ApiError } from '../../api/errors';
 import { useApiErrorText } from '../../i18n/useApiErrorText';
 import { DataTable, type Column } from '../../components/ui/DataTable';
 import { Button } from '../../components/ui/button';
+import { ExportXlsxButton } from '../../components/ui/ExportXlsxButton';
 import { FormField, Input, Select } from '../../components/ui/FormControls';
 import { useBeekeepersList } from './queries';
 import type { BeekeeperOut } from './api';
@@ -170,6 +171,10 @@ export function BeekeepersPage() {
             {t('beekeepers.reset')}
           </Button>
         </div>
+      </div>
+
+      <div className="flex justify-end">
+        <ExportXlsxButton path="/api/v1/beekeepers" query={{ q: q || undefined, status: status || undefined }} />
       </div>
 
       {list.error && (

@@ -22,6 +22,7 @@ import { useLanguage, useT } from '../../i18n/useT';
 import { Alert } from '../../components/ui/Feedback';
 import { Button } from '../../components/ui/button';
 import { DataTable, type Column } from '../../components/ui/DataTable';
+import { ExportXlsxButton } from '../../components/ui/ExportXlsxButton';
 import { FormField, Select } from '../../components/ui/FormControls';
 import { StatusBadge, type StatusType } from '../../components/ui/StatusBadge';
 import { ConfirmDialog } from './ConfirmDialog';
@@ -202,6 +203,10 @@ export function ReportFormsTab({ active }: { active: boolean }) {
             {t('reports.forms.filter.apply')}
           </Button>
         </div>
+      </div>
+
+      <div className="flex justify-end">
+        <ExportXlsxButton path="/api/v1/reports/forms" query={{ status: appliedStatus || undefined }} />
       </div>
 
       {list.error && (
