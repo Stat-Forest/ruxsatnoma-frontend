@@ -135,6 +135,23 @@ test('filing a new refund request sends the application id, chosen basis and com
   expect(requestBody).toEqual({ application_id: APPLICATION_ID, basis_item_id: RF03, comment: 'Mijoz talabi' });
 });
 
+test('a failed refund_reasons load says so in the new-request modal, not a silently disabled Submit', async () => {
+  server.use(
+    http.get('*/api/v1/refunds', () => HttpResponse.json({ items: [], total: 0, page: 1, page_size: 100 })),
+    http.get('*/api/v1/refs/classifiers/refund_reasons/items', () =>
+      HttpResponse.json({ error: { code: 'ERR-SYS-001', message: 'boom' } }, { status: 500 }),
+    ),
+  );
+  const user = userEvent.setup();
+  renderTab(['payments.view', 'payments.manage']);
+
+  await screen.findByText('Arizalar topilmadi.');
+  await user.click(screen.getByRole('button', { name: 'Yangi ariza' }));
+
+  const dialog = screen.getByRole('dialog');
+  expect(await within(dialog).findByText('Yuklashda xatolik yuz berdi.')).toBeInTheDocument();
+});
+
 /** `AvailableSourceOut[]` — the invoice's own frozen split (stage 7.9 task
  *  7), `GET /refunds/{id}`'s own addition. The register's list rows never
  *  carry this (`available_sources` stays `[]` everywhere but the single-item

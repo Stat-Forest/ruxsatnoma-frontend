@@ -9,11 +9,20 @@ import { REFUND_STATUS_STYLE, getRefundStatusLabel } from '../../accountant/stat
 import { formatDate, formatDateTime, formatMoney } from '../../permits/format';
 import { pickName } from '../format';
 import type { RefundOut } from '../api';
-import { RefundRequestModal, type BillableApplication } from './RefundRequestModal';
+import { RefundRequestModal, type BillableApplication, type ListStatus } from './RefundRequestModal';
 import { useMyApplicationsIndex, useMyInvoices, useMyRefunds, useRefundReasons } from './queries';
 
 const PAGE_SIZE = 50;
 const INVOICE_STATUS_RANK: Record<string, number> = { paid: 0, pending: 1, expired: 2, cancelled: 3 };
+
+/** A query's tri-state for the modal — `isPending`/`isError` collapsed into
+ * one value so a failed or still-loading list never reads as "empty" (see
+ * `RefundRequestModal.tsx`'s `ListStatus`). */
+function queryStatus(query: { isPending: boolean; isError: boolean }): ListStatus {
+  if (query.isError) return 'error';
+  if (query.isPending) return 'pending';
+  return 'ready';
+}
 
 /** Stage 11 — the citizen's refund requests from `GET /refunds` without
  * `application_id` (rulings R1, R3), and the button that files one (R4). The backend has
@@ -30,6 +39,11 @@ export function MyRefundsTab() {
   const invoicesQuery = useMyInvoices({ page: 1, pageSize: 200 });
   const reasonsQuery = useRefundReasons();
   const { index: applications } = useMyApplicationsIndex();
+
+  const lists: { invoices: ListStatus; reasons: ListStatus } = {
+    invoices: queryStatus(invoicesQuery),
+    reasons: queryStatus(reasonsQuery),
+  };
 
   const reasonById = useMemo(() => {
     const map = new Map<string, string>();
@@ -67,7 +81,16 @@ export function MyRefundsTab() {
         );
       },
     },
-    { key: 'basis', header: t('myPayments.refunds.colBasis'), accessor: (row) => reasonById.get(row.basis_item_id) ?? '—' },
+    {
+      key: 'basis',
+      header: t('myPayments.refunds.colBasis'),
+      accessor: (row) => (
+        <div>
+          <div>{reasonById.get(row.basis_item_id) ?? '—'}</div>
+          {row.comment != null && <div className="text-xs text-[#5A646D] mt-0.5">{row.comment}</div>}
+        </div>
+      ),
+    },
     {
       key: 'final',
       header: t('myPayments.refunds.colFinal'),
@@ -89,11 +112,8 @@ export function MyRefundsTab() {
     },
     { key: 'requested', header: t('myPayments.refunds.colRequestedAt'), accessor: (row) => formatDateTime(row.requested_at) },
     { key: 'due', header: t('myPayments.refunds.colDue'), accessor: (row) => formatDate(row.due_at) },
+    { key: 'decidedAt', header: t('myPayments.refunds.colDecidedAt'), accessor: (row) => formatDateTime(row.decided_at) },
   ];
-
-  if (refundsQuery.isError) {
-    return <Alert variant="danger">{t('myPayments.refunds.loadFailed')}</Alert>;
-  }
 
   const total = refundsQuery.data?.total ?? 0;
   return (
@@ -103,25 +123,32 @@ export function MyRefundsTab() {
           {t('myPayments.refunds.newRequest')}
         </Button>
       </div>
-      {sent && <Alert variant="success">{t('myPayments.refunds.requestSent')}</Alert>}
-      <DataTable
-        columns={columns}
-        data={refundsQuery.data?.items ?? []}
-        isLoading={refundsQuery.isPending}
-        emptyTitle={t('myPayments.refunds.empty')}
-        pagination={{
-          currentPage: page,
-          totalPages: Math.max(1, Math.ceil(total / PAGE_SIZE)),
-          onPageChange: setPage,
-          totalRecords: total,
-        }}
-      />
+      {refundsQuery.isError ? (
+        <Alert variant="danger">{t('myPayments.refunds.loadFailed')}</Alert>
+      ) : (
+        <>
+          {sent && <Alert variant="success">{t('myPayments.refunds.requestSent')}</Alert>}
+          <DataTable
+            columns={columns}
+            data={refundsQuery.data?.items ?? []}
+            isLoading={refundsQuery.isPending}
+            emptyTitle={t('myPayments.refunds.empty')}
+            pagination={{
+              currentPage: page,
+              totalPages: Math.max(1, Math.ceil(total / PAGE_SIZE)),
+              onPageChange: setPage,
+              totalRecords: total,
+            }}
+          />
+        </>
+      )}
       {open && (
         <RefundRequestModal
           onClose={() => setOpen(false)}
           onSent={() => setSent(true)}
           applications={billable}
           reasons={reasonsQuery.data ?? []}
+          lists={lists}
         />
       )}
     </div>

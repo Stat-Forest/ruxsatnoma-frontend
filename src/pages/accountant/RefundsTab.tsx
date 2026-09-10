@@ -305,6 +305,7 @@ function NewRequestModal({ onClose }: { onClose: () => void }) {
         <FormField label={t('accountant.refunds.applicationIdLabel')} required htmlFor="refund-application-id">
           <Input id="refund-application-id" value={applicationId} onChange={(e) => setApplicationId(e.target.value)} placeholder="UUID" />
         </FormField>
+        {reasonsQuery.isError && <Alert variant="danger">{t('accountant.refunds.loadFailed')}</Alert>}
         <FormField label={t('accountant.refunds.basisLabel')} htmlFor="refund-basis">
           <Select
             id="refund-basis"

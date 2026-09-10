@@ -7,8 +7,15 @@ import { ApiError } from '../../../api/errors';
 import { useApiErrorText } from '../../../i18n/useApiErrorText';
 import { useT, useLanguage } from '../../../i18n/useT';
 import { pickName } from '../format';
+import { getInvoiceStatusLabel } from '../../permits/statusMeta';
 import type { ClassifierItemOut } from '../api';
 import { useRequestRefund } from './queries';
+
+/** The three states `MyRefundsTab` derives from `invoicesQuery`/`reasonsQuery`
+ * — a loading or a failed list must never read as "empty" to the citizen
+ * (a failed `GET /invoices` is not the same fact as "no billable
+ * applications"). */
+export type ListStatus = 'pending' | 'error' | 'ready';
 
 export interface BillableApplication {
   id: string;
@@ -28,11 +35,13 @@ export function RefundRequestModal({
   onSent,
   applications,
   reasons,
+  lists,
 }: {
   onClose: () => void;
   onSent: () => void;
   applications: BillableApplication[];
   reasons: ClassifierItemOut[];
+  lists: { invoices: ListStatus; reasons: ListStatus };
 }) {
   const t = useT();
   const { lang } = useLanguage();
@@ -92,7 +101,14 @@ export function RefundRequestModal({
       }
     >
       <div className="space-y-3">
-        {applications.length === 0 && <Alert variant="warning">{t('myPayments.refunds.noBillableApplications')}</Alert>}
+        {lists.invoices === 'error' && <Alert variant="danger">{t('myPayments.invoices.loadFailed')}</Alert>}
+        {lists.reasons === 'error' && <Alert variant="danger">{t('myPayments.refunds.reasonsLoadFailed')}</Alert>}
+        {(lists.invoices === 'pending' || lists.reasons === 'pending') && (
+          <p className="text-xs text-[#5A646D]">{t('myPayments.refunds.loadingLists')}</p>
+        )}
+        {lists.invoices === 'ready' && applications.length === 0 && (
+          <Alert variant="warning">{t('myPayments.refunds.noBillableApplications')}</Alert>
+        )}
         <FormField label={t('myPayments.refunds.applicationLabel')} required htmlFor="refund-application">
           <Select
             id="refund-application"
@@ -101,7 +117,7 @@ export function RefundRequestModal({
             disabled={applications.length === 0}
             options={applications.map((item) => ({
               value: item.id,
-              label: `${item.number ?? item.id.slice(0, 8)} — ${item.invoiceStatus}`,
+              label: `${item.number ?? item.id.slice(0, 8)} — ${getInvoiceStatusLabel(item.invoiceStatus, lang)}`,
             }))}
           />
         </FormField>

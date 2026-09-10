@@ -79,8 +79,13 @@ function renderTab(lang: UiLanguage = 'uz_latn') {
   return render(<MyRefundsTab />, { wrapper });
 }
 
-test('lists the citizen own refunds with the basis name, the status and the deadline', async () => {
-  mockBackend({ refunds: [refund({}), refund({ id: 'r-2', status: 'returned', final_amount: '300000.00', decided_at: '2026-09-10T10:00:00Z' })] });
+test('lists the citizen own refunds with the basis name, the status, the deadline, the decision date and the comment', async () => {
+  mockBackend({
+    refunds: [
+      refund({ comment: 'Mol kasal boʻldi' }),
+      refund({ id: 'r-2', status: 'returned', final_amount: '300000.00', decided_at: '2026-09-10T10:00:00Z' }),
+    ],
+  });
   renderTab();
 
   // Both refunds in this fixture share `application_id: APP_ONE` (the second
@@ -92,6 +97,23 @@ test('lists the citizen own refunds with the basis name, the status and the dead
   expect(screen.getByText('Qaror kutilmoqda')).toBeInTheDocument();
   expect(screen.getByText(REFUND_STATUS_LABEL_I18N.uz_latn.returned)).toBeInTheDocument();
   expect(screen.getByText(/300 000/)).toBeInTheDocument();
+  // r-1 (`requested`, `decided_at: null`) shows its own comment.
+  expect(screen.getByText('Mol kasal boʻldi')).toBeInTheDocument();
+  // r-2 (`returned`, `decided_at` set) shows the formatted decision date.
+  expect(screen.getByText(/10\.09\.2026/)).toBeInTheDocument();
+});
+
+test('a failed refunds list keeps the "file a request" button visible above the error', async () => {
+  server.use(
+    http.get('*/api/v1/refunds', () => HttpResponse.json({ error: { code: 'ERR-SYS-001', message: 'boom' } }, { status: 500 })),
+    http.get('*/api/v1/invoices', () => HttpResponse.json(page([]))),
+    http.get('*/api/v1/applications', () => HttpResponse.json(page([]))),
+    http.get('*/api/v1/refs/classifiers/refund_reasons/items', () => HttpResponse.json(REASONS)),
+  );
+  renderTab();
+
+  expect(await screen.findByText('Qaytarishlarni yuklab boʻlmadi.')).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'Qaytarish soʻrash' })).toBeInTheDocument();
 });
 
 test('the status badge follows the UI language, not a fixed uz_latn label', async () => {
@@ -209,10 +231,39 @@ test('a modal opened before the applications and reasons resolve still files the
   await user.click(screen.getByRole('button', { name: 'Qaytarish soʻrash' }));
 
   const dialog = screen.getByRole('dialog');
-  await within(dialog).findByRole('option', { name: /RX-2026-000010/ });
+  const option = await within(dialog).findByRole('option', { name: /RX-2026-000010/ });
+  // Invoice status 'paid' shows the translated label, never the raw code.
+  expect(option).toHaveTextContent('Toʻlangan');
   const submit = within(dialog).getByRole('button', { name: 'Yuborish' });
   await waitFor(() => expect(submit).not.toBeDisabled());
   await user.click(submit);
 
   expect(requestBody).toEqual({ application_id: APP_ONE, basis_item_id: RF01, comment: null });
+});
+
+test('a failed invoices load says so in the modal, never "no billable applications"', async () => {
+  mockBackend({});
+  server.use(http.get('*/api/v1/invoices', () => HttpResponse.json({ error: { code: 'ERR-SYS-001', message: 'boom' } }, { status: 500 })));
+  const user = userEvent.setup();
+  renderTab();
+
+  await screen.findByText('Qaytarish soʻrovlari yoʻq.');
+  await user.click(screen.getByRole('button', { name: 'Qaytarish soʻrash' }));
+
+  const dialog = screen.getByRole('dialog');
+  expect(await within(dialog).findByText('Hisob-fakturalarni yuklab boʻlmadi.')).toBeInTheDocument();
+  expect(within(dialog).queryByText(/Hisob-fakturasi bor ariza topilmadi/)).not.toBeInTheDocument();
+});
+
+test('a failed refund_reasons load says so in the modal', async () => {
+  mockBackend({});
+  server.use(http.get('*/api/v1/refs/classifiers/refund_reasons/items', () => HttpResponse.json({ error: { code: 'ERR-SYS-001', message: 'boom' } }, { status: 500 })));
+  const user = userEvent.setup();
+  renderTab();
+
+  await screen.findByText('Qaytarish soʻrovlari yoʻq.');
+  await user.click(screen.getByRole('button', { name: 'Qaytarish soʻrash' }));
+
+  const dialog = screen.getByRole('dialog');
+  expect(await within(dialog).findByText('Qaytarish asoslarini yuklab boʻlmadi.')).toBeInTheDocument();
 });
