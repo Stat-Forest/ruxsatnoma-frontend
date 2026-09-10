@@ -1,7 +1,8 @@
-import { Link } from 'react-router';
+import { Link, useNavigate } from 'react-router';
 import { FileText, Inbox, PauseCircle } from 'lucide-react';
 import { useLanguage, useT } from '../../../i18n/useT';
 import { Button } from '../../../components/ui/button';
+import { clickableRowProps } from '../../../lib/rowClick';
 import { useContour, useStartReviewRow, type ApplicationOut } from '../queries';
 import { formatAmount, formatDate, formatDateTime, slaStatus, statusLabel } from '../format';
 
@@ -33,15 +34,21 @@ const WORKLIST_ROW_I18N = {
 /** One worklist row — a real `ApplicationOut` */
 export function WorklistRow({ row, canReview }: { row: ApplicationOut; canReview: boolean }) {
   const t = useT();
+  const navigate = useNavigate();
   const { lang } = useLanguage();
   const lt = WORKLIST_ROW_I18N[lang as keyof typeof WORKLIST_ROW_I18N] || WORKLIST_ROW_I18N.uz_latn;
   const contour = useContour(row.contour_id);
   const startReview = useStartReviewRow();
   const sla = slaStatus(row.status, row.sla_deadline_at);
   const areaUnit = lang === 'en' ? 'ha' : lang === 'ru' || lang === 'uz_cyrl' ? 'га' : 'ga';
+  const rowProps = clickableRowProps(() => navigate(`/applications/${row.id}`));
 
   return (
-    <tr className="hover:bg-[#F8F9FA] transition-colors">
+    <tr
+      {...rowProps}
+      className={`hover:bg-[#F8F9FA] transition-colors ${rowProps.className}`}
+      data-testid={`application-row-${row.id}`}
+    >
       <td className="p-3 font-mono font-bold whitespace-nowrap">
         <Link
           to={`/applications/${row.id}`}

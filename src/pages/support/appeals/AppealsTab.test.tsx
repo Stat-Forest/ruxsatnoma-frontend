@@ -199,3 +199,18 @@ test('answering posts {answer_text} and the panel reflects the answered state af
   await waitFor(() => expect(body).toEqual({ answer_text: 'Спасибо за обращение.' }));
   expect(await screen.findByTestId('appeal-answer')).toHaveTextContent('Спасибо за обращение.');
 });
+
+test('a click anywhere on an appeal row opens its detail panel', async () => {
+  server.use(
+    http.get('*/api/v1/admin/public/appeals', () =>
+      HttpResponse.json(page([appeal({ id: 'a-1', number: 'PA-1', status: 'new', subject: 'Row subject' })])),
+    ),
+    http.get('*/api/v1/admin/public/appeals/a-1', () =>
+      HttpResponse.json(appeal({ id: 'a-1', number: 'PA-1', status: 'new', subject: 'Row subject', contact: { phone: '+998901234567' } })),
+    ),
+  );
+  renderTab();
+
+  await userEvent.setup().click(await screen.findByText('Row subject'));
+  expect(await screen.findByTestId('appeal-contact')).toBeInTheDocument();
+});

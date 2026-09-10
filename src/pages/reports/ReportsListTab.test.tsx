@@ -9,7 +9,7 @@ import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { setupServer } from 'msw/node';
-import { MemoryRouter } from 'react-router';
+import { MemoryRouter, useLocation } from 'react-router';
 import { afterAll, afterEach, beforeAll, expect, test } from 'vitest';
 import { AuthContext, type AuthContextValue } from '../../auth/AuthContext';
 import { stubAuthActions } from '../../auth/testAuthActions';
@@ -102,6 +102,13 @@ function meWith(permissions: string[]): AuthContextValue {
   };
 }
 
+
+/** Rendered alongside the page so a row's navigation is observable. */
+function LocationProbe() {
+  const location = useLocation();
+  return <div data-testid="current-location">{location.pathname}</div>;
+}
+
 function renderTab(permissions: string[]) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   const lang = 'uz_latn' as const;
@@ -117,6 +124,7 @@ function renderTab(permissions: string[]) {
         <I18nContext.Provider value={i18n}>
           <AuthContext.Provider value={meWith(permissions)}>
             <ReportsListTab active />
+            <LocationProbe />
           </AuthContext.Provider>
         </I18nContext.Provider>
       </QueryClientProvider>
@@ -154,4 +162,13 @@ test('the create modal offers only active forms, never a draft one', async () =>
   expect(within(dialog).getByDisplayValue('Shaklni tanlang')).toBeInTheDocument();
   expect(within(dialog).getByText(/Faol shakl/)).toBeInTheDocument();
   expect(within(dialog).queryByText(/Qoralama shakl/)).not.toBeInTheDocument();
+});
+
+test('a click anywhere on a report row opens the report', async () => {
+  mockBackend({ reports: [REPORT] });
+  renderTab(['reports.view']);
+
+  const table = await screen.findByTestId('reports-table');
+  await userEvent.setup().click(await within(table).findByText('Zangiota LX'));
+  expect(screen.getByTestId('current-location')).toHaveTextContent(`/reports/${REPORT.id}`);
 });

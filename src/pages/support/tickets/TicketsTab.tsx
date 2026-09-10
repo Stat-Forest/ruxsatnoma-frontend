@@ -118,6 +118,7 @@ export function TicketsTab() {
         emptyTitle={t('support.tickets.empty')}
         emptyDescription=""
         pagination={{ currentPage: page, totalPages, onPageChange: setPage, totalRecords: total }}
+        onRowClick={(row) => setSelectedId(row.id)}
       />
 
       {creating && (

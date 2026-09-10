@@ -9,6 +9,7 @@ import { Tabs } from '../../../components/ui/Navigation';
 import { ApiError } from '../../../api/errors';
 import { useApiErrorText } from '../../../i18n/useApiErrorText';
 import { useLanguage } from '../../../i18n/useT';
+import { CLICKABLE_ROW_CLASS, clickableRowProps } from '../../../lib/rowClick';
 import { formatDateTime } from '../../applicant/format';
 import { pickName } from '../../applicant/format';
 import type { PermissionOut, UserAdminOut, UserCreatedOut } from '../api';
@@ -235,7 +236,12 @@ export function UsersPage() {
               </thead>
               <tbody>
                 {list.data.items.map((row) => (
-                  <tr key={row.id} className="border-t border-[#E4E7EA]">
+                  <tr
+                    key={row.id}
+                    {...clickableRowProps(() => setOpenUserId(row.id))}
+                    className={`border-t border-[#E4E7EA] hover:bg-[#F8F9FA] ${CLICKABLE_ROW_CLASS}`}
+                    data-testid={`user-row-${row.id}`}
+                  >
                     <td className="px-4 py-3 text-[#1A1F24]">{row.full_name}</td>
                     <td className="px-4 py-3 font-mono text-xs text-[#5A646D]">{row.login ?? L.noValue}</td>
                     <td className="px-4 py-3 text-[#5A646D]">{roleName(row.role_code)}</td>

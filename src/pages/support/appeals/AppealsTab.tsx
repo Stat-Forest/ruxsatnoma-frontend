@@ -95,6 +95,7 @@ export function AppealsTab() {
         emptyTitle={t('support.appeals.empty')}
         emptyDescription=""
         pagination={{ currentPage: page, totalPages, onPageChange: setPage, totalRecords: total }}
+        onRowClick={(row) => setSelectedId(row.id)}
       />
 
       {selectedId && <AppealDetailPanel appealId={selectedId} onClose={() => setSelectedId(null)} />}

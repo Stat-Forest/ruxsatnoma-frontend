@@ -11,6 +11,7 @@ import type { InvoiceStatus } from './api';
 import { INVOICE_STATUS_LABEL, INVOICE_STATUS_STYLE, getInvoiceStatusLabel } from './statusMeta';
 import { useInvoicesList } from './queries';
 import { InvoiceDetailDrawer } from './InvoiceDetailDrawer';
+import { CLICKABLE_ROW_CLASS, clickableRowProps } from '../../lib/rowClick';
 
 const PAGE_SIZE = 20;
 
@@ -169,8 +170,8 @@ export function InvoicesTab() {
                 {listQuery.data!.items.map((invoice) => (
                   <tr
                     key={invoice.id}
-                    className="cursor-pointer border-t border-[#E4E7EA] hover:bg-[#F8F9FA]"
-                    onClick={() => setOpenInvoiceId(invoice.id)}
+                    {...clickableRowProps(() => setOpenInvoiceId(invoice.id))}
+                    className={`border-t border-[#E4E7EA] hover:bg-[#F8F9FA] ${CLICKABLE_ROW_CLASS}`}
                     data-testid={`invoice-row-${invoice.id}`}
                   >
                     <td className="px-4 py-3 font-mono text-xs">{invoice.number}</td>

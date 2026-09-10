@@ -15,7 +15,8 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter } from 'react-router';
+import { vi } from 'vitest';
+import { MemoryRouter, useLocation } from 'react-router';
 import { http, HttpResponse } from 'msw';
 import { setupServer } from 'msw/node';
 import { AuthContext } from '../../auth/AuthContext';
@@ -101,6 +102,13 @@ beforeAll(() => server.listen({ onUnhandledRequest: 'error' }));
 afterEach(() => server.resetHandlers());
 afterAll(() => server.close());
 
+
+/** Rendered alongside the page so a row's navigation is observable. */
+function LocationProbe() {
+  const location = useLocation();
+  return <div data-testid="current-location">{location.pathname}</div>;
+}
+
 function renderPage(permissions: string[]) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
   const i18n = { lang: 'uz_latn' as const, backendLang: 'uz_latn' as const, t: (key: string) => key, setLanguage: async () => {} };
@@ -110,6 +118,7 @@ function renderPage(permissions: string[]) {
         <AuthContext.Provider value={authValue(permissions)}>
           <MemoryRouter>
             <ApplicationsListPage />
+            <LocationProbe />
           </MemoryRouter>
         </AuthContext.Provider>
       </I18nContext.Provider>
@@ -186,4 +195,27 @@ test('CSV export requests the server\'s own page-size ceiling (100), not the on-
   expect(clickSpy).toHaveBeenCalled();
   expect(requestedPageSizes).toContain('20'); // the on-screen table
   expect(requestedPageSizes).toContain('100'); // the export's own fetch
+});
+
+test('a click anywhere on a worklist row opens the application; "Ishga olish" inside it stays its own action', async () => {
+  const user = userEvent.setup();
+  const startReview = vi.fn();
+  server.use(
+    http.get('*/api/v1/applications', () =>
+      HttpResponse.json({ items: [row({ status: 'SUBMITTED' })], total: 1, page: 1, page_size: 20 }),
+    ),
+    http.post('*/api/v1/applications/:id/start-review', () => {
+      startReview();
+      return HttpResponse.json(row({ status: 'IN_REVIEW' }));
+    }),
+  );
+  renderPage(['applications.review']);
+
+  const tr = await screen.findByTestId('application-row-a1000000-0000-4000-8000-000000000001');
+  await user.click(within(tr).getByRole('button', { name: 'Ishga olish' }));
+  await waitFor(() => expect(startReview).toHaveBeenCalledTimes(1));
+  expect(screen.getByTestId('current-location')).toHaveTextContent('/');
+
+  await user.click(within(tr).getByText(/ga$/));
+  expect(screen.getByTestId('current-location')).toHaveTextContent('/applications/a1000000-0000-4000-8000-000000000001');
 });
