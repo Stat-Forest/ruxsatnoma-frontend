@@ -2706,11 +2706,12 @@ export interface paths {
         put?: never;
         /**
          * Precheck Filing
-         * @description Plan 12, R3/R10: the dry run over a filing that exists only in this body —
+         * @description The dry run over a filing that exists only in this body (plan 12, R3):
          *     the checks as data and the price, nothing stored. 200 even when a check
-         *     blocks; an incomplete filing answers `skipped` rows naming the fields; 422
-         *     `ERR-VAL-001` for an unknown reference or a document that is not the
-         *     caller's own upload; 422 `ERR-NORM-004` for an unpublished parameter.
+         *     blocks; an incomplete filing answers `skipped` rows naming the fields;
+         *     422 `ERR-VAL-001` for an unknown reference, a filing naming somebody
+         *     else's applicant, or a document that is not the caller's own upload; 422
+         *     `ERR-NORM-004` for an unpublished rule parameter.
          */
         post: operations["precheck_filing_api_v1_applications_precheck_post"];
         delete?: never;
@@ -2730,10 +2731,13 @@ export interface paths {
         put?: never;
         /**
          * Package Filing
-         * @description Plan 12, R2: mints the `application_id` the filing WILL carry and answers
-         *     the canonical bytes to sign — the client signs the bytes and posts both to
-         *     `POST /applications`. 400 `ERR-APP-001` naming the fields still to fill; 409
-         *     `ERR-GIS-005` for a contour with no published version; 422 `ERR-NORM-004`.
+         * @description The canonical bytes to sign over a filing that has no row yet, and the
+         *     `application_id` those bytes name (plan 12, R2) — the client signs the
+         *     bytes and posts both to `POST /applications`. Only a legal entity needs
+         *     this: a citizen's simple signature (#183) is taken by the server.
+         *
+         *     400 `ERR-APP-001` naming the fields still to fill; 409 `ERR-GIS-005` for a
+         *     contour with no published version; 422 `ERR-NORM-004`.
          */
         post: operations["package_filing_api_v1_applications_package_post"];
         delete?: never;
@@ -2765,20 +2769,24 @@ export interface paths {
         get: operations["list_applications_api_v1_applications_get"];
         put?: never;
         /**
-         * Create Application
-         * @description Plan 12, R1: takes the WHOLE filing (`ApplicationFileIn`) and answers 201
-         *     with the application already SUBMITTED, numbered, priced, signed and
-         *     assigned, in one transaction — there is no DRAFT. `Idempotency-Key` is
-         *     mandatory.
+         * File Application
+         * @description The whole filing in one request → 201, the application SUBMITTED with
+         *     its public number (plan 12, R1). `Idempotency-Key` is MANDATORY (422
+         *     `ERR-VAL-001` `idempotency_key_required`, 409 `ERR-SYS-005` on a
+         *     conflicting replay) — a replayed filing would mint a second number; `ctx`
+         *     is declared AFTER `actor` so the one `get_current_user` resolves once.
          *
-         *     422 `ERR-VAL-001` when the caller has no `applicants` row of their own
-         *     (`on_behalf="self"`) or names an applicant that is not theirs; 403
-         *     `ERR-ACL-001` when `on_behalf="legal"` names a legal entity the caller holds
-         *     no effective representation of; 400 `ERR-APP-001` naming the fields still to
-         *     fill; 409 `ERR-APP-004` `already_filed` for an `application_id` that already
-         *     names a row.
+         *     400 `ERR-APP-001` naming the fields still to fill (`rules_accepted` among
+         *     them); 422 `ERR-VAL-001` (`package_id_required` / `package_id_unexpected`,
+         *     an unknown reference, somebody else's applicant, a document that is not
+         *     the caller's upload); 422 `ERR-APP-003` (benefit claim); 409 `ERR-GIS-005`
+         *     (no published version); `ERR-GIS-*`/`ERR-NORM-*` for a blocking check; 422
+         *     `ERR-SIGN-001` (bad envelope, `package_changed`,
+         *     `simple_signature_not_allowed`); 409 `ERR-APP-002` with the existing
+         *     number for an overlapping active filing; 409 `ERR-APP-004` `already_filed`
+         *     for an id that already has a row.
          */
-        post: operations["create_application_api_v1_applications_post"];
+        post: operations["file_application_api_v1_applications_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -3070,19 +3078,21 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Clone Application
-         * @description Plan 12, R6: a template read, not a write — 200 with an
-         *     `ApplicationFilingIn`-shaped body carrying what the clone used to copy from
-         *     an application the caller owns, in whatever status it holds, so a herder
-         *     renewing next season's grazing does not retype the plot, the activity or
-         *     the herd. No row is created, nothing is audited.
+         * Clone Application Template
+         * @description 200 with the FILING a caller would send to refile an application they
+         *     own, in whatever status it holds (stage 12, plan 12 R6: a read, since
+         *     there is no draft to create) — so a herder renewing next season's grazing
+         *     does not retype the plot, the activity or the herd. Post it, edited or
+         *     not, to `POST /applications`.
          *
          *     `applications.create` is the gate, the same one `POST /applications`
-         *     itself uses. Ownership is the service's own check, so a holder of the code
-         *     who does not own the source gets 404 — never a 403, which would confirm
-         *     the application exists.
+         *     itself uses. Ownership is the service's own check, so a holder of the
+         *     code who does not own the source gets 404 — never a 403, which would
+         *     confirm the application exists (`service.clone_template`'s own docstring
+         *     has the field-by-field account of what is carried over and what is
+         *     deliberately left behind).
          */
-        get: operations["clone_application_api_v1_applications__application_id__clone_get"];
+        get: operations["clone_application_template_api_v1_applications__application_id__clone_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -4276,18 +4286,23 @@ export interface paths {
         put?: never;
         /**
          * Extend Permit
-         * @description С13: file a new DRAFT `kind='extension'` application against a permit
-         *     still in force — never an edit of the issued document itself
-         *     (`service.extend`'s own docstring: nothing about an issued permit is
-         *     mutable).
+         * @description С13: FILE a `kind='extension'` application against a permit still in
+         *     force, in one request (stage 12, plan 12 R6) — never an edit of the
+         *     issued document itself (`service.extend`'s own docstring: nothing about
+         *     an issued permit is mutable). The body is `POST /applications`' own; the
+         *     pre-check and the package go through `/applications/precheck` and
+         *     `/applications/package` with the same body. `Idempotency-Key` is
+         *     mandatory, as on every filing: a replay would mint a second number.
          *
          *     404 `ERR-SYS-003` for an id that does not exist or that this caller is
          *     not the holder of — the same answer either gets, so the route is not a
          *     permit-existence oracle. 409 `ERR-PERM-001` `not_extendable` when the
          *     permit is not `active` or its period has already ended (applied for
          *     afresh instead, never extended). 409 `ERR-APP-002`
-         *     `extension_already_open` with the existing draft's id when one is
-         *     already open against this permit.
+         *     `extension_already_open` with the existing application's id when one is
+         *     already open against this permit. 422 `ERR-VAL-001`
+         *     `applicant_is_not_the_holder` when the body names another applicant;
+         *     everything `POST /applications` refuses, refused here the same way.
          */
         post: operations["extend_permit_api_v1_permits__permit_id__extend_post"];
         delete?: never;
@@ -6641,6 +6656,47 @@ export interface components {
             confirmed_at: string | null;
         };
         /**
+         * ApplicationCloneOut
+         * @description `GET /applications/{id}/clone` — an `ApplicationFilingIn` the caller may
+         *     post back as it is. A subclass under its own name ON PURPOSE: a pydantic
+         *     model used both as a request body and as a response splits into
+         *     `-Input`/`-Output` variants in the OpenAPI document, and the generated
+         *     client (`openapi-typescript`) then has no `ApplicationFilingIn` at all.
+         */
+        ApplicationCloneOut: {
+            /**
+             * On Behalf
+             * @enum {string}
+             */
+            on_behalf: "self" | "legal";
+            /** Applicant Id */
+            applicant_id?: string | null;
+            /** Activity Type Id */
+            activity_type_id?: string | null;
+            /** Contour Id */
+            contour_id?: string | null;
+            /** Period From */
+            period_from?: string | null;
+            /** Period To */
+            period_to?: string | null;
+            /** Quantity */
+            quantity?: string | null;
+            /**
+             * Items
+             * @default []
+             */
+            items: components["schemas"]["ApplicationItemIn"][];
+            /** Benefit Category Item Id */
+            benefit_category_item_id?: string | null;
+            /** Benefit Certificate No */
+            benefit_certificate_no?: string | null;
+            /**
+             * Documents
+             * @default []
+             */
+            documents: components["schemas"]["ApplicationDocumentIn"][];
+        };
+        /**
          * ApplicationConclusionIn
          * @description `POST /applications/{id}/conclusion` — task 5 (3.9b): a specialist's
          *     written finding (tz/04 С8), immutable (ruling 10 — no PATCH, no DELETE; a
@@ -6870,15 +6926,11 @@ export interface components {
         };
         /**
          * ApplicationFileIn
-         * @description `POST /applications` — the whole filing (plan 12, R1): who, what, where,
-         *     when, how much, the benefit claim, the documents, the rules checkbox and the
-         *     signature. 201 with the application already SUBMITTED, numbered, priced,
-         *     signed and assigned — there is no DRAFT to create first.
-         *
-         *     `application_id` is set only on a legal-entity filing, minted by `POST
-         *     /applications/package` and echoed back here beside `pkcs7` (plan 12, R2); a
-         *     citizen's own simple signature (#183) sends neither and `file()` mints the id
-         *     itself.
+         * @description `POST /applications` — the filing (`ApplicationFilingIn`) plus what only
+         *     the act of filing carries: ruling #184's acceptance, ruling #183's optional
+         *     envelope, and — with the envelope — the `application_id` the package named
+         *     (plan 12, R2). `pkcs7` and `application_id` travel together or not at
+         *     all: the service refuses one without the other.
          */
         ApplicationFileIn: {
             /**
@@ -6902,7 +6954,7 @@ export interface components {
              * Items
              * @default []
              */
-            items?: components["schemas"]["ApplicationItemIn"][];
+            items: components["schemas"]["ApplicationItemIn"][];
             /** Benefit Category Item Id */
             benefit_category_item_id?: string | null;
             /** Benefit Certificate No */
@@ -6911,12 +6963,12 @@ export interface components {
              * Documents
              * @default []
              */
-            documents?: components["schemas"]["ApplicationDocumentIn"][];
+            documents: components["schemas"]["ApplicationDocumentIn"][];
             /**
              * Rules Accepted
              * @default false
              */
-            rules_accepted?: boolean;
+            rules_accepted: boolean;
             /** Pkcs7 */
             pkcs7?: string | null;
             /** Application Id */
@@ -6925,11 +6977,16 @@ export interface components {
         /**
          * ApplicationFilingIn
          * @description The content of a filing — who, what, where, when, how much, the benefit
-         *     claim and the documents (plan 12). The body of `POST /applications/precheck`
-         *     and `POST /applications/package`, and the base of `ApplicationFileIn`.
+         *     claim and the documents. The body of `POST /applications/precheck` and
+         *     `POST /applications/package`, and the base of `ApplicationFileIn`.
          *
-         *     `documents` carry file ids already uploaded through `POST /files`; each must
-         *     be the caller's own active upload.
+         *     `applicant_id` is meaningful only with `on_behalf="legal"`: for `"self"`
+         *     the applicant is the caller's own `applicants` row and naming somebody
+         *     else's is refused by the service with a domain reason
+         *     (`applicant_is_not_the_caller`), never silently ignored.
+         *
+         *     `documents` carry file ids already uploaded through `POST /files` (plan
+         *     12, R9); each must be the caller's own active upload.
          */
         ApplicationFilingIn: {
             /**
@@ -6953,7 +7010,7 @@ export interface components {
              * Items
              * @default []
              */
-            items?: components["schemas"]["ApplicationItemIn"][];
+            items: components["schemas"]["ApplicationItemIn"][];
             /** Benefit Category Item Id */
             benefit_category_item_id?: string | null;
             /** Benefit Certificate No */
@@ -6962,7 +7019,7 @@ export interface components {
              * Documents
              * @default []
              */
-            documents?: components["schemas"]["ApplicationDocumentIn"][];
+            documents: components["schemas"]["ApplicationDocumentIn"][];
         };
         /**
          * ApplicationItemIn
@@ -8846,9 +8903,9 @@ export interface components {
         };
         /**
          * FilingPackageOut
-         * @description `POST /applications/package` (plan 12, R2) — the id the application WILL
-         *     have (minted here, before any row exists) and the canonical bytes to sign,
-         *     base64 so the answer is JSON.
+         * @description `POST /applications/package` — the id the application WILL have (plan
+         *     12, R2: the signed bytes name it, so it is minted here and sent back with
+         *     the signature) and the canonical bytes, base64 so the answer is JSON.
          */
         FilingPackageOut: {
             /**
@@ -11078,9 +11135,10 @@ export interface components {
         };
         /**
          * PrecheckCheckOut
-         * @description One check result as a pre-check reports it (plan 12) — no row id, no
-         *     author, no timestamp: since stage 12 a pre-check writes nothing, and the
-         *     per-id one on a RETURNED application answers in the same shape.
+         * @description One check result as a pre-check reports it — no row id, no author, no
+         *     timestamp: since stage 12 a pre-check over a filing writes nothing (plan
+         *     12, R3), and the per-id one on a RETURNED application answers in the same
+         *     shape (R5) so a client has one thing to render.
          */
         PrecheckCheckOut: {
             /** Check Type */
@@ -11092,17 +11150,19 @@ export interface components {
         };
         /**
          * PrecheckOut
-         * @description `POST /applications/{id}/precheck` — what the checks said, and what it
-         *     would cost.
+         * @description `POST /applications/precheck` (a filing, stage 12) and `POST
+         *     /applications/{id}/precheck` (a RETURNED application) — what the checks
+         *     said, and what it would cost.
          *
          *     A blocking GIS or norm result is IN `checks`, as data, and the response is
          *     still 200 (design/03, and 3.7's own `calc_router` docstring): the applicant
          *     has to be able to see that the herd is over the limit, not merely be
-         *     refused. Task 5's submission runs the very same `checks.run_all` and turns
-         *     that same result into an HTTP error.
+         *     refused. The filing/submission runs the very same checks and turns that
+         *     same result into an HTTP error.
          *
-         *     `calculation` is null when the draft is not complete enough to price — the
-         *     fields still missing are named in each `skipped` check's own `details`.
+         *     `calculation` is null when the filing is not complete enough to price —
+         *     the fields still missing are named in each `skipped` check's own
+         *     `details`.
          */
         PrecheckOut: {
             /** Checks */
@@ -18985,45 +19045,6 @@ export interface operations {
             };
         };
     };
-    list_applications_api_v1_applications_get: {
-        parameters: {
-            query?: {
-                status?: ("SUBMITTED" | "IN_REVIEW" | "PENDING_INFO" | "RETURNED" | "APPROVED" | "INVOICED" | "PAID" | "PERMIT_ISSUED" | "REJECTED" | "CANCELLED" | "EXPIRED_UNPAID" | "CLOSED" | "ARCHIVED") | null;
-                activity_type_id?: string | null;
-                contour_id?: string | null;
-                applicant_id?: string | null;
-                number?: string | null;
-                period_from?: string | null;
-                period_to?: string | null;
-                page?: number;
-                page_size?: number;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Page_ApplicationOut_"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
     precheck_filing_api_v1_applications_precheck_post: {
         parameters: {
             query?: never;
@@ -19090,7 +19111,46 @@ export interface operations {
             };
         };
     };
-    create_application_api_v1_applications_post: {
+    list_applications_api_v1_applications_get: {
+        parameters: {
+            query?: {
+                status?: ("SUBMITTED" | "IN_REVIEW" | "PENDING_INFO" | "RETURNED" | "APPROVED" | "INVOICED" | "PAID" | "PERMIT_ISSUED" | "REJECTED" | "CANCELLED" | "EXPIRED_UNPAID" | "CLOSED" | "ARCHIVED") | null;
+                activity_type_id?: string | null;
+                contour_id?: string | null;
+                applicant_id?: string | null;
+                number?: string | null;
+                period_from?: string | null;
+                period_to?: string | null;
+                page?: number;
+                page_size?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Page_ApplicationOut_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    file_application_api_v1_applications_post: {
         parameters: {
             query?: never;
             header?: never;
@@ -19417,7 +19477,7 @@ export interface operations {
             };
         };
     };
-    clone_application_api_v1_applications__application_id__clone_get: {
+    clone_application_template_api_v1_applications__application_id__clone_get: {
         parameters: {
             query?: never;
             header?: never;
@@ -19434,7 +19494,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ApplicationFilingIn"];
+                    "application/json": components["schemas"]["ApplicationCloneOut"];
                 };
             };
             /** @description Validation Error */
@@ -20992,7 +21052,11 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ApplicationFileIn"];
+            };
+        };
         responses: {
             /** @description Successful Response */
             201: {
