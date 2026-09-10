@@ -1763,8 +1763,8 @@ export const kaa = {
   'wizard.step3.selectPrompt': 'Tańlań...',
   'wizard.step3.addLivestock': 'Sharwa túrin qosıw',
   'wizard.step3.quantity': 'Muǵdar',
-  'wizard.step3.benefitCategory': 'Jeńillik kategoriyası (bar bolsa)',
-  'wizard.step3.noBenefit': 'Jeńilliksiz',
+  'wizard.step4.benefitCategory': 'Jeńillik kategoriyası (bar bolsa)',
+  'wizard.step4.noBenefit': 'Jeńilliksiz',
   'wizard.step3.estimatedPrice': 'Shama menen baha',
   'wizard.step3.pricePrompt': 'Bahanı kóriw ushın aldın maydan, dáwir hám muǵdardı kiritiń.',
   'wizard.step3.calculating': 'Esaplanbaqta...',
@@ -1781,8 +1781,8 @@ export const kaa = {
   // certificate number. ---
   'wizard.step2.seasonOutOfRange': 'Tańlanǵan sáne usı iskerlik hám kontur ushın belgilengen máwsımnan sırtta.',
   'wizard.step2.minTermNotice': 'Dáwir múddeti kem degende {days} kún bolıwı kerek.',
-  'wizard.step3.certificateNumber': 'Gúwalik nomeri',
-  'wizard.step3.certificateNumberRequired': 'Tańlanǵan jeńillik kategoriyası ushın gúwalik nomeri kiritiliwi shárt.',
+  'wizard.step4.certificateNumber': 'Gúwalik nomeri',
+  'wizard.step4.certificateNumberRequired': 'Tańlanǵan jeńillik kategoriyası ushın gúwalik nomeri kiritiliwi shárt.',
   'wizard.calendar.heading': 'Bánt bolıw kalendarı',
   'wizard.calendar.legendFree': 'Bos',
   'wizard.calendar.legendPartial': 'Jarım-jartılay bánt',
@@ -1808,6 +1808,9 @@ export const kaa = {
   'wizard.step4.uploadError': 'Hújjetti júklewde qátelik júz berdi.',
   'wizard.step4.notConfigured': 'Hújjet túrleri ele sazlanbaǵan — házirshe fayl biriktiriw múmkin emes.',
   'wizard.step4.defaultDocName': 'Hújjet',
+  'wizard.step4.benefitsGroup': "Jeńillikler",
+  'wizard.step4.addDoc': "Hújjet qosıw",
+  'wizard.step4.pendingRowHint': "Fayl tańlań yamasa qatardı alıp taslań.",
   'wizard.step5.title': 'Jiberiw',
   'wizard.step5.desc': 'Tekseriw hám ERI',
   'wizard.step5.heading': '5. Juwmaqlawshı tekseriw',
@@ -2041,5 +2044,5 @@ export const kaa = {
   'wizard.step5.signDesc':
     'Arzanı jiberiw ushın tómendegi túymeni basıń — elektron qol tańba talap etilmeydi, sebebi siz OneID yamasa E-IMZO arqalı kirdińiz.',
   'wizard.step4.benefitProofOk': 'Jeńillikti tastıyıqlawshı hújjet qosıldı.',
-  'wizard.step4.benefitProofRequired': 'Tańlanǵan jeńillik kategoriyası ushın tastıyıqlawshı hújjet qosılıwı shárt.',
+  'wizard.step4.benefitProofOptional': "Gúwalıqtıń nusqasın biriktiriw ıqtıyarıy.",
 };

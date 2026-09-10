@@ -1958,8 +1958,8 @@ export const ru = {
   'wizard.step3.selectPrompt': 'Выберите...',
   'wizard.step3.addLivestock': 'Добавить вид скота',
   'wizard.step3.quantity': 'Количество',
-  'wizard.step3.benefitCategory': 'Категория льготы (при наличии)',
-  'wizard.step3.noBenefit': 'Без льготы',
+  'wizard.step4.benefitCategory': 'Категория льготы (при наличии)',
+  'wizard.step4.noBenefit': 'Без льготы',
   'wizard.step3.estimatedPrice': 'Ориентировочная стоимость',
   'wizard.step3.pricePrompt': 'Для расчета стоимости укажите площадь, период и количество.',
   'wizard.step3.calculating': 'Выполняется расчет...',
@@ -1976,8 +1976,8 @@ export const ru = {
   // certificate number. ---
   'wizard.step2.seasonOutOfRange': 'Выбранная дата вне сезона, установленного для этого вида деятельности и участка.',
   'wizard.step2.minTermNotice': 'Срок периода должен быть не менее {days} дней.',
-  'wizard.step3.certificateNumber': 'Номер удостоверения',
-  'wizard.step3.certificateNumberRequired': 'Для выбранной категории льготы необходимо указать номер удостоверения.',
+  'wizard.step4.certificateNumber': 'Номер удостоверения',
+  'wizard.step4.certificateNumberRequired': 'Для выбранной категории льготы необходимо указать номер удостоверения.',
   'wizard.calendar.heading': 'Календарь занятости',
   'wizard.calendar.legendFree': 'Свободно',
   'wizard.calendar.legendPartial': 'Частично занято',
@@ -2003,6 +2003,9 @@ export const ru = {
   'wizard.step4.uploadError': 'Произошла ошибка при загрузке документа.',
   'wizard.step4.notConfigured': 'Типы документов еще не настроены — вложение файлов пока недоступно.',
   'wizard.step4.defaultDocName': 'Документ',
+  'wizard.step4.benefitsGroup': "Льготы",
+  'wizard.step4.addDoc': "Добавить документ",
+  'wizard.step4.pendingRowHint': "Выберите файл или удалите строку.",
   'wizard.step5.title': 'Отправка',
   'wizard.step5.desc': 'Проверка и ЭЦП',
   'wizard.step5.heading': '5. Итоговая проверка',
@@ -2230,5 +2233,5 @@ export const ru = {
   'wizard.step5.signDesc':
     'Для подачи заявки нажмите кнопку ниже — электронная подпись не требуется, так как вы вошли через OneID или E-IMZO.',
   'wizard.step4.benefitProofOk': 'Документ, подтверждающий льготу, прикреплён.',
-  'wizard.step4.benefitProofRequired': 'Для выбранной категории льготы необходимо прикрепить подтверждающий документ.',
+  'wizard.step4.benefitProofOptional': "Скан удостоверения прикреплять необязательно.",
 };
