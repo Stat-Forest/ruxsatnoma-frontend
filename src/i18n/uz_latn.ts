@@ -915,6 +915,9 @@ export const uz_latn = {
 
   'gis.map.basemapScheme': 'Xarita',
   'gis.map.basemapSatellite': 'Sputnik',
+  'gis.map.loading': 'Yuklanmoqda...',
+  'gis.map.zoomInHint': 'Konturlarni koʻrish uchun xaritani kattalashtiring',
+  'gis.map.contourCount': '{n} ta kontur',
 
   'gis.versions.checks.title': 'Topologik tekshiruvlar',
   'gis.versions.checks.run': 'Tekshirish',
@@ -957,6 +960,8 @@ export const uz_latn = {
   'gis.contours.listTitle': 'Konturlar',
   'gis.contours.newContour': 'Yangi kontur',
   'gis.contours.searchPlaceholder': "Kontur raqami bo'yicha qidirish...",
+  'gis.contours.filterOrganization': 'Tashkilot boʻyicha filtr',
+  'gis.contours.allOrganizations': 'Barcha tashkilotlar',
   'gis.contours.loading': 'Yuklanmoqda...',
   'gis.contours.loadFailed': "Konturlar ro'yxati yuklanmadi",
   'gis.contours.empty': 'Konturlar topilmadi',
