@@ -193,6 +193,26 @@ test('RequireAuth refuses a route whose permission the user lacks', async () => 
   expect(await screen.findByTestId('forbidden')).toBeInTheDocument();
 });
 
+test('a staff role reaching the wizard without applications.create lands on the dashboard, not a refusal', async () => {
+  // The landing's "Ariza topshirish" buttons link straight to
+  // `/my/applications/new` for everyone, signed in as whatever they are. A
+  // leshoz inspector clicking one is not trying to break in — "no right to
+  // this page" is the wrong answer to a button the public site shows them.
+  server.use(
+    http.get('*/auth/me', () =>
+      HttpResponse.json({ ...ME, permissions: ['applications.view_any'], is_superuser: false }),
+    ),
+    http.get('*/api/v1/applications', () => HttpResponse.json({ items: [], total: 0, page: 1, page_size: 100 })),
+    http.get('*/api/v1/permits', () => HttpResponse.json({ items: [], total: 0, page: 1, page_size: 100 })),
+    http.get('*/api/v1/invoices', () => HttpResponse.json({ items: [], total: 0, page: 1, page_size: 100 })),
+    http.get('*/api/v1/refs/activity-types', () => HttpResponse.json([])),
+  );
+  await renderAt('/my/applications/new');
+  await waitFor(() => expect(router.state.location.pathname).toBe('/'));
+  expect(await screen.findByTestId('app-shell')).toBeInTheDocument();
+  expect(screen.queryByTestId('forbidden')).not.toBeInTheDocument();
+});
+
 test('the superuser passes a gate for a code nobody granted', async () => {
   server.use(
     http.get('*/auth/me', () => HttpResponse.json({ ...ME, permissions: [], is_superuser: true })),

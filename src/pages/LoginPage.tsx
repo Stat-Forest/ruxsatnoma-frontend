@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import type { FormEvent } from 'react';
-import { useLocation, useNavigate, useSearchParams } from 'react-router';
+import { Navigate, useLocation, useNavigate, useSearchParams } from 'react-router';
 import { ArrowLeft, ArrowRight, Clock, FileText, QrCode, ShieldCheck, Trees } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { FormField, Input } from '../components/ui/FormControls';
 import { ApiError, RATE_LIMITED } from '../api/errors';
+import { FullPageSpinner } from '../auth/RequireAuth';
 import { useAuth } from '../auth/useAuth';
 import { useLanguage, useT } from '../i18n/useT';
 import { LANDING_PATHS, landingUrl } from '../lib/landing';
@@ -121,7 +122,7 @@ function TreeLine({ className = '' }: { className?: string }) {
 }
 
 export function LoginPage() {
-  const { submitPassword, verifyMfa, startOneId, loginViaEimzo } = useAuth();
+  const { me, loading, submitPassword, verifyMfa, startOneId, loginViaEimzo } = useAuth();
   const t = useT();
   const { backendLang, setLanguage } = useLanguage();
   const navigate = useNavigate();
@@ -159,6 +160,16 @@ export function LoginPage() {
   const [errorKind, setErrorKind] = useState<ErrorKind>(() =>
     searchParams.get('error') === 'oneid' ? 'oneid' : null,
   );
+
+  // Placed after every hook above so the hook order is the same on every
+  // render. A session still being checked gets the same spinner
+  // `RequireAuth` shows, not the form: rendering the form first and swapping
+  // it out a moment later would flash a sign-in screen at someone who is
+  // already signed in. Once the check answers "signed in", the form is a
+  // dead end — every route out of it re-signs them in — so they go where a
+  // fresh login would have sent them: `next`, the dashboard by default.
+  if (loading) return <FullPageSpinner />;
+  if (me) return <Navigate to={next} replace />;
 
   async function handlePasswordSubmit(e: FormEvent) {
     e.preventDefault();
