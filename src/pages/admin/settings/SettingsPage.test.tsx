@@ -310,6 +310,76 @@ test('the nine public-site keys land in one group, separate from the unrelated c
   expect(within(publicGroup).getByRole('checkbox')).toBeInTheDocument();
 });
 
+// Stage 10, F3 (ruling #184): `site_rules_url`'s own label, hint and
+// client-side URL validation.
+const RULES_URL_KEY = 'site_rules_url';
+const RULES_URL_SETTING = {
+  key: RULES_URL_KEY,
+  value: 'https://lex.uz/docs/-2770948',
+  default: 'https://lex.uz/docs/-2770948',
+  description: 'The rules a citizen accepts before signing (ruling #184)',
+  overridden: false,
+};
+
+test('site_rules_url gets a human label and a hint that the applicant checkbox links here', async () => {
+  mockList([...SETTINGS, RULES_URL_SETTING]);
+  renderPage();
+
+  const urlRow = await row(RULES_URL_KEY);
+  expect(within(urlRow).getByText(L.siteRulesUrlLabel)).toBeInTheDocument();
+  expect(within(urlRow).getByText(L.siteRulesUrlHint)).toBeInTheDocument();
+  // The raw key is still shown too — this screen never hides it, only adds
+  // a label above it.
+  expect(within(urlRow).getByText(RULES_URL_KEY)).toBeInTheDocument();
+});
+
+test('site_rules_url refuses a value that is not an absolute http(s) URL, and sends nothing', async () => {
+  mockList([...SETTINGS, RULES_URL_SETTING]);
+  let puts = 0;
+  server.use(
+    http.put('*/api/v1/admin/settings/:key', () => {
+      puts += 1;
+      return HttpResponse.json(RULES_URL_SETTING);
+    }),
+  );
+  const user = userEvent.setup();
+  renderPage();
+
+  const urlRow = await row(RULES_URL_KEY);
+  const input = within(urlRow).getByRole('textbox');
+  await user.clear(input);
+  await user.type(input, 'lex.uz/docs/-2770948');
+  await user.click(within(urlRow).getByTestId(`setting-save-${RULES_URL_KEY}`));
+
+  const error = await within(urlRow).findByTestId(`setting-error-${RULES_URL_KEY}`);
+  expect(error).toHaveTextContent(L.invalidUrl);
+  expect(puts).toBe(0);
+});
+
+test('site_rules_url saves a valid absolute URL', async () => {
+  mockList([...SETTINGS, RULES_URL_SETTING]);
+  let body: unknown;
+  const newUrl = 'https://lex.uz/docs/1234567';
+  server.use(
+    http.put('*/api/v1/admin/settings/:key', async ({ request }) => {
+      body = await request.json();
+      return HttpResponse.json({ ...RULES_URL_SETTING, value: newUrl, overridden: true });
+    }),
+  );
+  const user = userEvent.setup();
+  renderPage();
+
+  const urlRow = await row(RULES_URL_KEY);
+  const input = within(urlRow).getByRole('textbox');
+  await user.clear(input);
+  await user.type(input, newUrl);
+  await user.click(within(urlRow).getByTestId(`setting-save-${RULES_URL_KEY}`));
+
+  await within(urlRow).findByTestId(`setting-saved-${RULES_URL_KEY}`);
+  expect(body).toEqual({ value: newUrl });
+  expect(within(urlRow).queryByTestId(`setting-error-${RULES_URL_KEY}`)).not.toBeInTheDocument();
+});
+
 test('the season windows editor names its shape, instead of the generic JSON hint', async () => {
   mockList([...SETTINGS, ...SITE_SETTINGS]);
   renderPage();
