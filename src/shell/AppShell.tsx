@@ -112,7 +112,7 @@ export function AppShell() {
           className="relative flex items-center justify-center h-11 w-11 text-[#5A646D] hover:bg-[#F8F9FA] rounded-md shrink-0"
         >
           <Bell className="w-5 h-5" />
-          {unreadQuery.data !== undefined && (
+          {unreadCount > 0 && (
             <span
               data-testid="unread-badge"
               className="absolute top-1.5 right-1.5 min-w-4 h-4 px-1 bg-[#B91C1C] text-white text-[10px] font-bold rounded-full flex items-center justify-center"

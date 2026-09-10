@@ -75,6 +75,16 @@ test('the unread badge comes from the server, not from a guess', async () => {
   expect(await screen.findByTestId('unread-badge')).toHaveTextContent('3');
 });
 
+test('a zero unread count shows no badge at all, not a red "0"', async () => {
+  let count = 3;
+  server.use(http.get('*/notifications/unread-count', () => HttpResponse.json({ count })));
+  await renderShell();
+  expect(await screen.findByTestId('unread-badge')).toHaveTextContent('3');
+  count = 0;
+  await userEvent.click(screen.getByTestId('refresh-notifications'));
+  await waitFor(() => expect(screen.queryByTestId('unread-badge')).not.toBeInTheDocument());
+});
+
 test('a session that expires mid-session lands on the login page, not on a broken screen', async () => {
   await renderShell();
   server.use(
