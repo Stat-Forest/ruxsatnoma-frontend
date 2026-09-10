@@ -3,6 +3,7 @@ import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { setupServer } from 'msw/node';
+import { vi } from 'vitest';
 import { AnnouncementsPage } from './AnnouncementsPage';
 import { DICTIONARIES, I18nContext, type UiLanguage } from '../../../i18n/context';
 import { LABELS } from './labels';
@@ -515,4 +516,54 @@ test('a click anywhere on an announcement row opens its editor; an archived row 
   const draftRow = screen.getByTestId(`announcement-row-${DRAFT}`);
   await user.click(within(draftRow).getByTestId('announcement-status'));
   expect(await screen.findByRole('heading', { name: 'Eʼlonni tahrirlash' })).toBeInTheDocument();
+});
+
+test('the Excel button asks the server for the export with the applied filter, never paging the list itself', async () => {
+  mockBackend();
+  const listCalls: string[] = [];
+  let exportUrl: URL | null = null;
+  server.use(
+    http.get('*/api/v1/admin/announcements', ({ request }) => {
+      listCalls.push(request.url);
+      return HttpResponse.json(page(LIST));
+    }),
+    http.get('*/api/v1/admin/announcements/export.xlsx', ({ request }) => {
+      exportUrl = new URL(request.url);
+      return HttpResponse.text('xlsx-bytes', {
+        headers: {
+          'Content-Disposition': 'attachment; filename="elonlar-2026-09-11.xlsx"',
+          'X-Export-Total': '3',
+          'X-Export-Rows': '3',
+          'X-Export-Truncated': 'false',
+        },
+      });
+    }),
+  );
+
+  const createObjectURL = vi.fn().mockReturnValue('blob:mock');
+  const revokeObjectURL = vi.fn();
+  URL.createObjectURL = createObjectURL;
+  URL.revokeObjectURL = revokeObjectURL;
+  const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+
+  const user = userEvent.setup();
+  renderPage();
+  await screen.findByTestId(`announcement-row-${DRAFT}`);
+
+  const statusSelect = screen.getByLabelText(LABELS.uz_latn.filterStatus);
+  await user.selectOptions(statusSelect, 'draft');
+  await screen.findByTestId(`announcement-row-${DRAFT}`);
+  const listCallsBefore = listCalls.length;
+
+  await user.click(screen.getByTestId('export-xlsx'));
+
+  await waitFor(() => expect(createObjectURL).toHaveBeenCalled());
+  expect(clickSpy).toHaveBeenCalled();
+  expect(listCalls.length).toBe(listCallsBefore); // the export never re-fetches the list
+  expect(exportUrl!.searchParams.get('status')).toBe('draft');
+  expect(exportUrl!.searchParams.get('lang')).toBe('uz_latn');
+  expect(exportUrl!.searchParams.has('page')).toBe(false);
+  expect(exportUrl!.searchParams.has('page_size')).toBe(false);
+
+  clickSpy.mockRestore();
 });

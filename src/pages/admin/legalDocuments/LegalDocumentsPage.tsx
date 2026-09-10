@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { ExternalLink, FileText, Loader2, Plus } from 'lucide-react';
 import { Button } from '../../../components/ui/button';
+import { ExportXlsxButton } from '../../../components/ui/ExportXlsxButton';
 import { FormField, Select } from '../../../components/ui/FormControls';
 import { Pagination } from '../../../components/ui/Navigation';
 import { Modal } from '../../../components/ui/Overlay';
@@ -127,6 +128,12 @@ export function LegalDocumentsPage() {
             ]}
           />
         </FormField>
+        <div className="mt-4 flex justify-end">
+          <ExportXlsxButton
+            path="/api/v1/admin/legal-documents"
+            query={{ status, page, page_size: PAGE_SIZE }}
+          />
+        </div>
       </div>
 
       {list.isPending && (

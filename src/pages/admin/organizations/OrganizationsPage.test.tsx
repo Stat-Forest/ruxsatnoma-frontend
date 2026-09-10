@@ -8,10 +8,11 @@
  * every child assertion here fails — which is the point.
  */
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { render, screen, within } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { setupServer } from 'msw/node';
+import { vi } from 'vitest';
 import { OrganizationsPage } from './OrganizationsPage';
 import { DICTIONARIES, I18nContext, type UiLanguage } from '../../../i18n/context';
 import { ru, uz_latn, uz_cyrl, en, kaa } from './labels';
@@ -623,4 +624,50 @@ test('a click anywhere on an organisation row opens its editor; the expand toggl
   const rowEl = await screen.findByTestId(`org-row-${LESHOZ_A}`);
   await user.click(within(rowEl).getByTestId('org-kind'));
   expect(await screen.findByTestId('field-name-uz_latn')).toBeInTheDocument();
+});
+
+test('the Excel button asks the server for the export, never paging the tree itself', async () => {
+  const treeCalls: string[] = [];
+  let exportUrl: URL | null = null;
+  server.use(
+    http.get('*/api/v1/refs/organizations', ({ request }) => {
+      treeCalls.push(request.url);
+      const url = new URL(request.url);
+      const parentId = url.searchParams.get('parent_id');
+      const items = ORGS.filter((o) => (parentId ? o.parent_id === parentId : o.parent_id === null));
+      return HttpResponse.json({ items, total: items.length, page: 1, page_size: 100 });
+    }),
+    http.get('*/api/v1/refs/organizations/export.xlsx', ({ request }) => {
+      exportUrl = new URL(request.url);
+      return HttpResponse.text('xlsx-bytes', {
+        headers: {
+          'Content-Disposition': 'attachment; filename="tashkilotlar-2026-09-11.xlsx"',
+          'X-Export-Total': '5',
+          'X-Export-Rows': '5',
+          'X-Export-Truncated': 'false',
+        },
+      });
+    }),
+  );
+
+  const createObjectURL = vi.fn().mockReturnValue('blob:mock');
+  const revokeObjectURL = vi.fn();
+  URL.createObjectURL = createObjectURL;
+  URL.revokeObjectURL = revokeObjectURL;
+  const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+
+  const { user } = renderPage();
+  await screen.findByTestId(`org-row-${AGENCY}`);
+  const callsBefore = treeCalls.length;
+
+  await user.click(screen.getByTestId('export-xlsx'));
+
+  await waitFor(() => expect(createObjectURL).toHaveBeenCalled());
+  expect(clickSpy).toHaveBeenCalled();
+  expect(treeCalls.length).toBe(callsBefore); // the export never re-walks the tree
+  expect(exportUrl!.searchParams.get('lang')).toBe('uz_latn');
+  expect(exportUrl!.searchParams.has('page')).toBe(false);
+  expect(exportUrl!.searchParams.has('page_size')).toBe(false);
+
+  clickSpy.mockRestore();
 });

@@ -16,6 +16,7 @@ import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { setupServer } from 'msw/node';
+import { vi } from 'vitest';
 import { TemplatesPage } from './TemplatesPage';
 import { I18nContext } from '../../../i18n/context';
 import type { TemplateOut } from './api';
@@ -305,4 +306,53 @@ test('a click anywhere on a template row opens its editor', async () => {
 
   await user.click(await screen.findByText('v2'));
   expect(await screen.findByTestId('template-body-uz_latn')).toBeInTheDocument();
+});
+
+test('the Excel button asks the server for the export with the applied filters, never paging the list itself', async () => {
+  mockList([template({ id: ID_A, event_code: 'application.submitted', channel: 'sms' })]);
+  const listCalls: string[] = [];
+  let exportUrl: URL | null = null;
+  server.use(
+    http.get('*/api/v1/admin/notification-templates', ({ request }) => {
+      listCalls.push(request.url);
+      return HttpResponse.json({ items: store, total: store.length, page: 1, page_size: 20 });
+    }),
+    http.get('*/api/v1/admin/notification-templates/export.xlsx', ({ request }) => {
+      exportUrl = new URL(request.url);
+      return HttpResponse.text('xlsx-bytes', {
+        headers: {
+          'Content-Disposition': 'attachment; filename="xabar-shablonlari-2026-09-11.xlsx"',
+          'X-Export-Total': '1',
+          'X-Export-Rows': '1',
+          'X-Export-Truncated': 'false',
+        },
+      });
+    }),
+  );
+
+  const createObjectURL = vi.fn().mockReturnValue('blob:mock');
+  const revokeObjectURL = vi.fn();
+  URL.createObjectURL = createObjectURL;
+  URL.revokeObjectURL = revokeObjectURL;
+  const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+
+  const user = userEvent.setup();
+  renderPage();
+  await screen.findByText('application.submitted');
+  await user.type(screen.getByTestId('filter-event-code'), 'application.submitted');
+  await user.click(screen.getByRole('button', { name: 'Qoʻllash' }));
+  await screen.findByText('application.submitted');
+  const listCallsBefore = listCalls.length;
+
+  await user.click(screen.getByTestId('export-xlsx'));
+
+  await waitFor(() => expect(createObjectURL).toHaveBeenCalled());
+  expect(clickSpy).toHaveBeenCalled();
+  expect(listCalls.length).toBe(listCallsBefore); // the export never re-fetches the list
+  expect(exportUrl!.searchParams.get('event_code')).toBe('application.submitted');
+  expect(exportUrl!.searchParams.get('lang')).toBe('uz_latn');
+  expect(exportUrl!.searchParams.has('page')).toBe(false);
+  expect(exportUrl!.searchParams.has('page_size')).toBe(false);
+
+  clickSpy.mockRestore();
 });

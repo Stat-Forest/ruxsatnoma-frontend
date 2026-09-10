@@ -3,6 +3,7 @@ import { Link } from 'react-router';
 import { Plus, Search } from 'lucide-react';
 import { Alert } from '../../../components/ui/Feedback';
 import { Button } from '../../../components/ui/button';
+import { ExportXlsxButton } from '../../../components/ui/ExportXlsxButton';
 import { FormField, Input, Select, Textarea } from '../../../components/ui/FormControls';
 import { Modal } from '../../../components/ui/Overlay';
 import { Tabs } from '../../../components/ui/Navigation';
@@ -209,6 +210,7 @@ export function UsersPage() {
           >
             {L.reset}
           </Button>
+          <ExportXlsxButton path="/api/v1/admin/users" query={toParams(applied, page)} />
         </div>
       </section>
 
