@@ -409,3 +409,131 @@ test.each([
   expect(screen.getByTestId('search-kind-permits')).toHaveTextContent(dict['search.kindPermits']);
 });
 
+test('submitting search filter sends q and status to the backend', async () => {
+  let lastParams: URLSearchParams | null = null;
+  server.use(
+    http.get('*/api/v1/search', ({ request }) => {
+      lastParams = new URL(request.url).searchParams;
+      return HttpResponse.json(page([]));
+    }),
+    http.get('*/api/v1/search/profiles', () => HttpResponse.json([])),
+    http.get('*/api/v1/refs/organizations', () => HttpResponse.json(page([]))),
+    http.get('*/api/v1/refs/activity-types', () => HttpResponse.json([])),
+    http.get('*/api/v1/search/exports', () => HttpResponse.json([])),
+  );
+
+  const user = userEvent.setup();
+  renderSearchPage();
+
+  const queryInput = screen.getByPlaceholderText('search.filters.queryPlaceholder');
+  await user.type(queryInput, '01a08975{Enter}');
+
+  await waitFor(() => expect(lastParams?.get('q')).toBe('01a08975'));
+});
+
+test('selecting status dropdown immediately updates query with uppercase status enum', async () => {
+  let lastStatus: string | null = null;
+  server.use(
+    http.get('*/api/v1/search', ({ request }) => {
+      lastStatus = new URL(request.url).searchParams.get('status');
+      return HttpResponse.json(page([]));
+    }),
+    http.get('*/api/v1/search/profiles', () => HttpResponse.json([])),
+    http.get('*/api/v1/refs/organizations', () => HttpResponse.json(page([]))),
+    http.get('*/api/v1/refs/activity-types', () => HttpResponse.json([])),
+    http.get('*/api/v1/search/exports', () => HttpResponse.json([])),
+  );
+
+  const user = userEvent.setup();
+  renderSearchPage();
+
+  const selects = screen.getAllByRole('combobox');
+  const statusSelect = selects[0]; // first select is status
+  await user.selectOptions(statusSelect, 'DRAFT');
+
+  await waitFor(() => expect(lastStatus).toBe('DRAFT'));
+});
+
+test('clicking reset clears applied filters and resets the list', async () => {
+  let lastParams: URLSearchParams | null = null;
+  server.use(
+    http.get('*/api/v1/search', ({ request }) => {
+      lastParams = new URL(request.url).searchParams;
+      return HttpResponse.json(page([]));
+    }),
+    http.get('*/api/v1/search/profiles', () => HttpResponse.json([])),
+    http.get('*/api/v1/refs/organizations', () => HttpResponse.json(page([]))),
+    http.get('*/api/v1/refs/activity-types', () => HttpResponse.json([])),
+    http.get('*/api/v1/search/exports', () => HttpResponse.json([])),
+  );
+
+  const user = userEvent.setup();
+  renderSearchPage();
+
+  const queryInput = screen.getByPlaceholderText('search.filters.queryPlaceholder');
+  await user.type(queryInput, 'query-to-reset');
+  await user.click(screen.getByText('search.actions.search'));
+  await waitFor(() => expect(lastParams?.get('q')).toBe('query-to-reset'));
+
+  await user.click(screen.getByText('search.actions.reset'));
+  await waitFor(() => expect(lastParams?.get('q')).toBeNull());
+  expect(queryInput).toHaveValue('');
+});
+
+test('pressing Enter in profile name input triggers save instead of search', async () => {
+  let created: unknown = null;
+  server.use(
+    http.get('*/api/v1/search', () => HttpResponse.json(page([]))),
+    http.get('*/api/v1/search/profiles', () => HttpResponse.json([])),
+    http.post('*/api/v1/search/profiles', async ({ request }) => {
+      created = await request.json();
+      return HttpResponse.json(savedFilter({ name: 'Saved via Enter' }), { status: 201 });
+    }),
+    http.get('*/api/v1/refs/organizations', () => HttpResponse.json(page([]))),
+    http.get('*/api/v1/refs/activity-types', () => HttpResponse.json([])),
+    http.get('*/api/v1/search/exports', () => HttpResponse.json([])),
+  );
+
+  const user = userEvent.setup();
+  renderSearchPage();
+
+  await user.click(screen.getByText('search.profiles.saveCurrent'));
+  const row = screen.getByTestId('save-profile-row');
+  await user.type(within(row).getByRole('textbox'), 'Saved via Enter{Enter}');
+
+  await waitFor(() => expect(created).toMatchObject({ name: 'Saved via Enter' }));
+});
+
+test('applying profile with lowercase status selects the uppercase option in the select dropdown', async () => {
+  let lastStatus: string | null = null;
+  server.use(
+    http.get('*/api/v1/search', ({ request }) => {
+      lastStatus = new URL(request.url).searchParams.get('status');
+      return HttpResponse.json(page([]));
+    }),
+    http.get('*/api/v1/search/profiles', () =>
+      HttpResponse.json([
+        savedFilter({
+          id: 'f-draft-lower',
+          name: 'Draft profile',
+          kind: 'applications',
+          params: { status: 'draft' },
+        }),
+      ]),
+    ),
+    http.get('*/api/v1/refs/organizations', () => HttpResponse.json(page([]))),
+    http.get('*/api/v1/refs/activity-types', () => HttpResponse.json([])),
+    http.get('*/api/v1/search/exports', () => HttpResponse.json([])),
+  );
+
+  const user = userEvent.setup();
+  renderSearchPage();
+
+  const profileBtn = await screen.findByText('Draft profile');
+  await user.click(profileBtn);
+
+  await waitFor(() => expect(lastStatus).toBe('DRAFT'));
+  const selects = screen.getAllByRole('combobox');
+  expect(selects[0]).toHaveValue('DRAFT');
+});
+

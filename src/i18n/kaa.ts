@@ -1484,6 +1484,7 @@ export const kaa = {
   'search.filters.query': 'Soraw',
   'search.filters.queryPlaceholder': 'Nomer, F.I.Sh., telefon',
   'search.filters.status': 'Jaǵday',
+  'search.filters.allStatuses': 'Barlıq jaǵdaylar',
   'search.filters.organization': 'Shólkem',
   'search.filters.allOrganizations': 'Barlıq shólkemler',
   'search.filters.activityType': 'Iskerlik túri',

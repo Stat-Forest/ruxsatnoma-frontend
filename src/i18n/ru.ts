@@ -1755,6 +1755,7 @@ export const ru = {
   'search.filters.query': 'Запрос',
   'search.filters.queryPlaceholder': 'Номер, ФИО, телефон',
   'search.filters.status': 'Статус',
+  'search.filters.allStatuses': 'Все статусы',
   'search.filters.organization': 'Организация',
   'search.filters.allOrganizations': 'Все организации',
   'search.filters.activityType': 'Вид деятельности',
