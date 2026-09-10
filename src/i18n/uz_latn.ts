@@ -38,7 +38,6 @@ export const uz_latn = {
   'shell.closeMenu': 'Yopish',
   'shell.refresh': 'Yangilash',
   'shell.logout': 'Chiqish',
-  'login.title': 'Tizimga kirish',
   'login.loginLabel': 'Login',
   'login.passwordLabel': 'Parol',
   'login.codeLabel': 'Tasdiqlash kodi',
@@ -67,6 +66,26 @@ export const uz_latn = {
     'Sinov rejimi: kalit tekshirilmaydi. Haqiqiy E-IMZO NIC dan VPN kaliti olingach yoqiladi.',
   'login.eimzoRealHint':
     "Ulangan E-IMZO kalitingiz orqali tizimga kiring. Kalit parolini E-IMZO dasturining o'zi so'raydi.",
+  // The page frame (2026-09-10) — see the matching comment in `ru.ts`.
+  'login.brandName': 'ruxsatnoma-urmon.uz',
+  'login.brandTagline': 'Oʻrmon xoʻjaligi davlat portali',
+  'login.backHome': 'Bosh sahifa',
+  'login.eyebrow': 'Shaxsiy kabinet',
+  'login.heading': 'Shaxsiy kabinetga kirish',
+  'login.lead':
+    'Oʻrmon fondi yerlaridan foydalanish uchun arizalar, koʻrib chiqish jarayoni va tayyor ruxsatnomalar — bir joyda.',
+  'login.benefitApply': 'Arizani onlayn topshirish — oʻrmon xoʻjaligiga bormasdan',
+  'login.benefitTrack': 'Koʻrib chiqish holatini kuzatish',
+  'login.benefitDownload': 'QR-kodli ruxsatnomani yuklab olish',
+  'login.cardTitle': 'Kirish',
+  'login.cardSubtitle': 'Kirish usulini tanlang',
+  'login.firstTime': 'Portalda birinchi marta?',
+  'login.firstTimeHint': 'Roʻyxatdan oʻtish birinchi kirishda OneID orqali amalga oshiriladi — alohida hisob kerak emas.',
+  'login.verifyWithoutLogin': 'Ruxsatnomani kirmasdan tekshirish',
+  'login.footerCopyright': '© 2026 Oʻrmon xoʻjaligi davlat qoʻmitasi. Barcha huquqlar himoyalangan.',
+  'login.footerHelp': 'Yordam',
+  'login.footerContacts': 'Aloqa',
+  'login.footerDocuments': 'Hujjatlar',
   // Task 11 — the conditions a citizen actually hits with the real E-IMZO
   // client (`src/lib/eimzo/errors.ts`), each with an action rather than an
   // apology. `notInstalled`/`outdatedVersion` name `e-imzo.uz` (the vendor's

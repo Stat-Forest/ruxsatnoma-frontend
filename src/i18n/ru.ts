@@ -34,7 +34,6 @@ export const ru = {
   'shell.closeMenu': 'Закрыть',
   'shell.refresh': 'Обновить',
   'shell.logout': 'Выйти',
-  'login.title': 'Вход в систему',
   'login.loginLabel': 'Логин',
   'login.passwordLabel': 'Пароль',
   'login.codeLabel': 'Код подтверждения',
@@ -61,6 +60,28 @@ export const ru = {
   'login.eimzoMockNotice':
     'Тестовый режим: ключ не проверяется. Настоящий E-IMZO включится, когда НИЦ выдаст VPN-ключ.',
   'login.eimzoRealHint': 'Войдите через подключённый ключ E-IMZO. Пароль ключа спросит само приложение E-IMZO.',
+  // The page frame (2026-09-10): the landing's header and footer around the
+  // card, so the login reads as part of the portal. Brand and footer copy are
+  // the landing's own strings, verbatim.
+  'login.brandName': 'ruxsatnoma-urmon.uz',
+  'login.brandTagline': 'Государственный портал лесного хозяйства',
+  'login.backHome': 'На главную',
+  'login.eyebrow': 'Личный кабинет',
+  'login.heading': 'Вход в личный кабинет',
+  'login.lead':
+    'Заявки на использование земель лесного фонда, ход рассмотрения и готовые разрешения — в одном месте.',
+  'login.benefitApply': 'Подать заявку онлайн — без визита в лесхоз',
+  'login.benefitTrack': 'Следить за статусом рассмотрения',
+  'login.benefitDownload': 'Скачать разрешение с QR-кодом',
+  'login.cardTitle': 'Войти',
+  'login.cardSubtitle': 'Выберите способ входа',
+  'login.firstTime': 'Впервые на портале?',
+  'login.firstTimeHint': 'Регистрация проходит через OneID при первом входе — отдельный аккаунт не нужен.',
+  'login.verifyWithoutLogin': 'Проверить разрешение без входа',
+  'login.footerCopyright': '© 2026 Государственный комитет лесного хозяйства. Все права защищены.',
+  'login.footerHelp': 'Помощь',
+  'login.footerContacts': 'Контакты',
+  'login.footerDocuments': 'Документы',
   // Task 11 — see the matching comment in `uz_latn.ts`. `chromeBlocked` (fix
   // wave, finding 6) names both possible causes and words the flag as a
   // Chromium fallback, not a Chrome-only fact.

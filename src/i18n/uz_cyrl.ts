@@ -67,7 +67,6 @@ export const uz_cyrl = {
   'shell.closeMenu': 'Ёпиш',
   'shell.refresh': 'Янгилаш',
   'shell.logout': 'Чиқиш',
-  'login.title': 'Тизимга кириш',
   'login.loginLabel': 'Логин',
   'login.passwordLabel': 'Пароль',
   'login.codeLabel': 'Тасдиқлаш коди',
@@ -97,6 +96,26 @@ export const uz_cyrl = {
     "E-IMZO kaliti va brauzer plagini talab qilinadi. Bu imkoniyat hali ulanmagan.",
   'login.eimzoRealHint':
     'Уланган E-IMZO калитингиз орқали тизимга киринг. Калит паролини E-IMZO дастурининг ўзи сўрайди.',
+  // The page frame (2026-09-10) — see the matching comment in `ru.ts`.
+  'login.brandName': 'ruxsatnoma-urmon.uz',
+  'login.brandTagline': 'Ўрмон хўжалиги давлат портали',
+  'login.backHome': 'Бош саҳифа',
+  'login.eyebrow': 'Шахсий кабинет',
+  'login.heading': 'Шахсий кабинетга кириш',
+  'login.lead':
+    'Ўрмон фонди ерларидан фойдаланиш учун аризалар, кўриб чиқиш жараёни ва тайёр рухсатномалар — бир жойда.',
+  'login.benefitApply': 'Аризани онлайн топшириш — ўрмон хўжалигига бормасдан',
+  'login.benefitTrack': 'Кўриб чиқиш ҳолатини кузатиш',
+  'login.benefitDownload': 'QR-кодли рухсатномани юклаб олиш',
+  'login.cardTitle': 'Кириш',
+  'login.cardSubtitle': 'Кириш усулини танланг',
+  'login.firstTime': 'Порталда биринчи марта?',
+  'login.firstTimeHint': 'Рўйхатдан ўтиш биринчи киришда OneID орқали амалга оширилади — алоҳида ҳисоб керак эмас.',
+  'login.verifyWithoutLogin': 'Рухсатномани кирмасдан текшириш',
+  'login.footerCopyright': '© 2026 Ўрмон хўжалиги давлат қўмитаси. Барча ҳуқуқлар ҳимояланган.',
+  'login.footerHelp': 'Ёрдам',
+  'login.footerContacts': 'Алоқа',
+  'login.footerDocuments': 'Ҳужжатлар',
   // Task 11 — the conditions a citizen actually hits with the real E-IMZO
   // client (`src/lib/eimzo/errors.ts`), each with an action rather than an
   // apology. `notInstalled`/`outdatedVersion` name `e-imzo.uz` (the vendor's
