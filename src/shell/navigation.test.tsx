@@ -40,9 +40,37 @@ test('a personal grant outside the role opens the screen', () => {
   expect(items.map((i) => i.to)).toContain('/norms'); // norms.manage, not norms.approve
 });
 
-test('the superuser sees everything, including items granted to nobody', () => {
+test('the superuser sees every staff screen, including items granted to nobody', () => {
   const items = visibleNav({ permissions: [], is_superuser: true });
-  expect(items.length).toBe(NAVIGATION.length);
+  const paths = items.map((i) => i.to);
+  // `payments.recipients.manage` is granted to no role — superuser only.
+  expect(paths).toContain('/admin/payment-recipients');
+  expect(paths).toContain('/applications');
+  expect(paths).toContain('/permits');
+  // Everything except the citizen's own cabinet (the `strict` pair below).
+  expect(items.length).toBe(NAVIGATION.filter((i) => !i.strict).length);
+});
+
+// Found on the dev stand, 2026-09-10, right after `applications.create`
+// gated the pair: `admin` (sys_admin) still saw «My applications» — listing
+// all 22 applications in the system under that heading — next to the staff
+// «Applications», plus a «New application» button for an account with no
+// applicant profile behind it. `satisfies` passed the superuser without
+// reading the code; these two entries are the citizen's OWN cabinet, and the
+// superuser bypass is exactly what must not open them.
+test('the superuser does not see the citizen\'s own cabinet', () => {
+  const paths = visibleNav({ permissions: [], is_superuser: true }).map((i) => i.to);
+  expect(paths).not.toContain('/my/applications');
+  expect(paths).not.toContain('/my/permits');
+});
+
+test('a strict gate needs the code held for real — is_superuser does not stand in for it', () => {
+  const superuser = { permissions: [], is_superuser: true };
+  const applicant = { permissions: ['applications.create'], is_superuser: false };
+  expect(satisfies('applications.create', superuser, true)).toBe(false);
+  expect(satisfies('applications.create', applicant, true)).toBe(true);
+  // Without `strict`, the bypass stays what it is everywhere else.
+  expect(satisfies('applications.create', superuser)).toBe(true);
 });
 
 test('items with no permission code are always visible', () => {
@@ -69,8 +97,11 @@ test("every gated navigation entry's route requires the same permission NAVIGATI
     if (!item.permission) continue;
     const route = childByPath.get(item.to);
     expect(route).toBeDefined();
-    const element = route?.element as { props?: { permission?: string } } | undefined;
+    const element = route?.element as { props?: { permission?: string; strict?: boolean } } | undefined;
     expect(element?.props?.permission).toEqual(item.permission);
+    // The strictness rides along the same way: declared once on the entry,
+    // read back off the route's own element.
+    expect(element?.props?.strict).toEqual(item.strict);
   }
 });
 

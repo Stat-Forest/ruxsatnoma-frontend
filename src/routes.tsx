@@ -93,7 +93,13 @@ const CHILD_PAGES: Record<string, ReactNode> = {
 /** Generated from `NAVIGATION`, not hand-written — see `CHILD_PAGES` above. */
 const navigationChildren: RouteObject[] = NAVIGATION.map((item) => {
   const page = CHILD_PAGES[item.to];
-  const element = item.permission ? <RequireAuth permission={item.permission}>{page}</RequireAuth> : page;
+  const element = item.permission ? (
+    <RequireAuth permission={item.permission} strict={item.strict}>
+      {page}
+    </RequireAuth>
+  ) : (
+    page
+  );
   return item.to === '/' ? { index: true, element } : { path: item.to.slice(1), element };
 });
 
@@ -133,8 +139,10 @@ const navigationChildren: RouteObject[] = NAVIGATION.map((item) => {
  * (`ActsTab.tsx`) — a route-level permission here would just double-gate
  * the same check with a second, drift-prone copy.
  */
-const DETAIL_ROUTES: { path: string; element: ReactNode; permission?: string }[] = [
-  { path: 'my/applications/new', element: <ApplicationWizardPage />, permission: 'applications.create' },
+const DETAIL_ROUTES: { path: string; element: ReactNode; permission?: string; strict?: true }[] = [
+  // `strict` for the same reason as the `/my/*` entries of `NAVIGATION`: the
+  // superuser has no applicant profile to file for (`NavItem.strict`).
+  { path: 'my/applications/new', element: <ApplicationWizardPage />, permission: 'applications.create', strict: true },
   { path: 'my/applications/:id', element: <MyApplicationCardPage /> },
   { path: 'my/invoices/:id', element: <MyInvoicePage /> },
   { path: 'my/permits/:id', element: <MyPermitPage /> },
@@ -159,9 +167,15 @@ const DETAIL_ROUTES: { path: string; element: ReactNode; permission?: string }[]
   { path: 'admin/system-settings', element: <SettingsPage />, permission: 'admin.settings.manage' },
 ];
 
-const detailRouteChildren: RouteObject[] = DETAIL_ROUTES.map(({ path, element, permission }) => ({
+const detailRouteChildren: RouteObject[] = DETAIL_ROUTES.map(({ path, element, permission, strict }) => ({
   path,
-  element: permission ? <RequireAuth permission={permission}>{element}</RequireAuth> : element,
+  element: permission ? (
+    <RequireAuth permission={permission} strict={strict}>
+      {element}
+    </RequireAuth>
+  ) : (
+    element
+  ),
 }));
 
 /**

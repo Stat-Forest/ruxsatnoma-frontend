@@ -32,9 +32,12 @@ function BlockingNotice({ testId, message }: { testId: string; message: string }
 
 export function RequireAuth({
   permission,
+  strict,
   children,
 }: {
   permission?: string | readonly string[];
+  /** The code must be held for real — no superuser bypass (`NavItem.strict`). */
+  strict?: boolean;
   children: ReactNode;
 }) {
   const { me, loading, authError } = useAuth();
@@ -89,10 +92,12 @@ export function RequireAuth({
   // The is_superuser short-circuit is the whole point of the flag: sys_admin
   // passes every gate without consulting codes, including one for a
   // permission added after this session's role/permission grants were read.
+  // The one exception is a `strict` gate — the citizen's own cabinet, where
+  // the superuser has nothing of their own to see (`NavItem.strict`).
   // `satisfies` is the SAME predicate the menu filters with, imported rather
   // than re-implemented: a route whose gate disagreed with its own menu entry
   // would either show a link that refuses, or hide a page the user may open.
-  if (!satisfies(permission, me)) {
+  if (!satisfies(permission, me, strict)) {
     return <Forbidden />;
   }
 
