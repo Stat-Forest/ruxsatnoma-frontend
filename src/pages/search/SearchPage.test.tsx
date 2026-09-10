@@ -126,10 +126,10 @@ test('renders application results with a link to the application card', async ()
   expect(link.closest('a')).toHaveAttribute('href', '/applications/a1000000-0000-4000-8000-000000000001');
 });
 
-test('a draft application without organization opens detail drawer instead of navigating', async () => {
+test('an application not yet picked up by an organization opens detail drawer instead of navigating', async () => {
   server.use(
     http.get('*/api/v1/search', () =>
-      HttpResponse.json(page([applicationResult({ status: 'DRAFT', organization_id: null })])),
+      HttpResponse.json(page([applicationResult({ status: 'SUBMITTED', organization_id: null })])),
     ),
     http.get('*/api/v1/search/profiles', () => HttpResponse.json([])),
     http.get('*/api/v1/refs/organizations', () => HttpResponse.json(page([]))),
@@ -153,7 +153,7 @@ test('a draft application without organization opens detail drawer instead of na
   await waitFor(() => expect(screen.queryByTestId('search-detail-drawer')).not.toBeInTheDocument());
 });
 
-test('opening a non-draft application with no organization opens drawer without 404 or errors', async () => {
+test('opening an application with no organization opens drawer without 404 or errors', async () => {
   server.use(
     http.get('*/api/v1/search', () =>
       HttpResponse.json(page([applicationResult({ status: 'SUBMITTED', organization_id: null })])),
@@ -457,9 +457,9 @@ test('selecting status dropdown immediately updates query with uppercase status 
 
   const selects = screen.getAllByRole('combobox');
   const statusSelect = selects[0]; // first select is status
-  await user.selectOptions(statusSelect, 'DRAFT');
+  await user.selectOptions(statusSelect, 'IN_REVIEW');
 
-  await waitFor(() => expect(lastStatus).toBe('DRAFT'));
+  await waitFor(() => expect(lastStatus).toBe('IN_REVIEW'));
 });
 
 test('clicking reset clears applied filters and resets the list', async () => {
@@ -522,10 +522,10 @@ test('applying profile with lowercase status selects the uppercase option in the
     http.get('*/api/v1/search/profiles', () =>
       HttpResponse.json([
         savedFilter({
-          id: 'f-draft-lower',
-          name: 'Draft profile',
+          id: 'f-inreview-lower',
+          name: 'In-review profile',
           kind: 'applications',
-          params: { status: 'draft' },
+          params: { status: 'in_review' },
         }),
       ]),
     ),
@@ -537,16 +537,16 @@ test('applying profile with lowercase status selects the uppercase option in the
   const user = userEvent.setup();
   renderSearchPage();
 
-  const profileBtn = await screen.findByText('Draft profile');
+  const profileBtn = await screen.findByText('In-review profile');
   await user.click(profileBtn);
 
-  await waitFor(() => expect(lastStatus).toBe('DRAFT'));
+  await waitFor(() => expect(lastStatus).toBe('IN_REVIEW'));
   const selects = screen.getAllByRole('combobox');
-  expect(selects[0]).toHaveValue('DRAFT');
+  expect(selects[0]).toHaveValue('IN_REVIEW');
 });
 
 
-test('a click anywhere on a result row follows the same rule as its number: card for a filed application, drawer for a draft', async () => {
+test('a click anywhere on a result row follows the same rule as its number: card for a filed application, drawer for one with no organization yet', async () => {
   server.use(
     http.get('*/api/v1/search', () =>
       HttpResponse.json(
@@ -555,9 +555,9 @@ test('a click anywhere on a result row follows the same rule as its number: card
           applicationResult({
             id: 'a1000000-0000-4000-8000-000000000002',
             number: 'APP-00000002',
-            status: 'DRAFT',
+            status: 'SUBMITTED',
             organization_id: null,
-            applicant_name: 'Draft Applicant',
+            applicant_name: 'Unassigned Applicant',
           }),
         ]),
       ),
@@ -570,7 +570,7 @@ test('a click anywhere on a result row follows the same rule as its number: card
   const user = userEvent.setup();
   renderSearchPage();
 
-  await user.click(await screen.findByText('Draft Applicant'));
+  await user.click(await screen.findByText('Unassigned Applicant'));
   expect(await screen.findByTestId('search-detail-drawer')).toBeInTheDocument();
   expect(screen.getByTestId('current-location')).toHaveTextContent('/');
 

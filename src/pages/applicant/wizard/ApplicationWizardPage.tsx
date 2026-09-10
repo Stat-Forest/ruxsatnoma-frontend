@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useBlocker, useNavigate, useSearchParams, type BlockerFunction } from 'react-router';
+import { useMutation, useQuery } from '@tanstack/react-query';
+import { useBlocker, useNavigate, type BlockerFunction } from 'react-router';
 import { ArrowLeft, ArrowRight, Loader2, Plus, ShieldCheck, Trash2, Upload } from 'lucide-react';
 import { Button } from '../../../components/ui/button';
 import { FormField, Input, Select } from '../../../components/ui/FormControls';
@@ -14,25 +14,21 @@ import type { UiLanguage } from '../../../i18n/context';
 import { useApiErrorText } from '../../../i18n/useApiErrorText';
 import { useLanguage, useT } from '../../../i18n/useT';
 import {
-  addApplicationDocument,
-  createApplicationDraft,
-  getApplicationCard,
-  getApplicationPackage,
+  fileApplication,
   getSiteSettings,
   listActivityTypes,
   listClassifierItems,
   listLivestockTypes,
-  patchApplication,
-  precheckApplication,
-  removeApplicationDocument,
-  submitApplication,
+  packageFiling,
+  precheckFiling,
   uploadFile,
+  type ApplicationFilingIn,
   type ApplicationItemIn,
   type CalculationIn,
   type PrecheckOut,
 } from '../api';
 import { formatMoney, formatUnit, pickName } from '../format';
-import { fromApplicationChecks } from '../checkTypeLabels';
+import { fromPrecheckChecks } from '../checkTypeLabels';
 import { ChecksList } from './ChecksList';
 import { ContourPicker, type PickedContour } from './ContourPicker';
 import { PricePreviewPanel } from './PricePreviewPanel';
@@ -107,37 +103,41 @@ const DATE_ERROR_COPY: Record<UiLanguage, { reversed: string; tooLong: string }>
 };
 
 /** Same reasoning as `DATE_ERROR_COPY` — this confirmation belongs to the
- *  wizard alone, so it stays local rather than growing the shared maps. */
+ *  wizard alone, so it stays local rather than growing the shared maps.
+ *
+ *  Plan 12, R10: the wizard writes nothing to the server before «Yuborish»,
+ *  so leaving mid-way genuinely loses everything entered — the old copy
+ *  («qoralama saqlanadi») promised a draft that no longer exists. */
 const LEAVE_CONFIRM_COPY: Record<UiLanguage, { title: string; body: string; stay: string; leave: string }> = {
   uz_latn: {
-    title: 'Vizarddan chiqasizmi?',
-    body: 'Qoralama saqlanadi — arizalar roʻyxatidan istalgan vaqtda davom ettirishingiz mumkin.',
+    title: 'Ariza yuborilmadi',
+    body: 'Ariza saqlanmaydi — kiritilgan maʼlumotlar yoʻqoladi. Chiqishni xohlaysizmi?',
     stay: 'Davom etish',
     leave: 'Chiqish',
   },
   uz_cyrl: {
-    title: 'Визарддан чиқасизми?',
-    body: 'Қоралама сақланади — аризалар рўйхатидан исталган вақтда давом эттиришингиз мумкин.',
+    title: 'Ариза юборилмади',
+    body: 'Ариза сақланмайди — киритилган маълумотлар йўқолади. Чиқишни хоҳлайсизми?',
     stay: 'Давом этиш',
     leave: 'Чиқиш',
   },
   ru: {
-    title: 'Выйти из мастера?',
-    body: 'Черновик сохранён — вы можете продолжить в любой момент из списка заявок.',
+    title: 'Заявка не отправлена',
+    body: 'Заявка не сохранится — всё введённое пропадёт. Выйти?',
     stay: 'Продолжить',
     leave: 'Выйти',
   },
   en: {
-    title: 'Leave the wizard?',
-    body: 'Your draft is saved — you can resume it any time from the applications list.',
+    title: 'Application not submitted',
+    body: 'The application is not saved — everything you entered will be lost. Leave anyway?',
     stay: 'Continue',
     leave: 'Leave',
   },
   kaa: {
-    title: 'Vizarddan shıgasız ba?',
-    body: 'Qoralama saqlanadı — arizalar dizıminen qálegen waqıtta dawam ettire alasız.',
+    title: 'Ariza jiberilmedi',
+    body: 'Ariza saqlanbaydı — kiritilgen maǵlıwmatlar joǵaladı. Shıǵıwdı qáleysiz be?',
     stay: 'Dawam etiw',
-    leave: 'Shıgıw',
+    leave: 'Shıǵıw',
   },
 };
 
@@ -179,13 +179,19 @@ function isUnknownBenefitCode(error: unknown): boolean {
 }
 
 /**
- * B7 — the application wizard, the core of the system. Drives the real API
- * chain end to end: `POST /applications` (DRAFT) -> `PATCH` (contour, period,
- * activity, quantity) -> `POST .../documents` -> `POST .../precheck` ->
- * `POST .../submit`. Every field is PATCHed as soon as a step is confirmed
- * (ruling 7 — a draft is autosaved field by field), so leaving the wizard
- * after step 1 never loses work: `MyApplicationsPage` lists the DRAFT and
- * `MyApplicationCardPage` links back here with `?draft=<id>` to resume.
+ * B7 — the application wizard, the core of the system. Rewritten in stage 12
+ * (plan 12, R10 — filing without a draft): steps 1-4 write NOTHING, and the
+ * whole filing lives only in this component's own state. Step 5 posts that
+ * state to `POST /applications/precheck` for the checks and the price;
+ * pressing «Yuborish» posts the SAME filing to `POST /applications`, which
+ * creates the application already SUBMITTED, numbered, priced, signed and
+ * assigned, in one request. A legal-entity filing first calls
+ * `POST /applications/package` to mint the id and get the bytes to sign,
+ * then posts that id and the signature alongside the filing; a citizen
+ * filing for themselves (`on_behalf='self'`, ruling #183) skips the package
+ * call entirely. There is no DRAFT anywhere in this flow any more — a
+ * `?draft=<id>` in the URL is simply never read, and leaving before the
+ * final POST loses everything entered (the leave guard below says so).
  */
 export function ApplicationWizardPage() {
   const t = useT();
@@ -193,9 +199,6 @@ export function ApplicationWizardPage() {
   const { me, refreshMe } = useAuth();
   const errorText = useApiErrorText();
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-  const resumeId = searchParams.get('draft');
-  const queryClient = useQueryClient();
 
   const [step, setStep] = useState(1);
   // The furthest step ever reached, distinct from `step` (where the
@@ -204,7 +207,6 @@ export function ApplicationWizardPage() {
   // still — reaching step 4 then returning to step 2 must not re-lock
   // steps 3 and 4 (`Stepper`'s own `maxStepReached` prop docstring).
   const [maxStepReached, setMaxStepReached] = useState(1);
-  const [applicationId, setApplicationId] = useState<string | null>(resumeId);
   const [onBehalf, setOnBehalf] = useState<'self' | 'legal'>('self');
   const [representationApplicantId, setRepresentationApplicantId] = useState('');
   const [activityTypeId, setActivityTypeId] = useState('');
@@ -213,12 +215,18 @@ export function ApplicationWizardPage() {
   const [periodTo, setPeriodTo] = useState('');
   const [quantity, setQuantity] = useState('');
   const [items, setItems] = useState<LivestockRow[]>([]);
+  // Step 4's local documents (plan 12, R9): each is uploaded through
+  // `POST /files` the moment it is chosen, exactly as before, but there is
+  // no application row to attach it to until the filing itself is posted —
+  // so the association lives only here, and rides along inside the filing
+  // body's own `documents` array.
+  const [documents, setDocuments] = useState<UploadedDocument[]>([]);
   // The benefit claim lives on step 4 with the documents, not on step 3 with
   // the quantities: a category is chosen as one more "document type" in the
   // same select as the attachments, because to the citizen the claim IS the
   // certificate they attach — one row, its number, its file.
-  // The RAW claim — what the citizen picked, or what a resumed draft
-  // carried; `benefitCategoryItemId` below is the one every consumer reads.
+  // The RAW claim — what the citizen picked; `benefitCategoryItemId` below
+  // is the one every consumer reads.
   const [claimedBenefitCategoryItemId, setClaimedBenefitCategoryItemId] = useState('');
   // Ruling #181: the certificate number is mandatory for EVERY benefit
   // category now — there is no per-item `requires_certificate` switch any
@@ -228,7 +236,7 @@ export function ApplicationWizardPage() {
   // applicant first learns of it.
   const [benefitCertificateNo, setBenefitCertificateNo] = useState('');
   const [certificateTouched, setCertificateTouched] = useState(false);
-  // Set only from a submit refusal (`ERR-APP-003`,
+  // Set only from a filing refusal (`ERR-APP-003`,
   // `benefit_certificate_required/unknown/not_yours`) — `handleSignAndSubmit`
   // sends the applicant back to step 4 and shows the server's own reason
   // right at this field, rather than only in the step-5 banner.
@@ -252,8 +260,7 @@ export function ApplicationWizardPage() {
   // Ruling #184: mandatory before ANY signature, self or legal alike — the
   // sign button stays disabled until this is ticked. Never persisted: the
   // applicant accepts it fresh at the moment of signing, not once and
-  // forever, the same reading `applications.rules_accepted_at` — written
-  // from the server clock at THIS submit, never carried over from a draft.
+  // forever — the same reading `applications.rules_accepted_at` records.
   const [rulesAccepted, setRulesAccepted] = useState(false);
 
   // Ruling #113: the address requisite is gated at SUBMIT, not at
@@ -293,53 +300,6 @@ export function ApplicationWizardPage() {
   // `rules_url` is what the step-5 checkbox links to.
   const siteSettingsQuery = useQuery({ queryKey: ['site-settings'], queryFn: getSiteSettings });
 
-  const cardQuery = useQuery({
-    queryKey: ['wizard-card', applicationId],
-    queryFn: () => getApplicationCard(applicationId!),
-    enabled: !!applicationId,
-  });
-
-  // Resuming a draft (`?draft=<id>`): populate the form ONCE from the card
-  // the server already holds. Set during RENDER, guarded by a ref, rather
-  // than in a `useEffect` — the same idiom `I18nProvider` uses to reset
-  // state when an identity changes, which avoids the extra effect-then-
-  // setState render pass `react-hooks/set-state-in-effect` warns about.
-  //
-  // The ref's own initializer MUST read the same expression it is later
-  // compared against (`cardQuery.data?.id` both times) — that is the one
-  // shape `eslint-plugin-react-hooks`'s `refs` rule recognises as the
-  // "track the previous identity, then sync" idiom (matching `I18nProvider`'s
-  // `useRef(me?.user.id)`); a ref seeded with a plain `null`/boolean flag and
-  // compared against a nested property trips the same rule as reading a ref
-  // in render at all. Keying on the card's own id rather than a boolean is
-  // also what keeps a later refetch (after a PATCH invalidates the query)
-  // from ever clobbering what the applicant is now typing.
-  const hydratedForId = useRef(cardQuery.data?.id);
-  if (hydratedForId.current !== cardQuery.data?.id) {
-    hydratedForId.current = cardQuery.data?.id;
-    const card = cardQuery.data;
-    // Resuming a draft must restore WHO it is filed for, not just what it
-    // asks for — the last step's self/legal branch (ruling #183) reads the
-    // local `onBehalf` state, which otherwise defaults to 'self' regardless
-    // of how the draft was actually created.
-    if (card?.on_behalf === 'legal') {
-      setOnBehalf('legal');
-      setRepresentationApplicantId(card.applicant_id);
-    } else if (card?.on_behalf === 'self') {
-      setOnBehalf('self');
-    }
-    if (card?.activity_type_id) setActivityTypeId(card.activity_type_id);
-    if (card?.contour_id) setContour({ id: card.contour_id, number: card.contour_id, areaHa: card.requested_area_ha });
-    if (card?.period_from) setPeriodFrom(card.period_from);
-    if (card?.period_to) setPeriodTo(card.period_to);
-    if (card?.quantity) setQuantity(card.quantity);
-    if (card && card.items.length > 0) {
-      setItems(card.items.map((i) => ({ key: i.id, livestockTypeId: i.livestock_type_id, headCount: String(i.head_count) })));
-    }
-    if (card?.benefit_category_item_id) setClaimedBenefitCategoryItemId(card.benefit_category_item_id);
-    if (card?.benefit_certificate_no) setBenefitCertificateNo(card.benefit_certificate_no);
-  }
-
   const activityCode = activityTypesQuery.data?.find((a) => a.id === activityTypeId)?.code;
   const isGrazing = activityCode === GRAZING_CODE;
   const quantityUnit = activityTypesQuery.data?.find((a) => a.id === activityTypeId)?.quantity_unit;
@@ -362,11 +322,10 @@ export function ApplicationWizardPage() {
     [benefitCategoriesQuery.data, activityCode],
   );
   // A claim that no longer fits — the activity changed on step 1 after it
-  // was picked, or a draft resumed from before this filter — reads as NO
-  // claim: the certificate is not asked, and the next step-4 PATCH sends
-  // null rather than carrying it into a pre-check that can only refuse it.
-  // Derived, never synced: while the list is still loading there is nothing
-  // to judge the claim against, so it is kept as is.
+  // was picked — reads as NO claim: the certificate is not asked, and the
+  // filing sends null rather than carrying it into a pre-check that can
+  // only refuse it. Derived, never synced: while the list is still loading
+  // there is nothing to judge the claim against, so it is kept as is.
   const benefitCategoryItemId =
     benefitCategoriesQuery.data === undefined ||
     applicableBenefitCategories.some((b) => b.id === claimedBenefitCategoryItemId)
@@ -387,31 +346,46 @@ export function ApplicationWizardPage() {
   // archived — then the benefit row simply offers no file button.
   const benefitProofDocTypeId = docTypesQuery.data?.find((d) => d.code === 'benefit_proof')?.id;
 
-  function invalidateCard() {
-    if (applicationId) void queryClient.invalidateQueries({ queryKey: ['wizard-card', applicationId] });
-  }
+  // Plan 12: the whole filing, assembled from this component's own state —
+  // never a server-side draft. Shared by the pre-check, the package and the
+  // final POST, so the three cannot disagree about what a filing is.
+  const buildFiling = useCallback((): ApplicationFilingIn => {
+    const filingItems: ApplicationItemIn[] = isGrazing
+      ? items
+          .filter((i) => i.livestockTypeId && i.headCount)
+          .map((i) => ({ livestock_type_id: i.livestockTypeId, head_count: Number(i.headCount) }))
+      : [];
+    return {
+      on_behalf: onBehalf,
+      applicant_id: onBehalf === 'legal' ? representationApplicantId : undefined,
+      activity_type_id: activityTypeId || undefined,
+      contour_id: contour?.id,
+      period_from: periodFrom || undefined,
+      period_to: periodTo || undefined,
+      quantity: isGrazing ? undefined : quantity || undefined,
+      items: filingItems,
+      benefit_category_item_id: benefitCategoryItemId || null,
+      benefit_certificate_no: requiresCertificate ? benefitCertificateNo.trim() || null : null,
+      documents: documents.map((d) => ({ doc_type_item_id: d.doc_type_item_id, file_id: d.file_id })),
+    };
+  }, [
+    onBehalf,
+    representationApplicantId,
+    activityTypeId,
+    contour,
+    periodFrom,
+    periodTo,
+    isGrazing,
+    quantity,
+    items,
+    benefitCategoryItemId,
+    requiresCertificate,
+    benefitCertificateNo,
+    documents,
+  ]);
 
-  const createMutation = useMutation({
-    mutationFn: () =>
-      createApplicationDraft({
-        on_behalf: onBehalf,
-        applicant_id: onBehalf === 'legal' ? representationApplicantId : undefined,
-      }),
-  });
-  const patchMutation = useMutation({
-    mutationFn: (body: Parameters<typeof patchApplication>[1]) => patchApplication(applicationId!, body),
-    onSuccess: invalidateCard,
-  });
-  const addDocMutation = useMutation({
-    mutationFn: (body: Parameters<typeof addApplicationDocument>[1]) => addApplicationDocument(applicationId!, body),
-    onSuccess: invalidateCard,
-  });
-  const removeDocMutation = useMutation({
-    mutationFn: (documentId: string) => removeApplicationDocument(applicationId!, documentId),
-    onSuccess: invalidateCard,
-  });
   const precheckMutation = useMutation({
-    mutationFn: () => precheckApplication(applicationId!),
+    mutationFn: () => precheckFiling(buildFiling()),
     onSuccess: (data) => setPrecheckResult(data),
   });
 
@@ -430,28 +404,13 @@ export function ApplicationWizardPage() {
     if (stepId <= maxStepReached) setStep(stepId);
   }
 
-  async function ensureDraftAndPatchActivity(overrideActivityTypeId?: string) {
-    let id = applicationId;
-    if (!id) {
-      const created = await createMutation.mutateAsync();
-      id = created.id;
-      setApplicationId(id);
-    }
-    await patchApplication(id, { activity_type_id: overrideActivityTypeId ?? activityTypeId });
-    invalidateCard();
-  }
-
   // T1's contract: choosing the activity type advances to step 2 BY
   // ITSELF — the footer's "Next" button stays in place (Oybek: not
-  // removed, merely no longer the only way forward). `id` is passed
-  // explicitly rather than read back from `activityTypeId` state: the
-  // `setActivityTypeId` call just above it has not re-rendered yet when
-  // `ensureDraftAndPatchActivity` runs, so the state would still read the
-  // PREVIOUS selection.
-  async function selectActivityType(id: string) {
+  // removed, merely no longer the only way forward). Plan 12: this writes
+  // nothing — `activityTypeId` is the only thing that changes.
+  function selectActivityType(id: string) {
     setSubmitError(null);
     setActivityTypeId(id);
-    await ensureDraftAndPatchActivity(id);
     // TWO clicks, not one (Oybek, 2026-09-10, after trying the one-click
     // version on the stand): the first click SELECTS and stays put, a second
     // click on the SAME card moves on. A single click that both chose and
@@ -464,51 +423,31 @@ export function ApplicationWizardPage() {
     if (activityTypeId === id) goToStep(2);
   }
 
-  async function goNext() {
+  // Plan 12, R10: steps 1-4 write NOTHING — every "Next" here only advances
+  // the stepper. Step 4 is the one exception: leaving it fires the
+  // stateless pre-check over the filing assembled so far.
+  function goNext() {
     setSubmitError(null);
     if (step === 1) {
-      // Reachable mainly when the applicant returns to step 1 through the
-      // stepper (activity already chosen) and presses "Next" again without
-      // reselecting — `selectActivityType` above is what normally leaves
-      // step 1 now.
-      await ensureDraftAndPatchActivity();
       goToStep(2);
       return;
     }
     if (step === 2 && contour) {
-      await patchMutation.mutateAsync({ contour_id: contour.id, period_from: periodFrom, period_to: periodTo });
       goToStep(3);
       return;
     }
     if (step === 3) {
-      const body: Parameters<typeof patchApplication>[1] = {};
-      if (isGrazing) {
-        body.items = items
-          .filter((i) => i.livestockTypeId && i.headCount)
-          .map((i): ApplicationItemIn => ({ livestock_type_id: i.livestockTypeId, head_count: Number(i.headCount) }));
-      } else {
-        body.quantity = quantity;
-      }
-      await patchMutation.mutateAsync(body);
       goToStep(4);
       return;
     }
     if (step === 4) {
-      // The benefit claim is confirmed with the documents it belongs to.
-      // #179: the number is sent only while a category is actually chosen —
-      // clearing the claim clears it server-side too, rather than leaving a
-      // stale number attached to nothing. Sent BEFORE the pre-check, which
-      // reads the server's copy.
-      await patchMutation.mutateAsync({
-        benefit_category_item_id: benefitCategoryItemId || null,
-        benefit_certificate_no: requiresCertificate ? benefitCertificateNo.trim() || null : null,
-      });
       goToStep(5);
       setPrecheckResult(null);
       // `mutate`, not `mutateAsync`: nothing here awaits the result, and a
-      // refused pre-check (a 400 on the input, `precheck`'s own docstring)
-      // is shown from the mutation's state on step 5 — as an unhandled
-      // rejection out of the button's click handler it was only noise.
+      // refused pre-check (a 400 on the input, `precheckFiling`'s own
+      // docstring) is shown from the mutation's state on step 5 — as an
+      // unhandled rejection out of the button's click handler it was only
+      // noise.
       precheckMutation.mutate();
       return;
     }
@@ -548,7 +487,6 @@ export function ApplicationWizardPage() {
   }, [activityTypeId, contour, periodFrom, periodTo, isGrazing, items, quantity, livestockTypesQuery.data]);
 
   async function handleSignAndSubmit() {
-    if (!applicationId) return;
     setSubmitError(null);
     setSigning(true);
     try {
@@ -580,32 +518,40 @@ export function ApplicationWizardPage() {
         await precheckMutation.mutateAsync();
         return;
       }
+      let created;
       // Ruling #183: a citizen filing for themselves signs with a plain
       // button — no envelope, no E-IMZO dialog at all. The applicant session
       // already identifies them by PINFL (OneID/E-IMZO login, #32), so
-      // there is nothing left for this browser to produce.
+      // there is nothing left for this browser to produce; `file()` mints
+      // the application id itself (plan 12, R2).
       if (onBehalf === 'self') {
-        await submitApplication(applicationId, { rules_accepted: true });
+        created = await fileApplication({ ...buildFiling(), rules_accepted: true });
       } else {
-        const packageBytes = await getApplicationPackage(applicationId);
-        // Fix wave, finding 2: real mode DETACHED, over the exact bytes
-        // `GET .../package` just served — `POST .../submit` verifies through
-        // `signatures.service.sign()` -> `verify_detached` against them
-        // (`applications/router.py::get_application_package`'s own docstring:
-        // "the client signs exactly these"). No PINFL to type in beyond the
-        // identity check above; the certificate the citizen picks in E-IMZO
-        // carries it.
+        // Plan 12, R2: the package mints the id the application WILL carry
+        // and answers the bytes to sign; the client posts both back with
+        // the filing. Fix wave, finding 2 (kept): real mode signs DETACHED,
+        // over the exact bytes the package just served.
+        const { applicationId, packageBytes } = await packageFiling(buildFiling());
         const pkcs7 = isEimzoMock()
-          ? await buildMockSignature({ documentBytes: packageBytes, pinfl: applicant.pinfl, fullName: applicant.name })
-          : await signDocument(new Uint8Array(packageBytes));
-        await submitApplication(applicationId, { pkcs7, rules_accepted: true });
+          ? await buildMockSignature({
+              documentBytes: packageBytes.buffer as ArrayBuffer,
+              pinfl: applicant.pinfl,
+              fullName: applicant.name,
+            })
+          : await signDocument(packageBytes);
+        created = await fileApplication({
+          ...buildFiling(),
+          rules_accepted: true,
+          application_id: applicationId,
+          pkcs7,
+        });
       }
       // The one navigation the leave-guard below must let through without
-      // asking — it fires right after a successful submit, when there is
+      // asking — it fires right after a successful filing, when there is
       // nothing left to lose. A ref, not state: `navigate()` runs in the
       // same tick, before a `setState` would have re-rendered the guard.
       skipLeaveGuardRef.current = true;
-      navigate(`/my/applications/${applicationId}`);
+      navigate(`/my/applications/${created.id}`);
     } catch (err) {
       // Ruling #181: a benefit-certificate refusal is a FIELD error, not a
       // banner — the wizard sends the applicant back to step 4, where the
@@ -685,20 +631,18 @@ export function ApplicationWizardPage() {
   const periodToMin = periodFrom || undefined;
   const periodToMax = periodFrom ? addIsoDays(periodFrom, MAX_PERIOD_DAYS) : undefined;
 
-  // T1's contract, item 3: leaving mid-draft asks first. The draft is
-  // already autosaved field by field (this file's own docstring above), so
-  // this is never "discard your work" — only "you'll need to come back for
-  // it". `applicationId` is the signal: step 1 sets it the moment a draft
-  // exists (`ensureDraftAndPatchActivity`/`selectActivityType`) and it is
-  // never cleared again in this component, so it tracks "is there
-  // something on the server to resume" for the page's whole lifetime.
-  const hasUnsavedDraft = applicationId !== null;
+  // T1's contract, item 3: leaving mid-way asks first. Plan 12, R10: the
+  // wizard writes nothing before «Yuborish», so this is never "resume it
+  // later" — everything entered so far is genuinely lost. `hasProgress` is
+  // the signal: true from the moment an activity is chosen (or any later
+  // step is reached), and stays true for the page's whole lifetime.
+  const hasProgress = activityTypeId !== '' || maxStepReached > 1;
   const skipLeaveGuardRef = useRef(false);
 
   const shouldBlockLeaving = useCallback<BlockerFunction>(
     ({ currentLocation, nextLocation }) =>
-      !skipLeaveGuardRef.current && hasUnsavedDraft && currentLocation.pathname !== nextLocation.pathname,
-    [hasUnsavedDraft],
+      !skipLeaveGuardRef.current && hasProgress && currentLocation.pathname !== nextLocation.pathname,
+    [hasProgress],
   );
   // Covers BOTH the in-app "back to list" navigation and the browser's back
   // button: a data router's `useBlocker` intercepts every in-SPA
@@ -710,7 +654,7 @@ export function ApplicationWizardPage() {
   // `useBlocker` explicitly does not cover a hard reload or tab close
   // (react-router's own docs) — that is what this effect is for.
   useEffect(() => {
-    if (!hasUnsavedDraft) return;
+    if (!hasProgress) return;
     function handleBeforeUnload(e: BeforeUnloadEvent) {
       if (skipLeaveGuardRef.current) return;
       e.preventDefault();
@@ -718,7 +662,7 @@ export function ApplicationWizardPage() {
     }
     window.addEventListener('beforeunload', handleBeforeUnload);
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
-  }, [hasUnsavedDraft]);
+  }, [hasProgress]);
 
   const wizardSteps = [
     { id: 1, title: t('wizard.step1.title'), description: t('wizard.step1.desc') },
@@ -756,14 +700,14 @@ export function ApplicationWizardPage() {
           <h2 className="text-sm font-bold text-[#1A1F24] uppercase tracking-wider">{t('wizard.step1.heading')}</h2>
           {me && me.representations.length > 0 && (
             <FormField label={t('wizard.step1.onBehalfLabel')}>
-              {/* Frozen once the draft exists: `on_behalf` is a property of
-                  the application row, never PATCHed, and ruling #183 makes
-                  the signing path depend on it — flipping it here after
-                  the fact would send a `self` draft to E-IMZO or a `legal`
-                  one to the button (stage 10 review, finding 4). */}
+              {/* Frozen once an activity is chosen: ruling #183 makes the
+                  signing path depend on `on_behalf` — flipping it after
+                  later steps were already filled in for one identity would
+                  send a `self` filing to E-IMZO or a `legal` one to the
+                  plain button (stage 10 review, finding 4). */}
               <Select
                 value={onBehalf === 'legal' ? representationApplicantId : ''}
-                disabled={!!applicationId}
+                disabled={activityTypeId !== ''}
                 onChange={(e) => {
                   if (!e.target.value) {
                     setOnBehalf('self');
@@ -934,7 +878,7 @@ export function ApplicationWizardPage() {
               docTypes={docTypesQuery.data ?? []}
               benefitCategories={applicableBenefitCategories}
               benefitProofDocTypeId={benefitProofDocTypeId}
-              documents={cardQuery.data?.documents ?? []}
+              documents={documents}
               rows={docRows}
               onRowsChange={setDocRows}
               benefitCategoryItemId={benefitCategoryItemId}
@@ -959,9 +903,12 @@ export function ApplicationWizardPage() {
               onCertificateBlur={() => setCertificateTouched(true)}
               onUpload={async (file, docTypeItemId) => {
                 const uploaded = await uploadFile(file);
-                await addDocMutation.mutateAsync({ doc_type_item_id: docTypeItemId, file_id: uploaded.id });
+                setDocuments((prev) => [
+                  ...prev,
+                  { id: crypto.randomUUID(), doc_type_item_id: docTypeItemId, file_id: uploaded.id },
+                ]);
               }}
-              onRemove={(documentId) => removeDocMutation.mutate(documentId)}
+              onRemove={(documentId) => setDocuments((prev) => prev.filter((d) => d.id !== documentId))}
             />
           )}
         </section>
@@ -986,7 +933,7 @@ export function ApplicationWizardPage() {
             )}
             {precheckResult && (
               <>
-                <ChecksList checks={fromApplicationChecks(precheckResult.checks)} />
+                <ChecksList checks={fromPrecheckChecks(precheckResult.checks)} />
                 {precheckResult.calculation ? (
                   <div className="bg-[#F0F9FF] border border-[#BAE6FD] rounded-xl p-4 font-mono text-lg font-bold text-[#123522]">
                     {formatMoney(precheckResult.calculation.amount)} {t('wizard.step3.currency')}
@@ -1111,7 +1058,6 @@ export function ApplicationWizardPage() {
             <Button
               variant="primary"
               rightIcon={<ArrowRight className="w-4 h-4" />}
-              isLoading={createMutation.isPending || patchMutation.isPending}
               disabled={
                 (step === 1 && !activityTypeId) ||
                 (step === 2 && (!contour || !periodFrom || !periodTo || !!combinedPeriodError)) ||

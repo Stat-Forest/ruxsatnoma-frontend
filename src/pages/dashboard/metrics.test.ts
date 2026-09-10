@@ -34,12 +34,12 @@ test('no permits reads as zero area, never NaN', () => {
 
 // --- tile 2: applications still moving -----------------------------------
 
-test('an application in progress is one that is neither a draft nor finished', () => {
+test('an application in progress is one that is not yet finished', () => {
   const summary = applicationsInProgress([
     application({ status: 'SUBMITTED' }),
     application({ status: 'IN_REVIEW' }),
     application({ status: 'INVOICED' }),
-    application({ status: 'DRAFT' }),
+    application({ status: 'CANCELLED' }),
     application({ status: 'PERMIT_ISSUED' }),
     application({ status: 'REJECTED' }),
   ]);
@@ -146,7 +146,7 @@ test('an event older than the window is left out rather than folded into the fir
 
 test('an application never submitted contributes to no month', () => {
   const series = monthlySeries(
-    { applications: [application({ status: 'DRAFT', submitted_at: null })], permits: [], invoices: [] },
+    { applications: [application({ submitted_at: null })], permits: [], invoices: [] },
     { today: TODAY, months: 6 },
   );
 

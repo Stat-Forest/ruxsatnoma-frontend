@@ -57,7 +57,7 @@ test('the superuser sees every staff screen, including items granted to nobody',
   expect(paths).toContain('/admin/payment-recipients');
   expect(paths).toContain('/applications');
   expect(paths).toContain('/permits');
-  // Everything except the citizen's own cabinet (the `noSuperuser` pair below).
+  // Everything except the citizen's own cabinet (the `noSuperuser` entries below).
   expect(items.length).toBe(NAVIGATION.filter((i) => !i.noSuperuser).length);
 });
 
@@ -65,12 +65,14 @@ test('the superuser sees every staff screen, including items granted to nobody',
 // gated the pair: `admin` (sys_admin) still saw «My applications» — listing
 // all 22 applications in the system under that heading — next to the staff
 // «Applications», plus a «New application» button for an account with no
-// applicant profile behind it. These two entries are the citizen's OWN
-// cabinet, and the superuser is the one caller who never has one.
+// applicant profile behind it. These entries are the citizen's OWN
+// cabinet, and the superuser is the one caller who never has one — stage 11
+// added `/my/payments` to the same set, for the same reason.
 test('the superuser does not see the citizen\'s own cabinet', () => {
   const paths = visibleNav(SUPERUSER).map((i) => i.to);
   expect(paths).not.toContain('/my/applications');
   expect(paths).not.toContain('/my/permits');
+  expect(paths).not.toContain('/my/payments');
 });
 
 test('a noSuperuser gate refuses the superuser even though /auth/me hands them every code', () => {
@@ -184,6 +186,13 @@ test('"My permits" is the citizen\'s own section too, not the reviewer\'s', () =
 
   const applicant = visibleNav({ permissions: ['applications.create'], is_superuser: false });
   expect(applicant.map((i) => i.to)).toContain('/my/permits');
+});
+
+test('the payments page is the applicant own and hidden from staff', () => {
+  const citizen = visibleNav({ permissions: ['applications.create'], is_superuser: false });
+  expect(citizen.map((i) => i.to)).toContain('/my/payments');
+  const accountant = visibleNav({ permissions: ['payments.view', 'payments.manage'], is_superuser: false });
+  expect(accountant.map((i) => i.to)).not.toContain('/my/payments');
 });
 
 // Stage 10, F2 (rulings #181/#182): the central benefit-verification queue

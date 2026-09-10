@@ -24,6 +24,9 @@ export { MyApplicationsPage } from './applicant/MyApplicationsPage';
 // here for the same reason `MyApplicationsPage` above is.
 export { MyPermitsPage } from './permits/MyPermitsPage';
 
+// Stage 11 — the citizen's payments page (`src/pages/applicant/payments/`).
+export { MyPaymentsPage } from './applicant/payments/MyPaymentsPage';
+
 /** Track 3 — the staff worklist (`src/pages/staff/ApplicationsListPage.tsx`). */
 export function ApplicationsPage() {
   return <ApplicationsListPage />;

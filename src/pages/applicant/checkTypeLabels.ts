@@ -3,8 +3,9 @@ import { useT } from '../../i18n/useT';
 /** Two vocabularies name the same checks, and neither is optional:
  *
  *   - `application_checks.check_type` (ruling 21, `applications/checks.py`)
- *     is what `POST /applications/{id}/precheck` and the card answer with —
- *     `gis_validity`, `norm_season`, etc.
+ *     is what `POST /applications/precheck` (plan 12, R3 — the wizard's
+ *     stateless pre-check over a filing that has no row yet) and the card
+ *     answer with — `gis_validity`, `norm_season`, etc.
  *   - `norms.checks.CheckResult.check` (`norms/checks.py`) is the RAW,
  *     UNMAPPED name `POST /calculations/preview` answers with instead —
  *     `season`, `rotation`, `norm`, `fire_ban`, `restrictions`, `limit`, with
@@ -107,10 +108,14 @@ export interface NormalizedCheck {
   details: unknown;
 }
 
-export function fromApplicationChecks(
-  checks: { id: string; check_type: string; result: string; details: unknown }[],
+/** Plan 12, R3: a pre-check writes nothing any more, so its rows
+ * (`PrecheckCheckOut`) carry no id — keyed by index instead, the same idiom
+ * `fromPreviewChecks` below already uses for the live preview's own
+ * row-less checks. */
+export function fromPrecheckChecks(
+  checks: { check_type: string; result: string; details: unknown }[],
 ): NormalizedCheck[] {
-  return checks.map((c) => ({ key: c.id, type: c.check_type, result: c.result, details: c.details }));
+  return checks.map((c, index) => ({ key: `${c.check_type}-${index}`, type: c.check_type, result: c.result, details: c.details }));
 }
 
 export function fromPreviewChecks(

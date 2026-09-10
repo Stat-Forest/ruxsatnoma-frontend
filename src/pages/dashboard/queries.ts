@@ -56,31 +56,22 @@ export function useMyPermits() {
   });
 }
 
-/** `GET /invoices` takes one `application_id` and has no "all of mine" form,
- *  so the invoices are fetched per application — but only for the few that
- *  ever reached billing. An application below `INVOICED` has no invoice by
- *  construction, so asking for one would be a round trip guaranteed to come
- *  back empty. */
-const BILLED_STATUSES = new Set(['INVOICED', 'PAID', 'PERMIT_ISSUED', 'CLOSED', 'ARCHIVED']);
-
-export function billedApplicationIds(applications: ApplicationOut[]): string[] {
-  return applications.filter((item) => BILLED_STATUSES.has(item.status)).map((item) => item.id);
-}
-
-export function useInvoicesFor(applicationIds: string[]) {
-  return useQueries({
-    queries: applicationIds.map((applicationId) => ({
-      queryKey: ['dashboard', 'invoices', applicationId],
-      queryFn: async () => {
-        const { data, error } = await api.GET('/api/v1/invoices', {
-          params: { query: { application_id: applicationId, limit: 50, offset: 0 } },
-        });
-        if (error) throw apiError(error);
-        return data.items;
-      },
-      staleTime: 60 * 1000,
-    })),
-    combine: (results: { data?: InvoiceOut[] }[]) => results.flatMap((result) => result.data ?? []),
+/** Every invoice of the citizen's own applications in one call (stage 11,
+ * ruling R5) — `GET /invoices` with no `application_id`, which the backend
+ * answers an applicant as their own list (R1). Replaces a per-application fan-out
+ * that also skipped `EXPIRED_UNPAID`, so an expired invoice never reached
+ * these figures. 200 is the route's cap and far above a citizen's history. */
+export function useOwnInvoices() {
+  return useQuery({
+    queryKey: ['dashboard', 'invoices'],
+    queryFn: async () => {
+      const { data, error } = await api.GET('/api/v1/invoices', {
+        params: { query: { limit: 200, offset: 0 } },
+      });
+      if (error) throw apiError(error);
+      return data.items;
+    },
+    staleTime: 60 * 1000,
   });
 }
 

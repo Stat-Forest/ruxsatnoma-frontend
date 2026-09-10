@@ -15,11 +15,10 @@ import type { components } from '../../api/schema';
 
 export type ApplicationOut = components['schemas']['ApplicationOut'];
 export type ApplicationCardOut = components['schemas']['ApplicationCardOut'];
-export type ApplicationPatch = components['schemas']['ApplicationPatch'];
 export type ApplicationStatus = ApplicationOut['status'];
 export type ApplicationItemIn = components['schemas']['ApplicationItemIn'];
+export type ApplicationDocumentIn = components['schemas']['ApplicationDocumentIn'];
 export type ApplicationDocumentOut = components['schemas']['ApplicationDocumentOut'];
-export type ApplicationCheckOut = components['schemas']['ApplicationCheckOut'];
 export type ApplicationTimelineOut = components['schemas']['ApplicationTimelineOut'];
 export type PrecheckOut = components['schemas']['PrecheckOut'];
 export type ActivityTypeOut = components['schemas']['ActivityTypeOut'];
@@ -32,7 +31,8 @@ export type InvoiceOut = components['schemas']['InvoiceOut'];
 export type CalculationIn = components['schemas']['CalculationIn'];
 export type FileOut = components['schemas']['FileOut'];
 export type SiteSettingsOut = components['schemas']['SiteSettingsOut'];
-export type ApplicationSubmitIn = components['schemas']['ApplicationSubmitIn'];
+export type ApplicationFilingIn = components['schemas']['ApplicationFilingIn'];
+export type ApplicationFileIn = components['schemas']['ApplicationFileIn'];
 
 export interface Paged<T> {
   items: T[];
@@ -55,24 +55,12 @@ export async function listApplications(params: ListApplicationsParams): Promise<
   return data;
 }
 
-export async function createApplicationDraft(body: {
-  on_behalf: 'self' | 'legal';
-  applicant_id?: string | null;
-}): Promise<ApplicationOut> {
-  const { data, error } = await api.POST('/api/v1/applications', { body });
-  if (error) throw apiError(error);
-  return data;
-}
-
-export async function patchApplication(id: string, body: ApplicationPatch): Promise<ApplicationOut> {
-  const { data, error } = await api.PATCH('/api/v1/applications/{application_id}', {
-    params: { path: { application_id: id } },
-    body,
-  });
-  if (error) throw apiError(error);
-  return data;
-}
-
+/** B8 (`MyApplicationCardPage`) reads a RETURNED application's own card by
+ * id — still needed after stage 12: R5 keeps the per-id read/edit routes for
+ * an application returned for correction, and every filed application has a
+ * card to view from the moment it exists. Stage 12 only removes the WIZARD's
+ * own use of this (the resume/hydration flow, R10) — the empty DRAFT it used
+ * to hydrate from no longer exists. */
 export async function getApplicationCard(id: string): Promise<ApplicationCardOut> {
   const { data, error } = await api.GET('/api/v1/applications/{application_id}', {
     params: { path: { application_id: id } },
@@ -81,55 +69,45 @@ export async function getApplicationCard(id: string): Promise<ApplicationCardOut
   return data;
 }
 
-export async function addApplicationDocument(
-  id: string,
-  body: { doc_type_item_id: string; file_id: string; note?: string | null },
-): Promise<ApplicationDocumentOut> {
-  const { data, error } = await api.POST('/api/v1/applications/{application_id}/documents', {
-    params: { path: { application_id: id } },
-    body,
-  });
-  if (error) throw apiError(error);
-  return data;
-}
-
-export async function removeApplicationDocument(id: string, documentId: string): Promise<void> {
-  const { error } = await api.DELETE('/api/v1/applications/{application_id}/documents/{document_id}', {
-    params: { path: { application_id: id, document_id: documentId } },
-  });
-  if (error) throw apiError(error);
-}
-
-export async function precheckApplication(id: string): Promise<PrecheckOut> {
-  const { data, error } = await api.POST('/api/v1/applications/{application_id}/precheck', {
-    params: { path: { application_id: id } },
-  });
-  if (error) throw apiError(error);
-  return data;
-}
-
-/** The canonical bytes to sign — the client hashes exactly this, mock ERI or
- * real. `parseAs: 'arrayBuffer'` is what lets us hash the OCTET bytes rather
- * than something re-encoded through a string round trip. */
-export async function getApplicationPackage(id: string): Promise<ArrayBuffer> {
-  const { data, error } = await api.GET('/api/v1/applications/{application_id}/package', {
-    params: { path: { application_id: id } },
-    parseAs: 'arrayBuffer',
-  });
+/**
+ * Plan 12, R3/R10: the dry run over a filing that exists only in the request
+ * body — the wizard's own state, never a server-side draft. 200 even when a
+ * check blocks; an incomplete filing answers `skipped` rows naming the
+ * fields still to fill and a null `calculation`.
+ */
+export async function precheckFiling(body: ApplicationFilingIn): Promise<PrecheckOut> {
+  const { data, error } = await api.POST('/api/v1/applications/precheck', { body });
   if (error) throw apiError(error);
   return data;
 }
 
 /**
- * Ruling #183/#184: `pkcs7` is optional now — absent for a citizen filing for
- * themselves (`on_behalf='self'`, a simple signature with no envelope) and
- * present for a legal-entity filing (unchanged ERI flow); `rules_accepted`
- * is mandatory on every submission regardless of which path this is
- * (ruling #184, `applications.rules_accepted_at`).
+ * Plan 12, R2: mints the `application_id` the filing WILL carry and answers
+ * the canonical bytes to sign — the client signs the bytes and posts both
+ * back to `POST /applications`. Only a legal-entity filing needs this; a
+ * citizen's own simple signature (#183) never calls it. Base64 decoded into
+ * `Uint8Array` here so the signer hashes the OCTETS the server priced, never
+ * a re-encoded string.
  */
-export async function submitApplication(id: string, body: ApplicationSubmitIn): Promise<ApplicationOut> {
-  const { data, error } = await api.POST('/api/v1/applications/{application_id}/submit', {
-    params: { path: { application_id: id } },
+export async function packageFiling(
+  body: ApplicationFilingIn,
+): Promise<{ applicationId: string; packageBytes: Uint8Array }> {
+  const { data, error } = await api.POST('/api/v1/applications/package', { body });
+  if (error) throw apiError(error);
+  return {
+    applicationId: data.application_id,
+    packageBytes: Uint8Array.from(atob(data.package), (c) => c.charCodeAt(0)),
+  };
+}
+
+/**
+ * Plan 12, R1: the WHOLE filing in one request — the application is created
+ * already SUBMITTED, numbered, priced, signed and assigned; there is no
+ * DRAFT to create first and nothing to PATCH afterwards. `Idempotency-Key`
+ * is mandatory (a replay would mint a second public number).
+ */
+export async function fileApplication(body: ApplicationFileIn): Promise<ApplicationOut> {
+  const { data, error } = await api.POST('/api/v1/applications', {
     body,
     headers: { 'Idempotency-Key': crypto.randomUUID() },
   });
@@ -320,4 +298,50 @@ export async function listInvoicesForApplication(applicationId: string): Promise
   });
   if (error) throw apiError(error);
   return data.items;
+}
+
+export type RefundOut = components['schemas']['RefundOut'];
+
+/** `GET /invoices` with NO `application_id` — for a caller who holds no
+ * payments right (every applicant) the backend answers every invoice of
+ * every application they own or represent (stage 11, ruling R1). Never send
+ * `application_id` from here: with it the route is the per-application read. */
+export async function listMyInvoices(params: {
+  status?: string;
+  limit?: number;
+  offset?: number;
+}): Promise<Paged<InvoiceOut>> {
+  const { data, error } = await api.GET('/api/v1/invoices', {
+    params: { query: { limit: 50, offset: 0, ...params } },
+  });
+  if (error) throw apiError(error);
+  return data;
+}
+
+/** `GET /refunds` with NO `application_id` — the caller's own refund
+ * requests (ruling R1), with the accountant's working fields blanked by the
+ * backend (ruling R3). */
+export async function listMyRefunds(params: {
+  status?: string;
+  limit?: number;
+  offset?: number;
+}): Promise<Paged<RefundOut>> {
+  const { data, error } = await api.GET('/api/v1/refunds', {
+    params: { query: { limit: 50, offset: 0, ...params } },
+  });
+  if (error) throw apiError(error);
+  return data;
+}
+
+/** `POST /refunds` — the citizen appealing their OWN application (ownership
+ * is the backend's check). `basis_item_id` is a `refund_reasons` classifier
+ * item ID, never its code. */
+export async function requestRefund(body: {
+  application_id: string;
+  basis_item_id: string;
+  comment?: string | null;
+}): Promise<RefundOut> {
+  const { data, error } = await api.POST('/api/v1/refunds', { body });
+  if (error) throw apiError(error);
+  return data;
 }
