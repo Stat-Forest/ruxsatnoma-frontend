@@ -6,7 +6,7 @@
  * success; this test pins that behaviour at the component the walkthrough
  * actually watched so a future regression here fails loudly.
  */
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { setupServer } from 'msw/node';
@@ -348,4 +348,58 @@ test('legal_basis becomes optional in the reject form once the benefit claim is 
   await waitFor(() => expect(receivedBody).not.toBeNull());
   expect((receivedBody as { legal_basis: unknown }).legal_basis).toBeNull();
   expect((receivedBody as { reason_item_id: unknown }).reason_item_id).toBe(reasonId);
+});
+
+// "Koʻrib chiqishga olish" used to fire `POST /start-review` on the first
+// click — one slip of the mouse moved a SUBMITTED application into
+// IN_REVIEW and assigned it to whoever slipped. The click now opens a
+// confirmation naming the application; only its own confirm button posts.
+function reviewerAuth(): AuthContextValue {
+  const base = authValue();
+  return { ...base, me: { ...base.me!, permissions: ['applications.review'] } };
+}
+
+test('taking into review asks for confirmation first, and only the confirm button posts', async () => {
+  const user = userEvent.setup();
+  let posted = 0;
+  server.use(
+    http.post('*/api/v1/applications/:id/start-review', () => {
+      posted += 1;
+      return HttpResponse.json({ status: 'IN_REVIEW' });
+    }),
+  );
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
+  const initial = card({ status: 'SUBMITTED', assigned_user_id: null });
+  client.setQueryData(['staff', 'application', initial.id], initial);
+  renderPanel(initial, client, reviewerAuth());
+
+  await user.click(screen.getByText('Koʻrib chiqishga olish'));
+  expect(posted).toBe(0);
+  const dialog = await screen.findByRole('dialog');
+  expect(dialog).toHaveTextContent('RX-2026-000005');
+
+  await user.click(within(dialog).getByText('staff.startReview.confirm.button'));
+  await waitFor(() => expect(posted).toBe(1));
+  await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+  expect(client.getQueryState(['staff', 'application', initial.id])?.isInvalidated).toBe(true);
+});
+
+test('cancelling the confirmation posts nothing', async () => {
+  const user = userEvent.setup();
+  let posted = 0;
+  server.use(
+    http.post('*/api/v1/applications/:id/start-review', () => {
+      posted += 1;
+      return HttpResponse.json({ status: 'IN_REVIEW' });
+    }),
+  );
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
+  renderPanel(card({ status: 'SUBMITTED', assigned_user_id: null }), client, reviewerAuth());
+
+  await user.click(screen.getByText('Koʻrib chiqishga olish'));
+  const dialog = await screen.findByRole('dialog');
+  await user.click(within(dialog).getByText('staff.startReview.confirm.cancel'));
+
+  expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  expect(posted).toBe(0);
 });

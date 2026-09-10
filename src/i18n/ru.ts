@@ -2182,6 +2182,13 @@ export const ru = {
   'staff.decision.benefit.approveBlockedRejectedPrefix': 'Льгота отклонена:',
   'staff.decision.benefit.legalBasisOptionalHint':
     'Если оставить пустым, в качестве правового основания будет использована причина отклонения льготы.',
+  // `StartReviewConfirmModal` — вопрос перед взятием заявки в работу.
+  'staff.startReview.confirm.title': 'Взять заявку в работу?',
+  'staff.startReview.confirm.bodyPrefix': 'Заявка',
+  'staff.startReview.confirm.bodyEffect': 'перейдёт в статус «На рассмотрении» и будет закреплена за вами.',
+  'staff.startReview.confirm.button': 'Взять в работу',
+  'staff.startReview.confirm.cancel': 'Отмена',
+  'staff.startReview.confirm.error': 'Не удалось взять в работу.',
   'beekeepers.title': 'Реестр пчеловодов',
   'beekeepers.subtitle': 'Реестр сертификатов членов Союза — заявленные в заявках сертификаты сверяются с ним',
   'beekeepers.filters.q': 'Поиск',
