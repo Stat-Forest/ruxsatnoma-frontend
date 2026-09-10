@@ -311,12 +311,17 @@ function RecipientFormModal({
     const note = form.note.trim() || null;
 
     if (recipientId) {
+      // `kind` is locked on edit, and the backend refuses the OTHER kind's
+      // amount key even as `null` (`invalid_percent_for_recipient_kind` /
+      // `invalid_fixed_amount_for_recipient_kind`): a PATCH body carries
+      // only the field the row's own kind is allowed to hold.
       patch.mutate(
         {
           name,
           payme_account_id: paymeAccountId,
-          percent: form.kind === 'percent' ? form.percent.trim() : null,
-          fixed_amount: form.kind === 'fixed' ? form.fixedAmount.trim() : null,
+          ...(form.kind === 'percent'
+            ? { percent: form.percent.trim() }
+            : { fixed_amount: form.fixedAmount.trim() }),
           sort_order: sortOrder,
           note,
           active: form.active,
