@@ -350,6 +350,10 @@ export const ru = {
   'cabinet.profile.activeAccount': 'Активный аккаунт',
   'cabinet.profile.passwordSubtitle': 'Используйте новый и надежный пароль для безопасности вашей учетной записи',
   'cabinet.profile.contactsSubtitle': 'Информация о телефоне и электронной почте, привязанных к вашему аккаунту',
+  'cabinet.profile.superuser': 'Суперпользователь',
+  'cabinet.profile.currentLang': 'Русский',
+  'cabinet.profile.codePlaceholder': '6-значный код',
+  'cabinet.profile.emailPlaceholder': 'pochta@primer.uz',
 
   // Track F3 — accountant's workspace (G1–G5), `src/pages/accountant/`.
   'accountant.common.loading': 'Загрузка…',

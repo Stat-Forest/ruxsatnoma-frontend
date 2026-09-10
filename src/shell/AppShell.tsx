@@ -21,11 +21,15 @@ import { Nav } from './Nav';
  * name in this very header rendered in Cyrillic on an otherwise Uzbek-Latin
  * page.
  */
-function pickLocalizedName(name: Record<string, unknown>, uiLang: UiLanguage): string {
+function pickLocalizedName(name: Record<string, unknown>, uiLang: UiLanguage, roleCode?: string): string {
   const preferred = name[uiLang] ?? (uiLang === 'ru' ? name.ru : uiLang === 'uz_cyrl' ? name.uz_cyrl : name.uz_latn);
   const candidate = preferred ?? name.uz_latn ?? name.uz_cyrl ?? name.ru ?? Object.values(name)[0];
   const raw = typeof candidate === 'string' ? candidate : '';
-  return translateTerm(raw, uiLang);
+  const translated = translateTerm(raw, uiLang);
+  if (!translated && roleCode) {
+    return translateTerm(roleCode, uiLang);
+  }
+  return translated || raw;
 }
 
 /**
@@ -58,7 +62,7 @@ export function AppShell() {
 
   if (!me) return null;
 
-  const roleName = pickLocalizedName(me.role.name, lang);
+  const roleName = pickLocalizedName(me.role.name, lang, me.role.code);
   const unreadCount = unreadQuery.data?.count ?? 0;
 
   return (
@@ -134,7 +138,7 @@ export function AppShell() {
           className="hidden sm:flex flex-col items-end shrink-0 pl-3 border-l border-[#E4E7EA] max-w-[12rem] py-1 px-2 rounded-md hover:bg-[#F8F9FA] transition-colors"
         >
           <span className="text-xs font-semibold text-[#1A1F24] hover:text-[#2E7D4F] leading-tight truncate w-full text-right transition-colors">
-            {me.user.full_name}
+            {translateTerm(me.user.full_name, lang) || me.user.full_name}
           </span>
           <span className="text-[11px] text-[#5A646D] truncate w-full text-right">{roleName}</span>
         </Link>

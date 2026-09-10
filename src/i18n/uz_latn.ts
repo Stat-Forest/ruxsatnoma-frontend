@@ -373,6 +373,10 @@ export const uz_latn = {
   'cabinet.profile.activeAccount': 'Faol hisob',
   'cabinet.profile.passwordSubtitle': 'Hisobingiz xavfsizligini taʼminlash uchun yangi va mustahkam paroldan foydalaning',
   'cabinet.profile.contactsSubtitle': 'Hisobingizga biriktirilgan telefon va elektron pochta maʼlumotlari',
+  'cabinet.profile.superuser': 'Superfoydalanuvchi',
+  'cabinet.profile.currentLang': 'Oʻzbekcha',
+  'cabinet.profile.codePlaceholder': '6 xonali kod',
+  'cabinet.profile.emailPlaceholder': 'pochta@misol.uz',
 
   // Track F3 — accountant's workspace (G1–G5), `src/pages/accountant/`.
   'accountant.common.loading': 'Yuklanmoqda…',

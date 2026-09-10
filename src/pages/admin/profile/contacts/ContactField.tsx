@@ -161,7 +161,7 @@ export function ContactField({
               data-testid={`${kind}-new-value`}
               value={value}
               disabled={sent}
-              placeholder={kind === 'phone' ? '+998901234567' : 'pochta@misol.uz'}
+              placeholder={kind === 'phone' ? '+998901234567' : t('cabinet.profile.emailPlaceholder')}
               onChange={(e) => setValue(e.target.value)}
             />
           </FormField>
@@ -188,7 +188,7 @@ export function ContactField({
                 data-testid={`${kind}-otp-code`}
                 inputMode="numeric"
                 value={code}
-                placeholder="6 xonali kod"
+                placeholder={t('cabinet.profile.codePlaceholder')}
                 onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
               />
             </FormField>
