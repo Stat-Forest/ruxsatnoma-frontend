@@ -9,7 +9,7 @@ import { Alert } from '../components/ui/Feedback';
 import { toApiError } from './permits/apiErrorHelpers';
 import { formatDateTime, formatMoney } from './permits/format';
 import { INVOICE_STATUS_STYLE, getInvoiceStatusLabel } from './permits/statusMeta';
-import { useLanguage } from '../i18n/useT';
+import { useLanguage, useT } from '../i18n/useT';
 import { getApplicationCard, listClassifierItems } from './applicant/api';
 import { pickName } from './applicant/format';
 import type { UiLanguage } from '../i18n/context';
@@ -68,6 +68,9 @@ const BENEFIT_SETTLED_I18N: Record<UiLanguage, { title: string; withCategory: st
  */
 export function MyInvoicePage() {
   const { lang } = useLanguage();
+  // Stage 11 — only the back link is translated (`myPayments.backToPayments`);
+  // the rest of this page stays hard-coded uz_latn, as it already was.
+  const t = useT();
   const { id } = useParams<{ id: string }>();
   const idempotencyKeyRef = useRef<string>(crypto.randomUUID());
 
@@ -159,10 +162,10 @@ export function MyInvoicePage() {
     <div className="max-w-3xl mx-auto space-y-6 font-sans pb-16">
       <div className="border-b border-[#E4E7EA] pb-4">
         <Link
-          to={`/my/applications/${invoice.application_id}`}
+          to="/my/payments"
           className="text-xs text-[#5A646D] hover:underline hover:text-[#2E7D4F] flex items-center gap-1 mb-1 font-medium"
         >
-          <ArrowLeft className="w-3.5 h-3.5" /> Arizaga qaytish
+          <ArrowLeft className="w-3.5 h-3.5" /> {t('myPayments.backToPayments')}
         </Link>
         <h1 className="text-2xl font-extrabold text-[#1A1F24] tracking-tight">
           Hisob-faktura {invoice.number}
