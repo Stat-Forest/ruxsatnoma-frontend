@@ -232,6 +232,43 @@ test('editing a receiver locks its kind and patches the row', async () => {
 
   await vi.waitFor(() => expect(patchedBody).not.toBeNull());
   expect(patchedBody).toMatchObject({ percent: '15', active: true });
+  // The backend refuses a `fixed_amount` key on a percent row even when it is
+  // `null` (`invalid_fixed_amount_for_recipient_kind`): only the field of the
+  // row's own kind may travel in a PATCH body.
+  expect(patchedBody).not.toHaveProperty('fixed_amount');
+});
+
+test('editing a fixed-kind receiver patches fixed_amount and never sends percent', async () => {
+  const fixedRow = recipient({
+    id: INSURANCE,
+    name: { uz_latn: 'Sugʻurta toʻlovi' },
+    kind: 'fixed',
+    percent: null,
+    fixed_amount: '15000.00',
+    payme_account_id: '55555',
+    sort_order: 30,
+  });
+  mockList([...TWO_ROWS, fixedRow]);
+  let patchedBody: unknown = null;
+  server.use(
+    http.patch('*/api/v1/payments/recipients/:id', async ({ request }) => {
+      patchedBody = await request.json();
+      return HttpResponse.json({ ...fixedRow, fixed_amount: '20000' });
+    }),
+  );
+  const { user } = renderPage();
+
+  const row = await screen.findByTestId(`recipient-row-${INSURANCE}`);
+  await user.click(within(row).getByRole('button', { name: 'Tahrirlash' }));
+
+  const fixedInput = screen.getByTestId('recipient-fixed-amount') as HTMLInputElement;
+  await user.clear(fixedInput);
+  await user.type(fixedInput, '20000');
+  await user.click(screen.getByRole('button', { name: 'Saqlash' }));
+
+  await vi.waitFor(() => expect(patchedBody).not.toBeNull());
+  expect(patchedBody).toMatchObject({ fixed_amount: '20000', active: true });
+  expect(patchedBody).not.toHaveProperty('percent');
 });
 
 test('deactivating a receiver sends active: false', async () => {
