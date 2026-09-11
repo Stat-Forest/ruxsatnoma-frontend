@@ -3831,6 +3831,13 @@ export interface paths {
          *     with a `suggestion_reason` instead — a hint is never a reason to refuse
          *     filing (ruling 2). `components` is always `[]` here — nothing has been
          *     submitted yet.
+         *
+         *     Stage 11 fix wave: the 201 echo goes through `_refund_out` too, the
+         *     same `staff` predicate `get_refund`/`list_refunds` use — a citizen
+         *     filing their own refund must not read the accountant's hint back off
+         *     the very response that confirms their filing. `components` stays `[]`
+         *     either way (nothing has been submitted yet), so this only ever changes
+         *     `suggested_amount`/`suggestion_reason` for a non-staff filer.
          */
         post: operations["request_refund_api_v1_refunds_post"];
         delete?: never;
@@ -5641,6 +5648,52 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/archive/application/by-number": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Archive Application By Number
+         * @description Stage 14 (#205 R6). Registered BEFORE `archive_object` below: a
+         *     `{object_type}/{object_id}` route would parse `by-number` as a UUID.
+         *     The number-to-id resolution has no existence oracle of its own — an
+         *     unknown number answers the SAME `ERR-SYS-003` as an unknown id — and once
+         *     resolved, the request runs the SAME `service.archive_object` the by-id
+         *     route calls, so zone/status refusals come from there unchanged.
+         */
+        post: operations["archive_application_by_number_api_v1_archive_application_by_number_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/archive/permit/by-number": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Archive Permit By Number
+         * @description Same shape as `archive_application_by_number` above, keyed on the
+         *     series + number pair the public QR check already accepts.
+         */
+        post: operations["archive_permit_by_number_api_v1_archive_permit_by_number_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/archive/{object_type}/{object_id}": {
         parameters: {
             query?: never;
@@ -7412,6 +7465,17 @@ export interface components {
             /** Approval Doc Id */
             approval_doc_id?: string | null;
         };
+        /**
+         * ArchiveApplicationByNumberIn
+         * @description `POST /archive/application/by-number` (stage 14, #205 R6) — the
+         *     application named the way the archivist reads it off the register.
+         */
+        ArchiveApplicationByNumberIn: {
+            /** Retention Until */
+            retention_until?: string | null;
+            /** Number */
+            number: string;
+        };
         /** ArchiveItemOut */
         ArchiveItemOut: {
             /**
@@ -7429,6 +7493,8 @@ export interface components {
              * Format: uuid
              */
             object_id: string;
+            /** Object Number */
+            object_number?: string | null;
             /** Organization Id */
             organization_id: string | null;
             /**
@@ -7449,6 +7515,19 @@ export interface components {
             status: "stored" | "verified";
             /** Created By */
             created_by: string | null;
+        };
+        /**
+         * ArchivePermitByNumberIn
+         * @description `POST /archive/permit/by-number` — series + number, the pair the
+         *     public QR check already accepts (`permits.service.check_channel`).
+         */
+        ArchivePermitByNumberIn: {
+            /** Retention Until */
+            retention_until?: string | null;
+            /** Series */
+            series: string;
+            /** Number */
+            number: number;
         };
         /** ArchiveRequestIn */
         ArchiveRequestIn: {
@@ -9112,6 +9191,8 @@ export interface components {
              * Format: uuid
              */
             application_id: string;
+            /** Application Number */
+            application_number?: string | null;
             /** Calculation Id */
             calculation_id: string | null;
             /** Amount */
@@ -9133,10 +9214,10 @@ export interface components {
             /** Recipients */
             recipients?: components["schemas"]["InvoiceRecipientOut"][] | null;
             /**
-             * Settled By Benefit
+             * Settled Without Payment
              * @default false
              */
-            settled_by_benefit: boolean;
+            settled_without_payment: boolean;
         };
         /**
          * InvoiceRecipientOut
@@ -11715,6 +11796,12 @@ export interface components {
          *     read it from); every other route leaves it `[]`, not because the data
          *     would be wrong there but because no other handler reads the invoice's
          *     snapshot today — a real absence, not a hidden default.
+         *
+         *     Stage 11: for a non-staff reader, `refunds_router._refund_out` blanks
+         *     `suggested_amount`/`suggestion_reason` always, `components`/
+         *     `available_sources` always, and `comment` too once the refund has left
+         *     `requested` — this schema carries the field, the router decides what a
+         *     given actor actually receives in it.
          */
         RefundOut: {
             /**
@@ -11727,6 +11814,8 @@ export interface components {
              * Format: uuid
              */
             application_id: string;
+            /** Application Number */
+            application_number?: string | null;
             /**
              * Invoice Id
              * Format: uuid
@@ -11779,13 +11868,18 @@ export interface components {
          *     item by the service, not by this schema, the same existence-not-validity
          *     split `backoffice_service._assert_doc_active` already draws for a
          *     document id.
+         *
+         *     Stage 14 (ruling #205 R2): EXACTLY ONE of `application_id` (a machine
+         *     caller — the citizen's cabinet holds the id) and `application_number`
+         *     (a person — the accountant holds the number). Enforced here, at the
+         *     schema, so the two-selector and no-selector cases are `ERR-VAL-001`
+         *     before any service runs.
          */
         RefundRequestIn: {
-            /**
-             * Application Id
-             * Format: uuid
-             */
-            application_id: string;
+            /** Application Id */
+            application_id?: string | null;
+            /** Application Number */
+            application_number?: string | null;
             /**
              * Basis Item Id
              * Format: uuid
@@ -19920,6 +20014,8 @@ export interface operations {
         parameters: {
             query?: {
                 application_id?: string | null;
+                application_number?: string | null;
+                number?: string | null;
                 status?: string | null;
                 limit?: number;
                 offset?: number;
@@ -23697,6 +23793,72 @@ export interface operations {
             cookie?: never;
         };
         requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ArchiveItemOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    archive_application_by_number_api_v1_archive_application_by_number_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ArchiveApplicationByNumberIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ArchiveItemOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    archive_permit_by_number_api_v1_archive_permit_by_number_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ArchivePermitByNumberIn"];
+            };
+        };
         responses: {
             /** @description Successful Response */
             200: {
