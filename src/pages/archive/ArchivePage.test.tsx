@@ -186,6 +186,29 @@ test('archiving a permit posts series and number', async () => {
   await screen.findByTestId(`archive-item-detail-${archiveItem().id}`);
 });
 
+test('an unknown number shows the not-found copy, not the raw code', async () => {
+  server.use(
+    http.get('*/api/v1/archive', () => HttpResponse.json(page([]))),
+    http.get('*/api/v1/refs/organizations', () => HttpResponse.json(page([]))),
+    http.post('*/api/v1/archive/application/by-number', () =>
+      HttpResponse.json(
+        { error: { code: 'ERR-SYS-003', message: 'x', details: {}, correlation_id: 'c' } },
+        { status: 404 },
+      ),
+    ),
+  );
+
+  const user = userEvent.setup();
+  renderPage(['archive.view', 'archive.manage']);
+
+  await user.click(await screen.findByRole('button', { name: DICTIONARIES.uz_latn['archive.actions.newItem'] }));
+  await user.type(screen.getByTestId('archive-object-number'), 'RX-2026-99999');
+  await user.click(screen.getByTestId('archive-object-submit'));
+
+  await screen.findByText('Bunday obyekt topilmadi.');
+  expect(screen.queryByText(/ERR-SYS-003/)).not.toBeInTheDocument();
+});
+
 test('the register shows the object number, with the id as the tooltip', async () => {
   server.use(
     http.get('*/api/v1/archive', () =>
