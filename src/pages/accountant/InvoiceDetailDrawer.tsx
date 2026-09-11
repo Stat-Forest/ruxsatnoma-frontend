@@ -8,7 +8,7 @@ import { useAuth } from '../../auth/useAuth';
 import { ApiError } from '../../api/errors';
 import { useApiErrorText } from '../../i18n/useApiErrorText';
 import { useLanguage, useT } from '../../i18n/useT';
-import { formatDateTime, formatMoney } from '../permits/format';
+import { formatDateTime, formatMoney, shortId } from '../permits/format';
 import { pickName } from '../applicant/format';
 import {
   INVOICE_STATUS_STYLE,
@@ -90,7 +90,7 @@ function InvoiceHeader({ invoice }: { invoice: import('./api').InvoiceOut }) {
       <div>
         <dt className="font-semibold text-[#5A646D]">{t('accountant.invoices.detailApplication')}</dt>
         <dd className="font-mono text-[#1A1F24] break-all" title={invoice.application_id}>
-          {invoice.application_number ?? invoice.application_id.slice(0, 8)}
+          {invoice.application_number ?? shortId(invoice.application_id)}
         </dd>
       </div>
       <div>

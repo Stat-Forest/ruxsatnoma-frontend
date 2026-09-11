@@ -83,7 +83,7 @@ test('falls back to the 8-char id when the invoice carries no application_number
   );
   renderDrawer();
 
-  expect(await screen.findByText(APPLICATION_ID.slice(0, 8))).toBeInTheDocument();
+  expect(await screen.findByText(APPLICATION_ID.slice(-8))).toBeInTheDocument();
 });
 
 test('shows how the invoice divides, one row per InvoiceOut.recipients entry', async () => {
