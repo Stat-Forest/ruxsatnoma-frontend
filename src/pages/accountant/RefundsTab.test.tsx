@@ -294,3 +294,29 @@ test('a payments.confirm-only holder sees the register, not an id form', async (
   expect(screen.queryByLabelText(/ID/)).toBeNull();
   expect(screen.getByRole('button', { name: 'Tasdiqlash (rahbar)' })).toBeInTheDocument();
 });
+
+test('a payments.confirm-only holder can approve a refund end-to-end, not just see the button (final review minor)', async () => {
+  let approveCalled = false;
+  let approveBody: unknown;
+  server.use(
+    http.get('*/api/v1/refunds', () =>
+      HttpResponse.json({ items: [refund({ status: 'in_review', final_amount: '360000.00' })], total: 1, page: 1, page_size: 100 }),
+    ),
+    http.post('*/api/v1/refunds/:id/approve', async ({ request }) => {
+      approveCalled = true;
+      approveBody = await request.json();
+      return HttpResponse.json(refund({ status: 'returned', final_amount: '360000.00', components: [] }));
+    }),
+  );
+  const user = userEvent.setup();
+  renderTab(['payments.confirm']); // neither payments.view nor payments.manage
+
+  const row = await screen.findByTestId(`refund-row-${REFUND_ID}`);
+  await user.click(within(row).getByRole('button', { name: 'Tasdiqlash (rahbar)' }));
+
+  const dialog = screen.getByRole('dialog');
+  await user.click(within(dialog).getByRole('button', { name: 'Qaytarish' }));
+
+  await waitFor(() => expect(approveCalled).toBe(true));
+  expect(approveBody).toMatchObject({ resolution: 'returned' });
+});

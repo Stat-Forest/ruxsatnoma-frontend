@@ -64,9 +64,17 @@ export function InvoicesTab() {
     setPage(1);
   }
 
-  function clearApplicationFilter() {
+  /**
+   * A5 (final review): resets BOTH filters, not just the one whose banner
+   * happened to be clicked — the two can be set at once (they AND together
+   * on the backend), so a "clear" that left the other one live would send a
+   * still-narrowed request right after the register looked cleared.
+   */
+  function clearFilters() {
     setApplicationNumber(null);
     setApplicationNumberDraft('');
+    setInvoiceNumber(null);
+    setInvoiceNumberDraft('');
     setPage(1);
   }
 
@@ -131,12 +139,24 @@ export function InvoicesTab() {
           </div>
         </div>
 
-        {applicationNumber && (
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#E4E7EA] bg-[#F8F9FA] px-4 py-2 text-xs">
-            <span className="text-[#5A646D] break-words">
-              {t('accountant.invoices.filteredByApplication')}: <span className="font-mono text-[#1A1F24] break-all">{applicationNumber}</span>
+        {(applicationNumber || invoiceNumber) && (
+          <div
+            data-testid="invoices-filter-banner"
+            className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#E4E7EA] bg-[#F8F9FA] px-4 py-2 text-xs"
+          >
+            <span className="text-[#5A646D] break-words space-x-1">
+              {applicationNumber && (
+                <span>
+                  {t('accountant.invoices.filteredByApplication')}: <span className="font-mono text-[#1A1F24] break-all">{applicationNumber}</span>
+                </span>
+              )}
+              {invoiceNumber && (
+                <span>
+                  {t('accountant.invoices.filteredByInvoice')}: <span className="font-mono text-[#1A1F24] break-all">{invoiceNumber}</span>
+                </span>
+              )}
             </span>
-            <Button size="sm" variant="outline" className="w-full sm:w-auto" leftIcon={<RotateCcw className="h-3.5 w-3.5" />} onClick={clearApplicationFilter}>
+            <Button size="sm" variant="outline" className="w-full sm:w-auto" leftIcon={<RotateCcw className="h-3.5 w-3.5" />} onClick={clearFilters}>
               {t('accountant.invoices.clearFilter')}
             </Button>
           </div>

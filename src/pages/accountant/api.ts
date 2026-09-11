@@ -74,8 +74,10 @@ export interface ListInvoicesParams {
  *
  * Stage 14 (#205 R1): `application_number` and `number` (the invoice's own
  * public number, e.g. `INV-2026-000123`) let the register be searched the
- * way a person reads it off a document — `application_id` stays for the
- * zone banner's own drill-down (a machine-held id), never typed by hand.
+ * way a person reads it off a document — `application_id` stays on the type
+ * to mirror the route; no adminka caller passes it today (final review
+ * minor: the earlier claim that the zone banner drills down through it was
+ * false — grep finds no such caller).
  */
 export async function listInvoices(params: ListInvoicesParams) {
   const { data, error } = await api.GET('/api/v1/invoices', { params: { query: params } });

@@ -230,6 +230,35 @@ test('the status filter reaches the wire: choosing a status sends it, "all" omit
   await waitFor(() => expect(seen.at(-1)!.has('status')).toBe(false));
 });
 
+test('the register list is invalidated once the polling detail settles, not left showing a stale pill (final review A4)', async () => {
+  let listCalls = 0;
+  let detailCalls = 0;
+  server.use(
+    http.get('*/api/v1/payments/bank-statements', () => {
+      listCalls += 1;
+      return HttpResponse.json(statementsPage([statementRow({ id: 'st-5', status: 'parsing' })]));
+    }),
+    http.get('*/api/v1/payments/bank-statements/st-5', () => {
+      detailCalls += 1;
+      return HttpResponse.json(statementOut({ id: 'st-5', status: detailCalls > 1 ? 'parsed' : 'parsing' }));
+    }),
+  );
+  const user = userEvent.setup();
+  renderTab(['payments.view']);
+
+  const row = await screen.findByTestId('statement-row-st-5');
+  await user.click(within(row).getByRole('button', { name: 'Ochish' }));
+  await screen.findByTestId('statement-detail');
+  const listCallsWhilePolling = listCalls;
+
+  // `useBankStatement`'s own `refetchInterval` (2s) drives the detail from
+  // `parsing` to `parsed` — real timers, the same way every other polling
+  // assertion in this suite (`InvoicesTab.test.tsx` et al.) waits on MSW
+  // rather than faking the clock.
+  await waitFor(() => expect(detailCalls).toBeGreaterThan(1), { timeout: 5000 });
+  await waitFor(() => expect(listCalls).toBeGreaterThan(listCallsWhilePolling), { timeout: 5000 });
+});
+
 test('a caller with neither payments.manage nor payments.view (e.g. the manual-PAID checker) sees neither the upload form nor the register, never a button the backend would 403 on', () => {
   renderTab(['payments.confirm']);
 

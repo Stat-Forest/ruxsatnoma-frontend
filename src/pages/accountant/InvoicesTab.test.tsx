@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { fireEvent, render, screen, within } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { setupServer } from 'msw/node';
@@ -96,7 +96,7 @@ function applicationSearchSection() {
   return screen.getByText('Ariza boʻyicha qidirish').closest('section')!;
 }
 function invoiceSearchSection() {
-  return screen.getByText('Hisob boʻyicha qidirish').closest('section')!;
+  return screen.getByText('Hisob-faktura boʻyicha qidirish').closest('section')!;
 }
 
 /** The shared `Drawer` component (`../../components/ui/Overlay.tsx`) sets no
@@ -254,10 +254,42 @@ test('searching by invoice number filters the register by number', async () => {
     }),
   );
   renderTab();
-  await userEvent.type(screen.getByLabelText(/Hisob raqami/i), 'INV-2026-000123');
+  await userEvent.type(screen.getByLabelText(/Hisob-faktura raqami/i), 'INV-2026-000123');
   await userEvent.click(within(invoiceSearchSection()).getByRole('button', { name: /Qidirish/i }));
   await screen.findByText(/topilmadi/i);
   expect(seen.at(-1)!.get('number')).toBe('INV-2026-000123');
+});
+
+test('the invoice-number filter shows a banner too, and "clear" resets both filters (final review A5)', async () => {
+  const seen: URLSearchParams[] = [];
+  server.use(
+    http.get('*/api/v1/invoices', ({ request }) => {
+      seen.push(new URL(request.url).searchParams);
+      return emptyInvoicesPage();
+    }),
+  );
+  const user = userEvent.setup();
+  renderTab();
+  await screen.findByText('Bu filtr boʻyicha hisob-fakturalar topilmadi.');
+
+  await user.type(screen.getByLabelText('Ariza raqami'), 'RX-2026-00001');
+  await user.click(within(applicationSearchSection()).getByRole('button', { name: 'Qidirish' }));
+  await user.type(screen.getByLabelText(/Hisob-faktura raqami/i), 'INV-2026-000123');
+  await user.click(within(invoiceSearchSection()).getByRole('button', { name: 'Qidirish' }));
+
+  // Both filters are live at once (they AND together on the backend) — the
+  // banner names both, not just whichever one has a hidden table column.
+  const banner = await screen.findByTestId('invoices-filter-banner');
+  expect(within(banner).getByText('RX-2026-00001')).toBeInTheDocument();
+  expect(within(banner).getByText('INV-2026-000123')).toBeInTheDocument();
+  expect(seen.at(-1)!.get('application_number')).toBe('RX-2026-00001');
+  expect(seen.at(-1)!.get('number')).toBe('INV-2026-000123');
+
+  await user.click(screen.getByRole('button', { name: 'Filtrni tozalash' }));
+
+  await waitFor(() => expect(seen.at(-1)!.has('application_number')).toBe(false));
+  expect(seen.at(-1)!.has('number')).toBe(false);
+  expect(screen.queryByTestId('invoices-filter-banner')).not.toBeInTheDocument();
 });
 
 test('an unknown application number shows the not-found message, not a raw 422', async () => {
@@ -367,7 +399,7 @@ test('the manual-PAID filing form is offered only for a pending invoice, and onl
   expect(within(dialog).queryByText('Qoʻlda toʻlovni qayd etish')).not.toBeInTheDocument();
 });
 
-test('filing a manual confirmation uploads the document first, then files it, and surfaces the id to hand to the checker', async () => {
+test('filing a manual confirmation uploads the document first, then files it, with no id left to hand off (A1)', async () => {
   let filedBody: unknown;
   vi.mocked(accountantApi.uploadFile).mockResolvedValue({
     id: 'file-1',
@@ -423,7 +455,13 @@ test('filing a manual confirmation uploads the document first, then files it, an
   await user.click(within(section).getByRole('button', { name: 'Qayd etish' }));
 
   expect(await screen.findByText('Qayd etildi. Tasdiqlash rahbarni kutmoqda.')).toBeInTheDocument();
-  expect(screen.getByText('conf-1')).toBeInTheDocument();
+  // A1: no id is shown or offered for copying any more — the checker finds
+  // the filing in their own pending worklist on the Discrepancies tab.
+  expect(screen.queryByText('conf-1')).not.toBeInTheDocument();
+  expect(screen.queryByRole('button', { name: /nusxa/i })).not.toBeInTheDocument();
+  expect(
+    screen.getByText('Tasdiqlovchi shaxs bu qaydni Nomuvofiqliklar boʻlimidagi kutayotgan qaydlar roʻyxatida koʻradi.'),
+  ).toBeInTheDocument();
   expect(accountantApi.uploadFile).toHaveBeenCalledWith(expect.objectContaining({ name: 'payment-order.pdf' }));
   expect(filedBody).toMatchObject({ invoice_id: INVOICE_PENDING, amount: '2060000.00', bank_doc_file_id: 'file-1' });
   expect(typeof (filedBody as { amount: unknown }).amount).toBe('string');

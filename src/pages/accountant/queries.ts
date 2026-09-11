@@ -4,6 +4,7 @@
  * `./api.ts`, paged lists keep `placeholderData` so a filter change or a
  * page turn does not blank the table between renders.
  */
+import { useEffect, useRef } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   approveRefund,
@@ -119,18 +120,44 @@ export function useBankStatements(params: ListBankStatementsParams) {
   });
 }
 
+/** Whether a bank statement's status still means "the worker job has not
+ *  settled yet" — shared between the polling condition below and the
+ *  transition check that fires the register invalidation, so the two stay
+ *  in lockstep by construction rather than by two hand-kept copies. */
+function isPollingStatus(status: string | undefined): boolean {
+  return status === 'pending' || status === 'parsing';
+}
+
+/**
+ * A4 (final review): the register (`useBankStatements`) has no
+ * `refetchInterval` of its own — it renders whatever it fetched once, so a
+ * row's status pill goes stale for as long as this detail keeps polling
+ * underneath it. This effect watches the SAME query's own data for the
+ * pending/parsing -> settled transition and invalidates the list right then,
+ * so the register catches up the moment the worker finishes instead of
+ * waiting for an unrelated focus/refetch.
+ */
 export function useBankStatement(statementId: string | null, paging: { limit?: number; offset?: number } = {}) {
-  return useQuery({
+  const queryClient = useQueryClient();
+  const query = useQuery({
     queryKey: [...STATEMENT_KEY, statementId, paging],
     queryFn: () => getBankStatement(statementId!, paging),
     enabled: statementId !== null,
     // Parsing is async (a worker job) — poll while the status has not
     // settled yet, so the accountant does not have to refresh by hand.
-    refetchInterval: (query) => {
-      const status = query.state.data?.status;
-      return status === 'pending' || status === 'parsing' ? 2000 : false;
-    },
+    refetchInterval: (q) => (isPollingStatus(q.state.data?.status) ? 2000 : false),
   });
+
+  const status = query.data?.status;
+  const previousStatus = useRef<string | undefined>(undefined);
+  useEffect(() => {
+    if (isPollingStatus(previousStatus.current) && status !== undefined && !isPollingStatus(status)) {
+      void queryClient.invalidateQueries({ queryKey: BANK_STATEMENTS_LIST_KEY });
+    }
+    previousStatus.current = status;
+  }, [status, queryClient]);
+
+  return query;
 }
 
 // ── G4 ────────────────────────────────────────────────────────────────────
