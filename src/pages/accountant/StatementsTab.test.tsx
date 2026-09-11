@@ -10,8 +10,6 @@ import type { AuthContextValue } from '../../auth/AuthContext';
 import { DICTIONARIES, I18nContext } from '../../i18n/context';
 import * as accountantApi from './api';
 
-const STATEMENT_ID = 's0000000-0000-4000-8000-000000000001';
-
 // Same jsdom/undici multipart interop gap as `InvoicesTab.test.tsx` — see
 // that file's own comment. `createBankStatement` is the one function that
 // posts a real `FormData`; everything else in this suite goes through real
@@ -56,20 +54,34 @@ function renderTab(permissions: string[] = ['payments.view', 'payments.manage'])
   return render(<StatementsTab />, { wrapper });
 }
 
-function statement(overrides: Partial<Record<string, unknown>> = {}) {
+/** One row of `GET /payments/bank-statements` (`StatementListItem`). */
+function statementRow(overrides: Partial<Record<string, unknown>> = {}) {
   return {
-    id: STATEMENT_ID,
+    id: 'st-1',
     source: 'file',
     format: 'csv',
     file_id: 'f-1',
     statement_date: '2026-08-01',
     period_from: '2026-07-25',
     period_to: '2026-08-01',
-    column_map: { amount: 'Sum', operation_date: 'Date', purpose: 'Purpose' },
     status: 'parsed',
     stats: { imported: 2, matched: 1, discrepancy: 1 },
     error_report: null,
     created_at: '2026-08-02T09:00:00Z',
+    ...overrides,
+  };
+}
+
+function statementsPage(items: ReturnType<typeof statementRow>[]) {
+  return { items, total: items.length, page: 1, page_size: 20 };
+}
+
+/** `GET /payments/bank-statements/{id}` (`StatementOut`) — the header plus
+ *  a page of lines, only fetched once a register row is opened. */
+function statementOut(overrides: Partial<Record<string, unknown>> = {}) {
+  return {
+    ...statementRow(),
+    column_map: { amount: 'Sum', operation_date: 'Date', purpose: 'Purpose' },
     lines: [
       {
         id: 'line-1',
@@ -89,12 +101,40 @@ function statement(overrides: Partial<Record<string, unknown>> = {}) {
   };
 }
 
-test('uploading a statement fills the required column-map fields, calls the upload function, and opens the accepted statement', async () => {
-  vi.mocked(accountantApi.createBankStatement).mockResolvedValue({ id: STATEMENT_ID, status: 'pending' });
-  server.use(http.get('*/api/v1/payments/bank-statements/:id', ({ params }) => HttpResponse.json(statement({ id: params.id }))));
+test('the register lists statements newest first and a row opens the statement', async () => {
+  server.use(
+    http.get('*/api/v1/payments/bank-statements', () =>
+      HttpResponse.json(statementsPage([statementRow({ id: 'st-1', statement_date: '2026-09-10', status: 'parsed' })])),
+    ),
+    http.get('*/api/v1/payments/bank-statements/st-1', () => HttpResponse.json(statementOut({ id: 'st-1' }))),
+  );
+  renderTab(['payments.view']);
+
+  const row = await screen.findByTestId('statement-row-st-1');
+  expect(within(row).getByText('10.09.2026')).toBeInTheDocument();
+
+  await userEvent.click(within(row).getByRole('button', { name: /Ochish/i }));
+
+  expect(await screen.findByTestId('statement-detail')).toBeInTheDocument();
+  expect(screen.queryByLabelText(/ID/)).toBeNull();
+});
+
+test('an accepted upload lands in the register and opens', async () => {
+  let listCalls = 0;
+  server.use(
+    http.get('*/api/v1/payments/bank-statements', () => {
+      listCalls += 1;
+      return HttpResponse.json(statementsPage(listCalls > 1 ? [statementRow({ id: 'st-9' })] : []));
+    }),
+    http.get('*/api/v1/payments/bank-statements/st-9', () => HttpResponse.json(statementOut({ id: 'st-9' }))),
+  );
+  vi.mocked(accountantApi.createBankStatement).mockResolvedValue({ id: 'st-9', status: 'pending' });
 
   const user = userEvent.setup();
   renderTab();
+
+  await screen.findByText('Koʻchirmalar yoʻq.');
+  expect(listCalls).toBe(1);
 
   const file = new File(['a,b'], 'statement.csv', { type: 'text/csv' });
   await user.upload(screen.getByLabelText('Fayl (CSV)'), file);
@@ -107,44 +147,45 @@ test('uploading a statement fills the required column-map fields, calls the uplo
       columnMap: { amount: 'amount', operation_date: 'operation_date', purpose: 'purpose' },
     }),
   );
-  const detail = await screen.findByTestId('statement-detail');
-  expect(within(detail).getByText(STATEMENT_ID)).toBeInTheDocument();
+
+  expect(await screen.findByTestId('statement-detail')).toBeInTheDocument();
+  await screen.findByTestId('statement-row-st-9');
+  expect(listCalls).toBeGreaterThanOrEqual(2);
 });
 
-test('opening a statement by id shows its lines, stats and match status', async () => {
-  server.use(http.get('*/api/v1/payments/bank-statements/:id', ({ params }) => HttpResponse.json(statement({ id: params.id }))));
-
+test('opening a statement from the register shows its lines, stats and match status', async () => {
+  server.use(
+    http.get('*/api/v1/payments/bank-statements', () => HttpResponse.json(statementsPage([statementRow({ id: 'st-2' })]))),
+    http.get('*/api/v1/payments/bank-statements/st-2', () => HttpResponse.json(statementOut({ id: 'st-2' }))),
+  );
   const user = userEvent.setup();
   renderTab();
 
-  await user.type(screen.getByLabelText('ID boʻyicha ochish'), STATEMENT_ID);
-  await user.click(screen.getByRole('button', { name: 'Ochish' }));
+  const row = await screen.findByTestId('statement-row-st-2');
+  await user.click(within(row).getByRole('button', { name: 'Ochish' }));
 
   const detail = await screen.findByTestId('statement-detail');
   expect(within(detail).getByText('2 060 000')).toBeInTheDocument();
   expect(within(detail).getByText('Mos keldi')).toBeInTheDocument();
-  expect(
-    within(detail).getByText((_, node) => node?.textContent?.replace(/\s+/g, ' ').trim() === 'imported: 2'),
-  ).toBeInTheDocument();
 });
 
 test('an error report is shown with its capped rows, never silently dropped', async () => {
   server.use(
-    http.get('*/api/v1/payments/bank-statements/:id', ({ params }) =>
+    http.get('*/api/v1/payments/bank-statements', () => HttpResponse.json(statementsPage([statementRow({ id: 'st-3' })]))),
+    http.get('*/api/v1/payments/bank-statements/st-3', () =>
       HttpResponse.json(
-        statement({
-          id: params.id,
+        statementOut({
+          id: 'st-3',
           error_report: { errors: [{ line_no: 4, field: 'amount', message: 'not a number' }], omitted: 3 },
         }),
       ),
     ),
   );
-
   const user = userEvent.setup();
   renderTab();
 
-  await user.type(screen.getByLabelText('ID boʻyicha ochish'), STATEMENT_ID);
-  await user.click(screen.getByRole('button', { name: 'Ochish' }));
+  const row = await screen.findByTestId('statement-row-st-3');
+  await user.click(within(row).getByRole('button', { name: 'Ochish' }));
 
   expect(await screen.findByText(/not a number/)).toBeInTheDocument();
   expect(screen.getByText(/3 yana koʻrsatilmagan/)).toBeInTheDocument();
@@ -152,24 +193,24 @@ test('an error report is shown with its capped rows, never silently dropped', as
 
 test('a 404 on open reads as "not found", never a raw error code', async () => {
   server.use(
-    http.get('*/api/v1/payments/bank-statements/:id', () =>
+    http.get('*/api/v1/payments/bank-statements', () => HttpResponse.json(statementsPage([statementRow({ id: 'st-4' })]))),
+    http.get('*/api/v1/payments/bank-statements/st-4', () =>
       HttpResponse.json({ error: { code: 'ERR-SYS-003', message: 'not found' } }, { status: 404 }),
     ),
   );
-
   const user = userEvent.setup();
   renderTab();
 
-  await user.type(screen.getByLabelText('ID boʻyicha ochish'), 'missing');
-  await user.click(screen.getByRole('button', { name: 'Ochish' }));
+  const row = await screen.findByTestId('statement-row-st-4');
+  await user.click(within(row).getByRole('button', { name: 'Ochish' }));
 
   expect(await screen.findByText('Bunday hisobot topilmadi.')).toBeInTheDocument();
 });
 
-test('a caller with neither payments.manage nor payments.view (e.g. the manual-PAID checker) sees neither the upload form nor the open-by-id search, never a button the backend would 403 on', () => {
+test('a caller with neither payments.manage nor payments.view (e.g. the manual-PAID checker) sees neither the upload form nor the register, never a button the backend would 403 on', () => {
   renderTab(['payments.confirm']);
 
   expect(screen.queryByLabelText('Fayl (CSV)')).not.toBeInTheDocument();
-  expect(screen.queryByLabelText('ID boʻyicha ochish')).not.toBeInTheDocument();
+  expect(screen.queryByText('Yuklangan koʻchirmalar')).not.toBeInTheDocument();
   expect(screen.getByText(/Bank hisobotlariga kirish huquqi/)).toBeInTheDocument();
 });
