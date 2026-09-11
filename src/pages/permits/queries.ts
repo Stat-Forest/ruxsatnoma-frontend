@@ -14,6 +14,7 @@ import { useQuery } from '@tanstack/react-query';
 import { api } from '../../api/client';
 import { apiError } from '../../api/errors';
 import type { components } from '../../api/schema';
+import { normalizePermitSeries } from './format';
 
 export type PermitOut = components['schemas']['PermitOut'];
 export type PermitStatus = PermitOut['status'];
@@ -37,14 +38,12 @@ export function toPermitsQuery(filters: PermitListFilters) {
   const parsedNumber = filters.number ? Number(filters.number) : undefined;
   const number = parsedNumber !== undefined && Number.isInteger(parsedNumber) && parsedNumber > 0 ? parsedNumber : undefined;
 
-  let series = filters.series ? filters.series.trim() : undefined;
-  if (series) {
-    // Both Latin 'A' (\u0041) and Cyrillic 'А' (\u0410) are used interchangeably by users.
-    // The database seeds and generates Cyrillic 'А', so normalize Latin 'A'/'a' to Cyrillic 'А'.
-    if (series === 'A' || series === 'a') {
-      series = 'А';
-    }
-  }
+  // A2 (final review): the Latin/Cyrillic 'A' mix-up is now normalised by
+  // one shared helper (`../permits/format::normalizePermitSeries`) so the
+  // archive's by-number lookup (`ArchiveObjectModal.tsx`) reads a typed
+  // series the same way this register does, instead of re-deriving its own
+  // copy of the mapping.
+  const series = filters.series ? normalizePermitSeries(filters.series) : undefined;
 
   return {
     status: filters.status || undefined,
