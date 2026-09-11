@@ -1,5 +1,5 @@
 /**
- * Stage 10, F1 — ruling #185: a benefit-settled invoice (`settled_by_benefit`)
+ * Stage 10, F1 — ruling #185: a benefit-settled invoice (`settled_without_payment`)
  * is `paid` with nothing collected, and the citizen sees WHY instead of a
  * bare "paid" badge or the Payme button.
  */
@@ -30,7 +30,7 @@ function invoice(over: Partial<InvoiceOut> = {}): InvoiceOut {
     due_at: '2026-09-17T10:00:00Z',
     paid_at: '2026-09-10T10:00:00Z',
     recipients: null,
-    settled_by_benefit: true,
+    settled_without_payment: true,
     ...over,
   } as InvoiceOut;
 }
@@ -102,7 +102,7 @@ function renderInvoicePage() {
 
 test('a benefit-settled invoice shows "nothing to pay" with the category name, and no Payme button', async () => {
   server.use(
-    http.get('*/api/v1/invoices/:id', () => HttpResponse.json(invoice({ settled_by_benefit: true, status: 'paid' }))),
+    http.get('*/api/v1/invoices/:id', () => HttpResponse.json(invoice({ settled_without_payment: true, status: 'paid' }))),
     http.get('*/api/v1/applications/:id', () =>
       HttpResponse.json(applicationCard({ benefit_category_item_id: 'benefit-1' })),
     ),
@@ -133,7 +133,7 @@ test('a benefit-settled invoice shows "nothing to pay" with the category name, a
 
 test('a benefit-settled invoice with no benefit category on the application still reads "nothing to pay"', async () => {
   server.use(
-    http.get('*/api/v1/invoices/:id', () => HttpResponse.json(invoice({ settled_by_benefit: true, status: 'paid' }))),
+    http.get('*/api/v1/invoices/:id', () => HttpResponse.json(invoice({ settled_without_payment: true, status: 'paid' }))),
     http.get('*/api/v1/applications/:id', () => HttpResponse.json(applicationCard({ benefit_category_item_id: null }))),
   );
   renderInvoicePage();
@@ -147,7 +147,7 @@ test('a benefit-settled invoice with no benefit category on the application stil
 test('a normal pending invoice (not benefit-settled) still offers the Payme button', async () => {
   server.use(
     http.get('*/api/v1/invoices/:id', () =>
-      HttpResponse.json(invoice({ settled_by_benefit: false, status: 'pending', paid_at: null, amount: '2200000.00' })),
+      HttpResponse.json(invoice({ settled_without_payment: false, status: 'pending', paid_at: null, amount: '2200000.00' })),
     ),
   );
   renderInvoicePage();
