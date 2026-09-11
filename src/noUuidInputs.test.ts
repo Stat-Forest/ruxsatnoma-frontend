@@ -14,6 +14,19 @@
  * DOM-only — `@types/node`'s ambient globals are program-wide the moment
  * any file in the same tsconfig program references them; this comment only
  * explains why this one file carries the reference.
+ *
+ * `src/api/` (the generated OpenAPI client, whose own docstrings say UUID)
+ * and every `*.test.ts(x)` file (which may legitimately type ids into
+ * `data-testid`s or fixtures) are excluded on purpose — neither is a
+ * person-facing surface.
+ *
+ * Final review (A6): the first cut of this guard only read `.tsx` attribute
+ * literals and bare JSX text, and skipped every non-i18n `.ts` file
+ * entirely — so an inline copy table like `{ idLabel: 'UUID' }` in a plain
+ * `.ts` module, or a JSX child written as its own string expression
+ * (`{'Enter the UUID'}` rather than bare text), passed clean. Four patterns
+ * now run, each aimed at one place a person-facing "UUID" string can hide;
+ * see each regex's own comment below for which.
  */
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join, relative, sep } from 'node:path';
@@ -36,8 +49,9 @@ function walk(dir: string, out: string[] = []): string[] {
 }
 
 /**
- * True where "UUID" (ASCII) or its Cyrillic transliteration "УУИД" occurs as
- * a whole word — not as a substring of a longer identifier or word
+ * True where "UUID" (ASCII, case-insensitive — a person reads "uuid" and
+ * "Uuid" exactly as badly as "UUID") or its Cyrillic transliteration "УУИД"
+ * occurs as a whole word — not as a substring of a longer identifier or word
  * (`randomUUID`, `Ариза...`). JS `\b` is defined over ASCII word characters
  * only, so it is correct for `UUID` but silently wrong for Cyrillic (every
  * Cyrillic letter looks like a non-word character to it, so `\b` would
@@ -45,7 +59,7 @@ function walk(dir: string, out: string[] = []): string[] {
  * Unicode-aware lookaround stands in for `\b` there instead.
  */
 function hasUuidWord(text: string): boolean {
-  return /\bUUID\b/.test(text) || /(?<![\p{L}])УУИД(?![\p{L}])/u.test(text);
+  return /\bUUID\b/i.test(text) || /(?<![\p{L}])УУИД(?![\p{L}])/u.test(text);
 }
 
 function lineAt(text: string, index: number): number {
@@ -60,12 +74,37 @@ function lineTextAt(text: string, index: number): string {
   return text.slice(start, end === -1 ? text.length : end).trim();
 }
 
-// An attribute literal, e.g. placeholder="UUID" or label={'...'} — not
-// aria-label (excluded by the lookbehind so a hyphenated attribute name
-// doesn't also match "label=").
-const ATTR_RE = /(?<![\w-])(?:placeholder|label)=\{?["'`]([^"'`]*)["'`]/g;
-// JSX text content between tags: >...UUID...<
+// An attribute literal a person reads or a screen reader announces:
+// placeholder="UUID", title={'...'}, aria-label="UUID", or a FormField/Input
+// hint/helperText string (`FormControls.tsx`'s own `hint` prop and
+// `FormField`'s own `helperText` prop). `aria-label` is named explicitly
+// rather than relying on the lookbehind to reach it through "label" — the
+// lookbehind's job is only to stop a COMPOUND identifier like "myLabel="
+// from matching as "label=".
+const ATTR_RE = /(?<![\w-])(?:placeholder|label|title|aria-label|hint|helperText)=\{?["'`]([^"'`]*)["'`]/g;
+// JSX text content between tags: >...UUID...<. Known false positive,
+// accepted rather than special-cased: a comment reading `-> UUID <` (an
+// arrow drawn in prose) also matches this shape and would be flagged even
+// though it is not JSX. None exist in this tree today; if one ever does,
+// reword the comment rather than the regex.
 const JSX_TEXT_RE = />([^<>{}]*)</g;
+// A JSX child written as its OWN string expression rather than bare text —
+// `<p>{'Enter the UUID'}</p>` — which `JSX_TEXT_RE` cannot see because the
+// `{`/`}` sit between it and the text. Deliberately narrow (the whole
+// expression must be nothing but one quoted string) so it does not also
+// swallow an object literal like `{ idLabel: 'UUID' }`, whose first
+// non-whitespace character after `{` is an identifier, not a quote.
+const JSX_EXPR_STRING_RE = /\{\s*(['"`])((?:(?!\1)[\s\S])*)\1\s*\}/g;
+// The plan's own third pattern (Task 5 Step 1), dropped in the first cut and
+// restored here: a string literal that is EXACTLY "UUID" (any quote style,
+// case-sensitive — this one is aimed at code, not prose) immediately
+// followed by `,` or `}`. This is what catches an inline copy table entry
+// such as `{ idLabel: 'UUID' }` in a plain `.ts`/`.tsx` module — neither an
+// attribute nor JSX text, so neither pattern above reads it. Applied to
+// every file this guard walks except `src/i18n/` (whose own dictionary-wide
+// scan below is already a superset: any dictionary VALUE containing the
+// word, not only this one exact shape).
+const EXACT_LITERAL_RE = /['"`]UUID['"`]\s*[,}]/g;
 
 test('no input asks a person for a UUID', () => {
   const hits: string[] = [];
@@ -79,20 +118,33 @@ test('no input asks a person for a UUID', () => {
     if (rel.startsWith(`src${sep}i18n${sep}`)) {
       // Any dictionary string value containing the word — every language,
       // not just the ones an earlier pass happened to check by hand.
-      for (const re of [/\bUUID\b/g, /(?<![\p{L}])УУИД(?![\p{L}])/gu]) {
+      for (const re of [/\bUUID\b/gi, /(?<![\p{L}])УУИД(?![\p{L}])/gu]) {
         for (const m of text.matchAll(re)) {
           hits.push(`${rel}:${lineAt(text, m.index)}: ${lineTextAt(text, m.index)}`);
         }
       }
-    } else if (file.endsWith('.tsx')) {
+      continue;
+    }
+
+    // Every other source file under `src/` (both `.ts` and `.tsx`): the
+    // exact-literal copy-table shape applies regardless of extension.
+    for (const m of text.matchAll(EXACT_LITERAL_RE)) {
+      hits.push(`${rel}:${lineAt(text, m.index)}: ${lineTextAt(text, m.index)}`);
+    }
+
+    if (file.endsWith('.tsx')) {
       // A doc/code comment mentioning UUID, or crypto.randomUUID(), is not
-      // a hit — only what a person actually reads: a placeholder/label
-      // attribute, or literal JSX text between tags.
+      // a hit — only what a person actually reads: an attribute literal,
+      // literal JSX text between tags, or a JSX child that is itself a bare
+      // string expression.
       for (const m of text.matchAll(ATTR_RE)) {
         if (hasUuidWord(m[1])) hits.push(`${rel}:${lineAt(text, m.index)}: ${lineTextAt(text, m.index)}`);
       }
       for (const m of text.matchAll(JSX_TEXT_RE)) {
         if (hasUuidWord(m[1])) hits.push(`${rel}:${lineAt(text, m.index)}: ${lineTextAt(text, m.index)}`);
+      }
+      for (const m of text.matchAll(JSX_EXPR_STRING_RE)) {
+        if (hasUuidWord(m[2])) hits.push(`${rel}:${lineAt(text, m.index)}: ${lineTextAt(text, m.index)}`);
       }
     }
   }
