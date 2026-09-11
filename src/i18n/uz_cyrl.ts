@@ -435,8 +435,8 @@ export const uz_cyrl = {
   'accountant.invoices.applicationNumberLabel': 'Ариза рақами',
   'accountant.invoices.applicationNumberPlaceholder': 'RX-2026-00001',
   'accountant.invoices.searchButton': 'Қидириш',
-  'accountant.invoices.searchByInvoice': 'Ҳисоб бўйича қидириш',
-  'accountant.invoices.invoiceNumberLabel': 'Ҳисоб рақами',
+  'accountant.invoices.searchByInvoice': 'Ҳисоб-фактура бўйича қидириш',
+  'accountant.invoices.invoiceNumberLabel': 'Ҳисоб-фактура рақами',
   'accountant.invoices.invoiceNumberPlaceholder': 'INV-2026-000123',
   'accountant.invoices.applicationNotFound': 'Бундай ариза топилмади',
   'accountant.invoices.notFound': "Бундай ҳисоб-фактура мавжуд эмас ёки сизга тегишли эмас.",
@@ -445,6 +445,7 @@ export const uz_cyrl = {
   'accountant.invoices.registerEmpty': "Бу филтр бўйича ҳисоб-фактуралар топилмади.",
   'accountant.invoices.statusFilterLabel': 'Ҳолати',
   'accountant.invoices.filteredByApplication': 'Ариза бўйича филтрланган',
+  'accountant.invoices.filteredByInvoice': 'Ҳисоб-фактура бўйича филтрланган',
   'accountant.invoices.clearFilter': 'Филтрни тозалаш',
   'accountant.invoices.colApplication': 'Ариза',
   'accountant.invoices.colNumber': 'Рақами',
@@ -479,9 +480,8 @@ export const uz_cyrl = {
   'accountant.invoices.manualPaidFiled': "Қайд этилди. Тасдиқлаш раҳбарни кутмоқда.",
   'accountant.invoices.manualPaidMismatch':
     "Қайд этилди, аммо сумма ҳисоб-фактура суммасига мос келмайди — бу Номувофиқликлар реестрида очиқ ёзув сифатида қолади.",
-  'accountant.invoices.manualPaidIdLabel': 'Қайд ИД',
-  'accountant.invoices.manualPaidShareHint':
-    "Тасдиқлаш учун ушбу ID'ни тасдиқловчи шахсга (раҳбарга) юборинг — тизимда кутилаётган қайдлар рўйхати йўқ, фақат ID орқали топилади.",
+  'accountant.invoices.manualPaidIdLabel':
+    "Тасдиқловчи шахс бу қайдни Номувофиқликлар бўлимидаги кутаётган қайдлар рўйхатида кўради.",
   'accountant.invoices.manualPaidUploadFailed': "Ҳужжатни юклашда хатолик юз берди.",
   'accountant.invoices.manualPaidFailed': "Қайд этишда хатолик юз берди.",
 
@@ -535,7 +535,7 @@ export const uz_cyrl = {
   'accountant.discrepancies.loadFailed': "Юклашда хатолик юз берди.",
   'accountant.discrepancies.empty': "Ёзувлар топилмади.",
   'accountant.discrepancies.noViewAccess':
-    "Номувофиқликлар реестрини кўриш ҳуқуқи йўқ — бу сизга қайдни ID орқали тасдиқлаш/рад этиш имконини бермайди, пастдаги панел орқали давом этинг.",
+    "Номувофиқликлар реестрини кўриш ҳуқуқи йўқ — пастдаги кутаётган қайдлар устида ишланг.",
   'accountant.discrepancies.resolveTitle': "Номувофиқликни ёпиш",
   'accountant.discrepancies.resolveCommentLabel': 'Изоҳ',
   'accountant.discrepancies.resolveDocLabel': "Тасдиқловчи ҳужжат (ихтиёрий)",
@@ -1872,13 +1872,14 @@ export const uz_cyrl = {
   'archive.newItemModal.objectNumber': "Ариза рақами",
   'archive.newItemModal.objectNumberPlaceholder': "RX-2026-00001",
   'archive.newItemModal.permitSeries': "Серия",
+  'archive.newItemModal.permitSeriesPlaceholder': "А",
   'archive.newItemModal.permitNumber': "Рақам",
   'archive.newItemModal.permitNumberPlaceholder': "4182",
   'archive.newItemModal.retentionUntil': "Сақлаш муддати (ихтиёрий)",
   'archive.newItemModal.submit': "Архивлаш",
   'archive.newItemModal.cancel': "Бекор қилиш",
   'archive.newItemModal.error': "Обектни архивлаб бўлмади",
-  'archive.newItemModal.notFound': "Бундай обект топилмади.",
+  'archive.newItemModal.notFound': "Бундай обект топилмади",
 
   // --- Chief Forester Dashboard ---
   'chiefForester.dash.title': "Бош ўрмонбеги бошқарув панели",

@@ -407,8 +407,8 @@ export const uz_latn = {
   'accountant.invoices.applicationNumberLabel': 'Ariza raqami',
   'accountant.invoices.applicationNumberPlaceholder': 'RX-2026-00001',
   'accountant.invoices.searchButton': 'Qidirish',
-  'accountant.invoices.searchByInvoice': 'Hisob boʻyicha qidirish',
-  'accountant.invoices.invoiceNumberLabel': 'Hisob raqami',
+  'accountant.invoices.searchByInvoice': 'Hisob-faktura boʻyicha qidirish',
+  'accountant.invoices.invoiceNumberLabel': 'Hisob-faktura raqami',
   'accountant.invoices.invoiceNumberPlaceholder': 'INV-2026-000123',
   'accountant.invoices.applicationNotFound': 'Bunday ariza topilmadi',
   'accountant.invoices.notFound': "Bunday hisob-faktura mavjud emas yoki sizga tegishli emas.",
@@ -417,6 +417,7 @@ export const uz_latn = {
   'accountant.invoices.registerEmpty': "Bu filtr boʻyicha hisob-fakturalar topilmadi.",
   'accountant.invoices.statusFilterLabel': 'Holati',
   'accountant.invoices.filteredByApplication': 'Ariza boʻyicha filtrlangan',
+  'accountant.invoices.filteredByInvoice': 'Hisob-faktura boʻyicha filtrlangan',
   'accountant.invoices.clearFilter': 'Filtrni tozalash',
   'accountant.invoices.colApplication': 'Ariza',
   'accountant.invoices.colNumber': 'Raqami',
@@ -458,9 +459,8 @@ export const uz_latn = {
   'accountant.invoices.manualPaidFiled': "Qayd etildi. Tasdiqlash rahbarni kutmoqda.",
   'accountant.invoices.manualPaidMismatch':
     "Qayd etildi, ammo summa hisob-faktura summasiga mos kelmaydi — bu Nomuvofiqliklar reestrida ochiq yozuv sifatida qoladi.",
-  'accountant.invoices.manualPaidIdLabel': 'Qayd ID',
-  'accountant.invoices.manualPaidShareHint':
-    "Tasdiqlash uchun ushbu ID'ni tasdiqlovchi shaxsga (rahbarga) yuboring — tizimda kutilayotgan qaydlar roʻyxati yoʻq, faqat ID orqali topiladi.",
+  'accountant.invoices.manualPaidIdLabel':
+    "Tasdiqlovchi shaxs bu qaydni Nomuvofiqliklar boʻlimidagi kutayotgan qaydlar roʻyxatida koʻradi.",
   'accountant.invoices.manualPaidUploadFailed': "Hujjatni yuklashda xatolik yuz berdi.",
   'accountant.invoices.manualPaidFailed': "Qayd etishda xatolik yuz berdi.",
 
@@ -514,7 +514,7 @@ export const uz_latn = {
   'accountant.discrepancies.loadFailed': "Yuklashda xatolik yuz berdi.",
   'accountant.discrepancies.empty': "Yozuvlar topilmadi.",
   'accountant.discrepancies.noViewAccess':
-    "Nomuvofiqliklar reestrini koʻrish huquqi yoʻq — bu sizga qaydni ID orqali tasdiqlash/rad etish imkonini bermaydi, pastdagi panel orqali davom eting.",
+    "Nomuvofiqliklar reestrini koʻrish huquqi yoʻq — pastdagi kutayotgan qaydlar ustida ishlang.",
   'accountant.discrepancies.resolveTitle': "Nomuvofiqlikni yopish",
   'accountant.discrepancies.resolveCommentLabel': 'Izoh',
   'accountant.discrepancies.resolveDocLabel': "Tasdiqlovchi hujjat (ixtiyoriy)",
@@ -1873,13 +1873,14 @@ export const uz_latn = {
   'archive.newItemModal.objectNumber': "Ariza raqami",
   'archive.newItemModal.objectNumberPlaceholder': "RX-2026-00001",
   'archive.newItemModal.permitSeries': "Seriya",
+  'archive.newItemModal.permitSeriesPlaceholder': "А",
   'archive.newItemModal.permitNumber': "Raqam",
   'archive.newItemModal.permitNumberPlaceholder': "4182",
   'archive.newItemModal.retentionUntil': "Saqlash muddati (ixtiyoriy)",
   'archive.newItemModal.submit': "Arxivlash",
   'archive.newItemModal.cancel': "Bekor qilish",
   'archive.newItemModal.error': "Obyektni arxivlab boʻlmadi",
-  'archive.newItemModal.notFound': "Bunday obyekt topilmadi.",
+  'archive.newItemModal.notFound': "Bunday obyekt topilmadi",
 
   // --- Chief Forester Dashboard ---
   'chiefForester.dash.title': "Bosh oʻrmonbegi boshqaruv paneli",

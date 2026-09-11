@@ -395,6 +395,7 @@ export const ru = {
   'accountant.invoices.registerEmpty': 'По этому фильтру счета не найдены.',
   'accountant.invoices.statusFilterLabel': 'Статус',
   'accountant.invoices.filteredByApplication': 'Отфильтровано по заявке',
+  'accountant.invoices.filteredByInvoice': 'Отфильтровано по счёту-фактуре',
   'accountant.invoices.clearFilter': 'Сбросить фильтр',
   'accountant.invoices.colApplication': 'Заявка',
   'accountant.invoices.colNumber': 'Номер',
@@ -436,9 +437,8 @@ export const ru = {
   'accountant.invoices.manualPaidFiled': 'Зафиксировано. Ожидается подтверждение руководителя.',
   'accountant.invoices.manualPaidMismatch':
     'Зафиксировано, но сумма не совпадает с суммой счёта — это останется открытой записью в реестре несоответствий.',
-  'accountant.invoices.manualPaidIdLabel': 'ID записи',
-  'accountant.invoices.manualPaidShareHint':
-    'Передайте этот ID тому, кто подтверждает (руководителю) — в системе нет списка ожидающих записей, найти можно только по ID.',
+  'accountant.invoices.manualPaidIdLabel':
+    'Подтверждающий увидит эту запись в списке ожидающих на вкладке «Несоответствия».',
   'accountant.invoices.manualPaidUploadFailed': 'Ошибка загрузки документа.',
   'accountant.invoices.manualPaidFailed': 'Ошибка фиксации.',
 
@@ -492,7 +492,7 @@ export const ru = {
   'accountant.discrepancies.loadFailed': 'Ошибка загрузки.',
   'accountant.discrepancies.empty': 'Записи не найдены.',
   'accountant.discrepancies.noViewAccess':
-    'Нет доступа к просмотру реестра несоответствий — подтвердить/отклонить запись по ID можно ниже.',
+    'Нет доступа к просмотру реестра несоответствий — работайте с ожидающими записями ниже.',
   'accountant.discrepancies.resolveTitle': 'Закрыть несоответствие',
   'accountant.discrepancies.resolveCommentLabel': 'Комментарий',
   'accountant.discrepancies.resolveDocLabel': 'Подтверждающий документ (необязательно)',
@@ -1847,13 +1847,14 @@ export const ru = {
   'archive.newItemModal.objectNumber': 'Номер заявки',
   'archive.newItemModal.objectNumberPlaceholder': 'RX-2026-00001',
   'archive.newItemModal.permitSeries': 'Серия',
+  'archive.newItemModal.permitSeriesPlaceholder': 'А',
   'archive.newItemModal.permitNumber': 'Номер',
   'archive.newItemModal.permitNumberPlaceholder': '4182',
   'archive.newItemModal.retentionUntil': 'Хранить до (необязательно)',
   'archive.newItemModal.submit': 'Архивировать',
   'archive.newItemModal.cancel': 'Отмена',
   'archive.newItemModal.error': 'Не удалось архивировать объект',
-  'archive.newItemModal.notFound': 'Такой объект не найден.',
+  'archive.newItemModal.notFound': 'Такой объект не найден',
 
   // --- Chief Forester Dashboard ---
   'chiefForester.dash.title': "Панель главного лесничего",
