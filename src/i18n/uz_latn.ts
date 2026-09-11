@@ -520,7 +520,6 @@ export const uz_latn = {
   'accountant.discrepancies.manualCheckTitle': "Qoʻlda toʻlovni tasdiqlash (tekshiruvchi)",
   'accountant.discrepancies.manualCheckHint':
     "Quyida sizning tasdigʻingizni kutayotgan qaydlar roʻyxati — bevosita shu yerdan tasdiqlang yoki rad eting.",
-  'accountant.discrepancies.manualByIdHint': "Yoki qayd ID'sini toʻgʻridan-toʻgʻri kiriting:",
   'accountant.discrepancies.manualPendingEmpty': "Hozircha tasdiqlashingizni kutayotgan qaydlar yoʻq.",
   'accountant.discrepancies.manualPendingLoadFailed': "Kutilayotgan qaydlar roʻyxatini yuklab boʻlmadi.",
   'accountant.discrepancies.manualPendingColAmount': 'Summa',
@@ -528,7 +527,6 @@ export const uz_latn = {
   'accountant.discrepancies.manualPendingColDoc': 'Hujjat',
   'accountant.discrepancies.manualPendingColActions': 'Amal',
   'accountant.discrepancies.manualPendingViewDoc': "Hujjatni koʻrish",
-  'accountant.discrepancies.manualConfirmationIdLabel': 'Qayd ID',
   'accountant.discrepancies.manualRejectReasonLabel': 'Rad etish sababi',
   'accountant.discrepancies.manualCheckMakerIsChecker':
     "Siz bu qaydni qilgan shaxssiz — uni tasdiqlay olmaysiz, boshqa shaxs tasdiqlashi kerak.",

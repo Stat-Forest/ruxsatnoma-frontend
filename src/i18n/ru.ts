@@ -498,7 +498,6 @@ export const ru = {
   'accountant.discrepancies.manualCheckTitle': 'Подтверждение ручной оплаты (проверяющий)',
   'accountant.discrepancies.manualCheckHint':
     'Ниже — список записей, ожидающих вашего подтверждения: подтвердите или отклоните прямо здесь.',
-  'accountant.discrepancies.manualByIdHint': 'Либо введите ID записи напрямую:',
   'accountant.discrepancies.manualPendingEmpty': 'Пока нет записей, ожидающих вашего подтверждения.',
   'accountant.discrepancies.manualPendingLoadFailed': 'Не удалось загрузить список ожидающих записей.',
   'accountant.discrepancies.manualPendingColAmount': 'Сумма',
@@ -506,7 +505,6 @@ export const ru = {
   'accountant.discrepancies.manualPendingColDoc': 'Документ',
   'accountant.discrepancies.manualPendingColActions': 'Действие',
   'accountant.discrepancies.manualPendingViewDoc': 'Открыть документ',
-  'accountant.discrepancies.manualConfirmationIdLabel': 'ID записи',
   'accountant.discrepancies.manualRejectReasonLabel': 'Причина отказа',
   'accountant.discrepancies.manualCheckMakerIsChecker':
     'Вы — тот, кто зафиксировал эту запись — вы не можете её подтвердить, нужен другой человек.',

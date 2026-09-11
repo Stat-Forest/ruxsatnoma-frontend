@@ -1,7 +1,6 @@
-import { useState } from 'react';
-import { CheckCircle2, XCircle } from 'lucide-react';
+import { Fragment, useState } from 'react';
 import { Button } from '../../components/ui/button';
-import { FileInput, FormField, Input, Textarea } from '../../components/ui/FormControls';
+import { FileInput, FormField, Textarea } from '../../components/ui/FormControls';
 import { Modal } from '../../components/ui/Overlay';
 import { Alert } from '../../components/ui/Feedback';
 import { useAuth } from '../../auth/useAuth';
@@ -213,9 +212,8 @@ function ResolveModal({ row, onClose }: { row: ReconciliationOut; onClose: () =>
 function ManualConfirmationCheckPanel() {
   const t = useT();
   const errorText = useApiErrorText();
-  const [confirmationId, setConfirmationId] = useState('');
+  const [rejectingId, setRejectingId] = useState<string | null>(null);
   const [rejectReason, setRejectReason] = useState('');
-  const [showReject, setShowReject] = useState(false);
 
   const pendingQuery = useManualConfirmations({ status: 'pending_check', limit: 50, offset: 0 });
   const confirmMutation = useConfirmManualConfirmation();
@@ -234,23 +232,33 @@ function ManualConfirmationCheckPanel() {
     rejectMutation.reset();
   }
 
-  /** F12b — a row's own "Tasdiqlash" acts directly on that row's id, the
-   *  same route the manual-id form below submits to. */
+  /** F12b — a row's own "Tasdiqlash" acts directly on that row's id. */
   function confirmRow(id: string) {
     reset();
-    setShowReject(false);
+    setRejectingId(null);
     confirmMutation.mutate(id);
   }
 
-  /** A rejection always needs a reason, so a row's own "Rad etish" cannot be
-   *  one click — it selects that row into the id field below (the checker
-   *  sees which one they are about to reject) and opens the reason box,
-   *  reusing the exact same submit path a typed-in id already uses. */
+  /** A rejection always needs a reason, so a row's own "Rad etish" opens a
+   *  reason box under that same row rather than submitting blind. */
   function startRejectRow(id: string) {
     reset();
-    setConfirmationId(id);
+    setRejectingId(id);
     setRejectReason('');
-    setShowReject(true);
+  }
+
+  function cancelReject() {
+    reset();
+    setRejectingId(null);
+  }
+
+  function submitReject() {
+    if (!rejectingId || !rejectReason.trim()) return;
+    const id = rejectingId;
+    rejectMutation.mutate(
+      { id, reason: rejectReason.trim() },
+      { onSuccess: () => setRejectingId((current) => (current === id ? null : current)) },
+    );
   }
 
   return (
@@ -258,78 +266,33 @@ function ManualConfirmationCheckPanel() {
       <h2 className="mb-1 text-sm font-bold text-[#1A1F24]">{t('accountant.discrepancies.manualCheckTitle')}</h2>
       <p className="mb-3 text-xs text-[#5A646D]">{t('accountant.discrepancies.manualCheckHint')}</p>
 
-      <ManualConfirmationsPendingList
-        query={pendingQuery}
-        onConfirm={confirmRow}
-        onReject={startRejectRow}
-        confirmingId={confirmMutation.isPending ? confirmMutation.variables ?? null : null}
-      />
-
-      <p className="mb-2 text-xs font-semibold text-[#5A646D]">{t('accountant.discrepancies.manualByIdHint')}</p>
-
-      <FormField label={t('accountant.discrepancies.manualConfirmationIdLabel')} htmlFor="manual-check-id">
-        <Input
-          id="manual-check-id"
-          value={confirmationId}
-          onChange={(e) => {
-            setConfirmationId(e.target.value);
-            reset();
-          }}
-          placeholder="UUID"
-        />
-      </FormField>
-
-      {showReject && (
-        <FormField label={t('accountant.discrepancies.manualRejectReasonLabel')} htmlFor="manual-reject-reason" className="mt-3" required>
-          <Textarea id="manual-reject-reason" value={rejectReason} onChange={(e) => setRejectReason(e.target.value)} rows={2} />
-        </FormField>
-      )}
-
       {error && (
-        <div className="mt-3">
+        <div className="mb-3">
           <Alert variant="danger">
             {error.code === 'ERR-ACL-001' ? t('accountant.discrepancies.manualCheckMakerIsChecker') : errorText(error)}
           </Alert>
         </div>
       )}
       {result && (
-        <div className="mt-3">
+        <div className="mb-3">
           <Alert variant="success">
             {result.status === 'confirmed' ? t('accountant.discrepancies.manualConfirmed') : t('accountant.discrepancies.manualRejected')}
           </Alert>
         </div>
       )}
 
-      <div className="mt-3 flex flex-col sm:flex-row gap-2">
-        <Button
-          variant="success"
-          size="sm"
-          className="w-full sm:w-auto"
-          leftIcon={<CheckCircle2 className="h-4 w-4" />}
-          disabled={!confirmationId.trim()}
-          isLoading={confirmMutation.isPending}
-          onClick={() => confirmMutation.mutate(confirmationId.trim())}
-        >
-          {t('accountant.discrepancies.manualConfirmButton')}
-        </Button>
-        {!showReject ? (
-          <Button variant="danger" size="sm" className="w-full sm:w-auto" leftIcon={<XCircle className="h-4 w-4" />} onClick={() => setShowReject(true)}>
-            {t('accountant.discrepancies.manualRejectButton')}
-          </Button>
-        ) : (
-          <Button
-            variant="danger"
-            size="sm"
-            className="w-full sm:w-auto"
-            leftIcon={<XCircle className="h-4 w-4" />}
-            disabled={!confirmationId.trim() || !rejectReason.trim()}
-            isLoading={rejectMutation.isPending}
-            onClick={() => rejectMutation.mutate({ id: confirmationId.trim(), reason: rejectReason.trim() })}
-          >
-            {t('accountant.discrepancies.manualRejectSubmit')}
-          </Button>
-        )}
-      </div>
+      <ManualConfirmationsPendingList
+        query={pendingQuery}
+        onConfirm={confirmRow}
+        onReject={startRejectRow}
+        confirmingId={confirmMutation.isPending ? confirmMutation.variables ?? null : null}
+        rejectingId={rejectingId}
+        rejectReason={rejectReason}
+        onReasonChange={setRejectReason}
+        onRejectSubmit={submitReject}
+        onRejectCancel={cancelReject}
+        rejectPending={rejectMutation.isPending}
+      />
     </section>
   );
 }
@@ -347,11 +310,23 @@ function ManualConfirmationsPendingList({
   onConfirm,
   onReject,
   confirmingId,
+  rejectingId,
+  rejectReason,
+  onReasonChange,
+  onRejectSubmit,
+  onRejectCancel,
+  rejectPending,
 }: {
   query: ReturnType<typeof useManualConfirmations>;
   onConfirm: (id: string) => void;
   onReject: (id: string) => void;
   confirmingId: string | null;
+  rejectingId: string | null;
+  rejectReason: string;
+  onReasonChange: (value: string) => void;
+  onRejectSubmit: () => void;
+  onRejectCancel: () => void;
+  rejectPending: boolean;
 }) {
   const t = useT();
 
@@ -382,35 +357,69 @@ function ManualConfirmationsPendingList({
         </thead>
         <tbody>
           {query.data!.items.map((row: ManualConfirmationOut) => (
-            <tr key={row.id} className="border-t border-[#E4E7EA]" data-testid={`manual-confirmation-row-${row.id}`}>
-              <td className="px-3 py-2 text-right font-mono">{formatMoney(row.amount)}</td>
-              <td className="px-3 py-2 font-mono">{formatDateTime(row.paid_at)}</td>
-              <td className="px-3 py-2">
-                <a
-                  href={fileUrl(row.bank_doc_file_id)}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="font-semibold text-[#2E7D4F] hover:underline"
-                >
-                  {t('accountant.discrepancies.manualPendingViewDoc')}
-                </a>
-              </td>
-              <td className="px-3 py-2 text-right">
-                <div className="flex justify-end gap-1.5 whitespace-nowrap">
-                  <Button
-                    size="sm"
-                    variant="success"
-                    isLoading={confirmingId === row.id}
-                    onClick={() => onConfirm(row.id)}
+            <Fragment key={row.id}>
+              <tr className="border-t border-[#E4E7EA]" data-testid={`manual-confirmation-row-${row.id}`}>
+                <td className="px-3 py-2 text-right font-mono">{formatMoney(row.amount)}</td>
+                <td className="px-3 py-2 font-mono">{formatDateTime(row.paid_at)}</td>
+                <td className="px-3 py-2">
+                  <a
+                    href={fileUrl(row.bank_doc_file_id)}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="font-semibold text-[#2E7D4F] hover:underline"
                   >
-                    {t('accountant.discrepancies.manualConfirmButton')}
-                  </Button>
-                  <Button size="sm" variant="danger" onClick={() => onReject(row.id)}>
-                    {t('accountant.discrepancies.manualRejectButton')}
-                  </Button>
-                </div>
-              </td>
-            </tr>
+                    {t('accountant.discrepancies.manualPendingViewDoc')}
+                  </a>
+                </td>
+                <td className="px-3 py-2 text-right">
+                  <div className="flex justify-end gap-1.5 whitespace-nowrap">
+                    <Button
+                      size="sm"
+                      variant="success"
+                      isLoading={confirmingId === row.id}
+                      onClick={() => onConfirm(row.id)}
+                    >
+                      {t('accountant.discrepancies.manualConfirmButton')}
+                    </Button>
+                    <Button size="sm" variant="danger" onClick={() => onReject(row.id)}>
+                      {t('accountant.discrepancies.manualRejectButton')}
+                    </Button>
+                  </div>
+                </td>
+              </tr>
+              {rejectingId === row.id && (
+                <tr className="border-t border-[#E4E7EA] bg-[#F8F9FA]" data-testid={`manual-reject-row-${row.id}`}>
+                  <td className="px-3 py-2 whitespace-normal" colSpan={4}>
+                    <FormField
+                      label={t('accountant.discrepancies.manualRejectReasonLabel')}
+                      htmlFor={`manual-reject-reason-${row.id}`}
+                      required
+                    >
+                      <Textarea
+                        id={`manual-reject-reason-${row.id}`}
+                        value={rejectReason}
+                        onChange={(e) => onReasonChange(e.target.value)}
+                        rows={2}
+                      />
+                    </FormField>
+                    <div className="mt-2 flex gap-1.5">
+                      <Button
+                        size="sm"
+                        variant="danger"
+                        disabled={!rejectReason.trim()}
+                        isLoading={rejectPending}
+                        onClick={onRejectSubmit}
+                      >
+                        {t('accountant.discrepancies.manualRejectSubmit')}
+                      </Button>
+                      <Button size="sm" variant="outline" onClick={onRejectCancel} disabled={rejectPending}>
+                        {t('accountant.common.cancel')}
+                      </Button>
+                    </div>
+                  </td>
+                </tr>
+              )}
+            </Fragment>
           ))}
         </tbody>
       </table>

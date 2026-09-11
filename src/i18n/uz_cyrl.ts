@@ -541,7 +541,6 @@ export const uz_cyrl = {
   'accountant.discrepancies.manualCheckTitle': "Қўлда тўловни тасдиқлаш (текширувчи)",
   'accountant.discrepancies.manualCheckHint':
     "Қуйида сизнинг тасдиғингизни кутаётган қайдлар рўйхати — бевосита шу ердан тасдиқланг ёки рад этинг.",
-  'accountant.discrepancies.manualByIdHint': "Ёки қайд ИДсини тўғридан-тўғри киритинг:",
   'accountant.discrepancies.manualPendingEmpty': "Ҳозирча тасдиқлашингизни кутаётган қайдлар йўқ.",
   'accountant.discrepancies.manualPendingLoadFailed': "Кутилаётган қайдлар рўйхатини юклаб бўлмади.",
   'accountant.discrepancies.manualPendingColAmount': 'Сумма',
@@ -549,7 +548,6 @@ export const uz_cyrl = {
   'accountant.discrepancies.manualPendingColDoc': 'Ҳужжат',
   'accountant.discrepancies.manualPendingColActions': 'Амал',
   'accountant.discrepancies.manualPendingViewDoc': "Ҳужжатни кўриш",
-  'accountant.discrepancies.manualConfirmationIdLabel': 'Қайд ИД',
   'accountant.discrepancies.manualRejectReasonLabel': 'Рад этиш сабаби',
   'accountant.discrepancies.manualCheckMakerIsChecker':
     "Сиз бу қайдни қилган шахссиз — уни тасдиқлай олмайсиз, бошқа шахс тасдиқлаши керак.",
