@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { render, screen, within } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { setupServer } from 'msw/node';
@@ -28,6 +28,7 @@ function refund(overrides: Partial<Record<string, unknown>> = {}) {
   return {
     id: REFUND_ID,
     application_id: APPLICATION_ID,
+    application_number: null,
     invoice_id: INVOICE_ID,
     basis_item_id: 'basis-1',
     suggested_amount: '360000.00',
@@ -110,7 +111,7 @@ test('filing a new request is offered only to a payments.manage holder', async (
   expect(screen.queryByRole('button', { name: 'Yangi ariza' })).not.toBeInTheDocument();
 });
 
-test('filing a new refund request sends the application id, chosen basis and comment', async () => {
+test('filing a new refund request sends the application number, chosen basis and comment', async () => {
   let requestBody: unknown;
   server.use(
     http.get('*/api/v1/refunds', () => HttpResponse.json({ items: [], total: 0, page: 1, page_size: 100 })),
@@ -127,12 +128,32 @@ test('filing a new refund request sends the application id, chosen basis and com
   await user.click(screen.getByRole('button', { name: 'Yangi ariza' }));
 
   const dialog = screen.getByRole('dialog');
-  await user.type(within(dialog).getByLabelText('Ariza ID'), APPLICATION_ID);
+  await user.type(within(dialog).getByLabelText('Ariza raqami'), 'RX-2026-00007');
   await user.selectOptions(within(dialog).getByLabelText('Asos'), RF03);
   await user.type(within(dialog).getByLabelText('Izoh'), 'Mijoz talabi');
   await user.click(within(dialog).getByRole('button', { name: 'Yuborish' }));
 
-  expect(requestBody).toEqual({ application_id: APPLICATION_ID, basis_item_id: RF03, comment: 'Mijoz talabi' });
+  expect(requestBody).toEqual({ application_number: 'RX-2026-00007', basis_item_id: RF03, comment: 'Mijoz talabi' });
+});
+
+test('a new request is filed by application number, trimmed, never by application id', async () => {
+  let posted: unknown = null;
+  server.use(
+    http.get('*/api/v1/refunds', () => HttpResponse.json({ items: [], total: 0, page: 1, page_size: 100 })),
+    http.get('*/api/v1/refs/classifiers/refund_reasons/items', () => HttpResponse.json(REASONS)),
+    http.post('*/api/v1/refunds', async ({ request }) => {
+      posted = await request.json();
+      return HttpResponse.json(refund(), { status: 201 });
+    }),
+  );
+  renderTab(['payments.view', 'payments.manage']);
+
+  await userEvent.click(await screen.findByRole('button', { name: 'Yangi ariza' }));
+  await userEvent.type(screen.getByLabelText(/Ariza raqami/i), ' RX-2026-00007 ');
+  await userEvent.click(screen.getByRole('button', { name: /Yuborish/i }));
+
+  await waitFor(() => expect(posted).toMatchObject({ application_number: 'RX-2026-00007' }));
+  expect(posted).not.toHaveProperty('application_id');
 });
 
 test('a failed refund_reasons load says so in the new-request modal, not a silently disabled Submit', async () => {
@@ -261,39 +282,15 @@ test('approving an in-review refund shows the components a "returned" resolution
   expect(within(dialog).getByText('tizimdan tashqarida hisoblanadi')).toBeInTheDocument();
 });
 
-test('a caller with only payments.confirm (no payments.view) never fires GET /refunds, which would 403, and sees the approve-by-id panel instead', async () => {
-  let listCalled = false;
+test('a payments.confirm-only holder sees the register, not an id form', async () => {
   server.use(
-    http.get('*/api/v1/refunds', () => {
-      listCalled = true;
-      return HttpResponse.json({ items: [], total: 0, page: 1, page_size: 100 });
-    }),
+    http.get('*/api/v1/refunds', () =>
+      HttpResponse.json({ items: [refund({ status: 'in_review', application_number: 'RX-2026-00007' })], total: 1, page: 1, page_size: 100 }),
+    ),
   );
   renderTab(['payments.confirm']);
 
-  expect(await screen.findByTestId('refund-approve-by-id-panel')).toBeInTheDocument();
-  expect(screen.queryByTestId(`refund-row-${REFUND_ID}`)).not.toBeInTheDocument();
-  expect(listCalled).toBe(false);
-});
-
-test('the approve-by-id panel approves a refund purely by its id, with no row ever loaded', async () => {
-  let approveBody: unknown;
-  server.use(
-    http.post('*/api/v1/refunds/:id/approve', async ({ request, params }) => {
-      approveBody = await request.json();
-      expect(params.id).toBe(REFUND_ID);
-      return HttpResponse.json(
-        refund({ status: 'returned', components: [{ recipient_id: null, name: { uz_latn: 'Leshoz' }, account: '2020...', amount: '360000.00' }] }),
-      );
-    }),
-  );
-  const user = userEvent.setup();
-  renderTab(['payments.confirm']);
-
-  const panel = await screen.findByTestId('refund-approve-by-id-panel');
-  await user.type(within(panel).getByLabelText('Ariza (qaytarish) ID'), REFUND_ID);
-  await user.click(within(panel).getByRole('button', { name: 'Qaytarish' }));
-
-  expect(approveBody).toEqual({ resolution: 'returned', comment: null });
-  expect(await within(panel).findByText(/qaytarildi\.$/)).toBeInTheDocument();
+  expect(await screen.findByText('RX-2026-00007')).toBeInTheDocument();
+  expect(screen.queryByLabelText(/ID/)).toBeNull();
+  expect(screen.getByRole('button', { name: 'Tasdiqlash (rahbar)' })).toBeInTheDocument();
 });

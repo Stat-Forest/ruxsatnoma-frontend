@@ -8,7 +8,7 @@ import { useAuth } from '../../auth/useAuth';
 import { ApiError } from '../../api/errors';
 import { useApiErrorText } from '../../i18n/useApiErrorText';
 import { useLanguage, useT } from '../../i18n/useT';
-import { formatDate, formatDateTime, formatMoney } from '../permits/format';
+import { formatDate, formatDateTime, formatMoney, shortId } from '../permits/format';
 import { pickName } from '../applicant/format';
 import { REFUND_STATUS_STYLE, getRefundStatusLabel } from './statusMeta';
 import type { AvailableSourceOut, RefundOut } from './api';
@@ -31,21 +31,21 @@ type StatusFilter = '' | 'requested' | 'in_review' | 'returned' | 'rejected';
  * merely opens this page (an editorial choice, not a backend requirement —
  * `06.5-accountant.md`'s report names the cost if this reading is wrong).
  *
- * `GET /refunds` requires `payments.view` (`refunds_router.py`) —
- * `executor_head` (the approver, holding only `payments.confirm`) does NOT
- * have it. Re-verified against the current source 2026-09-05 after the
- * backend worktree turned out to be 53 commits stale when this screen was
- * first built: the register below only mounts (and only then fires
- * `GET /refunds`) for a `payments.view` holder. A `payments.confirm`-only
- * holder gets `ApproveByIdPanel` instead — the same id-handoff shape ruling
- * R2 already uses for the manual-PAID checker, extended here because the
- * same structural gap applies: no route lets that role discover which
- * refund is `in_review` on its own.
+ * `GET /refunds` admits `payments.view` OR `payments.confirm`
+ * (`refunds_router.py`) — `executor_head` (the approver, holding only
+ * `payments.confirm`) sees the same register as everyone else, not a
+ * separate id-handoff form. This corrects an earlier reading of this route
+ * (whole-branch review Important 3; re-verified 2026-09-11 against the
+ * stage-14 core), under which the register only mounted for a
+ * `payments.view` holder and a `payments.confirm`-only holder was handed an
+ * `ApproveByIdPanel` instead — Stage 14 (#205 R4) removes that panel.
  */
 export function RefundsTab() {
   const t = useT();
   const { me } = useAuth();
-  const canView = Boolean(me?.is_superuser || me?.permissions.includes(PAYMENTS_VIEW));
+  const canView = Boolean(
+    me?.is_superuser || me?.permissions.includes(PAYMENTS_VIEW) || me?.permissions.includes(PAYMENTS_CONFIRM),
+  );
   const canFile = Boolean(me?.is_superuser || me?.permissions.includes(PAYMENTS_MANAGE));
   const canApprove = Boolean(me?.is_superuser || me?.permissions.includes(PAYMENTS_CONFIRM));
 
@@ -53,8 +53,6 @@ export function RefundsTab() {
     <div className="space-y-5" data-testid="refunds-tab">
       {canView ? (
         <RefundsRegister canFile={canFile} canApprove={canApprove} />
-      ) : canApprove ? (
-        <ApproveByIdPanel />
       ) : (
         <Alert variant="info">{t('accountant.refunds.noViewAccess')}</Alert>
       )}
@@ -126,7 +124,7 @@ function RefundsRegister({ canFile, canApprove }: { canFile: boolean; canApprove
                 {query.data!.items.map((refund) => (
                   <tr key={refund.id} className="border-t border-[#E4E7EA]" data-testid={`refund-row-${refund.id}`}>
                     <td className="px-4 py-3 font-mono text-xs" title={refund.application_id}>
-                      {refund.application_id.slice(0, 8)}
+                      {refund.application_number ?? shortId(refund.application_id)}
                     </td>
                     <td className="px-4 py-3 text-right font-mono">
                       {refund.suggested_amount ? formatMoney(refund.suggested_amount) : t('accountant.refunds.noSuggestion')}
@@ -170,90 +168,11 @@ function RefundsRegister({ canFile, canApprove }: { canFile: boolean; canApprove
   );
 }
 
-/**
- * The `payments.confirm`-only fallback (ruling R2, extended to refunds):
- * approve or reject a refund by id, with no row ever loaded — `GET /refunds`
- * is not open to this role at all, so there is nothing to show beside the
- * id except what the two mutation responses themselves carry.
- */
-function ApproveByIdPanel() {
-  const t = useT();
-  const errorText = useApiErrorText();
-  const [refundId, setRefundId] = useState('');
-  const [comment, setComment] = useState('');
-  const mutation = useApproveRefund();
-
-  const error =
-    mutation.error instanceof ApiError ? errorText(mutation.error) : mutation.isError ? t('accountant.refunds.approveFailed') : null;
-  const result = mutation.data;
-
-  return (
-    <section className="rounded-2xl border border-[#E4E7EA] bg-white p-4 shadow-xs" data-testid="refund-approve-by-id-panel">
-      <h2 className="mb-1 text-sm font-bold text-[#1A1F24]">{t('accountant.refunds.approveTitle')}</h2>
-      <p className="mb-3 text-xs text-[#5A646D]">{t('accountant.refunds.approveByIdHint')}</p>
-
-      <FormField label={t('accountant.refunds.refundIdLabel')} htmlFor="refund-approve-id">
-        <Input
-          id="refund-approve-id"
-          value={refundId}
-          onChange={(e) => {
-            setRefundId(e.target.value);
-            mutation.reset();
-          }}
-          placeholder="UUID"
-        />
-      </FormField>
-
-      {!result && (
-        <FormField label={t('accountant.refunds.approveCommentLabel')} htmlFor="refund-approve-by-id-comment" className="mt-3">
-          <Textarea id="refund-approve-by-id-comment" value={comment} onChange={(e) => setComment(e.target.value)} rows={2} />
-        </FormField>
-      )}
-
-      {error && (
-        <div className="mt-3">
-          <Alert variant="danger">{error}</Alert>
-        </div>
-      )}
-      {result && (
-        <div className="mt-3">
-          <Alert variant={result.status === 'returned' ? 'success' : 'warning'}>
-            {result.status === 'returned' ? t('accountant.refunds.approvedReturned') : t('accountant.refunds.approvedRejected')}
-          </Alert>
-        </div>
-      )}
-
-      <div className="mt-3 flex flex-col sm:flex-row gap-2">
-        <Button
-          variant="danger"
-          size="sm"
-          className="w-full sm:w-auto"
-          disabled={!refundId.trim()}
-          isLoading={mutation.isPending && mutation.variables?.resolution === 'rejected'}
-          onClick={() => mutation.mutate({ id: refundId.trim(), resolution: 'rejected', comment: comment.trim() || null })}
-        >
-          {t('accountant.refunds.approveReject')}
-        </Button>
-        <Button
-          variant="success"
-          size="sm"
-          className="w-full sm:w-auto"
-          disabled={!refundId.trim()}
-          isLoading={mutation.isPending && mutation.variables?.resolution === 'returned'}
-          onClick={() => mutation.mutate({ id: refundId.trim(), resolution: 'returned', comment: comment.trim() || null })}
-        >
-          {t('accountant.refunds.approveReturn')}
-        </Button>
-      </div>
-    </section>
-  );
-}
-
 function NewRequestModal({ onClose }: { onClose: () => void }) {
   const t = useT();
   const { lang } = useLanguage();
   const errorText = useApiErrorText();
-  const [applicationId, setApplicationId] = useState('');
+  const [applicationNumber, setApplicationNumber] = useState('');
   const [basisItemId, setBasisItemId] = useState('');
   const [comment, setComment] = useState('');
   const mutation = useRequestRefund();
@@ -287,11 +206,11 @@ function NewRequestModal({ onClose }: { onClose: () => void }) {
           </Button>
           <Button
             variant="primary"
-            disabled={!applicationId.trim() || chosenBasis === ''}
+            disabled={!applicationNumber.trim() || chosenBasis === ''}
             isLoading={mutation.isPending}
             onClick={() =>
               mutation.mutate(
-                { application_id: applicationId.trim(), basis_item_id: chosenBasis, comment: comment.trim() || null },
+                { application_number: applicationNumber.trim(), basis_item_id: chosenBasis, comment: comment.trim() || null },
                 { onSuccess: onClose },
               )
             }
@@ -302,8 +221,13 @@ function NewRequestModal({ onClose }: { onClose: () => void }) {
       }
     >
       <div className="space-y-3">
-        <FormField label={t('accountant.refunds.applicationIdLabel')} required htmlFor="refund-application-id">
-          <Input id="refund-application-id" value={applicationId} onChange={(e) => setApplicationId(e.target.value)} placeholder="UUID" />
+        <FormField label={t('accountant.refunds.applicationNumberLabel')} required htmlFor="refund-application-number">
+          <Input
+            id="refund-application-number"
+            value={applicationNumber}
+            onChange={(e) => setApplicationNumber(e.target.value)}
+            placeholder={t('accountant.refunds.applicationNumberPlaceholder')}
+          />
         </FormField>
         {reasonsQuery.isError && <Alert variant="danger">{t('accountant.refunds.loadFailed')}</Alert>}
         <FormField label={t('accountant.refunds.basisLabel')} htmlFor="refund-basis">

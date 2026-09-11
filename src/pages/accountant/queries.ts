@@ -33,6 +33,7 @@ import {
   type ListManualConfirmationsParams,
   type ListRefundsParams,
   type ListReconciliationsParams,
+  type RequestRefundBody,
 } from './api';
 
 const INVOICE_KEY = ['accountant', 'invoice'] as const;
@@ -210,12 +211,7 @@ export function useRefund(refundId: string | null) {
 export function useRequestRefund() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (
-      body: ({ application_number: string } | { application_id: string }) & {
-        basis_item_id: string;
-        comment: string | null;
-      },
-    ) => requestRefund(body),
+    mutationFn: (body: RequestRefundBody) => requestRefund(body),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: REFUNDS_KEY });
     },

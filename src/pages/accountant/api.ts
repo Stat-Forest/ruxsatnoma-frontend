@@ -292,19 +292,16 @@ export async function getRefund(refundId: string): Promise<RefundOut> {
 }
 
 /**
- * Stage 14 (#205 R2): the generated `RefundRequestIn` has both
+ * Stage 14 (#205 R2, Task 7): the generated `RefundRequestIn` has both
  * `application_id` and `application_number` optional, exactly one required
- * by the schema itself. This wrapper's own union pins the caller to sending
- * ONE selector, typed rather than left to a runtime check — `application_id`
- * stays only for `RefundsTab.tsx`'s existing call site until Task 7 narrows
- * it to `application_number`, the number an accountant actually holds.
+ * by the schema itself. This wrapper pins the accountant's own call site to
+ * `application_number` — the number an accountant actually holds, never the
+ * id a citizen's cabinet carries (that flow is `applicant/api.ts::requestRefund`,
+ * a separate wrapper this one does not share).
  */
-export async function requestRefund(
-  body: ({ application_number: string } | { application_id: string }) & {
-    basis_item_id: string;
-    comment: string | null;
-  },
-): Promise<RefundOut> {
+export type RequestRefundBody = { application_number: string; basis_item_id: string; comment: string | null };
+
+export async function requestRefund(body: RequestRefundBody): Promise<RefundOut> {
   const { data, error } = await api.POST('/api/v1/refunds', { body });
   if (error) throw apiError(error);
   return data;
