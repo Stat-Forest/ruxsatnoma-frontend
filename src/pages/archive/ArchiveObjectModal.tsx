@@ -14,6 +14,7 @@ import { FormField, Input, Select } from '../../components/ui/FormControls';
 import { Modal } from '../../components/ui/Overlay';
 import { ApiError } from '../../api/errors';
 import { useT } from '../../i18n/useT';
+import { normalizePermitSeries } from '../permits/format';
 import { useArchiveByNumber } from './queries';
 import type { ArchiveObjectType } from './api';
 
@@ -26,8 +27,13 @@ export function ArchiveObjectModal({ onClose, onArchived }: { onClose: () => voi
   const [retentionUntil, setRetentionUntil] = useState('');
   const archive = useArchiveByNumber();
 
-  const parsedPermitNumber = Number.parseInt(permitNumber, 10);
-  const permitNumberValid = Number.isInteger(parsedPermitNumber) && parsedPermitNumber >= 1;
+  // Minor (final review): `Number.parseInt` reads a leading digit run and
+  // silently ignores the rest (`parseInt('12abc', 10) === 12`) — requiring
+  // the WHOLE trimmed string to be digits first turns that into "invalid",
+  // not a quietly truncated number sent to the backend.
+  const trimmedPermitNumber = permitNumber.trim();
+  const permitNumberValid = /^\d+$/.test(trimmedPermitNumber);
+  const parsedPermitNumber = permitNumberValid ? Number.parseInt(trimmedPermitNumber, 10) : NaN;
   const canSubmit =
     objectType === 'application' ? applicationNumber.trim() !== '' : permitSeries.trim() !== '' && permitNumberValid;
 
@@ -37,7 +43,7 @@ export function ArchiveObjectModal({ onClose, onArchived }: { onClose: () => voi
     archive.mutate(
       objectType === 'application'
         ? { objectType: 'application', number: applicationNumber.trim(), retentionUntil: retention }
-        : { objectType: 'permit', series: permitSeries.trim(), number: parsedPermitNumber, retentionUntil: retention },
+        : { objectType: 'permit', series: normalizePermitSeries(permitSeries), number: parsedPermitNumber, retentionUntil: retention },
       { onSuccess: (item) => onArchived(item.id) },
     );
   }
@@ -92,6 +98,7 @@ export function ArchiveObjectModal({ onClose, onArchived }: { onClose: () => voi
               <Input
                 value={permitSeries}
                 onChange={(e) => setPermitSeries(e.target.value)}
+                placeholder={t('archive.newItemModal.permitSeriesPlaceholder')}
                 data-testid="archive-permit-series"
               />
             </FormField>

@@ -9,7 +9,7 @@
  * check.
  */
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router';
 import { http, HttpResponse } from 'msw';
@@ -186,6 +186,49 @@ test('archiving a permit posts series and number', async () => {
   await screen.findByTestId(`archive-item-detail-${archiveItem().id}`);
 });
 
+test('a Latin "A" typed for the permit series posts the Cyrillic series the register uses (final review A2)', async () => {
+  let posted: unknown = null;
+  server.use(
+    http.get('*/api/v1/archive', () => HttpResponse.json(page([]))),
+    http.get('*/api/v1/refs/organizations', () => HttpResponse.json(page([]))),
+    http.post('*/api/v1/archive/permit/by-number', async ({ request }) => {
+      posted = await request.json();
+      return HttpResponse.json(archiveItem({ object_type: 'permit', object_number: 'А № 004182' }));
+    }),
+    http.get('*/api/v1/archive/:id', () =>
+      HttpResponse.json(archiveItem({ object_type: 'permit', object_number: 'А № 004182' })),
+    ),
+  );
+
+  const user = userEvent.setup();
+  renderPage(['archive.view', 'archive.manage']);
+
+  await user.click(await screen.findByRole('button', { name: DICTIONARIES.uz_latn['archive.actions.newItem'] }));
+  await user.selectOptions(screen.getByTestId('archive-object-type'), 'permit');
+  await user.type(screen.getByTestId('archive-permit-series'), 'A'); // a Latin keyboard's own 'A'
+  await user.type(screen.getByTestId('archive-permit-number'), '4182');
+  await user.click(screen.getByTestId('archive-object-submit'));
+
+  await waitFor(() => expect(posted).toEqual({ series: 'А', number: 4182, retention_until: null }));
+});
+
+test('a permit number with trailing letters stays disabled rather than silently truncating (final review minor)', async () => {
+  server.use(
+    http.get('*/api/v1/archive', () => HttpResponse.json(page([]))),
+    http.get('*/api/v1/refs/organizations', () => HttpResponse.json(page([]))),
+  );
+
+  const user = userEvent.setup();
+  renderPage(['archive.view', 'archive.manage']);
+
+  await user.click(await screen.findByRole('button', { name: DICTIONARIES.uz_latn['archive.actions.newItem'] }));
+  await user.selectOptions(screen.getByTestId('archive-object-type'), 'permit');
+  await user.type(screen.getByTestId('archive-permit-series'), 'А');
+  await user.type(screen.getByTestId('archive-permit-number'), '12abc');
+
+  expect(screen.getByTestId('archive-object-submit')).toBeDisabled();
+});
+
 test('an unknown number shows the not-found copy, not the raw code', async () => {
   server.use(
     http.get('*/api/v1/archive', () => HttpResponse.json(page([]))),
@@ -205,7 +248,7 @@ test('an unknown number shows the not-found copy, not the raw code', async () =>
   await user.type(screen.getByTestId('archive-object-number'), 'RX-2026-99999');
   await user.click(screen.getByTestId('archive-object-submit'));
 
-  await screen.findByText('Bunday obyekt topilmadi.');
+  await screen.findByText('Bunday obyekt topilmadi');
   expect(screen.queryByText(/ERR-SYS-003/)).not.toBeInTheDocument();
 });
 
@@ -227,11 +270,13 @@ test('the register shows the object number, with the id as the tooltip', async (
 test('an archive.manage holder can verify a stored item, and the card reflects the new status', async () => {
   let verified = false;
   server.use(
-    http.get('*/api/v1/archive', () => HttpResponse.json(page([archiveItem()]))),
-    http.get('*/api/v1/archive/:id', () => HttpResponse.json(archiveItem({ status: verified ? 'verified' : 'stored' }))),
+    http.get('*/api/v1/archive', () => HttpResponse.json(page([archiveItem({ object_number: 'RX-2026-00001' })]))),
+    http.get('*/api/v1/archive/:id', () =>
+      HttpResponse.json(archiveItem({ object_number: 'RX-2026-00001', status: verified ? 'verified' : 'stored' })),
+    ),
     http.post('*/api/v1/archive/:id/verify', () => {
       verified = true;
-      return HttpResponse.json(archiveItem({ status: 'verified' }));
+      return HttpResponse.json(archiveItem({ object_number: 'RX-2026-00001', status: 'verified' }));
     }),
     http.get('*/api/v1/refs/organizations', () => HttpResponse.json(page([]))),
   );
@@ -240,6 +285,15 @@ test('an archive.manage holder can verify a stored item, and the card reflects t
   renderArchivePage(['archive.view', 'archive.manage']);
 
   await user.click(await screen.findByText('archive.col.view'));
+
+  // Final review A3: the drawer shows the object's own public number, with
+  // the raw id demoted to a tooltip — same treatment the register row and
+  // the invoice drawer already got this stage. Scoped to the drawer itself:
+  // the register row behind it renders the same number.
+  const drawer = await screen.findByTestId(`archive-item-detail-${archiveItem().id}`);
+  const objectLink = within(drawer).getByText('RX-2026-00001').closest('a');
+  expect(objectLink).toHaveAttribute('title', archiveItem().object_id);
+
   const verifyButton = await screen.findByTestId('archive-verify-button');
   await user.click(verifyButton);
 
