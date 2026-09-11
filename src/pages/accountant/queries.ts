@@ -15,6 +15,7 @@ import {
   getInvoice,
   getRefund,
   listAllocationsForInvoice,
+  listBankStatements,
   listDistricts,
   listInvoices,
   listManualConfirmations,
@@ -27,6 +28,7 @@ import {
   submitRefundDecision,
   type CreateBankStatementParams,
   type FileManualConfirmationInput,
+  type ListBankStatementsParams,
   type ListInvoicesParams,
   type ListManualConfirmationsParams,
   type ListRefundsParams,
@@ -38,6 +40,7 @@ const INVOICES_LIST_KEY = ['accountant', 'invoices-list'] as const;
 const ALLOCATIONS_KEY = ['accountant', 'allocations'] as const;
 const MANUAL_CONFIRMATIONS_KEY = ['accountant', 'manual-confirmations'] as const;
 const STATEMENT_KEY = ['accountant', 'statement'] as const;
+const BANK_STATEMENTS_LIST_KEY = ['accountant', 'bank-statements'] as const;
 const RECONCILIATIONS_KEY = ['accountant', 'reconciliations'] as const;
 const REFUNDS_KEY = ['accountant', 'refunds'] as const;
 const ORG_NAME_KEY = ['accountant', 'zone-organization'] as const;
@@ -95,8 +98,23 @@ export function useFileManualConfirmation() {
 // ── G3 ────────────────────────────────────────────────────────────────────
 
 export function useCreateBankStatement() {
+  const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (params: CreateBankStatementParams) => createBankStatement(params),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: BANK_STATEMENTS_LIST_KEY });
+    },
+  });
+}
+
+/** `GET /payments/bank-statements` — the register (backend-gaps finding 3,
+ *  Stage 14 #205 R4). `placeholderData` matches every other paged list in
+ *  this file. */
+export function useBankStatements(params: ListBankStatementsParams) {
+  return useQuery({
+    queryKey: [...BANK_STATEMENTS_LIST_KEY, params],
+    queryFn: () => listBankStatements(params),
+    placeholderData: (previous) => previous,
   });
 }
 
@@ -192,8 +210,12 @@ export function useRefund(refundId: string | null) {
 export function useRequestRefund() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (body: { application_id: string; basis_item_id: string; comment?: string | null }) =>
-      requestRefund(body),
+    mutationFn: (
+      body: ({ application_number: string } | { application_id: string }) & {
+        basis_item_id: string;
+        comment: string | null;
+      },
+    ) => requestRefund(body),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: REFUNDS_KEY });
     },

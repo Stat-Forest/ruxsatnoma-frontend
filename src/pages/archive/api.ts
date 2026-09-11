@@ -69,3 +69,30 @@ export async function verifyArchiveItem(itemId: string): Promise<ArchiveItemOut>
   if (error) throw apiError(error);
   return data;
 }
+
+/**
+ * Stage 14 (#205 R6) — `POST /archive/application/by-number`, registered
+ * ahead of `archive_object` on the backend so `by-number` never parses as a
+ * UUID path segment. The number-to-id resolution has no existence oracle of
+ * its own: an unknown number answers the same `ERR-SYS-003` as an unknown id.
+ */
+export async function archiveApplicationByNumber(body: {
+  number: string;
+  retention_until: string | null;
+}): Promise<ArchiveItemOut> {
+  const { data, error } = await api.POST('/api/v1/archive/application/by-number', { body });
+  if (error) throw apiError(error);
+  return data;
+}
+
+/** Same shape as `archiveApplicationByNumber` above, keyed on the series +
+ *  number pair the public QR check already accepts. */
+export async function archivePermitByNumber(body: {
+  series: string;
+  number: number;
+  retention_until: string | null;
+}): Promise<ArchiveItemOut> {
+  const { data, error } = await api.POST('/api/v1/archive/permit/by-number', { body });
+  if (error) throw apiError(error);
+  return data;
+}
