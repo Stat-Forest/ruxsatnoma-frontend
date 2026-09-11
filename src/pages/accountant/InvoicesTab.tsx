@@ -17,24 +17,28 @@ const PAGE_SIZE = 20;
 
 /**
  * G1 — F12a. `GET /invoices` lists the caller's own zone (or narrows to one
- * application) — the register this screen used to say did not exist. The
- * two lookups this tab already offered (by application, by a known invoice
- * id) stay: a citizen or a support ticket still hands an accountant one of
- * those ids directly often enough to keep both shortcuts, on top of the
- * always-visible register rather than gating everything behind a search.
+ * application, or to one invoice number) — the register this screen used to
+ * say did not exist.
+ *
+ * Stage 14 (#205 R1, R5): both search cards take a person-held PUBLIC number
+ * (`RX-2026-00001`, `INV-2026-000123`), never the underlying id — the drawer
+ * opens only from a register row, which is the one place an `invoice.id`
+ * legitimately exists in this screen's own state.
  */
 export function InvoicesTab() {
   const t = useT();
   const { lang } = useLanguage();
-  const [applicationIdDraft, setApplicationIdDraft] = useState('');
-  const [applicationId, setApplicationId] = useState<string | null>(null);
-  const [directInvoiceId, setDirectInvoiceId] = useState('');
+  const [applicationNumberDraft, setApplicationNumberDraft] = useState('');
+  const [applicationNumber, setApplicationNumber] = useState<string | null>(null);
+  const [invoiceNumberDraft, setInvoiceNumberDraft] = useState('');
+  const [invoiceNumber, setInvoiceNumber] = useState<string | null>(null);
   const [openInvoiceId, setOpenInvoiceId] = useState<string | null>(null);
   const [status, setStatus] = useState<InvoiceStatus | ''>('');
   const [page, setPage] = useState(1);
 
   const listQuery = useInvoicesList({
-    application_id: applicationId ?? undefined,
+    application_number: applicationNumber ?? undefined,
+    number: invoiceNumber ?? undefined,
     status: status || undefined,
     limit: PAGE_SIZE,
     offset: (page - 1) * PAGE_SIZE,
@@ -50,13 +54,19 @@ export function InvoicesTab() {
 
   function searchByApplication(e: React.FormEvent) {
     e.preventDefault();
-    setApplicationId(applicationIdDraft.trim() || null);
+    setApplicationNumber(applicationNumberDraft.trim() || null);
+    setPage(1);
+  }
+
+  function searchByInvoiceNumber(e: React.FormEvent) {
+    e.preventDefault();
+    setInvoiceNumber(invoiceNumberDraft.trim() || null);
     setPage(1);
   }
 
   function clearApplicationFilter() {
-    setApplicationId(null);
-    setApplicationIdDraft('');
+    setApplicationNumber(null);
+    setApplicationNumberDraft('');
     setPage(1);
   }
 
@@ -68,12 +78,12 @@ export function InvoicesTab() {
         <section className="rounded-2xl border border-[#E4E7EA] bg-white p-4 shadow-xs">
           <h2 className="mb-3 text-sm font-bold text-[#1A1F24]">{t('accountant.invoices.searchByApplication')}</h2>
           <form className="flex flex-col sm:flex-row sm:items-end gap-2.5" onSubmit={searchByApplication}>
-            <FormField label={t('accountant.invoices.applicationIdLabel')} htmlFor="invoices-application-id" className="flex-1 w-full">
+            <FormField label={t('accountant.invoices.applicationNumberLabel')} htmlFor="invoices-application-number" className="flex-1 w-full">
               <Input
-                id="invoices-application-id"
-                value={applicationIdDraft}
-                onChange={(e) => setApplicationIdDraft(e.target.value)}
-                placeholder={t('accountant.invoices.applicationIdPlaceholder')}
+                id="invoices-application-number"
+                value={applicationNumberDraft}
+                onChange={(e) => setApplicationNumberDraft(e.target.value)}
+                placeholder={t('accountant.invoices.applicationNumberPlaceholder')}
               />
             </FormField>
             <Button type="submit" className="w-full sm:w-auto" leftIcon={<Search className="h-4 w-4" />}>
@@ -83,24 +93,18 @@ export function InvoicesTab() {
         </section>
 
         <section className="rounded-2xl border border-[#E4E7EA] bg-white p-4 shadow-xs">
-          <h2 className="mb-3 text-sm font-bold text-[#1A1F24]">{t('accountant.invoices.openById')}</h2>
-          <form
-            className="flex flex-col sm:flex-row sm:items-end gap-2.5"
-            onSubmit={(e) => {
-              e.preventDefault();
-              if (directInvoiceId.trim()) setOpenInvoiceId(directInvoiceId.trim());
-            }}
-          >
-            <FormField label={t('accountant.invoices.invoiceIdLabel')} htmlFor="invoices-direct-id" className="flex-1 w-full">
+          <h2 className="mb-3 text-sm font-bold text-[#1A1F24]">{t('accountant.invoices.searchByInvoice')}</h2>
+          <form className="flex flex-col sm:flex-row sm:items-end gap-2.5" onSubmit={searchByInvoiceNumber}>
+            <FormField label={t('accountant.invoices.invoiceNumberLabel')} htmlFor="invoices-invoice-number" className="flex-1 w-full">
               <Input
-                id="invoices-direct-id"
-                value={directInvoiceId}
-                onChange={(e) => setDirectInvoiceId(e.target.value)}
-                placeholder={t('accountant.invoices.invoiceIdPlaceholder')}
+                id="invoices-invoice-number"
+                value={invoiceNumberDraft}
+                onChange={(e) => setInvoiceNumberDraft(e.target.value)}
+                placeholder={t('accountant.invoices.invoiceNumberPlaceholder')}
               />
             </FormField>
-            <Button type="submit" variant="secondary" className="w-full sm:w-auto">
-              {t('accountant.invoices.openButton')}
+            <Button type="submit" variant="secondary" className="w-full sm:w-auto" leftIcon={<Search className="h-4 w-4" />}>
+              {t('accountant.invoices.searchButton')}
             </Button>
           </form>
         </section>
@@ -127,10 +131,10 @@ export function InvoicesTab() {
           </div>
         </div>
 
-        {applicationId && (
+        {applicationNumber && (
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#E4E7EA] bg-[#F8F9FA] px-4 py-2 text-xs">
             <span className="text-[#5A646D] break-words">
-              {t('accountant.invoices.filteredByApplication')}: <span className="font-mono text-[#1A1F24] break-all">{applicationId}</span>
+              {t('accountant.invoices.filteredByApplication')}: <span className="font-mono text-[#1A1F24] break-all">{applicationNumber}</span>
             </span>
             <Button size="sm" variant="outline" className="w-full sm:w-auto" leftIcon={<RotateCcw className="h-3.5 w-3.5" />} onClick={clearApplicationFilter}>
               {t('accountant.invoices.clearFilter')}
@@ -142,15 +146,17 @@ export function InvoicesTab() {
           <p className="p-4 text-sm text-[#5A646D]">{t('accountant.common.loading')}</p>
         ) : listQuery.isError ? (
           <div className="p-4">
-            <Alert variant="danger">
+            <Alert variant={listQuery.error instanceof ApiError && listQuery.error.code === 'ERR-SYS-003' && applicationNumber ? 'info' : 'danger'}>
               {listQuery.error instanceof ApiError && listQuery.error.code === 'ERR-SYS-003'
-                ? t('accountant.invoices.notFound')
+                ? applicationNumber
+                  ? t('accountant.invoices.applicationNotFound')
+                  : t('accountant.invoices.notFound')
                 : t('accountant.invoices.loadFailed')}
             </Alert>
           </div>
         ) : listQuery.data && listQuery.data.items.length === 0 ? (
           <p className="p-4 text-sm text-[#5A646D]">
-            {applicationId ? t('accountant.invoices.emptyResults') : t('accountant.invoices.registerEmpty')}
+            {applicationNumber ? t('accountant.invoices.emptyResults') : t('accountant.invoices.registerEmpty')}
           </p>
         ) : (
           <div className="overflow-x-auto">
@@ -159,7 +165,7 @@ export function InvoicesTab() {
                 <tr>
                   <th className="px-4 py-3">{t('accountant.invoices.colNumber')}</th>
                   <th className="px-4 py-3">{t('accountant.invoices.colStatus')}</th>
-                  {!applicationId && <th className="px-4 py-3">{t('accountant.invoices.colApplication')}</th>}
+                  {!applicationNumber && <th className="px-4 py-3">{t('accountant.invoices.colApplication')}</th>}
                   <th className="px-4 py-3 text-right">{t('accountant.invoices.colAmount')}</th>
                   <th className="px-4 py-3">{t('accountant.invoices.colIssuedAt')}</th>
                   <th className="px-4 py-3">{t('accountant.invoices.colDueAt')}</th>
@@ -184,9 +190,9 @@ export function InvoicesTab() {
                         {getInvoiceStatusLabel(invoice.status, lang)}
                       </span>
                     </td>
-                    {!applicationId && (
+                    {!applicationNumber && (
                       <td className="px-4 py-3 font-mono text-xs" title={invoice.application_id}>
-                        {shortId(invoice.application_id)}
+                        {invoice.application_number ?? shortId(invoice.application_id)}
                       </td>
                     )}
                     <td className="px-4 py-3 text-right font-mono">{formatMoney(invoice.amount)}</td>

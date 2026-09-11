@@ -18,6 +18,7 @@ function invoice(overrides: Partial<Record<string, unknown>> = {}) {
     id: INVOICE_ID,
     number: 'F-000123',
     application_id: APPLICATION_ID,
+    application_number: 'RX-2026-00001',
     calculation_id: null,
     amount: '500000.00',
     status: 'pending',
@@ -63,6 +64,27 @@ function renderDrawer(permissions: string[] = ['payments.view']) {
   );
   return render(<InvoiceDetailDrawer invoiceId={INVOICE_ID} onClose={() => {}} />, { wrapper });
 }
+
+test('shows the application by its public number, not the id (#205 R5)', async () => {
+  server.use(
+    http.get('*/api/v1/invoices/:id', () => HttpResponse.json(invoice())),
+    http.get('*/api/v1/payments/allocations', () => HttpResponse.json({ items: [], total: 0, page: 1, page_size: 200 })),
+  );
+  renderDrawer();
+
+  expect(await screen.findByText('RX-2026-00001')).toBeInTheDocument();
+  expect(screen.queryByText(APPLICATION_ID.slice(0, 8))).not.toBeInTheDocument();
+});
+
+test('falls back to the 8-char id when the invoice carries no application_number', async () => {
+  server.use(
+    http.get('*/api/v1/invoices/:id', () => HttpResponse.json(invoice({ application_number: null }))),
+    http.get('*/api/v1/payments/allocations', () => HttpResponse.json({ items: [], total: 0, page: 1, page_size: 200 })),
+  );
+  renderDrawer();
+
+  expect(await screen.findByText(APPLICATION_ID.slice(0, 8))).toBeInTheDocument();
+});
 
 test('shows how the invoice divides, one row per InvoiceOut.recipients entry', async () => {
   server.use(
