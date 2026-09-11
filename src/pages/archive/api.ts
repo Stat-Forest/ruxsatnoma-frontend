@@ -49,19 +49,6 @@ export async function getArchiveItem(itemId: string): Promise<ArchiveItemOut> {
   return data;
 }
 
-export async function archiveObject(
-  objectType: ArchiveObjectType,
-  objectId: string,
-  retentionUntil: string | null,
-): Promise<ArchiveItemOut> {
-  const { data, error } = await api.POST('/api/v1/archive/{object_type}/{object_id}', {
-    params: { path: { object_type: objectType, object_id: objectId } },
-    body: { retention_until: retentionUntil },
-  });
-  if (error) throw apiError(error);
-  return data;
-}
-
 export async function verifyArchiveItem(itemId: string): Promise<ArchiveItemOut> {
   const { data, error } = await api.POST('/api/v1/archive/{item_id}/verify', {
     params: { path: { item_id: itemId } },

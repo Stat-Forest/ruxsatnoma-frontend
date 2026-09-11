@@ -1869,12 +1869,16 @@ export const uz_cyrl = {
   'archive.verifyError': "Яхлитлик текшируви муваффақиятсиз",
   'archive.newItemModal.title': "Обектни архивлаш",
   'archive.newItemModal.objectType': "Обект тури",
-  'archive.newItemModal.objectId': "Обект идентификатори",
-  'archive.newItemModal.objectIdPlaceholder': "Ариза ёки рухсатнома УУИД рақами",
+  'archive.newItemModal.objectNumber': "Ариза рақами",
+  'archive.newItemModal.objectNumberPlaceholder': "RX-2026-00001",
+  'archive.newItemModal.permitSeries': "Серия",
+  'archive.newItemModal.permitNumber': "Рақам",
+  'archive.newItemModal.permitNumberPlaceholder': "4182",
   'archive.newItemModal.retentionUntil': "Сақлаш муддати (ихтиёрий)",
   'archive.newItemModal.submit': "Архивлаш",
   'archive.newItemModal.cancel': "Бекор қилиш",
   'archive.newItemModal.error': "Обектни архивлаб бўлмади",
+  'archive.newItemModal.notFound': "Бундай обект топилмади.",
 
   // --- Chief Forester Dashboard ---
   'chiefForester.dash.title': "Бош ўрмонбеги бошқарув панели",

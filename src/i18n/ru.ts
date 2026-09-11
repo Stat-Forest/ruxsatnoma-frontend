@@ -1844,12 +1844,16 @@ export const ru = {
   'archive.verifyError': 'Проверка целостности не пройдена',
   'archive.newItemModal.title': 'Архивировать объект',
   'archive.newItemModal.objectType': 'Тип объекта',
-  'archive.newItemModal.objectId': 'Идентификатор объекта',
-  'archive.newItemModal.objectIdPlaceholder': 'UUID заявки или разрешения',
+  'archive.newItemModal.objectNumber': 'Номер заявки',
+  'archive.newItemModal.objectNumberPlaceholder': 'RX-2026-00001',
+  'archive.newItemModal.permitSeries': 'Серия',
+  'archive.newItemModal.permitNumber': 'Номер',
+  'archive.newItemModal.permitNumberPlaceholder': '4182',
   'archive.newItemModal.retentionUntil': 'Хранить до (необязательно)',
   'archive.newItemModal.submit': 'Архивировать',
   'archive.newItemModal.cancel': 'Отмена',
   'archive.newItemModal.error': 'Не удалось архивировать объект',
+  'archive.newItemModal.notFound': 'Такой объект не найден.',
 
   // --- Chief Forester Dashboard ---
   'chiefForester.dash.title': "Панель главного лесничего",

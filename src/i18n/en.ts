@@ -1647,12 +1647,16 @@ export const en = {
   'archive.verifyError': 'Integrity check failed',
   'archive.newItemModal.title': 'Archive object',
   'archive.newItemModal.objectType': 'Object type',
-  'archive.newItemModal.objectId': 'Object identifier',
-  'archive.newItemModal.objectIdPlaceholder': 'Application or permit UUID',
+  'archive.newItemModal.objectNumber': 'Application number',
+  'archive.newItemModal.objectNumberPlaceholder': 'RX-2026-00001',
+  'archive.newItemModal.permitSeries': 'Series',
+  'archive.newItemModal.permitNumber': 'Number',
+  'archive.newItemModal.permitNumberPlaceholder': '4182',
   'archive.newItemModal.retentionUntil': 'Retention until (optional)',
   'archive.newItemModal.submit': 'Archive',
   'archive.newItemModal.cancel': 'Cancel',
   'archive.newItemModal.error': 'Failed to archive object',
+  'archive.newItemModal.notFound': 'Object not found.',
 
   // --- Chief Forester Dashboard ---
   'chiefForester.dash.title': "Chief Forester Dashboard",

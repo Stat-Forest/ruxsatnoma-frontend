@@ -1870,12 +1870,16 @@ export const uz_latn = {
   'archive.verifyError': "Yaxlitlik tekshiruvi muvaffaqiyatsiz",
   'archive.newItemModal.title': "Obyektni arxivlash",
   'archive.newItemModal.objectType': "Obyekt turi",
-  'archive.newItemModal.objectId': "Obyekt identifikatori",
-  'archive.newItemModal.objectIdPlaceholder': "Ariza yoki ruxsatnoma UUID raqami",
+  'archive.newItemModal.objectNumber': "Ariza raqami",
+  'archive.newItemModal.objectNumberPlaceholder': "RX-2026-00001",
+  'archive.newItemModal.permitSeries': "Seriya",
+  'archive.newItemModal.permitNumber': "Raqam",
+  'archive.newItemModal.permitNumberPlaceholder': "4182",
   'archive.newItemModal.retentionUntil': "Saqlash muddati (ixtiyoriy)",
   'archive.newItemModal.submit': "Arxivlash",
   'archive.newItemModal.cancel': "Bekor qilish",
   'archive.newItemModal.error': "Obyektni arxivlab boʻlmadi",
+  'archive.newItemModal.notFound': "Bunday obyekt topilmadi.",
 
   // --- Chief Forester Dashboard ---
   'chiefForester.dash.title': "Bosh oʻrmonbegi boshqaruv paneli",

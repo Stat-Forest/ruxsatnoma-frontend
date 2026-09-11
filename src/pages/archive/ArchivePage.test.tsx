@@ -17,7 +17,7 @@ import { setupServer } from 'msw/node';
 import { AuthContext } from '../../auth/AuthContext';
 import type { AuthContextValue } from '../../auth/AuthContext';
 import { stubAuthActions } from '../../auth/testAuthActions';
-import { I18nContext } from '../../i18n/context';
+import { DICTIONARIES, I18nContext } from '../../i18n/context';
 import { ArchivePage } from './ArchivePage';
 import type { ArchiveItemOut } from './api';
 
@@ -90,6 +90,34 @@ function renderArchivePage(permissions: string[]) {
   );
 }
 
+/**
+ * Stage 14 (#205 R6): the three tests below find the "archive an object"
+ * button and the by-number modal's own fields by their real `uz_latn` copy —
+ * a person reads a number off the register and types it in, which the
+ * identity `t` the rest of this file uses would never render. Same shape as
+ * `accountant/RefundsTab.test.tsx`'s `renderTab`.
+ */
+function renderPage(permissions: string[]) {
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
+  const i18n = {
+    lang: 'uz_latn' as const,
+    backendLang: 'uz_latn' as const,
+    t: (key: string) => (DICTIONARIES.uz_latn as Record<string, string>)[key] ?? key,
+    setLanguage: async () => {},
+  };
+  return render(
+    <MemoryRouter>
+      <QueryClientProvider client={client}>
+        <I18nContext.Provider value={i18n}>
+          <AuthContext.Provider value={authValue(permissions)}>
+            <ArchivePage />
+          </AuthContext.Provider>
+        </I18nContext.Provider>
+      </QueryClientProvider>
+    </MemoryRouter>,
+  );
+}
+
 test('a view-only actor (archive.view alone) does not see the archive button or the verify action', async () => {
   server.use(
     http.get('*/api/v1/archive', () => HttpResponse.json(page([archiveItem()]))),
@@ -108,30 +136,69 @@ test('a view-only actor (archive.view alone) does not see the archive button or 
   expect(screen.queryByTestId('archive-verify-button')).not.toBeInTheDocument();
 });
 
-test('an archive.manage holder can archive a new object and the register refetches', async () => {
-  let posted: { objectType: string; objectId: string } | null = null;
+test('archiving an application posts its number to the by-number route', async () => {
+  let posted: unknown = null;
   server.use(
-    http.get('*/api/v1/archive', () => HttpResponse.json(posted ? page([archiveItem()]) : page([]))),
-    http.post('*/api/v1/archive/:object_type/:object_id', ({ params }) => {
-      posted = { objectType: String(params.object_type), objectId: String(params.object_id) };
-      return HttpResponse.json(archiveItem());
-    }),
-    http.get('*/api/v1/archive/:id', () => HttpResponse.json(archiveItem())),
+    http.get('*/api/v1/archive', () => HttpResponse.json(page([]))),
     http.get('*/api/v1/refs/organizations', () => HttpResponse.json(page([]))),
+    http.post('*/api/v1/archive/application/by-number', async ({ request }) => {
+      posted = await request.json();
+      return HttpResponse.json(archiveItem({ object_number: 'RX-2026-00001' }));
+    }),
+    http.get('*/api/v1/archive/:id', () => HttpResponse.json(archiveItem({ object_number: 'RX-2026-00001' }))),
   );
 
   const user = userEvent.setup();
-  renderArchivePage(['archive.view', 'archive.manage']);
+  renderPage(['archive.view', 'archive.manage']);
 
-  await screen.findByTestId('archive-page');
-  await user.click(screen.getByText('archive.actions.newItem'));
-  await user.type(screen.getByTestId('archive-object-id'), 'a1000000-0000-4000-8000-000000000001');
+  await user.click(await screen.findByRole('button', { name: DICTIONARIES.uz_latn['archive.actions.newItem'] }));
+  await user.type(screen.getByTestId('archive-object-number'), ' RX-2026-00001 ');
   await user.click(screen.getByTestId('archive-object-submit'));
 
-  await waitFor(() =>
-    expect(posted).toEqual({ objectType: 'application', objectId: 'a1000000-0000-4000-8000-000000000001' }),
-  );
+  await waitFor(() => expect(posted).toEqual({ number: 'RX-2026-00001', retention_until: null }));
   await screen.findByTestId(`archive-item-detail-${archiveItem().id}`);
+});
+
+test('archiving a permit posts series and number', async () => {
+  let posted: unknown = null;
+  server.use(
+    http.get('*/api/v1/archive', () => HttpResponse.json(page([]))),
+    http.get('*/api/v1/refs/organizations', () => HttpResponse.json(page([]))),
+    http.post('*/api/v1/archive/permit/by-number', async ({ request }) => {
+      posted = await request.json();
+      return HttpResponse.json(archiveItem({ object_type: 'permit', object_number: 'А № 004182' }));
+    }),
+    http.get('*/api/v1/archive/:id', () =>
+      HttpResponse.json(archiveItem({ object_type: 'permit', object_number: 'А № 004182' })),
+    ),
+  );
+
+  const user = userEvent.setup();
+  renderPage(['archive.view', 'archive.manage']);
+
+  await user.click(await screen.findByRole('button', { name: DICTIONARIES.uz_latn['archive.actions.newItem'] }));
+  await user.selectOptions(screen.getByTestId('archive-object-type'), 'permit');
+  await user.type(screen.getByTestId('archive-permit-series'), 'А');
+  await user.type(screen.getByTestId('archive-permit-number'), '4182');
+  await user.click(screen.getByTestId('archive-object-submit'));
+
+  await waitFor(() => expect(posted).toEqual({ series: 'А', number: 4182, retention_until: null }));
+  await screen.findByTestId(`archive-item-detail-${archiveItem().id}`);
+});
+
+test('the register shows the object number, with the id as the tooltip', async () => {
+  server.use(
+    http.get('*/api/v1/archive', () =>
+      HttpResponse.json(
+        page([archiveItem({ object_id: 'a1000000-0000-4000-8000-000000000001', object_number: 'RX-2026-00001' })]),
+      ),
+    ),
+    http.get('*/api/v1/refs/organizations', () => HttpResponse.json(page([]))),
+  );
+  renderPage(['archive.view']);
+
+  const cell = await screen.findByText('RX-2026-00001');
+  expect(cell.closest('a')).toHaveAttribute('title', 'a1000000-0000-4000-8000-000000000001');
 });
 
 test('an archive.manage holder can verify a stored item, and the card reflects the new status', async () => {
