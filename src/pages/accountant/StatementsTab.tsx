@@ -105,15 +105,17 @@ function StatementsRegister({ onOpen }: { onOpen: (id: string) => void }) {
     <section className="rounded-2xl border border-[#E4E7EA] bg-white shadow-xs">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#E4E7EA] p-4">
         <h2 className="text-sm font-bold text-[#1A1F24]">{t('accountant.statements.registerTitle')}</h2>
-        <Select
-          className="w-full sm:w-auto"
-          value={status}
-          onChange={(e) => {
-            setStatus(e.target.value);
-            setPage(1);
-          }}
-          options={statusOptions}
-        />
+        <FormField label={t('accountant.invoices.statusFilterLabel')} htmlFor="statements-status-filter" className="w-full sm:w-auto">
+          <Select
+            id="statements-status-filter"
+            value={status}
+            onChange={(e) => {
+              setStatus(e.target.value);
+              setPage(1);
+            }}
+            options={statusOptions}
+          />
+        </FormField>
       </div>
 
       {query.isLoading ? (

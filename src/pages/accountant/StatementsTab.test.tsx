@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { render, screen, within } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { setupServer } from 'msw/node';
@@ -205,6 +205,29 @@ test('a 404 on open reads as "not found", never a raw error code', async () => {
   await user.click(within(row).getByRole('button', { name: 'Ochish' }));
 
   expect(await screen.findByText('Bunday hisobot topilmadi.')).toBeInTheDocument();
+});
+
+test('the status filter reaches the wire: choosing a status sends it, "all" omits it', async () => {
+  const seen: URLSearchParams[] = [];
+  server.use(
+    http.get('*/api/v1/payments/bank-statements', ({ request }) => {
+      seen.push(new URL(request.url).searchParams);
+      return HttpResponse.json(statementsPage([]));
+    }),
+  );
+  const user = userEvent.setup();
+  renderTab(['payments.view']);
+
+  await screen.findByText('Koʻchirmalar yoʻq.');
+  expect(seen).toHaveLength(1);
+  expect(seen[0].has('status')).toBe(false);
+
+  await user.selectOptions(screen.getByLabelText('Holati'), 'parsed');
+  await waitFor(() => expect(seen.at(-1)!.get('status')).toBe('parsed'));
+  expect(seen.at(-1)!.get('offset')).toBe('0');
+
+  await user.selectOptions(screen.getByLabelText('Holati'), '');
+  await waitFor(() => expect(seen.at(-1)!.has('status')).toBe(false));
 });
 
 test('a caller with neither payments.manage nor payments.view (e.g. the manual-PAID checker) sees neither the upload form nor the register, never a button the backend would 403 on', () => {
