@@ -558,13 +558,9 @@ export function ApplicationWizardPage() {
       // certificate number actually lives, rather than leaving them on step
       // 5 staring at a sentence about a field they cannot see.
       const reason = err instanceof ApiError ? (err.details as { reason?: string } | undefined)?.reason : undefined;
-      if (
-        err instanceof ApiError &&
-        err.code === 'ERR-APP-003' &&
-        (reason === 'benefit_certificate_required' ||
-          reason === 'benefit_certificate_unknown' ||
-          reason === 'benefit_certificate_not_yours')
-      ) {
+      // Ruling #206: the register is no longer consulted at filing, so
+      // `required` is the only certificate reason the backend still sends.
+      if (err instanceof ApiError && err.code === 'ERR-APP-003' && reason === 'benefit_certificate_required') {
         setBenefitCertificateServerError(errorText(err));
         setStep(4);
         return;
