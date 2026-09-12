@@ -2102,4 +2102,13 @@ export const en = {
   'myPayments.refunds.requestSent': 'Request sent. Response due in 20 business days.',
   'myPayments.backToPayments': 'Back to payments',
   'wizard.step5.benefitNotForActivity': "The chosen benefit does not apply to this activity. Go back to step 4 and change or remove the benefit.",
+
+  // 2026-09-13 — the dialog a successful filing opens before the card:
+  // which phone the status SMS will reach (`me.user.phone`), and a way to
+  // the profile if that number is stale.
+  'wizard.filed.title': 'Application submitted',
+  'wizard.filed.phoneNotice': 'Status updates for this application will be sent to {phone}. If your number has changed, update it in your profile.',
+  'wizard.filed.noPhone': 'No phone number is set in your profile — add one in your profile to receive status updates for this application.',
+  'wizard.filed.openCard': 'Open the application',
+  'wizard.filed.changePhone': 'Change phone number',
 };

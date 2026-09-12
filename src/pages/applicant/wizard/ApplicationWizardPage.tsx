@@ -257,6 +257,11 @@ export function ApplicationWizardPage() {
   const [precheckResult, setPrecheckResult] = useState<PrecheckOut | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [signing, setSigning] = useState(false);
+  // The id of the application a successful filing produced — set instead of
+  // navigating away at once, so the citizen first sees which phone the
+  // status SMS will reach (Oybek, 2026-09-13). Every way out of that dialog
+  // is a navigation, and all of them land somewhere safe.
+  const [filedId, setFiledId] = useState<string | null>(null);
   // Ruling #184: mandatory before ANY signature, self or legal alike — the
   // sign button stays disabled until this is ticked. Never persisted: the
   // applicant accepts it fresh at the moment of signing, not once and
@@ -546,12 +551,11 @@ export function ApplicationWizardPage() {
           pkcs7,
         });
       }
-      // The one navigation the leave-guard below must let through without
-      // asking — it fires right after a successful filing, when there is
-      // nothing left to lose. A ref, not state: `navigate()` runs in the
-      // same tick, before a `setState` would have re-rendered the guard.
+      // The filing is in the database — from here on every navigation
+      // (the card, the profile, a dismissed dialog) must pass the
+      // leave-guard below without asking: there is nothing left to lose.
       skipLeaveGuardRef.current = true;
-      navigate(`/my/applications/${created.id}`);
+      setFiledId(created.id);
     } catch (err) {
       // Ruling #181: a benefit-certificate refusal is a FIELD error, not a
       // banner — the wizard sends the applicant back to step 4, where the
@@ -1100,6 +1104,49 @@ export function ApplicationWizardPage() {
           }
         >
           <p>{leaveCopy.body}</p>
+        </Modal>
+      )}
+
+      {/* A successful filing: which phone the status SMS will reach
+          (`me.user.phone` — the field the profile's contacts section edits
+          and the backend's `get_notification_contact` reads), with a way to
+          the profile if it is stale. The cross, the backdrop and Esc all
+          count as «open the card»: the filing is done, and any exit from
+          this dialog has to lead somewhere sensible. */}
+      {filedId && (
+        <Modal
+          isOpen
+          onClose={() => navigate(`/my/applications/${filedId}`)}
+          title={t('wizard.filed.title')}
+          footer={
+            <>
+              <Button variant="outline" onClick={() => navigate('/profile')} className="cursor-pointer font-bold">
+                {t('wizard.filed.changePhone')}
+              </Button>
+              <Button
+                variant="primary"
+                onClick={() => navigate(`/my/applications/${filedId}`)}
+                className="cursor-pointer font-bold"
+              >
+                {t('wizard.filed.openCard')}
+              </Button>
+            </>
+          }
+        >
+          {me?.user.phone ? (
+            (() => {
+              const [before, after] = t('wizard.filed.phoneNotice').split('{phone}');
+              return (
+                <p>
+                  {before}
+                  <strong className="font-mono">{me.user.phone}</strong>
+                  {after}
+                </p>
+              );
+            })()
+          ) : (
+            <p>{t('wizard.filed.noPhone')}</p>
+          )}
         </Modal>
       )}
     </div>

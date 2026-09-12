@@ -2323,4 +2323,13 @@ export const uz_cyrl = {
   'myPayments.refunds.requestSent': 'Сўров юборилди. Жавоб муддати — 20 иш куни.',
   'myPayments.backToPayments': 'Тўловларга қайтиш',
   'wizard.step5.benefitNotForActivity': "Танланган имтиёз ушбу фаолият турига қўлланилмайди. 4-босқичга қайтиб, имтиёзни ўзгартиринг ёки олиб ташланг.",
+
+  // 2026-09-13 — the dialog a successful filing opens before the card:
+  // which phone the status SMS will reach (`me.user.phone`), and a way to
+  // the profile if that number is stale.
+  'wizard.filed.title': 'Ариза юборилди',
+  'wizard.filed.phoneNotice': 'Ариза ҳолати ҳақидаги хабарлар {phone} рақамига юборилади. Рақамингиз ўзгарган бўлса, уни профил бўлимида янгиланг.',
+  'wizard.filed.noPhone': 'Профилингизда телефон рақами кўрсатилмаган — ариза ҳолати ҳақидаги хабарларни олиш учун уни профил бўлимида киритинг.',
+  'wizard.filed.openCard': 'Аризага ўтиш',
+  'wizard.filed.changePhone': 'Телефонни ўзгартириш',
 };

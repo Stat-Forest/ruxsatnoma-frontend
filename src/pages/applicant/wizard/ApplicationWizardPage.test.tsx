@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { createMemoryRouter, RouterProvider } from 'react-router';
 import { http, HttpResponse } from 'msw';
@@ -226,6 +226,7 @@ function renderWizard(
       { path: '/my/applications/new', element: <ApplicationWizardPage /> },
       { path: '/my/applications', element: <div>applications-list</div> },
       { path: '/my/applications/:id', element: <div>application-card</div> },
+      { path: '/profile', element: <div>profile-page</div> },
     ],
     { initialEntries: [initialPath] },
   );
@@ -825,17 +826,73 @@ test('no leave-confirmation is asked before any progress exists (step 1, nothing
   await waitFor(() => expect(router.state.location.pathname).toBe('/my/applications'));
 });
 
-test('a successful filing navigates straight through, without asking to leave', async () => {
-  const { router } = renderWizard();
+// Oybek, 2026-09-13: a successful filing no longer jumps to the card at
+// once — it first tells the citizen which phone the status SMS will go to
+// (`me.user.phone`, the same field the profile's contacts section edits and
+// the one `get_notification_contact` reads on the backend), with a way to
+// the profile if that number is stale. Every way OUT of that dialog is a
+// navigation the leave-guard must let through: the filing is already in
+// the database, there is nothing left to lose.
+function authValueWithPhone(phone: string | null): AuthContextValue {
+  const base = authValue('uz');
+  return { ...base, me: { ...base.me!, user: { ...base.me!.user, phone } } };
+}
+
+async function fileSuccessfully() {
   await driveToStep5();
   await acceptRules();
-
   const signButton = await screen.findByRole('button', { name: new RegExp(UZ['wizard.step5.signApplication']) });
   await waitFor(() => expect(signButton).toBeEnabled());
   await userEvent.click(signButton);
+  return screen.findByRole('dialog');
+}
+
+test('a successful filing names the phone the status messages go to, and stays put until the citizen chooses', async () => {
+  const { router } = renderWizard(authValueWithPhone('+998 90 123 45 67'));
+  const dialog = await fileSuccessfully();
+
+  expect(within(dialog).getByText(UZ['wizard.filed.title'])).toBeInTheDocument();
+  expect(within(dialog).getByText('+998 90 123 45 67')).toBeInTheDocument();
+  expect(router.state.location.pathname).toBe('/my/applications/new');
+  expect(screen.queryByText(/Ariza yuborilmadi/)).not.toBeInTheDocument();
+});
+
+test('«Arizaga oʻtish» opens the card without asking to leave', async () => {
+  const { router } = renderWizard(authValueWithPhone('+998 90 123 45 67'));
+  const dialog = await fileSuccessfully();
+
+  await userEvent.click(within(dialog).getByRole('button', { name: UZ['wizard.filed.openCard'] }));
 
   await waitFor(() => expect(router.state.location.pathname).toBe(`/my/applications/${APPLICATION_ID}`));
   expect(screen.queryByText(/Ariza yuborilmadi/)).not.toBeInTheDocument();
+});
+
+test('«Telefonni oʻzgartirish» opens the profile without asking to leave', async () => {
+  const { router } = renderWizard(authValueWithPhone('+998 90 123 45 67'));
+  const dialog = await fileSuccessfully();
+
+  await userEvent.click(within(dialog).getByRole('button', { name: UZ['wizard.filed.changePhone'] }));
+
+  await waitFor(() => expect(router.state.location.pathname).toBe('/profile'));
+  expect(screen.queryByText(/Ariza yuborilmadi/)).not.toBeInTheDocument();
+});
+
+test('dismissing the filed dialog any other way (Esc, the cross, the backdrop) opens the card', async () => {
+  const { router } = renderWizard(authValueWithPhone('+998 90 123 45 67'));
+  await fileSuccessfully();
+
+  await userEvent.keyboard('{Escape}');
+
+  await waitFor(() => expect(router.state.location.pathname).toBe(`/my/applications/${APPLICATION_ID}`));
+  expect(screen.queryByText(/Ariza yuborilmadi/)).not.toBeInTheDocument();
+});
+
+test('an account with no phone on file is told to add one in the profile instead', async () => {
+  renderWizard(authValueWithPhone(null));
+  const dialog = await fileSuccessfully();
+
+  expect(within(dialog).getByText(UZ['wizard.filed.noPhone'])).toBeInTheDocument();
+  expect(within(dialog).getByRole('button', { name: UZ['wizard.filed.changePhone'] })).toBeInTheDocument();
 });
 
 test('beforeunload is prevented once progress exists, and not before', async () => {
