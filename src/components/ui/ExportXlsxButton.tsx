@@ -1,5 +1,8 @@
 /**
- * Stage 13 (ruling #204): the «Excel» button every register renders.
+ * Stage 13 (ruling #204): the export button every register renders — the
+ * registers only, since ruling #207 took it off the settings, content and
+ * personal screens; it sits last in the filter row, hugging the right edge
+ * (`ml-auto` from the screen), and reads «Yuklab olish» / «Экспорт».
  *
  * A screen hands it the list route and the SAME query object its list
  * request uses (filters, search — paging keys are stripped downstream), and

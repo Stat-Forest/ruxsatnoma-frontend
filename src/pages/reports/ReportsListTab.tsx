@@ -13,7 +13,6 @@ import { useLanguage, useT } from '../../i18n/useT';
 import { Alert } from '../../components/ui/Feedback';
 import { Button } from '../../components/ui/button';
 import { DataTable, type Column } from '../../components/ui/DataTable';
-import { ExportXlsxButton } from '../../components/ui/ExportXlsxButton';
 import { FormField, Select } from '../../components/ui/FormControls';
 import { StatusBadge } from '../../components/ui/StatusBadge';
 import type { UiLanguage } from '../../i18n/context';
@@ -194,17 +193,6 @@ export function ReportsListTab({ active }: { active: boolean }) {
             {t('reports.list.filter.apply')}
           </Button>
         </div>
-      </div>
-
-      <div className="flex justify-end">
-        <ExportXlsxButton
-          path="/api/v1/reports"
-          query={{
-            organization_id: applied.organizationId || undefined,
-            status: applied.status || undefined,
-            form_id: applied.formId || undefined,
-          }}
-        />
       </div>
 
       {list.error && (

@@ -1198,7 +1198,7 @@ export const uz_latn = {
   'permits.signatures.errors.pdfFetchFailed': "Imzolanadigan hujjatni yuklab boʻlmadi — qaytadan urining.",
 
   // --- I1: the prosecutor's read-only registers with export ---------------
-  'export.xlsxButton': 'Excel',
+  'export.xlsxButton': 'Yuklab olish',
   'export.truncated': 'Faylga birinchi {rows} qator kirdi, jami {total}. Aniqroq natija uchun filtrlarni toraytiring.',
   'export.error': 'Faylni yuklab boʻlmadi',
 

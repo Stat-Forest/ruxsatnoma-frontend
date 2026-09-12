@@ -315,13 +315,13 @@ export function TariffsTab({ active }: { active: boolean }) {
           </FormField>
         </div>
         <div className="flex justify-end gap-2">
-          <ExportXlsxButton path="/api/v1/tariffs" query={queryFilters} />
           <Button variant="outline" size="sm" leftIcon={<RotateCcw className="h-3.5 w-3.5" />} onClick={resetFilters}>
             {t('norms.tariffs.filter.reset')}
           </Button>
           <Button variant="primary" size="sm" onClick={applyFilters}>
             {t('norms.tariffs.filter.apply')}
           </Button>
+          <ExportXlsxButton className="ml-auto" path="/api/v1/tariffs" query={queryFilters} />
         </div>
       </div>
 

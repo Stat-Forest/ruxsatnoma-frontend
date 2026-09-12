@@ -428,7 +428,7 @@ export function ContoursTab({ t }: { t: (key: string) => string }) {
                 set for the organization filter, not this browser's further
                 narrowing by number. */}
             <div className="flex justify-end">
-              <ExportXlsxButton
+              <ExportXlsxButton className="ml-auto"
                 path="/api/v1/gis/contours"
                 query={{ organization_id: orgFilter || undefined }}
               />

@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { Link } from 'react-router';
 import { ArrowUpRight, Bell, Check, Loader2 } from 'lucide-react';
 import { Button } from '../../components/ui/button';
-import { ExportXlsxButton } from '../../components/ui/ExportXlsxButton';
 import { Pagination, Tabs } from '../../components/ui/Navigation';
 import { useAuth } from '../../auth/useAuth';
 import { useLanguage, useT } from '../../i18n/useT';
@@ -83,10 +82,6 @@ export function NotificationsPage() {
         activeTabId={filter}
         onChange={changeFilter}
       />
-
-      <div className="flex justify-end">
-        <ExportXlsxButton path="/api/v1/notifications" query={{ unread: filter === 'unread' }} />
-      </div>
 
       {markAllRead.isError && (
         <div

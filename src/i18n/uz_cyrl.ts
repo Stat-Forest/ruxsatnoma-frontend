@@ -1213,7 +1213,7 @@ export const uz_cyrl = {
   'permits.signatures.errors.pdfFetchFailed': 'Имзоланадиган ҳужжатни юклаб бўлмади — қайтадан уриниг.',
 
   // --- I1: the prosecutor's read-only registers with export ---------------
-  'export.xlsxButton': 'Excel',
+  'export.xlsxButton': 'Юклаб олиш',
   'export.truncated': 'Файлга биринчи {rows} қатор кирди, жами {total}. Аниқроқ натижа учун фильтрларни торайтиринг.',
   'export.error': 'Файлни юклаб бўлмади',
 

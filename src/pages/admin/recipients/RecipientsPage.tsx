@@ -102,7 +102,6 @@ export function RecipientsPage() {
           <p className="text-xs md:text-sm text-[#5A646D] mt-1 max-w-2xl">{L.pageSubtitle}</p>
         </div>
         <div className="flex items-center gap-2">
-          <ExportXlsxButton path="/api/v1/payments/recipients" query={{}} />
           <Button
             variant="primary"
             size="sm"
@@ -111,6 +110,7 @@ export function RecipientsPage() {
           >
             {L.create}
           </Button>
+          <ExportXlsxButton className="ml-auto" path="/api/v1/payments/recipients" query={{}} />
         </div>
       </div>
 

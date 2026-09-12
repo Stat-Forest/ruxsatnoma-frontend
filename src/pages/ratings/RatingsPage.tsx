@@ -149,10 +149,6 @@ export function RatingsPage() {
           </FormField>
         </div>
         <div className="flex justify-end gap-2">
-          <ExportXlsxButton
-            path="/api/v1/admin/ratings"
-            query={{ ...applied, page, page_size: PAGE_SIZE }}
-          />
           <Button
             variant="outline"
             size="sm"
@@ -165,6 +161,10 @@ export function RatingsPage() {
           <Button variant="primary" size="sm" onClick={applyFilters} data-testid="ratings-apply">
             {t('ratings.filters.apply')}
           </Button>
+          <ExportXlsxButton className="ml-auto"
+            path="/api/v1/admin/ratings"
+            query={{ ...applied, page, page_size: PAGE_SIZE }}
+          />
         </div>
       </div>
 

@@ -81,7 +81,7 @@ function ReconciliationRegister({ canResolve }: { canResolve: boolean }) {
           <Button size="sm" className="flex-1 sm:flex-initial" variant={status === 'resolved' ? 'primary' : 'outline'} onClick={() => setStatus('resolved')}>
             {t('accountant.discrepancies.filterResolved')}
           </Button>
-          <ExportXlsxButton path="/api/v1/payments/reconciliations" query={{ status }} />
+          <ExportXlsxButton className="ml-auto" path="/api/v1/payments/reconciliations" query={{ status }} />
         </div>
       </div>
 
@@ -259,7 +259,7 @@ function ManualConfirmationCheckPanel() {
     <section className="rounded-2xl border border-[#E4E7EA] bg-white p-4 shadow-xs" data-testid="manual-check-panel">
       <div className="mb-1 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
         <h2 className="text-sm font-bold text-[#1A1F24]">{t('accountant.discrepancies.manualCheckTitle')}</h2>
-        <ExportXlsxButton path="/api/v1/payments/manual-confirmations" query={{ status: 'pending_check' }} />
+        <ExportXlsxButton className="ml-auto" path="/api/v1/payments/manual-confirmations" query={{ status: 'pending_check' }} />
       </div>
       <p className="mb-3 text-xs text-[#5A646D]">{t('accountant.discrepancies.manualCheckHint')}</p>
 

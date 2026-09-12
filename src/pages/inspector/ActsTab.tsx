@@ -137,7 +137,7 @@ export function ActsTab({ active }: { active: boolean }) {
             ]}
           />
         </div>
-        <ExportXlsxButton path="/api/v1/inspections/acts" query={filters} className="w-full sm:w-auto" />
+        <ExportXlsxButton path="/api/v1/inspections/acts" query={filters} className="w-full sm:w-auto sm:ml-auto" />
       </div>
 
       {list.error && (
