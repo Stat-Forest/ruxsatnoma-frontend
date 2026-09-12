@@ -4,13 +4,16 @@ import { Navigate, useLocation, useNavigate, useSearchParams } from 'react-route
 import { ArrowLeft, ArrowRight, Clock, FileText, QrCode, ShieldCheck, Trees } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { FormField, Input } from '../components/ui/FormControls';
-import { ApiError, RATE_LIMITED } from '../api/errors';
+import { api } from '../api/client';
+import { ApiError, RATE_LIMITED, apiError as apiErrorFrom } from '../api/errors';
 import { FullPageSpinner } from '../auth/RequireAuth';
 import { useAuth } from '../auth/useAuth';
+import { useApiErrorText } from '../i18n/useApiErrorText';
 import { useLanguage, useT } from '../i18n/useT';
 import { LANDING_PATHS, landingUrl } from '../lib/landing';
 import { LanguageMenu } from '../shell/LanguageMenu';
 import { EimzoError, PINFL_PATTERN, eimzoErrorMessageKey, isEimzoMock, isProviderUnreachable } from '../lib/eimzo';
+import { SUPPORT_EXTENSION, SUPPORT_PHONE, SUPPORT_PHONE_HREF } from '../shell/support';
 import { peekStoredNext } from './oneIdReturnCache';
 
 type ErrorKind = 'credentials' | 'blocked' | 'rate-limited' | 'connection' | 'oneid' | null;
@@ -39,6 +42,12 @@ function classify(err: unknown): Exclude<ErrorKind, null | 'oneid'> {
 }
 
 type Method = 'oneid' | 'eimzo' | 'password';
+// The password tab's own steps. `forgot-*` is the self-service reset
+// (decision #208): the login is looked up, the code goes to the card's own
+// phone or e-mail, then the code and the new password are sent together.
+type Step = 'password' | 'code' | 'forgot-login' | 'forgot-channel' | 'forgot-code';
+type Channel = 'phone' | 'email';
+type Contacts = { phone: string | null; email: string | null };
 const TAB_KEY = 'ruxsatnoma.login.tab';
 const METHODS: readonly Method[] = ['oneid', 'eimzo', 'password'];
 
@@ -124,6 +133,7 @@ function TreeLine({ className = '' }: { className?: string }) {
 export function LoginPage() {
   const { me, loading, submitPassword, verifyMfa, startOneId, loginViaEimzo } = useAuth();
   const t = useT();
+  const errorText = useApiErrorText();
   const { backendLang, setLanguage } = useLanguage();
   const navigate = useNavigate();
   const location = useLocation();
@@ -138,7 +148,18 @@ export function LoginPage() {
   const next = (location.state as { next?: string } | null)?.next ?? peekStoredNext() ?? '/';
 
   const [method, setMethod] = useState<Method>(storedMethod);
-  const [step, setStep] = useState<'password' | 'code'>('password');
+  const [step, setStep] = useState<Step>('password');
+  // Self-service reset state. `contacts` is what `/password/forgot/lookup`
+  // answered — masked, or null where the card has no such contact; `channel`
+  // is the one the code was sent to and must be repeated on the reset call,
+  // because the server reads the target from the card by (login, channel)
+  // rather than trusting anything the browser knows.
+  const [contacts, setContacts] = useState<Contacts | null>(null);
+  const [channel, setChannel] = useState<Channel | null>(null);
+  const [newPassword, setNewPassword] = useState('');
+  const [repeatPassword, setRepeatPassword] = useState('');
+  const [forgotError, setForgotError] = useState<string | null>(null);
+  const [resetDone, setResetDone] = useState(false);
   const [loginId, setLoginId] = useState('');
   const [password, setPassword] = useState('');
   const [code, setCode] = useState('');
@@ -246,6 +267,98 @@ export function LoginPage() {
       } else {
         setErrorKind(classify(err));
       }
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  function openForgot() {
+    setErrorKind(null);
+    setForgotError(null);
+    setResetDone(false);
+    setContacts(null);
+    setChannel(null);
+    setStep('forgot-login');
+  }
+
+  function backToPassword() {
+    setForgotError(null);
+    setErrorKind(null);
+    setPassword('');
+    setCode('');
+    setNewPassword('');
+    setRepeatPassword('');
+    setStep('password');
+  }
+
+  async function handleForgotLookup(e: FormEvent) {
+    e.preventDefault();
+    setForgotError(null);
+    setSubmitting(true);
+    try {
+      const { data, error } = await api.POST('/api/v1/auth/password/forgot/lookup', {
+        body: { login: loginId },
+      });
+      if (error) throw apiErrorFrom(error);
+      // Nothing to send a code to — an unknown login answers exactly like a
+      // card with no contacts (decision #208), and the person should learn
+      // that here, not on a step whose two buttons are both greyed out.
+      if (data.phone === null && data.email === null) {
+        setForgotError(t('login.forgotNoContacts'));
+        return;
+      }
+      setContacts(data);
+      setStep('forgot-channel');
+    } catch (err) {
+      setForgotError(errorText(err, t('login.connectionError')));
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  async function handleForgotSend(next: Channel) {
+    setForgotError(null);
+    setSubmitting(true);
+    try {
+      const { error } = await api.POST('/api/v1/auth/password/forgot/send', {
+        body: { login: loginId, channel: next },
+      });
+      if (error) throw apiErrorFrom(error);
+      setChannel(next);
+      setCode('');
+      setStep('forgot-code');
+    } catch (err) {
+      setForgotError(errorText(err, t('login.connectionError')));
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  async function handleForgotReset(e: FormEvent) {
+    e.preventDefault();
+    setForgotError(null);
+    if (newPassword !== repeatPassword) {
+      setForgotError(t('login.forgotMismatch'));
+      return;
+    }
+    if (channel === null) return;
+    setSubmitting(true);
+    try {
+      const { error } = await api.POST('/api/v1/auth/password/forgot/reset', {
+        body: { login: loginId, channel, code, new_password: newPassword },
+      });
+      if (error) throw apiErrorFrom(error);
+      backToPassword();
+      setResetDone(true);
+    } catch (err) {
+      // `ERR-VAL-001` here is only ever the password policy (the code has
+      // its own `ERR-AUTH-010`), and the generic "validation failed" text
+      // would not tell the person what to change.
+      setForgotError(
+        err instanceof ApiError && err.code === 'ERR-VAL-001'
+          ? t('login.forgotWeakPassword')
+          : errorText(err, t('login.connectionError')),
+      );
     } finally {
       setSubmitting(false);
     }
@@ -496,68 +609,211 @@ export function LoginPage() {
             </div>
           ))}
 
-        {method === 'password' &&
-          (step === 'password' ? (
-            <form onSubmit={handlePasswordSubmit} className="space-y-4">
-              <FormField label={t('login.loginLabel')} htmlFor="login" required>
-                <Input
-                  id="login"
-                  touchSize
-                  autoComplete="username"
-                  value={loginId}
-                  onChange={(e) => setLoginId(e.target.value)}
-                />
-              </FormField>
-              <FormField label={t('login.passwordLabel')} htmlFor="password" required>
-                <Input
-                  id="password"
-                  type="password"
-                  touchSize
-                  autoComplete="current-password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                />
-              </FormField>
-              <Button type="submit" variant="primary" fullWidth size="touch" isLoading={submitting}>
-                {t('login.submitPassword')}
-              </Button>
-            </form>
-          ) : (
-            <form onSubmit={handleCodeSubmit} className="space-y-4">
-              <FormField
-                label={t('login.codeLabel')}
-                htmlFor="code"
-                required
-                helperText={t('login.codeHelp')}
-              >
-                <Input
-                  id="code"
-                  inputMode="numeric"
-                  autoComplete="one-time-code"
-                  touchSize
-                  value={code}
-                  onChange={(e) => setCode(e.target.value)}
-                />
-              </FormField>
-              <Button type="submit" variant="primary" fullWidth size="touch" isLoading={submitting}>
-                {t('login.submitCode')}
-              </Button>
-              <Button
+        {method === 'password' && step === 'password' && (
+          <form onSubmit={handlePasswordSubmit} className="space-y-4">
+            {resetDone && (
+              <p data-testid="reset-done" role="status" className="text-sm text-[#2E7D4F]">
+                {t('login.forgotDone')}
+              </p>
+            )}
+            <FormField label={t('login.loginLabel')} htmlFor="login" required>
+              <Input
+                id="login"
+                touchSize
+                autoComplete="username"
+                value={loginId}
+                onChange={(e) => setLoginId(e.target.value)}
+              />
+            </FormField>
+            <FormField label={t('login.passwordLabel')} htmlFor="password" required>
+              <Input
+                id="password"
+                type="password"
+                touchSize
+                autoComplete="current-password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
+            </FormField>
+            <Button type="submit" variant="primary" fullWidth size="touch" isLoading={submitting}>
+              {t('login.submitPassword')}
+            </Button>
+            <div className="text-center">
+              <button
                 type="button"
-                variant="secondary"
-                fullWidth
-                size="touch"
-                disabled={submitting}
-                onClick={() => {
-                  setStep('password');
-                  setCode('');
-                  setErrorKind(null);
-                }}
+                onClick={openForgot}
+                className="text-sm font-medium text-[#2E7D4F] hover:underline min-h-11 px-2"
               >
-                {t('login.back')}
-              </Button>
-            </form>
-          ))}
+                {t('login.forgotLink')}
+              </button>
+            </div>
+            <AdminContact />
+          </form>
+        )}
+
+        {method === 'password' && step === 'code' && (
+          <form onSubmit={handleCodeSubmit} className="space-y-4">
+            <FormField
+              label={t('login.codeLabel')}
+              htmlFor="code"
+              required
+              helperText={t('login.codeHelp')}
+            >
+              <Input
+                id="code"
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                touchSize
+                value={code}
+                onChange={(e) => setCode(e.target.value)}
+              />
+            </FormField>
+            <Button type="submit" variant="primary" fullWidth size="touch" isLoading={submitting}>
+              {t('login.submitCode')}
+            </Button>
+            <Button
+              type="button"
+              variant="secondary"
+              fullWidth
+              size="touch"
+              disabled={submitting}
+              onClick={() => {
+                setStep('password');
+                setCode('');
+                setErrorKind(null);
+              }}
+            >
+              {t('login.back')}
+            </Button>
+          </form>
+        )}
+
+        {method === 'password' && step.startsWith('forgot-') && (
+          <div className="space-y-4" data-testid="forgot-flow">
+            <h2 className="text-base font-semibold text-[#1A1F24]">{t('login.forgotTitle')}</h2>
+            {forgotError && (
+              <p data-testid="forgot-error" role="alert" className="text-sm text-[#B91C1C]">
+                {forgotError}
+              </p>
+            )}
+
+            {step === 'forgot-login' && (
+              <form onSubmit={handleForgotLookup} className="space-y-4">
+                <FormField label={t('login.loginLabel')} htmlFor="forgot-login" required>
+                  <Input
+                    id="forgot-login"
+                    touchSize
+                    autoComplete="username"
+                    value={loginId}
+                    onChange={(e) => setLoginId(e.target.value)}
+                  />
+                </FormField>
+                <Button
+                  type="submit"
+                  variant="primary"
+                  fullWidth
+                  size="touch"
+                  isLoading={submitting}
+                  disabled={loginId.trim() === ''}
+                >
+                  {t('login.forgotNext')}
+                </Button>
+              </form>
+            )}
+
+            {step === 'forgot-channel' && contacts && (
+              <div className="space-y-3">
+                <p className="text-sm text-[#5A646D]">{t('login.forgotChannelTitle')}</p>
+                {(['phone', 'email'] as const).map((c) => {
+                  const masked = contacts[c];
+                  return (
+                    <Button
+                      key={c}
+                      type="button"
+                      variant="secondary"
+                      fullWidth
+                      size="touch"
+                      disabled={masked === null || submitting}
+                      onClick={() => handleForgotSend(c)}
+                      data-testid={`forgot-channel-${c}`}
+                    >
+                      <span className="flex w-full items-center justify-between gap-2">
+                        <span>{t(c === 'phone' ? 'login.forgotPhone' : 'login.forgotEmail')}</span>
+                        <span
+                          className={
+                            masked === null ? 'text-[#8A949C]' : 'font-mono text-[#1A1F24]'
+                          }
+                        >
+                          {masked ?? t('login.forgotNotFilled')}
+                        </span>
+                      </span>
+                    </Button>
+                  );
+                })}
+              </div>
+            )}
+
+            {step === 'forgot-code' && (
+              <form onSubmit={handleForgotReset} className="space-y-4">
+                <FormField
+                  label={t('login.forgotCodeLabel')}
+                  htmlFor="forgot-code"
+                  required
+                  helperText={t('login.forgotCodeHelp')}
+                >
+                  <Input
+                    id="forgot-code"
+                    inputMode="numeric"
+                    autoComplete="one-time-code"
+                    touchSize
+                    value={code}
+                    onChange={(e) => setCode(e.target.value)}
+                  />
+                </FormField>
+                <FormField
+                  label={t('login.forgotNewPassword')}
+                  htmlFor="forgot-new-password"
+                  required
+                  helperText={t('login.forgotPolicyHelp')}
+                >
+                  <Input
+                    id="forgot-new-password"
+                    type="password"
+                    touchSize
+                    autoComplete="new-password"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                  />
+                </FormField>
+                <FormField label={t('login.forgotRepeatPassword')} htmlFor="forgot-repeat" required>
+                  <Input
+                    id="forgot-repeat"
+                    type="password"
+                    touchSize
+                    autoComplete="new-password"
+                    value={repeatPassword}
+                    onChange={(e) => setRepeatPassword(e.target.value)}
+                  />
+                </FormField>
+                <Button type="submit" variant="primary" fullWidth size="touch" isLoading={submitting}>
+                  {t('login.forgotSubmit')}
+                </Button>
+              </form>
+            )}
+
+            <Button
+              type="button"
+              variant="secondary"
+              fullWidth
+              size="touch"
+              disabled={submitting}
+              onClick={backToPassword}
+            >
+              {t('login.back')}
+            </Button>
+            <AdminContact />
+          </div>
+        )}
       </div>
 
             <a
@@ -592,5 +848,21 @@ export function LoginPage() {
         </div>
       </footer>
     </div>
+  );
+}
+
+// Where to turn when the self-service path cannot help — no contact filled
+// in on the card, no access to that phone any more, an account an
+// administrator blocked. Same line the header advertises (`shell/support.ts`).
+function AdminContact() {
+  const t = useT();
+  return (
+    <p data-testid="admin-contact" className="text-xs text-[#5A646D] text-center leading-relaxed">
+      {t('login.adminContact')}{' '}
+      <a href={SUPPORT_PHONE_HREF} className="font-medium text-[#1A1F24] whitespace-nowrap">
+        {SUPPORT_PHONE}
+      </a>
+      , {t('shell.extension')} {SUPPORT_EXTENSION}
+    </p>
   );
 }
