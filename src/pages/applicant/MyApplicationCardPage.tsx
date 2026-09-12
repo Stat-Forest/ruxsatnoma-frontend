@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate, useParams } from 'react-router';
+import { useBackToList } from '../../lib/returnTo';
 import { ArrowLeft, Award, FileText, Receipt } from 'lucide-react';
 import { Button } from '../../components/ui/button';
 import { StatusBadge } from '../../components/ui/StatusBadge';
@@ -157,6 +158,7 @@ const CARD_I18N = {
 export function MyApplicationCardPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const backToList = useBackToList('/my/applications');
   const { lang } = useLanguage();
   const t = CARD_I18N[lang as keyof typeof CARD_I18N] || CARD_I18N.uz_latn;
 
@@ -197,7 +199,7 @@ export function MyApplicationCardPage() {
         <p className="text-sm text-[#B91C1C]" role="alert">
           {t.notFound}
         </p>
-        <Button variant="outline" onClick={() => navigate('/my/applications')}>
+        <Button variant="outline" onClick={() => navigate(backToList)}>
           {t.returnToList}
         </Button>
       </div>
@@ -222,7 +224,7 @@ export function MyApplicationCardPage() {
           variant="ghost"
           size="sm"
           leftIcon={<ArrowLeft className="w-4 h-4" />}
-          onClick={() => navigate('/my/applications')}
+          onClick={() => navigate(backToList)}
           className="text-[#2E7D4F] font-bold hover:bg-[#F0F7F1] cursor-pointer"
         >
           {t.backToList}

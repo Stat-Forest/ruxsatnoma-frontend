@@ -12,8 +12,10 @@ import { pickName } from '../format';
 import type { RefundOut } from '../api';
 import { RefundRequestModal, type BillableApplication, type ListStatus } from './RefundRequestModal';
 import { useMyApplicationsIndex, useMyInvoices, useMyRefunds, useRefundReasons } from './queries';
+import { useListUrlState } from '../../../lib/useListUrlState';
 
 const PAGE_SIZE = 50;
+const NO_FILTERS = {};
 const INVOICE_STATUS_RANK: Record<string, number> = { paid: 0, pending: 1, expired: 2, cancelled: 3 };
 
 /** A query's tri-state for the modal — `isPending`/`isError` collapsed into
@@ -33,7 +35,9 @@ function queryStatus(query: { isPending: boolean; isError: boolean }): ListStatu
 export function MyRefundsTab() {
   const t = useT();
   const { lang } = useLanguage();
-  const [page, setPage] = useState(1);
+  // The page lives in the URL next to `?tab=`, so Back from an application
+  // card returns to the same page of refunds.
+  const { page, setPage } = useListUrlState(NO_FILTERS);
   const [open, setOpen] = useState(false);
   const [sent, setSent] = useState(false);
   const refundsQuery = useMyRefunds({ page, pageSize: PAGE_SIZE });

@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { Link } from 'react-router';
 import { CreditCard, Eye } from 'lucide-react';
 import { DataTable, type Column } from '../../../components/ui/DataTable';
@@ -10,9 +9,12 @@ import { INVOICE_STATUS_LABEL, INVOICE_STATUS_STYLE, getInvoiceStatusLabel } fro
 import { formatDateTime, formatMoney } from '../../permits/format';
 import type { InvoiceOut } from '../api';
 import { useMyApplicationsIndex, useMyInvoices } from './queries';
+import { useListUrlState } from '../../../lib/useListUrlState';
+import { useReturnHereState } from '../../../lib/returnTo';
 
 const PAGE_SIZE = 50;
 const STATUSES = Object.keys(INVOICE_STATUS_LABEL);
+const EMPTY_FILTERS = { status: '' };
 
 /** Stage 11 — every invoice of every application the citizen owns or
  * represents, from `GET /invoices` without `application_id` (ruling R1). The application
@@ -22,8 +24,11 @@ const STATUSES = Object.keys(INVOICE_STATUS_LABEL);
 export function MyInvoicesTab() {
   const t = useT();
   const { lang } = useLanguage();
-  const [page, setPage] = useState(1);
-  const [status, setStatus] = useState('');
+  // Filter and page live in the URL next to `?tab=`, so an invoice's "back to
+  // payments" (and browser Back) return to the same filtered page.
+  const { filters, page, setFilters, setPage } = useListUrlState(EMPTY_FILTERS);
+  const { status } = filters;
+  const returnHere = useReturnHereState();
   const invoicesQuery = useMyInvoices({ status, page, pageSize: PAGE_SIZE });
   const { index: applications } = useMyApplicationsIndex();
 
@@ -77,10 +82,7 @@ export function MyInvoicesTab() {
           <Select
             id="my-invoices-status"
             value={status}
-            onChange={(e) => {
-              setStatus(e.target.value);
-              setPage(1);
-            }}
+            onChange={(e) => setFilters({ status: e.target.value })}
             options={[
               { value: '', label: t('myPayments.filterAll') },
               ...STATUSES.map((value) => ({ value, label: getInvoiceStatusLabel(value, lang) })),
@@ -97,11 +99,11 @@ export function MyInvoicesTab() {
         emptyDescription={t('myPayments.invoices.emptyHint')}
         actions={(row) =>
           row.status === 'pending' ? (
-            <Link to={`/my/invoices/${row.id}`} className="inline-flex items-center gap-1 text-sm font-semibold text-[#2E7D4F] hover:underline">
+            <Link to={`/my/invoices/${row.id}`} state={returnHere} className="inline-flex items-center gap-1 text-sm font-semibold text-[#2E7D4F] hover:underline">
               <CreditCard className="w-4 h-4" /> {t('myPayments.invoices.pay')}
             </Link>
           ) : (
-            <Link to={`/my/invoices/${row.id}`} className="inline-flex items-center gap-1 text-sm font-semibold text-[#1A1F24] hover:underline">
+            <Link to={`/my/invoices/${row.id}`} state={returnHere} className="inline-flex items-center gap-1 text-sm font-semibold text-[#1A1F24] hover:underline">
               <Eye className="w-4 h-4" /> {t('myPayments.invoices.open')}
             </Link>
           )
