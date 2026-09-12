@@ -1175,7 +1175,7 @@ export const ru = {
   'permits.signatures.errors.pdfFetchFailed': 'Не удалось загрузить документ для подписания — попробуйте ещё раз.',
 
   // --- I1: реестры прокурора только для чтения, с экспортом --------------
-  'export.xlsxButton': 'Excel',
+  'export.xlsxButton': 'Экспорт',
   'export.truncated': 'В файл вошли первые {rows} строк из {total}. Для точного результата сузьте фильтры.',
   'export.error': 'Не удалось скачать файл',
 

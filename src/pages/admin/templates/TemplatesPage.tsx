@@ -23,7 +23,6 @@ import { Modal } from '../../../components/ui/Overlay';
 import { Alert } from '../../../components/ui/Feedback';
 import { StatusBadge } from '../../../components/ui/StatusBadge';
 import { Button } from '../../../components/ui/button';
-import { ExportXlsxButton } from '../../../components/ui/ExportXlsxButton';
 import { ApiError } from '../../../api/errors';
 import { useApiErrorText } from '../../../i18n/useApiErrorText';
 import { useLanguage } from '../../../i18n/useT';
@@ -183,7 +182,6 @@ export function TemplatesPage() {
           <Button variant="primary" size="sm" onClick={applyFilters}>
             {L.apply}
           </Button>
-          <ExportXlsxButton path="/api/v1/admin/notification-templates" query={queryParams} />
         </div>
       </div>
 

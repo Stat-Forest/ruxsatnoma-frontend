@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { Loader2, RotateCcw, RefreshCw, Trash2, FileSearch } from 'lucide-react';
 import { Button } from '../../../components/ui/button';
-import { ExportXlsxButton } from '../../../components/ui/ExportXlsxButton';
 import { FormField, Input, Select } from '../../../components/ui/FormControls';
 import { Pagination, Tabs } from '../../../components/ui/Navigation';
 import { Modal } from '../../../components/ui/Overlay';
@@ -340,7 +339,6 @@ function OutboxTab({ L }: { L: IntegrationsLabels }) {
           <Button variant="primary" size="sm" onClick={apply}>
             {L.filterApply}
           </Button>
-          <ExportXlsxButton path="/api/v1/admin/integrations/outbox" query={queryParams} />
         </div>
       </div>
 
@@ -539,7 +537,6 @@ function DeadLettersTab({ L }: { L: IntegrationsLabels }) {
           <Button variant="primary" size="sm" onClick={apply}>
             {L.filterApply}
           </Button>
-          <ExportXlsxButton path="/api/v1/admin/integrations/dead-letters" query={queryParams} />
         </div>
       </div>
 

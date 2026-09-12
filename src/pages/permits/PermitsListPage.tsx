@@ -281,18 +281,18 @@ export function PermitsListPage({ variant }: { variant: 'staff' | 'applicant' })
           )}
         </div>
         <div className="flex justify-end gap-2">
-          {/* Same route for both variants: `GET /permits` is already scoped to the
-              caller server-side (the applicant's own permits, or — holding
-              `permits.view_any` — their zone's, `permits/service.py::list_permits`),
-              so the citizen's own list gets the export with no new backend work
-              (stage 13, Track B). */}
-          <ExportXlsxButton path="/api/v1/permits" query={toPermitsQuery(queryFilters)} />
           <Button type="button" variant="outline" size="sm" leftIcon={<RotateCcw className="w-3.5 h-3.5" />} onClick={resetFilters}>
             {lt.reset}
           </Button>
           <Button type="submit" variant="primary" size="sm" onClick={applyFilters}>
             {lt.apply}
           </Button>
+          {/* Same route for both variants: `GET /permits` is already scoped to the
+              caller server-side (the applicant's own permits, or — holding
+              `permits.view_any` — their zone's, `permits/service.py::list_permits`),
+              so the citizen's own list gets the export with no new backend work
+              (stage 13, Track B). */}
+          <ExportXlsxButton className="ml-auto" path="/api/v1/permits" query={toPermitsQuery(queryFilters)} />
         </div>
       </form>
 

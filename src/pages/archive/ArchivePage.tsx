@@ -157,7 +157,7 @@ export function ArchivePage() {
       </div>
 
       <div className="flex justify-end">
-        <ExportXlsxButton
+        <ExportXlsxButton className="ml-auto"
           path="/api/v1/archive"
           query={{ object_type: objectType || undefined, status: status || undefined }}
         />

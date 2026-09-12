@@ -3,7 +3,6 @@ import { useQueryClient } from '@tanstack/react-query';
 import { Loader2, UploadCloud } from 'lucide-react';
 import { useAuth } from '../../../auth/useAuth';
 import { Button } from '../../../components/ui/button';
-import { ExportXlsxButton } from '../../../components/ui/ExportXlsxButton';
 import { Alert } from '../../../components/ui/Feedback';
 import { Input, Select } from '../../../components/ui/FormControls';
 import { Pagination } from '../../../components/ui/Navigation';
@@ -366,7 +365,6 @@ function ImportsListPanel({ t, onOpen }: { t: (key: string) => string; onOpen: (
               ]}
             />
           </label>
-          <ExportXlsxButton path="/api/v1/gis/imports" query={queryFilters} />
         </div>
       </div>
 

@@ -346,13 +346,13 @@ function RiskIndicatorsTab({ t }: { t: (key: string) => string }) {
           </FormField>
         </div>
         <div className="flex justify-end gap-2">
-          <ExportXlsxButton path="/api/v1/oversight/risk-indicators" query={toRiskFilters(applied, 1)} />
           <Button type="button" variant="outline" size="sm" leftIcon={<RotateCcw className="w-3.5 h-3.5" />} onClick={resetFilters}>
             {t('leadership.dash.filters.reset')}
           </Button>
           <Button type="submit" variant="primary" size="sm" onClick={applyFilters}>
             {t('leadership.dash.filters.apply')}
           </Button>
+          <ExportXlsxButton className="ml-auto" path="/api/v1/oversight/risk-indicators" query={toRiskFilters(applied, 1)} />
         </div>
       </form>
 
@@ -524,13 +524,13 @@ function EventsTab({ t }: { t: (key: string) => string }) {
           </FormField>
         </div>
         <div className="flex justify-end gap-2">
-          <ExportXlsxButton path="/api/v1/oversight/events" query={toEventFilters(applied, 1)} />
           <Button type="button" variant="outline" size="sm" leftIcon={<RotateCcw className="w-3.5 h-3.5" />} onClick={resetFilters}>
             {t('leadership.dash.filters.reset')}
           </Button>
           <Button type="submit" variant="primary" size="sm" onClick={applyFilters}>
             {t('leadership.dash.filters.apply')}
           </Button>
+          <ExportXlsxButton className="ml-auto" path="/api/v1/oversight/events" query={toEventFilters(applied, 1)} />
         </div>
       </form>
 

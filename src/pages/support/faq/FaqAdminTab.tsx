@@ -10,7 +10,6 @@
 import { useState } from 'react';
 import { Loader2, Plus } from 'lucide-react';
 import { Button } from '../../../components/ui/button';
-import { ExportXlsxButton } from '../../../components/ui/ExportXlsxButton';
 import { FormField, Select } from '../../../components/ui/FormControls';
 import { ApiError } from '../../../api/errors';
 import { useApiErrorText } from '../../../i18n/useApiErrorText';
@@ -49,7 +48,6 @@ export function FaqAdminTab() {
   const [status, setStatus] = useState<FaqStatus | ''>('');
   const [editing, setEditing] = useState<{ faq: FaqOut | null } | null>(null);
 
-  const filters = { status: status || undefined };
   const list = useFaqAdmin(status || undefined);
   const patch = usePatchFaq();
   const items = list.data ?? [];
@@ -81,7 +79,6 @@ export function FaqAdminTab() {
             />
           </FormField>
         </div>
-        <ExportXlsxButton path="/api/v1/admin/help/faq" query={filters} className="w-full sm:w-auto" />
       </div>
 
       {list.error && (

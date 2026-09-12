@@ -174,7 +174,7 @@ export function BeekeepersPage() {
       </div>
 
       <div className="flex justify-end">
-        <ExportXlsxButton path="/api/v1/beekeepers" query={{ q: q || undefined, status: status || undefined }} />
+        <ExportXlsxButton className="ml-auto" path="/api/v1/beekeepers" query={{ q: q || undefined, status: status || undefined }} />
       </div>
 
       {list.error && (

@@ -82,7 +82,7 @@ export function AppealsTab() {
             />
           </FormField>
         </div>
-        <ExportXlsxButton
+        <ExportXlsxButton className="ml-auto"
           path="/api/v1/admin/public/appeals"
           query={{ status, page, page_size: PAGE_SIZE }}
         />

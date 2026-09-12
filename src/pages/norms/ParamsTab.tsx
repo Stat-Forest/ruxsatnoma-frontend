@@ -27,7 +27,6 @@
 import { useState } from 'react';
 import { Pencil, Plus, RotateCcw } from 'lucide-react';
 import { DataTable, type Column } from '../../components/ui/DataTable';
-import { ExportXlsxButton } from '../../components/ui/ExportXlsxButton';
 import { FormField, Input, Select } from '../../components/ui/FormControls';
 import { Alert } from '../../components/ui/Feedback';
 import { StatusBadge, type StatusType } from '../../components/ui/StatusBadge';
@@ -407,7 +406,6 @@ export function ParamsTab({ active }: { active: boolean }) {
           </FormField>
         </div>
         <div className="flex justify-end gap-2">
-          <ExportXlsxButton path="/api/v1/rule-parameters" query={queryFilters} />
           <Button variant="outline" size="sm" leftIcon={<RotateCcw className="h-3.5 w-3.5" />} onClick={resetFilters}>
             {t('norms.params.filter.reset')}
           </Button>

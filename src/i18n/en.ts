@@ -1018,7 +1018,7 @@ export const en = {
   'permits.signatures.errors.signRefusedGeneric': 'Signature refused — please try again.',
   'permits.signatures.errors.genericSigningError': 'An error occurred while signing.',
   'permits.signatures.errors.pdfFetchFailed': 'Could not load the document to sign — please try again.',
-  'export.xlsxButton': 'Excel',
+  'export.xlsxButton': 'Export',
   'export.truncated': 'The file holds the first {rows} rows of {total}. Narrow the filters for an exact result.',
   'export.error': 'Could not download the file',
   'leadership.dash.loading': 'Loading...',
