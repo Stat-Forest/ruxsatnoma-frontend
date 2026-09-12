@@ -206,6 +206,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/auth/password/forgot/lookup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Password Forgot Lookup */
+        post: operations["password_forgot_lookup_api_v1_auth_password_forgot_lookup_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/password/forgot/send": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Password Forgot Send */
+        post: operations["password_forgot_send_api_v1_auth_password_forgot_send_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/password/forgot/reset": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Password Forgot Reset */
+        post: operations["password_forgot_reset_api_v1_auth_password_forgot_reset_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/auth/otp/request": {
         parameters: {
             query?: never;
@@ -11474,6 +11525,48 @@ export interface components {
             /** New Password */
             new_password: string;
         };
+        /** PasswordForgotLookupIn */
+        PasswordForgotLookupIn: {
+            /** Login */
+            login: string;
+        };
+        /**
+         * PasswordForgotLookupOut
+         * @description Masked contacts a self-service reset can go to; `None` = not filled in.
+         *
+         *     An unknown login answers `(None, None)` too — indistinguishable from a
+         *     staff member whose card has neither contact (decision #208).
+         */
+        PasswordForgotLookupOut: {
+            /** Phone */
+            phone: string | null;
+            /** Email */
+            email: string | null;
+        };
+        /** PasswordForgotResetIn */
+        PasswordForgotResetIn: {
+            /** Login */
+            login: string;
+            /**
+             * Channel
+             * @enum {string}
+             */
+            channel: "phone" | "email";
+            /** Code */
+            code: string;
+            /** New Password */
+            new_password: string;
+        };
+        /** PasswordForgotSendIn */
+        PasswordForgotSendIn: {
+            /** Login */
+            login: string;
+            /**
+             * Channel
+             * @enum {string}
+             */
+            channel: "phone" | "email";
+        };
         /**
          * PayIntentIn
          * @description `{provider: "payme"}` (design/03 §payments) — `Literal` rather than a
@@ -14840,6 +14933,101 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["PasswordChangeIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    password_forgot_lookup_api_v1_auth_password_forgot_lookup_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PasswordForgotLookupIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PasswordForgotLookupOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    password_forgot_send_api_v1_auth_password_forgot_send_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PasswordForgotSendIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    password_forgot_reset_api_v1_auth_password_forgot_reset_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PasswordForgotResetIn"];
             };
         };
         responses: {
