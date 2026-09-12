@@ -1,6 +1,5 @@
 import type { ReactNode } from 'react';
 import { Navigate, useLocation } from 'react-router';
-import { Forbidden } from '../components/Forbidden';
 import { satisfies } from '../shell/navigation';
 import { useAuth } from './useAuth';
 import { ChangePasswordForm } from '../pages/admin/profile/ChangePasswordForm';
@@ -33,22 +32,11 @@ function BlockingNotice({ testId, message }: { testId: string; message: string }
 export function RequireAuth({
   permission,
   noSuperuser,
-  forbidden = 'refuse',
   children,
 }: {
   permission?: string | readonly string[];
   /** The superuser is refused outright (`NavItem.noSuperuser`). */
   noSuperuser?: boolean;
-  /**
-   * What a signed-in user the gate refuses gets. `'refuse'` (the default)
-   * is the honest answer to a URL somebody typed: the page exists and this
-   * account may not open it. `'home'` is for a route the PUBLIC site links
-   * every visitor to regardless of role — the wizard behind "Ariza
-   * topshirish" — where a leshoz inspector clicking a button the landing
-   * showed them is not probing anything, and a refusal reads as a broken
-   * site. They are sent to the dashboard instead.
-   */
-  forbidden?: 'refuse' | 'home';
   children: ReactNode;
 }) {
   const { me, loading, authError } = useAuth();
@@ -110,8 +98,14 @@ export function RequireAuth({
   // filters with, imported rather than re-implemented: a route whose gate
   // disagreed with its own menu entry would either show a link that
   // refuses, or hide a page the user may open.
+  //
+  // A refused user is sent to the dashboard, not shown a «no right to this
+  // page» notice: every such arrival is either a button the public landing
+  // shows to everyone regardless of role (the wizard behind «Ariza
+  // topshirish») or a URL typed by hand, and neither deserves a dead-end
+  // screen — the dashboard is where every role has something of its own.
   if (!satisfies(permission, me, noSuperuser)) {
-    return forbidden === 'home' ? <Navigate to="/" replace /> : <Forbidden />;
+    return <Navigate to="/" replace />;
   }
 
   return <>{children}</>;

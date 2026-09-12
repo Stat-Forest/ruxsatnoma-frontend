@@ -183,17 +183,23 @@ test('RequireAuth shows a distinct notice for a failed session check, not a sile
   expect(screen.queryByTestId('login-page')).not.toBeInTheDocument();
 });
 
-test('RequireAuth refuses a route whose permission the user lacks', async () => {
+test('RequireAuth sends a user to the dashboard from a route whose permission they lack', async () => {
   server.use(
     http.get('*/auth/me', () =>
       HttpResponse.json({ ...ME, permissions: ['applications.view_any'], is_superuser: false }),
     ),
+    http.get('*/api/v1/applications', () => HttpResponse.json({ items: [], total: 0, page: 1, page_size: 100 })),
+    http.get('*/api/v1/permits', () => HttpResponse.json({ items: [], total: 0, page: 1, page_size: 100 })),
+    http.get('*/api/v1/invoices', () => HttpResponse.json({ items: [], total: 0, page: 1, page_size: 100 })),
+    http.get('*/api/v1/refs/activity-types', () => HttpResponse.json([])),
   );
   await renderAt('/admin/users');
-  expect(await screen.findByTestId('forbidden')).toBeInTheDocument();
+  await waitFor(() => expect(router.state.location.pathname).toBe('/'));
+  expect(await screen.findByTestId('app-shell')).toBeInTheDocument();
+  expect(screen.queryByTestId('users-page')).not.toBeInTheDocument();
 });
 
-test('a staff role reaching the wizard without applications.create lands on the dashboard, not a refusal', async () => {
+test('a staff role reaching the wizard without applications.create lands on the dashboard', async () => {
   // The landing's "Ariza topshirish" buttons link straight to
   // `/my/applications/new` for everyone, signed in as whatever they are. A
   // leshoz inspector clicking one is not trying to break in — "no right to
@@ -210,7 +216,6 @@ test('a staff role reaching the wizard without applications.create lands on the 
   await renderAt('/my/applications/new');
   await waitFor(() => expect(router.state.location.pathname).toBe('/'));
   expect(await screen.findByTestId('app-shell')).toBeInTheDocument();
-  expect(screen.queryByTestId('forbidden')).not.toBeInTheDocument();
 });
 
 test('the superuser passes a gate for a code nobody granted', async () => {

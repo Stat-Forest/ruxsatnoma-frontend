@@ -23,7 +23,7 @@ const ME = {
   role: { code: 'applicant', name: { uz_cyrl: 'Ariza beruvchi' } },
   // `applications.create` — the wizard's own gate in `routes.tsx` — so the
   // first test below lands where a real citizen actually can: on the
-  // wizard, not bounced to `Forbidden` by an under-permissioned fixture.
+  // wizard, not bounced to the dashboard by an under-permissioned fixture.
   permissions: ['applications.create'],
   zone: { region_id: null, district_id: null, organization_id: null },
   csrf_token: 'tok-1',

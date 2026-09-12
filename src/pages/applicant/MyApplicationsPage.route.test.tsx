@@ -79,11 +79,16 @@ const APPLICANT_ME = {
 };
 
 test('a staff account without applications.create cannot reach /my/applications', async () => {
-  server.use(http.get('*/auth/me', () => HttpResponse.json(STAFF_ME)));
+  server.use(
+    http.get('*/auth/me', () => HttpResponse.json(STAFF_ME)),
+    http.get('*/api/v1/permits', () => HttpResponse.json(page([]))),
+    http.get('*/api/v1/invoices', () => HttpResponse.json(page([]))),
+  );
   arriveAt('/my/applications');
   render(<App />);
 
-  await waitFor(() => expect(screen.getByTestId('forbidden')).toBeInTheDocument());
+  await waitFor(() => expect(window.location.pathname).toBe('/'));
+  expect(await screen.findByTestId('app-shell')).toBeInTheDocument();
   // The list itself, and its "New application" button, never render.
   expect(screen.queryByText(/Yangi ariza topshirish/)).not.toBeInTheDocument();
   expect(screen.queryByText(/Mening arizalarim/)).not.toBeInTheDocument();
@@ -96,7 +101,7 @@ test('the applicant (holding applications.create) reaches the list normally', as
 
   await waitFor(() => expect(screen.getByRole('heading', { name: 'Mening arizalarim' })).toBeInTheDocument());
   expect(screen.getByText('Yangi ariza topshirish')).toBeInTheDocument();
-  expect(screen.queryByTestId('forbidden')).not.toBeInTheDocument();
+  expect(window.location.pathname).toBe('/my/applications');
 });
 
 // Found on the dev stand, 2026-09-10, right after the gate above landed:
@@ -118,19 +123,23 @@ const SYSADMIN_ME = {
 };
 
 test('the superuser cannot reach /my/applications either', async () => {
-  server.use(http.get('*/auth/me', () => HttpResponse.json(SYSADMIN_ME)));
+  server.use(
+    http.get('*/auth/me', () => HttpResponse.json(SYSADMIN_ME)),
+    http.get('*/api/v1/permits', () => HttpResponse.json(page([]))),
+    http.get('*/api/v1/invoices', () => HttpResponse.json(page([]))),
+  );
   arriveAt('/my/applications');
   render(<App />);
 
-  await waitFor(() => expect(screen.getByTestId('forbidden')).toBeInTheDocument());
+  await waitFor(() => expect(window.location.pathname).toBe('/'));
+  expect(await screen.findByTestId('app-shell')).toBeInTheDocument();
   expect(screen.queryByText(/Yangi ariza topshirish/)).not.toBeInTheDocument();
   expect(screen.queryByText(/Mening arizalarim/)).not.toBeInTheDocument();
 });
 
-// Refused all the same, but the wizard's refusal is a redirect to the
-// dashboard, not the «no right to this page» notice: the public landing
-// links every visitor to this path from its "Ariza topshirish" buttons,
-// signed in as whatever they are (`RequireAuth`'s `forbidden` prop).
+// The public landing links every visitor to this path from its "Ariza
+// topshirish" buttons, signed in as whatever they are — refused the same
+// way, to the dashboard.
 test('nor the wizard behind its «New application» button', async () => {
   server.use(
     http.get('*/auth/me', () => HttpResponse.json(SYSADMIN_ME)),
@@ -142,6 +151,5 @@ test('nor the wizard behind its «New application» button', async () => {
 
   await waitFor(() => expect(window.location.pathname).toBe('/'));
   expect(await screen.findByTestId('app-shell')).toBeInTheDocument();
-  expect(screen.queryByTestId('forbidden')).not.toBeInTheDocument();
   expect(screen.queryByText(/Yangi ariza/)).not.toBeInTheDocument();
 });
