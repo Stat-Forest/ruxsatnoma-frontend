@@ -20,6 +20,7 @@ export type PermitStatus = PermitOut['status'];
 
 export interface PermitListFilters {
   status?: PermitStatus | '';
+  q?: string;
   series?: string;
   /** Kept as a string in the filter form; parsed to a bounded integer (or
    *  dropped entirely) below — never sent to the API as typed by the user. */
@@ -48,6 +49,7 @@ export function toPermitsQuery(filters: PermitListFilters) {
 
   return {
     status: filters.status || undefined,
+    q: filters.q || undefined,
     series,
     number,
     organization_id: filters.organization_id || undefined,

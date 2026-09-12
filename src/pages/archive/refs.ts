@@ -1,5 +1,5 @@
 /**
- * Small reference-data helpers for the search screen's own filter selects —
+ * Small reference-data helpers for the archive screen's own filter selects —
  * this track's own copy rather than an import from `pages/norms/refs.ts` or
  * `pages/permits/useRefsLookup.ts`, per this codebase's established
  * per-track duplication convention (see `pages/norms/refs.ts`'s own header
@@ -20,7 +20,7 @@ export type OrganizationOut = components['schemas']['OrganizationOut'];
 
 export function useActivityTypes() {
   return useQuery({
-    queryKey: ['search', 'refs', 'activity-types'],
+    queryKey: ['archive', 'refs', 'activity-types'],
     queryFn: async () => {
       const { data, error } = await api.GET('/api/v1/refs/activity-types', {});
       if (error) throw apiError(error);
@@ -30,14 +30,15 @@ export function useActivityTypes() {
   });
 }
 
-// `kind=leshoz`: the organization a search result belongs to is always a
-// leshoz (`search/service.py`'s own scope columns — `Application.
-// assigned_org_id`/`Permit.organization_id`), same reasoning
-// `pages/permits/useRefsLookup.ts::useLeshozOrganizations` documents for the
-// identical filter.
+// `kind=leshoz`: the organization an archived record belongs to is always a
+// leshoz (`Application.assigned_org_id`/`Permit.organization_id`), same
+// reasoning `pages/permits/useRefsLookup.ts::useLeshozOrganizations`
+// documents for the identical filter. This file moved here from
+// `pages/search/refs.ts` when the search screen was dropped — archive was its
+// only other reader.
 export function useLeshozOrganizations() {
   return useQuery({
-    queryKey: ['search', 'refs', 'organizations', 'leshoz'],
+    queryKey: ['archive', 'refs', 'organizations', 'leshoz'],
     queryFn: async () => {
       const { data, error } = await api.GET('/api/v1/refs/organizations', {
         params: { query: { kind: 'leshoz', page_size: 100 } },

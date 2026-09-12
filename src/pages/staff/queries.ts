@@ -60,6 +60,7 @@ export interface ApplicationListFilters {
   status?: ApplicationOut['status'];
   activity_type_id?: string;
   number?: string;
+  q?: string;
   period_from?: string;
   period_to?: string;
   page: number;

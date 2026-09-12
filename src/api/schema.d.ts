@@ -20551,6 +20551,7 @@ export interface operations {
                 contour_id?: string | null;
                 applicant_id?: string | null;
                 number?: string | null;
+                q?: string | null;
                 period_from?: string | null;
                 period_to?: string | null;
                 page?: number;
@@ -22377,6 +22378,7 @@ export interface operations {
                 organization_id?: string | null;
                 series?: string | null;
                 number?: number | null;
+                q?: string | null;
                 page?: number;
                 page_size?: number;
             };
