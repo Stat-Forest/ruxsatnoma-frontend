@@ -249,27 +249,21 @@ test('ERR-APP-004 keeps the generic sentence for every other reason', () => {
   expect(apiErrorMessage(noDetails, 'uz_latn')).toBe("Ariza holatini bunday o'zgartirib bo'lmaydi. Sahifani yangilang.");
 });
 
-// Stage 10, F1 — ruling #181: the benefit-certificate check against the
-// Beekeeping Union's own register, named by `details.reason` the same way
-// `ERR-VAL-001` already is.
+// Stage 10, F1 — ruling #181: the mandatory benefit-certificate number,
+// named by `details.reason` the same way `ERR-VAL-001` already is. Ruling
+// #206 removed the register check, so `required` is the only reason left.
 test('ERR-APP-003 names the benefit-certificate reason the backend sends', () => {
   const required = { code: 'ERR-APP-003', message: 'x', details: { reason: 'benefit_certificate_required' } };
-  const unknown = { code: 'ERR-APP-003', message: 'x', details: { reason: 'benefit_certificate_unknown' } };
-  const notYours = { code: 'ERR-APP-003', message: 'x', details: { reason: 'benefit_certificate_not_yours' } };
   const noReason = { code: 'ERR-APP-003', message: 'x' };
 
   expect(apiErrorMessage(required, 'ru')).toBe(
     'Не указан номер справки/свидетельства для выбранной льготной категории.',
   );
-  expect(apiErrorMessage(unknown, 'ru')).toBe('Такой номер справки/свидетельства не найден в реестре.');
-  expect(apiErrorMessage(notYours, 'ru')).toBe('Этот номер справки/свидетельства зарегистрирован на другое лицо.');
   expect(apiErrorMessage(noReason, 'ru')).toBe('Неполный комплект документов.');
 
   expect(apiErrorMessage(required, 'uz_latn')).toBe(
     "Tanlangan imtiyoz toifasi uchun guvohnoma/ma'lumotnoma raqami ko'rsatilmagan.",
   );
-  expect(apiErrorMessage(unknown, 'uz_latn')).toBe("Bunday guvohnoma/ma'lumotnoma raqami reyestrda topilmadi.");
-  expect(apiErrorMessage(notYours, 'uz_latn')).toBe("Bu guvohnoma/ma'lumotnoma raqami boshqa shaxsga ro'yxatga olingan.");
 });
 
 // Ruling #183: a simple signature's own refusal reasons, plus the real-mode

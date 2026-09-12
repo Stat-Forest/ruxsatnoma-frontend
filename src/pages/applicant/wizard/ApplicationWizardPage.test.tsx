@@ -1188,16 +1188,17 @@ test('a simple-signature refusal (ERR-SIGN-001, simple_signature_not_allowed) is
   ).toBeInTheDocument();
 });
 
-// Ruling #181: a benefit-certificate refusal the client could not have
-// caught itself (the number LOOKS filled in, but the register disagrees) is
-// shown AT THE FIELD, not only as a step-5 banner — the wizard sends the
-// applicant back to step 4 for it.
-test('a benefit-certificate refusal (ERR-APP-003, benefit_certificate_unknown) sends the applicant back to step 4 and shows it at the field', async () => {
+// Ruling #181: a benefit-certificate refusal from the backend (the client's
+// own check passed, e.g. a number of whitespace only) is shown AT THE FIELD,
+// not only as a step-5 banner — the wizard sends the applicant back to step
+// 4 for it. Ruling #206 left `benefit_certificate_required` as the one such
+// reason.
+test('a benefit-certificate refusal (ERR-APP-003, benefit_certificate_required) sends the applicant back to step 4 and shows it at the field', async () => {
   server.use(
     classifierHandler([BENEFIT_ITEM], [PROOF_DOC_TYPE]),
     http.post('*/api/v1/applications', () =>
       HttpResponse.json(
-        { error: { code: 'ERR-APP-003', message: 'x', details: { reason: 'benefit_certificate_unknown' } } },
+        { error: { code: 'ERR-APP-003', message: 'x', details: { reason: 'benefit_certificate_required' } } },
         { status: 422 },
       ),
     ),
@@ -1215,7 +1216,9 @@ test('a benefit-certificate refusal (ERR-APP-003, benefit_certificate_unknown) s
   await userEvent.click(signButton);
 
   expect(await screen.findByText(UZ['wizard.step4.heading'])).toBeInTheDocument();
-  expect(await screen.findByText("Bunday guvohnoma/ma'lumotnoma raqami reyestrda topilmadi.")).toBeInTheDocument();
+  expect(
+    await screen.findByText("Tanlangan imtiyoz toifasi uchun guvohnoma/ma'lumotnoma raqami ko'rsatilmagan."),
+  ).toBeInTheDocument();
 });
 
 // Ruling #189: the certificate's scan is OPTIONAL — Next is open on the
