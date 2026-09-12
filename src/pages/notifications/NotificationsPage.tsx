@@ -10,6 +10,7 @@ import { ApiError } from '../../api/errors';
 import { useMarkAllNotificationsRead, useMarkNotificationRead, useNotifications } from './queries';
 import { formatDateTime } from './format';
 import { notificationTarget } from './target';
+import { NotificationText } from './NotificationText';
 import { TransitionChips } from './TransitionChips';
 import { translateNotification, translateNotificationSubject } from './translateNotification';
 
@@ -141,7 +142,9 @@ export function NotificationsPage() {
                     </span>
                   )}
                 </div>
-                <p className="text-sm text-[#1A1F24] break-words">{translateNotification(n.text, lang)}</p>
+                <p className="text-sm text-[#1A1F24] break-words">
+                  <NotificationText text={translateNotification(n.text, lang)} params={n.params} />
+                </p>
                 <TransitionChips
                   objectType={n.object_type}
                   params={n.params}
