@@ -75,7 +75,7 @@ export function StatementsTab() {
         <section className="rounded-2xl border border-[#E4E7EA] bg-white p-4 shadow-xs">
           <div className="mb-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
             <h2 className="text-sm font-bold text-[#1A1F24]">{t('accountant.statements.openIdLabel')}</h2>
-            <ExportXlsxButton path="/api/v1/payments/bank-statements" query={{}} />
+            <ExportXlsxButton className="ml-auto" path="/api/v1/payments/bank-statements" query={{}} />
           </div>
           <form
             className="flex flex-col sm:flex-row sm:items-end gap-2.5"

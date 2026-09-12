@@ -253,7 +253,7 @@ export function MyApplicationsPage() {
           />
         </FormField>
         <div className="sm:col-span-2 lg:col-span-3 flex justify-end">
-          <ExportXlsxButton path="/api/v1/applications" query={listQuery} />
+          <ExportXlsxButton className="ml-auto" path="/api/v1/applications" query={listQuery} />
         </div>
       </div>
 

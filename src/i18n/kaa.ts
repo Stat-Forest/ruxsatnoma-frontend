@@ -918,7 +918,7 @@ export const kaa = {
   'permits.signatures.errors.signRefusedGeneric': 'Qol qoyıw biykar etildi — qaytadan urınıń.',
   'permits.signatures.errors.genericSigningError': 'Qol qoyıwda qátelik júz berdi.',
   'permits.signatures.errors.pdfFetchFailed': 'Qol qoyılatuǵın hújjetti júklep bolmadı — qaytadan urınıń.',
-  'export.xlsxButton': 'Excel',
+  'export.xlsxButton': 'Eksport',
   'leadership.dash.loading': 'Júklenbekte...',
   'leadership.dash.error': 'Panel maǵlıwmatların júklew múmkin bolmadı.',
   'leadership.dash.filters.periodFrom': 'Dáwir — baslap',

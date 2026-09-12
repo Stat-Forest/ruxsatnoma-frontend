@@ -137,7 +137,7 @@ export function OrganizationsPage() {
                 is client-side only (no server query object to mirror), so the
                 export requests every active organization — the same default
                 `GET /refs/organizations` itself answers with no filter. */}
-            <ExportXlsxButton path="/api/v1/refs/organizations" query={{}} />
+            <ExportXlsxButton className="ml-auto" path="/api/v1/refs/organizations" query={{}} />
           </div>
         </div>
       </div>

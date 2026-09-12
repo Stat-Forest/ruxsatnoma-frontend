@@ -210,7 +210,7 @@ export function UsersPage() {
           >
             {L.reset}
           </Button>
-          <ExportXlsxButton path="/api/v1/admin/users" query={toParams(applied, page)} />
+          <ExportXlsxButton className="ml-auto" path="/api/v1/admin/users" query={toParams(applied, page)} />
         </div>
       </section>
 

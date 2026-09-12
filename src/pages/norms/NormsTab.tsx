@@ -238,13 +238,13 @@ export function NormsTab({ active }: { active: boolean }) {
           </FormField>
         </div>
         <div className="flex justify-end gap-2">
-          <ExportXlsxButton path="/api/v1/norms" query={queryFilters} />
           <Button variant="outline" size="sm" leftIcon={<RotateCcw className="h-3.5 w-3.5" />} onClick={resetFilters}>
             {t('norms.norms.filter.reset')}
           </Button>
           <Button variant="primary" size="sm" onClick={applyFilters}>
             {t('norms.norms.filter.apply')}
           </Button>
+          <ExportXlsxButton className="ml-auto" path="/api/v1/norms" query={queryFilters} />
         </div>
       </div>
 

@@ -442,7 +442,7 @@ export function SearchPage() {
       )}
 
       <div className="flex justify-end">
-        <ExportXlsxButton
+        <ExportXlsxButton className="ml-auto"
           path="/api/v1/search"
           query={{
             kind,
