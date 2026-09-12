@@ -23,7 +23,7 @@ import { DataTable, type Column } from '../../components/ui/DataTable';
 import { ExportXlsxButton } from '../../components/ui/ExportXlsxButton';
 import { FormField, Select } from '../../components/ui/FormControls';
 import { useLanguage, useT } from '../../i18n/useT';
-import { pickLocalizedName, useLeshozOrganizations } from '../search/refs';
+import { pickLocalizedName, useLeshozOrganizations } from './refs';
 import { useArchiveItems } from './queries';
 import { ArchiveItemDrawer } from './ArchiveItemDrawer';
 import { ArchiveObjectModal } from './ArchiveObjectModal';

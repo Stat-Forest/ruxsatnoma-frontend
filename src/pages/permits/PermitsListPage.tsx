@@ -23,6 +23,8 @@ const PERMITS_LIST_I18N = {
     staffSubtitle: 'Sizga koʻrish huquqi berilgan zonada berilgan barcha elektron ruxsatnomalar',
     applicantSubtitle: 'Sizga berilgan elektron ruxsatnomalar roʻyxati',
     status: 'Status',
+    search: 'Qidiruv',
+    searchHint: 'Arizachining F.I.Sh.',
     series: 'Seriya',
     number: 'Raqami',
     organization: 'Oʻrmon xoʻjaligi',
@@ -47,6 +49,8 @@ const PERMITS_LIST_I18N = {
     staffSubtitle: 'Сизга кўриш ҳуқуқи берилган зонада берилган барча электрон рухсатномалар',
     applicantSubtitle: 'Сизга берилган электрон рухсатномалар рўйхати',
     status: 'Статус',
+    search: 'Қидирув',
+    searchHint: 'Аризачининг Ф.И.Ш.',
     series: 'Серия',
     number: 'Рақами',
     organization: 'Ўрмон хўжалиги',
@@ -71,6 +75,8 @@ const PERMITS_LIST_I18N = {
     staffSubtitle: 'Все электронные разрешения, выданные в доступной вам зоне',
     applicantSubtitle: 'Список выданных вам электронных разрешений',
     status: 'Статус',
+    search: 'Поиск',
+    searchHint: 'ФИО заявителя',
     series: 'Серия',
     number: 'Номер',
     organization: 'Лесхоз',
@@ -95,6 +101,8 @@ const PERMITS_LIST_I18N = {
     staffSubtitle: 'All electronic permits issued in your authorized zone',
     applicantSubtitle: 'List of electronic permits issued to you',
     status: 'Status',
+    search: 'Search',
+    searchHint: 'Applicant name',
     series: 'Series',
     number: 'Number',
     organization: 'Forestry',
@@ -119,6 +127,8 @@ const PERMITS_LIST_I18N = {
     staffSubtitle: 'Sizge kóriw huqıqı berilgen zonada berilgen barlıq elektron ruxsatnamalar',
     applicantSubtitle: 'Sizge berilgen elektron ruxsatnamalar dizimi',
     status: 'Status',
+    search: 'Izlew',
+    searchHint: 'Arza beriwshiniń F.A.Á.',
     series: 'Seriya',
     number: 'Nómeri',
     organization: 'Tokaý xojalıǵı',
@@ -141,12 +151,13 @@ const PERMITS_LIST_I18N = {
 
 interface FilterFormState {
   status: PermitStatus | '';
+  q: string;
   series: string;
   number: string;
   organization_id: string;
 }
 
-const EMPTY_FILTERS: FilterFormState = { status: '', series: '', number: '', organization_id: '' };
+const EMPTY_FILTERS: FilterFormState = { status: '', q: '', series: '', number: '', organization_id: '' };
 
 /**
  * The two permit list screens the task brief calls a "blocking gap" — ported
@@ -174,7 +185,7 @@ export function PermitsListPage({ variant }: { variant: 'staff' | 'applicant' })
     }, 400);
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filters.series, filters.number]);
+  }, [filters.q, filters.series, filters.number]);
 
   const statusOptions = useMemo(
     () => [
@@ -189,6 +200,7 @@ export function PermitsListPage({ variant }: { variant: 'staff' | 'applicant' })
 
   const queryFilters: PermitListFilters = {
     status: appliedFilters.status || undefined,
+    q: appliedFilters.q || undefined,
     series: appliedFilters.series || undefined,
     number: appliedFilters.number || undefined,
     organization_id: isStaff ? appliedFilters.organization_id || undefined : undefined,
@@ -241,6 +253,13 @@ export function PermitsListPage({ variant }: { variant: 'staff' | 'applicant' })
                 setPage(1);
               }}
               options={statusOptions}
+            />
+          </FormField>
+          <FormField label={lt.search}>
+            <Input
+              value={filters.q}
+              onChange={(e) => setFilters((f) => ({ ...f, q: e.target.value }))}
+              placeholder={lt.searchHint}
             />
           </FormField>
           <FormField label={lt.series}>

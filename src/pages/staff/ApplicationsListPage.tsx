@@ -23,7 +23,8 @@ const APPLICATIONS_LIST_I18N = {
     subtitle: 'Sizga koʻrish huquqi berilgan arizalar — oʻzingizniki yoki (xodim/rahbar boʻlsangiz) tashkilotingiz zonasi boʻyicha',
     status: 'Status',
     activityType: 'Faoliyat turi',
-    appNumber: 'Ariza raqami',
+    search: 'Qidiruv',
+    searchHint: 'Ariza raqami yoki arizachining F.I.Sh.',
     periodFrom: 'Davr — dan',
     periodTo: 'Davr — gacha',
     all: 'Barchasi',
@@ -45,7 +46,8 @@ const APPLICATIONS_LIST_I18N = {
     subtitle: 'Сизга кўриш ҳуқуқи берилган аризалар — ўзингизники ёки (ходим/раҳбар бўлсангиз) ташкилотингиз зонаси бўйича',
     status: 'Статус',
     activityType: 'Фаолият тури',
-    appNumber: 'Ариза рақами',
+    search: 'Қидирув',
+    searchHint: 'Ариза рақами ёки аризачининг Ф.И.Ш.',
     periodFrom: 'Давр — дан',
     periodTo: 'Давр — гача',
     all: 'Барчаси',
@@ -67,7 +69,8 @@ const APPLICATIONS_LIST_I18N = {
     subtitle: 'Заявки, доступные вам для просмотра — ваши собственные или (для сотрудников/руководства) по зоне вашей организации',
     status: 'Статус',
     activityType: 'Вид деятельности',
-    appNumber: 'Номер заявки',
+    search: 'Поиск',
+    searchHint: 'Номер заявки или ФИО заявителя',
     periodFrom: 'Период — с',
     periodTo: 'Период — по',
     all: 'Все',
@@ -89,7 +92,8 @@ const APPLICATIONS_LIST_I18N = {
     subtitle: 'Applications available for you to view — your own or (for staff/head) within your organization zone',
     status: 'Status',
     activityType: 'Activity type',
-    appNumber: 'Application number',
+    search: 'Search',
+    searchHint: 'Application number or applicant name',
     periodFrom: 'Period — from',
     periodTo: 'Period — to',
     all: 'All',
@@ -111,7 +115,8 @@ const APPLICATIONS_LIST_I18N = {
     subtitle: 'Sizge kóriw huqıqı berilgen arzalar — ózińizdiki yamasa (xızmetker/basshı bolsańız) shólkemińiz zonası boyınsha',
     status: 'Status',
     activityType: 'Xızmet túri',
-    appNumber: 'Arza nómeri',
+    search: 'Izlew',
+    searchHint: 'Arza nómeri yamasa arza beriwshiniń F.A.Á.',
     periodFrom: 'Dáwir — baslap',
     periodTo: 'Dáwir — deyin',
     all: 'Barlıǵı',
@@ -133,7 +138,7 @@ const APPLICATIONS_LIST_I18N = {
 interface FilterFormState {
   status: ApplicationOut['status'] | '';
   activity_type_id: string;
-  number: string;
+  q: string;
   period_from: string;
   period_to: string;
 }
@@ -141,7 +146,7 @@ interface FilterFormState {
 const EMPTY_FILTERS: FilterFormState = {
   status: '',
   activity_type_id: '',
-  number: '',
+  q: '',
   period_from: '',
   period_to: '',
 };
@@ -165,7 +170,7 @@ export function ApplicationsListPage() {
     }, 400);
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filters.number, filters.period_from, filters.period_to]);
+  }, [filters.q, filters.period_from, filters.period_to]);
 
   const statusOptions = useMemo(
     () => [
@@ -181,7 +186,7 @@ export function ApplicationsListPage() {
   const queryFilters: ApplicationListFilters = {
     status: appliedFilters.status || undefined,
     activity_type_id: appliedFilters.activity_type_id || undefined,
-    number: appliedFilters.number || undefined,
+    q: appliedFilters.q || undefined,
     period_from: appliedFilters.period_from || undefined,
     period_to: appliedFilters.period_to || undefined,
     page,
@@ -263,11 +268,11 @@ export function ApplicationsListPage() {
               ]}
             />
           </FormField>
-          <FormField label={lt.appNumber}>
+          <FormField label={lt.search}>
             <Input
-              value={filters.number}
-              onChange={(e) => setFilters((f) => ({ ...f, number: e.target.value }))}
-              placeholder="RX-2026-000123"
+              value={filters.q}
+              onChange={(e) => setFilters((f) => ({ ...f, q: e.target.value }))}
+              placeholder={lt.searchHint}
             />
           </FormField>
           <FormField label={lt.periodFrom}>

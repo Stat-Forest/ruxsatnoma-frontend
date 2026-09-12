@@ -20,7 +20,6 @@ import { SettingsPage } from './pages/admin/settings/SettingsPage';
 import { TemplatesPage } from './pages/admin/templates/TemplatesPage';
 import { OversightPage } from './pages/oversight/OversightPage';
 import { RatingsPage } from './pages/ratings/RatingsPage';
-import { SearchPage } from './pages/search/SearchPage';
 import { ArchivePage } from './pages/archive/ArchivePage';
 import { SupportPage } from './pages/support/SupportPage';
 import { InspectionsPage } from './pages/inspector/InspectionsPage';
@@ -70,7 +69,6 @@ const CHILD_PAGES: Record<string, ReactNode> = {
   '/invoices': <InvoicesPage />,
   '/permits': <PermitsPage />,
   '/oversight': <OversightPage />,
-  '/search': <SearchPage />,
   '/archive': <ArchivePage />,
   '/reports': <ReportsPage />,
   '/ratings': <RatingsPage />,
