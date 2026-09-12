@@ -15,7 +15,7 @@
  * argument and its `fullscreenstart`/`fullscreenend` events are real
  * observations about THIS component's own code.
  */
-import { render } from '@testing-library/react';
+import { act, render } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { createRef, type ReactNode } from 'react';
 import { afterEach, describe, expect, test, vi } from 'vitest';
@@ -74,7 +74,14 @@ vi.mock('maplibre-gl', () => {
       (this.handlers[event] ??= []).push(cb);
       return { unsubscribe: () => {} };
     }
+    /** Emulates MapLibre's own `_togglePseudoFullScreen`: the class that
+     * makes the container `position: fixed` is toggled on it FIRST, and
+     * only then does the event fire. That order is the whole trap the
+     * survival test below pins — a listener that flips React state makes
+     * React rewrite the container's `class` attribute, and if that
+     * attribute was React's to change, MapLibre's class is gone. */
     fire(event: 'fullscreenstart' | 'fullscreenend') {
+      this.container.classList.toggle('maplibregl-pseudo-fullscreen');
       for (const cb of this.handlers[event] ?? []) cb();
     }
   }
@@ -145,11 +152,33 @@ describe('ContourMapPreview fullscreen target', () => {
       ),
     );
 
-    createdControls[0].fire('fullscreenstart');
+    act(() => createdControls[0].fire('fullscreenstart'));
     expect(onFullscreenChange).toHaveBeenCalledWith(true);
 
-    createdControls[0].fire('fullscreenend');
+    act(() => createdControls[0].fire('fullscreenend'));
     expect(onFullscreenChange).toHaveBeenCalledWith(false);
+  });
+
+  /**
+   * 2026-09-13, seen on the dev stand: the button flipped to "shrink", the
+   * layout took its full-screen padding, and nothing expanded. MapLibre had
+   * toggled `maplibregl-pseudo-fullscreen` (the class carrying
+   * `position: fixed`) on the container, fired `fullscreenstart`, our
+   * listener set React state, and the re-render wrote the shell's
+   * `className` back out wholesale — without the class MapLibre had just
+   * added. The element handed to `FullscreenControl` must therefore carry a
+   * className React never changes; this pins that for the component's own
+   * shell (the default target).
+   */
+  test("keeps MapLibre's pseudo-fullscreen class on its own shell across the re-render fullscreenstart causes", () => {
+    const { container } = render(withQueryClient(<ContourMapPreview geometry={null} />));
+    const ownShell = container.querySelector('.map-shell')!;
+
+    act(() => createdControls[0].fire('fullscreenstart'));
+    expect(ownShell.classList.contains('maplibregl-pseudo-fullscreen')).toBe(true);
+
+    act(() => createdControls[0].fire('fullscreenend'));
+    expect(ownShell.classList.contains('maplibregl-pseudo-fullscreen')).toBe(false);
   });
 });
 
