@@ -16,7 +16,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { vi } from 'vitest';
-import { MemoryRouter, useLocation } from 'react-router';
+import { MemoryRouter, Route, Routes, useLocation, useNavigate } from 'react-router';
 import { http, HttpResponse } from 'msw';
 import { setupServer } from 'msw/node';
 import { AuthContext } from '../../auth/AuthContext';
@@ -106,18 +106,38 @@ afterAll(() => server.close());
 /** Rendered alongside the page so a row's navigation is observable. */
 function LocationProbe() {
   const location = useLocation();
-  return <div data-testid="current-location">{location.pathname}</div>;
+  const from = (location.state as { from?: string } | null)?.from;
+  return (
+    <>
+      <div data-testid="current-location">{location.pathname}</div>
+      <div data-testid="current-search">{location.search}</div>
+      <div data-testid="state-from">{from ?? ''}</div>
+    </>
+  );
 }
 
-function renderPage(permissions: string[]) {
+/** Stands in for the card: the only thing the list test needs of it is Back. */
+function CardStub() {
+  const navigate = useNavigate();
+  return (
+    <button type="button" onClick={() => navigate(-1)}>
+      browser-back
+    </button>
+  );
+}
+
+function renderPage(permissions: string[], initialEntry = '/applications') {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
   const i18n = { lang: 'uz_latn' as const, backendLang: 'uz_latn' as const, t: (key: string) => key, setLanguage: async () => {} };
   return render(
     <QueryClientProvider client={client}>
       <I18nContext.Provider value={i18n}>
         <AuthContext.Provider value={authValue(permissions)}>
-          <MemoryRouter>
-            <ApplicationsListPage />
+          <MemoryRouter initialEntries={[initialEntry]}>
+            <Routes>
+              <Route path="/applications" element={<ApplicationsListPage />} />
+              <Route path="/applications/:id" element={<CardStub />} />
+            </Routes>
             <LocationProbe />
           </MemoryRouter>
         </AuthContext.Provider>
@@ -230,7 +250,7 @@ test('a click anywhere on a worklist row opens the application; "Ishga olish" in
   await user.click(within(tr).getByRole('button', { name: 'Ishga olish' }));
   await user.click(within(await screen.findByRole('dialog')).getByText('staff.startReview.confirm.button'));
   await waitFor(() => expect(startReview).toHaveBeenCalledTimes(1));
-  expect(screen.getByTestId('current-location')).toHaveTextContent('/');
+  expect(screen.getByTestId('current-location')).toHaveTextContent(/^\/applications$/);
 
   await user.click(within(tr).getByText(/ga$/));
   expect(screen.getByTestId('current-location')).toHaveTextContent('/applications/a1000000-0000-4000-8000-000000000001');
@@ -266,6 +286,56 @@ test('"Ishga olish" asks first; dismissing the question posts nothing and does n
   await user.click(dialog.previousElementSibling as HTMLElement);
   expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   expect(startReview).not.toHaveBeenCalled();
-  expect(screen.getByTestId('current-location')).toHaveTextContent('/');
+  expect(screen.getByTestId('current-location')).toHaveTextContent(/^\/applications$/);
   expect(within(tr).getByText('Ishga olish')).toBeInTheDocument();
+});
+
+// The reported defect: pick a status, open a row, press Back — and the list
+// came back with every filter cleared, because the filters lived in the
+// component's own state and the component had unmounted. They live in the
+// URL now, which is exactly what Back restores.
+test('filters and page survive opening a row and coming back', async () => {
+  const user = userEvent.setup();
+  const listCalls: URL[] = [];
+  server.use(
+    http.get('*/api/v1/applications', ({ request }) => {
+      listCalls.push(new URL(request.url));
+      return HttpResponse.json({ items: [row()], total: 45, page: 1, page_size: 20 });
+    }),
+  );
+  renderPage(['applications.view_any']);
+  await screen.findByText('RX-2026-000001');
+
+  await user.selectOptions(screen.getAllByRole('combobox')[0], 'IN_REVIEW');
+  await user.click(screen.getByRole('button', { name: '2' }));
+  await waitFor(() => expect(listCalls.at(-1)!.searchParams.get('page')).toBe('2'));
+  expect(listCalls.at(-1)!.searchParams.get('status')).toBe('IN_REVIEW');
+  expect(screen.getByTestId('current-search')).toHaveTextContent('status=IN_REVIEW&page=2');
+
+  await user.click(screen.getByText('RX-2026-000001'));
+  expect(screen.getByTestId('current-location')).toHaveTextContent(/^\/applications\/a1000000/);
+  // The card's own "back to list" link gets the filtered URL to return to.
+  expect(screen.getByTestId('state-from')).toHaveTextContent(/^\/applications\?status=IN_REVIEW&page=2$/);
+
+  await user.click(screen.getByText('browser-back'));
+  await screen.findByText('RX-2026-000001');
+  expect(screen.getAllByRole('combobox')[0]).toHaveValue('IN_REVIEW');
+  expect(listCalls.at(-1)!.searchParams.get('status')).toBe('IN_REVIEW');
+  expect(listCalls.at(-1)!.searchParams.get('page')).toBe('2');
+});
+
+test('a list opened by a filtered address shows that filter in the form and asks the server for it', async () => {
+  const listCalls: URL[] = [];
+  server.use(
+    http.get('*/api/v1/applications', ({ request }) => {
+      listCalls.push(new URL(request.url));
+      return HttpResponse.json({ items: [], total: 0, page: 1, page_size: 20 });
+    }),
+  );
+  renderPage(['applications.view_any'], '/applications?status=SUBMITTED&q=Nazarov');
+  await waitFor(() => expect(listCalls.length).toBeGreaterThan(0));
+  expect(listCalls[0].searchParams.get('status')).toBe('SUBMITTED');
+  expect(listCalls[0].searchParams.get('q')).toBe('Nazarov');
+  expect(screen.getAllByRole('combobox')[0]).toHaveValue('SUBMITTED');
+  expect(screen.getByDisplayValue('Nazarov')).toBeInTheDocument();
 });
