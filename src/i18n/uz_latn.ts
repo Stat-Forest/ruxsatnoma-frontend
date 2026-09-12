@@ -38,6 +38,9 @@ export const uz_latn = {
   'shell.openMenu': 'Menyu',
   'shell.closeMenu': 'Yopish',
   'shell.logout': 'Chiqish',
+  'shell.techSupport': 'Texnik murojaatlar uchun',
+  'shell.extension': 'ichki raqami',
+  'shell.videoGuide': 'Video qoʻllanma',
   'login.loginLabel': 'Login',
   'login.passwordLabel': 'Parol',
   'login.codeLabel': 'Tasdiqlash kodi',
@@ -319,7 +322,7 @@ export const uz_latn = {
 
   // Cabinet applications
   'cabinet.applications.title': 'Mening arizalarim',
-  'cabinet.applications.subtitle': 'Barcha topshirilgan arizalar va qoralamalar roʻyxati',
+  'cabinet.applications.subtitle': 'Barcha topshirilgan arizalar roʻyxati',
   'cabinet.applications.newApp': 'Yangi ariza topshirish',
   'cabinet.applications.colNumber': 'Ariza raqami',
   'cabinet.applications.colActivity': 'Faoliyat turi',
@@ -2208,6 +2211,15 @@ export const uz_latn = {
   'staff.decision.benefit.approveBlockedRejectedPrefix': 'Imtiyoz rad etilgan:',
   'staff.decision.benefit.legalBasisOptionalHint':
     "Boʻsh qoldirilsa, tekshiruvchi koʻrsatgan sabab huquqiy asos sifatida ishlatiladi.",
+  // `StartReviewConfirmModal` (`pages/staff/components/`) — the question
+  // before an application is taken into review; one slip of the mouse used
+  // to move it into IN_REVIEW and assign it to whoever slipped.
+  'staff.startReview.confirm.title': 'Arizani ishga olasizmi?',
+  'staff.startReview.confirm.bodyPrefix': 'Ariza',
+  'staff.startReview.confirm.bodyEffect': '«Koʻrib chiqilmoqda» holatiga oʻtadi va sizga biriktiriladi.',
+  'staff.startReview.confirm.button': 'Ishga olish',
+  'staff.startReview.confirm.cancel': 'Bekor qilish',
+  'staff.startReview.confirm.error': 'Ishga olib boʻlmadi.',
   'beekeepers.title': 'Asalarichilar reyestri',
   'beekeepers.subtitle': "Uyushma a'zolarining sertifikatlar reyestri — arizalardagi da'volar shu yerga solishtiriladi",
   'beekeepers.filters.q': 'Qidiruv',

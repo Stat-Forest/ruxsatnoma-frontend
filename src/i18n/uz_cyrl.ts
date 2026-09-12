@@ -67,6 +67,9 @@ export const uz_cyrl = {
   'shell.openMenu': 'Меню',
   'shell.closeMenu': 'Ёпиш',
   'shell.logout': 'Чиқиш',
+  'shell.techSupport': 'Техник мурожаатлар учун',
+  'shell.extension': 'ички рақами',
+  'shell.videoGuide': 'Видео қўлланма',
   'login.loginLabel': 'Логин',
   'login.passwordLabel': 'Пароль',
   'login.codeLabel': 'Тасдиқлаш коди',
@@ -347,7 +350,7 @@ export const uz_cyrl = {
 
   // Cabinet applications
   'cabinet.applications.title': 'Менинг аризаларим',
-  'cabinet.applications.subtitle': 'Барча топширилган аризалар ва қораламалар рўйхати',
+  'cabinet.applications.subtitle': 'Барча топширилган аризалар рўйхати',
   'cabinet.applications.newApp': 'Янги ариза топшириш',
   'cabinet.applications.colNumber': 'Ариза рақами',
   'cabinet.applications.colActivity': 'Фаолият тури',
@@ -2213,6 +2216,13 @@ export const uz_cyrl = {
   'staff.decision.benefit.approveBlockedRejectedPrefix': 'Имтиёз рад этилган:',
   'staff.decision.benefit.legalBasisOptionalHint':
     'Бўш қолдирилса, текширувчи кўрсатган сабаб ҳуқуқий асос сифатида ишлатилади.',
+  // `StartReviewConfirmModal` — аризани ишга олишдан олдинги савол.
+  'staff.startReview.confirm.title': 'Аризани ишга оласизми?',
+  'staff.startReview.confirm.bodyPrefix': 'Ариза',
+  'staff.startReview.confirm.bodyEffect': '«Кўриб чиқилмоқда» ҳолатига ўтади ва сизга бириктирилади.',
+  'staff.startReview.confirm.button': 'Ишга олиш',
+  'staff.startReview.confirm.cancel': 'Бекор қилиш',
+  'staff.startReview.confirm.error': 'Ишга олиб бўлмади.',
   'beekeepers.title': 'Асаларичилар реестри',
   'beekeepers.subtitle': 'Уюшма аъзоларининг сертификатлар реестри — аризалардаги даъволар шунга солиштирилади',
   'beekeepers.filters.q': 'Қидирув',

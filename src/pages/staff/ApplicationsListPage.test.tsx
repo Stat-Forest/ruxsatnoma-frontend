@@ -156,6 +156,7 @@ test('a worklist row shows the new status right after "Ishga olish", with no rel
   expect(within(tableRow).getByText(/Yuborilgan/)).toBeInTheDocument();
 
   await user.click(within(tableRow).getByText('Ishga olish'));
+  await user.click(within(await screen.findByRole('dialog')).getByText('staff.startReview.confirm.button'));
 
   await waitFor(() => expect(within(tableRow).getByText(/Koʻrib chiqilmoqda/)).toBeInTheDocument());
   expect(within(tableRow).queryByText('Ishga olish')).not.toBeInTheDocument();
@@ -227,9 +228,44 @@ test('a click anywhere on a worklist row opens the application; "Ishga olish" in
 
   const tr = await screen.findByTestId('application-row-a1000000-0000-4000-8000-000000000001');
   await user.click(within(tr).getByRole('button', { name: 'Ishga olish' }));
+  await user.click(within(await screen.findByRole('dialog')).getByText('staff.startReview.confirm.button'));
   await waitFor(() => expect(startReview).toHaveBeenCalledTimes(1));
   expect(screen.getByTestId('current-location')).toHaveTextContent('/');
 
   await user.click(within(tr).getByText(/ga$/));
   expect(screen.getByTestId('current-location')).toHaveTextContent('/applications/a1000000-0000-4000-8000-000000000001');
+});
+
+// "Ishga olish" used to post on the first click; now it asks first, and the
+// question names the application. The dialog must live OUTSIDE the clickable
+// row: `Modal` renders in place (no portal), so a dialog inside the `<tr>`
+// would bubble its backdrop click up to `clickableRowProps` and open the
+// card the reader was only declining to take.
+test('"Ishga olish" asks first; dismissing the question posts nothing and does not open the row', async () => {
+  const user = userEvent.setup();
+  const startReview = vi.fn();
+  server.use(
+    http.get('*/api/v1/applications', () =>
+      HttpResponse.json({ items: [row({ status: 'SUBMITTED' })], total: 1, page: 1, page_size: 20 }),
+    ),
+    http.post('*/api/v1/applications/:id/start-review', () => {
+      startReview();
+      return HttpResponse.json(row({ status: 'IN_REVIEW' }));
+    }),
+  );
+  renderPage(['applications.review']);
+
+  const tr = await screen.findByTestId('application-row-a1000000-0000-4000-8000-000000000001');
+  await user.click(within(tr).getByRole('button', { name: 'Ishga olish' }));
+  const dialog = await screen.findByRole('dialog');
+  expect(dialog).toHaveTextContent('RX-2026-000001');
+  expect(tr).not.toContainElement(dialog);
+
+  // The backdrop is the dialog's own previous sibling — a click there closes
+  // the question, and nothing else may happen.
+  await user.click(dialog.previousElementSibling as HTMLElement);
+  expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  expect(startReview).not.toHaveBeenCalled();
+  expect(screen.getByTestId('current-location')).toHaveTextContent('/');
+  expect(within(tr).getByText('Ishga olish')).toBeInTheDocument();
 });

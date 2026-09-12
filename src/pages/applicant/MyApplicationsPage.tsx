@@ -19,7 +19,7 @@ const PAGE_SIZE = 20;
 const MY_APPS_I18N = {
   uz_latn: {
     title: 'Mening arizalarim',
-    subtitle: 'Barcha topshirilgan arizalar va qoralamalar roʻyxati',
+    subtitle: 'Barcha topshirilgan arizalar roʻyxati',
     newApp: 'Yangi ariza topshirish',
     colNumber: 'Ariza raqami',
     colActivity: 'Faoliyat turi',
@@ -30,7 +30,7 @@ const MY_APPS_I18N = {
     filterStatus: 'Holati',
     filterActivity: 'Faoliyat turi',
     all: 'Barchasi',
-    draft: 'qoralama',
+    noNumber: 'raqamsiz',
     open: 'Ochish →',
     emptyTitle: 'Hozircha arizalar yoʻq',
     emptyDesc: 'Birinchi arizangizni topshirish uchun yuqoridagi tugmani bosing',
@@ -38,7 +38,7 @@ const MY_APPS_I18N = {
   },
   uz_cyrl: {
     title: 'Менинг аризаларим',
-    subtitle: 'Барча топширилган аризалар ва қораламалар рўйхати',
+    subtitle: 'Барча топширилган аризалар рўйхати',
     newApp: 'Янги ариза топшириш',
     colNumber: 'Ариза рақами',
     colActivity: 'Фаолият тури',
@@ -49,7 +49,7 @@ const MY_APPS_I18N = {
     filterStatus: 'Ҳолати',
     filterActivity: 'Фаолият тури',
     all: 'Барчаси',
-    draft: 'қоралама',
+    noNumber: 'рақамсиз',
     open: 'Очиш →',
     emptyTitle: 'Ҳозирча аризалар йўқ',
     emptyDesc: 'Биринчи аризангизни топшириш учун юқоридаги тугмани босинг',
@@ -57,7 +57,7 @@ const MY_APPS_I18N = {
   },
   ru: {
     title: 'Мои заявки',
-    subtitle: 'Список всех поданных заявок и черновиков',
+    subtitle: 'Список всех поданных заявок',
     newApp: 'Подать новую заявку',
     colNumber: 'Номер заявки',
     colActivity: 'Вид деятельности',
@@ -68,7 +68,7 @@ const MY_APPS_I18N = {
     filterStatus: 'Статус',
     filterActivity: 'Вид деятельности',
     all: 'Все',
-    draft: 'черновик',
+    noNumber: 'без номера',
     open: 'Открыть →',
     emptyTitle: 'Заявок пока нет',
     emptyDesc: 'Нажмите кнопку выше, чтобы подать первую заявку',
@@ -76,7 +76,7 @@ const MY_APPS_I18N = {
   },
   en: {
     title: 'My applications',
-    subtitle: 'List of all submitted applications and drafts',
+    subtitle: 'List of all submitted applications',
     newApp: 'Submit new application',
     colNumber: 'Application number',
     colActivity: 'Activity type',
@@ -87,7 +87,7 @@ const MY_APPS_I18N = {
     filterStatus: 'Status',
     filterActivity: 'Activity type',
     all: 'All',
-    draft: 'draft',
+    noNumber: 'no number',
     open: 'Open →',
     emptyTitle: 'No applications yet',
     emptyDesc: 'Click the button above to submit your first application',
@@ -95,7 +95,7 @@ const MY_APPS_I18N = {
   },
   kaa: {
     title: 'Meniń arzalarım',
-    subtitle: 'Barlıq tapsırılǵan arzalar hám dáslepki nusqalar dizimi',
+    subtitle: 'Barlıq tapsırılǵan arzalar dizimi',
     newApp: 'Jańa arza tapsırıw',
     colNumber: 'Arza nómeri',
     colActivity: 'Xızmet túri',
@@ -106,7 +106,7 @@ const MY_APPS_I18N = {
     filterStatus: 'Jaǵdayı',
     filterActivity: 'Xızmet túri',
     all: 'Barlıǵı',
-    draft: 'dáslepki nusqa',
+    noNumber: 'nomersiz',
     open: 'Ashıw →',
     emptyTitle: 'Házirshe arzalar joq',
     emptyDesc: 'Dáslepki arzańızdı tapsırıw ushın joqarıdaǵı túymeni basıń',
@@ -155,7 +155,7 @@ export function MyApplicationsPage() {
       key: 'number',
       header: t.colNumber,
       accessor: (row) => (
-        <span className="font-mono font-semibold text-[#1A1F24]">{row.number ?? `${t.draft} (${row.id.slice(0, 8)})`}</span>
+        <span className="font-mono font-semibold text-[#1A1F24]">{row.number ?? `${t.noNumber} (${row.id.slice(0, 8)})`}</span>
       ),
     },
     {
@@ -280,7 +280,7 @@ export function MyApplicationsPage() {
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0 flex-1">
                   <span className="font-mono font-bold text-sm text-[#1A1F24] block break-all">
-                    {row.number ?? `${t.draft} (${row.id.slice(0, 8)})`}
+                    {row.number ?? `${t.noNumber} (${row.id.slice(0, 8)})`}
                   </span>
                   <span className="text-xs text-[#5A646D] mt-0.5 block break-words">
                     {row.activity_type_id ? activityTypeById.get(row.activity_type_id) ?? '—' : '—'}

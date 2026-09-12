@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, Outlet } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
-import { Bell, LogOut, Menu, Trees, X } from 'lucide-react';
+import { Bell, LogOut, Menu, Trees, Video, X } from 'lucide-react';
 import { api } from '../api/client';
 import { apiError } from '../api/errors';
 import { useAuth } from '../auth/useAuth';
@@ -10,6 +10,8 @@ import { useLanguage, useT } from '../i18n/useT';
 import { translateTerm } from '../i18n/terms';
 import { LanguageMenu } from './LanguageMenu';
 import { Nav } from './Nav';
+import { VIDEO_GUIDE_URL } from './support';
+import { SupportFooter, SupportLine } from './SupportLine';
 
 /**
  * `role.name` (`LocalizedName`) is a validated `{backend_lang_code: text}`
@@ -84,7 +86,24 @@ export function AppShell() {
           <span className="hidden sm:block text-sm font-bold text-[#1A1F24]">ruxsatnoma-urmon.uz</span>
         </div>
 
+        {/* Two lines, like the profile block on the right, so it fits beside
+            everything else from `lg` up; below that the sidebar/drawer footer
+            (`SupportFooter`) carries it instead. */}
+        <SupportLine className="hidden lg:flex shrink-0 ml-3 pl-4 border-l border-[#E4E7EA]" />
+
         <div className="flex-1" />
+
+        <a
+          href={VIDEO_GUIDE_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label={t('shell.videoGuide')}
+          data-testid="video-guide-link"
+          className="flex h-11 w-11 lg:w-auto lg:px-3 items-center justify-center gap-1.5 rounded-md bg-[#2E7D4F] text-white text-xs font-semibold hover:bg-[#23653F] transition-colors shrink-0"
+        >
+          <Video className="w-5 h-5 lg:w-4 lg:h-4" />
+          <span className="hidden lg:inline">{t('shell.videoGuide')}</span>
+        </a>
 
         <LanguageMenu
           value={backendLang}
@@ -147,6 +166,7 @@ export function AppShell() {
         {/* Persistent sidebar — pure CSS (`hidden md:flex`), unaffected by `drawerOpen`. */}
         <aside className="hidden md:flex md:flex-col w-[260px] shrink-0 bg-white border-r border-[#E4E7EA] sticky top-16 h-[calc(100vh-4rem)] overflow-y-auto">
           <Nav me={me} />
+          <SupportFooter className="mt-auto lg:hidden" />
         </aside>
 
         {/* Mobile drawer — always in the DOM; the `hidden` attribute is the sole
@@ -169,6 +189,7 @@ export function AppShell() {
             <div className="flex-1 overflow-y-auto">
               <Nav me={me} onNavigate={() => setDrawerOpen(false)} />
             </div>
+            <SupportFooter />
           </div>
         </div>
 

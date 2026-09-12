@@ -31,6 +31,9 @@ export const kaa = {
   'shell.openMenu': 'Menyu',
   'shell.closeMenu': 'Jabıw',
   'shell.logout': 'Shıǵıw',
+  'shell.techSupport': 'Texnikalıq járdem',
+  'shell.extension': 'ishki nomeri',
+  'shell.videoGuide': 'Video qollanba',
   'login.loginLabel': 'Login',
   'login.passwordLabel': 'Parol',
   'login.codeLabel': 'Tastıyıqlaw kodı',
@@ -218,7 +221,7 @@ export const kaa = {
 
   // Cabinet applications
   'cabinet.applications.title': 'Meniń arzalarım',
-  'cabinet.applications.subtitle': 'Barlıq tapsırılǵan arzalar hám dáslepki nusqalar dizimi',
+  'cabinet.applications.subtitle': 'Barlıq tapsırılǵan arzalar dizimi',
   'cabinet.applications.newApp': 'Jańa arza tapsırıw',
   'cabinet.applications.colNumber': 'Arza nómeri',
   'cabinet.applications.colActivity': 'Xızmet túri',
@@ -1991,6 +1994,13 @@ export const kaa = {
   'staff.decision.benefit.approveBlockedRejectedPrefix': 'Jeńillik biykar etilgen:',
   'staff.decision.benefit.legalBasisOptionalHint':
     'Bos qaldırılsa, tekseriwshiniń kórsetken sebebi huqıqıy tiykar sıpatında qollanıladı.',
+  // `StartReviewConfirmModal` — arzanı iske alıwdan aldınǵı soraw.
+  'staff.startReview.confirm.title': 'Arzanı iske alasız ba?',
+  'staff.startReview.confirm.bodyPrefix': 'Arza',
+  'staff.startReview.confirm.bodyEffect': '«Qarap shıǵılmaqta» halatına ótedi hám sizge bekitiledi.',
+  'staff.startReview.confirm.button': 'Iske alıw',
+  'staff.startReview.confirm.cancel': 'Biykar etiw',
+  'staff.startReview.confirm.error': 'Iske alıw múmkin bolmadı.',
   'beekeepers.title': 'Arashılar dizimi',
   'beekeepers.subtitle': 'Awqam aǵzalarınıń sertifikatlar dizimi — arizalardaǵı daǵwalar sonıń menen salıstırıladı',
   'beekeepers.filters.q': 'Izlew',

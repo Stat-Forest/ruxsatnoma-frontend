@@ -12,6 +12,7 @@ import { useActivityTypes, useApplicationsList, type ApplicationListFilters, typ
 import { localizedName, STATUS_LABELS, statusLabel } from './format';
 import { translateTerm } from '../../i18n/terms';
 import { WorklistRow } from './components/WorklistRow';
+import { StartReviewConfirmModal } from './components/StartReviewConfirmModal';
 
 const REVIEW_PERMISSION = 'applications.review';
 const PAGE_SIZE = 20;
@@ -153,6 +154,9 @@ export function ApplicationsListPage() {
   const [filters, setFilters] = useState(EMPTY_FILTERS);
   const [appliedFilters, setAppliedFilters] = useState(EMPTY_FILTERS);
   const [page, setPage] = useState(1);
+  // The row whose "Ishga olish" is awaiting confirmation; the modal is
+  // rendered here, outside the clickable rows (see `StartReviewConfirmModal`).
+  const [confirmRow, setConfirmRow] = useState<ApplicationOut | null>(null);
 
   // Auto-apply text/date filters with debounce
   useEffect(() => {
@@ -326,7 +330,9 @@ export function ApplicationsListPage() {
                   </td>
                 </tr>
               ) : (
-                list.data!.items.map((row) => <WorklistRow key={row.id} row={row} canReview={canReview} />)
+                list.data!.items.map((row) => (
+                  <WorklistRow key={row.id} row={row} canReview={canReview} onTakeReview={setConfirmRow} />
+                ))
               )}
             </tbody>
           </table>
@@ -343,6 +349,8 @@ export function ApplicationsListPage() {
           </div>
         )}
       </div>
+
+      {confirmRow && <StartReviewConfirmModal application={confirmRow} onClose={() => setConfirmRow(null)} />}
     </div>
   );
 }

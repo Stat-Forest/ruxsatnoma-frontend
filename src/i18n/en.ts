@@ -31,6 +31,9 @@ export const en = {
   'shell.openMenu': 'Menu',
   'shell.closeMenu': 'Close',
   'shell.logout': 'Log out',
+  'shell.techSupport': 'Technical support',
+  'shell.extension': 'ext.',
+  'shell.videoGuide': 'Video guide',
   'login.loginLabel': 'Login',
   'login.passwordLabel': 'Password',
   'login.codeLabel': 'Verification code',
@@ -271,7 +274,7 @@ export const en = {
 
   // Cabinet applications
   'cabinet.applications.title': 'My applications',
-  'cabinet.applications.subtitle': 'List of all submitted applications and drafts',
+  'cabinet.applications.subtitle': 'List of all submitted applications',
   'cabinet.applications.newApp': 'Submit new application',
   'cabinet.applications.colNumber': 'Application number',
   'cabinet.applications.colActivity': 'Activity type',
@@ -1991,6 +1994,13 @@ export const en = {
   'staff.decision.benefit.approveBlockedRejectedPrefix': 'Benefit claim rejected:',
   'staff.decision.benefit.legalBasisOptionalHint':
     "Left blank, the verifier's own rejection reason is used as the legal basis.",
+  // `StartReviewConfirmModal` — the question before an application is taken into review.
+  'staff.startReview.confirm.title': 'Take this application into review?',
+  'staff.startReview.confirm.bodyPrefix': 'Application',
+  'staff.startReview.confirm.bodyEffect': 'will move to "In review" and be assigned to you.',
+  'staff.startReview.confirm.button': 'Take into review',
+  'staff.startReview.confirm.cancel': 'Cancel',
+  'staff.startReview.confirm.error': 'Could not take it into review.',
   'beekeepers.title': 'Beekeeper register',
   'beekeepers.subtitle': "The Union member certificate register — a claim on an application is matched against it",
   'beekeepers.filters.q': 'Search',

@@ -3,7 +3,7 @@ import { FileText, Inbox, PauseCircle } from 'lucide-react';
 import { useLanguage, useT } from '../../../i18n/useT';
 import { Button } from '../../../components/ui/button';
 import { clickableRowProps } from '../../../lib/rowClick';
-import { useContour, useStartReviewRow, type ApplicationOut } from '../queries';
+import { useContour, type ApplicationOut } from '../queries';
 import { formatAmount, formatDate, formatDateTime, slaStatus, statusLabel } from '../format';
 
 const STATUS_BADGE_CLASS: Record<string, string> = {
@@ -30,14 +30,23 @@ const WORKLIST_ROW_I18N = {
   kaa: { takeReview: 'Iske alıw' },
 };
 
-/** One worklist row — a real `ApplicationOut` */
-export function WorklistRow({ row, canReview }: { row: ApplicationOut; canReview: boolean }) {
+/** One worklist row — a real `ApplicationOut`. "Ishga olish" only asks the
+ *  page to confirm (`onTakeReview`): the confirmation modal has to live
+ *  outside this clickable row, see `StartReviewConfirmModal`. */
+export function WorklistRow({
+  row,
+  canReview,
+  onTakeReview,
+}: {
+  row: ApplicationOut;
+  canReview: boolean;
+  onTakeReview: (row: ApplicationOut) => void;
+}) {
   const t = useT();
   const navigate = useNavigate();
   const { lang } = useLanguage();
   const lt = WORKLIST_ROW_I18N[lang as keyof typeof WORKLIST_ROW_I18N] || WORKLIST_ROW_I18N.uz_latn;
   const contour = useContour(row.contour_id);
-  const startReview = useStartReviewRow();
   const sla = slaStatus(row.status, row.sla_deadline_at);
   const areaUnit = lang === 'en' ? 'ha' : lang === 'ru' || lang === 'uz_cyrl' ? 'га' : 'ga';
   const rowProps = clickableRowProps(() => navigate(`/applications/${row.id}`));
@@ -102,8 +111,7 @@ export function WorklistRow({ row, canReview }: { row: ApplicationOut; canReview
             variant="outline"
             size="sm"
             leftIcon={<Inbox className="w-3.5 h-3.5" />}
-            isLoading={startReview.isPending}
-            onClick={() => startReview.mutate(row.id)}
+            onClick={() => onTakeReview(row)}
             className="whitespace-nowrap"
           >
             {lt.takeReview}

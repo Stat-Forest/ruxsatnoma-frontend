@@ -77,6 +77,39 @@ test('on a phone the navigation is a drawer, closed by default', async () => {
   expect(await screen.findByTestId('nav-drawer')).toBeVisible();
 });
 
+// The tech-support line and the video guide (Oybek, 2026-09-11). jsdom applies
+// no CSS, so the `lg:`-gated header copy and the drawer copy are both in the
+// DOM here — each is checked inside its own landmark.
+test('the header carries the tech-support line as a tel: link and the video guide in a new tab', async () => {
+  await renderShell();
+  const header = await screen.findByRole('banner');
+  const phone = within(header).getByRole('link', { name: /\+998 71 207 88 77/ });
+  expect(phone).toHaveAttribute('href', 'tel:+998712078877');
+  expect(header).toHaveTextContent('1010');
+  const video = within(header).getByRole('link', { name: /video qo.llanma/i });
+  expect(video).toHaveAttribute('target', '_blank');
+  expect(video.getAttribute('rel')).toContain('noopener');
+  expect(video.getAttribute('href')).toMatch(/^https:\/\//);
+});
+
+// Below `lg` the header hides the line: the drawer (phones) and the persistent
+// sidebar (tablets, where there is no drawer) each carry it at the bottom.
+test('the drawer and the sidebar both repeat the tech-support line the header hides', async () => {
+  window.matchMedia = mockMatchMedia({ '(min-width: 768px)': false });
+  await renderShell();
+  const drawer = await screen.findByTestId('nav-drawer');
+  await userEvent.click(screen.getByRole('button', { name: /menyu/i }));
+  expect(within(drawer).getByRole('link', { name: /\+998 71 207 88 77/ })).toHaveAttribute(
+    'href',
+    'tel:+998712078877',
+  );
+  const sidebar = screen.getByRole('complementary');
+  expect(within(sidebar).getByRole('link', { name: /\+998 71 207 88 77/ })).toHaveAttribute(
+    'href',
+    'tel:+998712078877',
+  );
+});
+
 test('the unread badge comes from the server, not from a guess', async () => {
   server.use(http.get('*/notifications/unread-count', () => HttpResponse.json({ count: 3 })));
   await renderShell();
