@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { render, screen, within } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { setupServer } from 'msw/node';
@@ -164,6 +164,38 @@ test('a 404 on open reads as "not found", never a raw error code', async () => {
   await user.click(screen.getByRole('button', { name: 'Ochish' }));
 
   expect(await screen.findByText('Bunday hisobot topilmadi.')).toBeInTheDocument();
+});
+
+test('the Excel button asks the server for the export, never paging the register itself', async () => {
+  const user = userEvent.setup();
+  let exportUrl: URL | null = null;
+  server.use(
+    http.get('*/api/v1/payments/bank-statements/export.xlsx', ({ request }) => {
+      exportUrl = new URL(request.url);
+      return HttpResponse.text('xlsx-bytes', {
+        headers: {
+          'Content-Disposition': 'attachment; filename="bank-hisobotlari-2026-09-11.xlsx"',
+          'X-Export-Total': '1',
+          'X-Export-Rows': '1',
+          'X-Export-Truncated': 'false',
+        },
+      });
+    }),
+  );
+
+  const createObjectURL = vi.fn().mockReturnValue('blob:mock');
+  const revokeObjectURL = vi.fn();
+  URL.createObjectURL = createObjectURL;
+  URL.revokeObjectURL = revokeObjectURL;
+  const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+
+  renderTab();
+
+  await user.click(screen.getByTestId('export-xlsx'));
+
+  await waitFor(() => expect(createObjectURL).toHaveBeenCalled());
+  expect(clickSpy).toHaveBeenCalled();
+  expect(exportUrl!.searchParams.get('lang')).toBe('uz_latn');
 });
 
 test('a caller with neither payments.manage nor payments.view (e.g. the manual-PAID checker) sees neither the upload form nor the open-by-id search, never a button the backend would 403 on', () => {

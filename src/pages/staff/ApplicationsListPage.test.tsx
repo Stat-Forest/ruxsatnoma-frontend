@@ -3,7 +3,7 @@
  * `docs/plans/06.5-staff-tails.md`). Two things this test file pins:
  *   1. a caller holding only `applications.view_any` (never `.review`) sees
  *      the register but no "Ishga olish" action — read-only, honestly;
- *   2. "CSV eksport" fetches every matching page (not just the one on
+ *   2. the Excel button asks the SERVER for the file (never pages the list
  *      screen) and hands the browser a real file.
  *
  * A third (F11, `docs/plans/07.3-findings.md`, first sighting): after
@@ -162,18 +162,29 @@ test('a worklist row shows the new status right after "Ishga olish", with no rel
   expect(within(tableRow).queryByText('Ishga olish')).not.toBeInTheDocument();
 });
 
-test('CSV export requests the server\'s own page-size ceiling (100), not the on-screen page size (20), and downloads one file', async () => {
+test('the Excel button asks the server for the export with the applied filters, never paging the list itself', async () => {
   const user = userEvent.setup();
-  const requestedPageSizes: string[] = [];
+  const listCalls: string[] = [];
+  let exportUrl: URL | null = null;
   server.use(
     http.get('*/api/v1/applications', ({ request }) => {
-      const url = new URL(request.url);
-      requestedPageSizes.push(url.searchParams.get('page_size') ?? '');
+      listCalls.push(request.url);
       return HttpResponse.json({
         items: [row({ id: 'a-1', number: 'RX-1' })],
         total: 1,
         page: 1,
         page_size: 20,
+      });
+    }),
+    http.get('*/api/v1/applications/export.xlsx', ({ request }) => {
+      exportUrl = new URL(request.url);
+      return HttpResponse.text('xlsx-bytes', {
+        headers: {
+          'Content-Disposition': 'attachment; filename="arizalar-2026-09-11.xlsx"',
+          'X-Export-Total': '1',
+          'X-Export-Rows': '1',
+          'X-Export-Truncated': 'false',
+        },
       });
     }),
   );
@@ -188,14 +199,17 @@ test('CSV export requests the server\'s own page-size ceiling (100), not the on-
   const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
 
   renderPage(['applications.view_any']);
-  await screen.findByText('RX-1'); // the on-screen load, requested with page_size=20
+  await screen.findByText('RX-1');
+  const listCallsBefore = listCalls.length;
 
-  await user.click(screen.getByText('prosecutor.exportCsv'));
+  await user.click(screen.getByTestId('export-xlsx'));
 
   await waitFor(() => expect(createObjectURL).toHaveBeenCalled());
   expect(clickSpy).toHaveBeenCalled();
-  expect(requestedPageSizes).toContain('20'); // the on-screen table
-  expect(requestedPageSizes).toContain('100'); // the export's own fetch
+  expect(listCalls.length).toBe(listCallsBefore); // the export never re-fetches the list
+  expect(exportUrl!.searchParams.get('lang')).toBe('uz_latn');
+  expect(exportUrl!.searchParams.has('page')).toBe(false);
+  expect(exportUrl!.searchParams.has('page_size')).toBe(false);
 });
 
 test('a click anywhere on a worklist row opens the application; "Ishga olish" inside it stays its own action', async () => {

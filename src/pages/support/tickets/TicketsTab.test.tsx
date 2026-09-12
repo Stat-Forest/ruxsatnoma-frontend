@@ -14,6 +14,7 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router';
 import { http, HttpResponse } from 'msw';
 import { setupServer } from 'msw/node';
+import { vi } from 'vitest';
 import { AuthContext } from '../../../auth/AuthContext';
 import type { AuthContextValue } from '../../../auth/AuthContext';
 import { stubAuthActions } from '../../../auth/testAuthActions';
@@ -209,4 +210,49 @@ test('a click anywhere on a ticket row opens its detail panel', async () => {
 
   await userEvent.setup().click(await screen.findByText('Row subject'));
   expect(await screen.findByTestId('ticket-detail-t-1')).toBeInTheDocument();
+});
+
+test('the Excel button asks the server for the export with the applied filters, never paging the list itself', async () => {
+  const user = userEvent.setup();
+  const listCalls: string[] = [];
+  let exportUrl: URL | null = null;
+  server.use(
+    http.get('*/api/v1/help/tickets', ({ request }) => {
+      listCalls.push(request.url);
+      return HttpResponse.json(page([ticket({ id: 't-1', number: 'ST-1' })]));
+    }),
+    http.get('*/api/v1/help/tickets/export.xlsx', ({ request }) => {
+      exportUrl = new URL(request.url);
+      return HttpResponse.text('xlsx-bytes', {
+        headers: {
+          'Content-Disposition': 'attachment; filename="support-tickets-2026-09-11.xlsx"',
+          'X-Export-Total': '1',
+          'X-Export-Rows': '1',
+          'X-Export-Truncated': 'false',
+        },
+      });
+    }),
+  );
+
+  // jsdom's URL has no createObjectURL/revokeObjectURL at all — assigned
+  // directly (never `vi.stubGlobal('URL', {...})`, which would replace the
+  // constructor itself and break MSW's own `new URL(request.url)` parsing).
+  const createObjectURL = vi.fn().mockReturnValue('blob:mock');
+  const revokeObjectURL = vi.fn();
+  URL.createObjectURL = createObjectURL;
+  URL.revokeObjectURL = revokeObjectURL;
+  const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+
+  renderTab([]);
+  await screen.findByText('ST-1');
+  const listCallsBefore = listCalls.length;
+
+  await user.click(screen.getByTestId('export-xlsx'));
+
+  await waitFor(() => expect(createObjectURL).toHaveBeenCalled());
+  expect(clickSpy).toHaveBeenCalled();
+  expect(listCalls.length).toBe(listCallsBefore); // the export never re-fetches the list
+  expect(exportUrl!.searchParams.get('lang')).toBe('ru'); // this screen's own UI language
+  expect(exportUrl!.searchParams.has('page')).toBe(false);
+  expect(exportUrl!.searchParams.has('page_size')).toBe(false);
 });

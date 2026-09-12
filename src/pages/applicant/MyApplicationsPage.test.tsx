@@ -1,9 +1,10 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, useLocation } from 'react-router';
 import { http, HttpResponse } from 'msw';
 import { setupServer } from 'msw/node';
+import { vi } from 'vitest';
 import { I18nContext } from '../../i18n/context';
 import { MyApplicationsPage } from './MyApplicationsPage';
 import type { ApplicationOut } from './api';
@@ -56,6 +57,7 @@ const server = setupServer(
   http.get('*/api/v1/applications', () => HttpResponse.json({ items: [row()], total: 1, page: 1, page_size: 20 })),
 );
 beforeAll(() => server.listen({ onUnhandledRequest: 'error' }));
+afterEach(() => server.resetHandlers());
 afterAll(() => server.close());
 
 function LocationProbe() {
@@ -84,4 +86,32 @@ test('a click anywhere on a row opens the application, not only "Ochish"', async
   const cell = (await screen.findAllByText('RX-2026-000001')).find((el) => el.closest('td'))!;
   await userEvent.setup().click(cell);
   expect(screen.getByTestId('current-location')).toHaveTextContent(`/my/applications/${APPLICATION_ID}`);
+});
+
+test('the Excel button asks the server for the export with the applied filter and no paging (stage 13)', async () => {
+  let exportUrl: URL | null = null;
+  server.use(
+    http.get('*/api/v1/applications/export.xlsx', ({ request }) => {
+      exportUrl = new URL(request.url);
+      return HttpResponse.text('xlsx-bytes', {
+        headers: { 'Content-Disposition': 'attachment; filename="arizalar.xlsx"', 'X-Export-Truncated': 'false' },
+      });
+    }),
+  );
+  const createObjectURL = vi.fn().mockReturnValue('blob:mock');
+  URL.createObjectURL = createObjectURL;
+  URL.revokeObjectURL = vi.fn();
+  vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+
+  renderPage();
+  await screen.findAllByText('RX-2026-000001');
+  const user = userEvent.setup();
+  await user.selectOptions(screen.getByLabelText('Holati'), 'IN_REVIEW');
+  await user.click(screen.getByTestId('export-xlsx'));
+
+  await waitFor(() => expect(createObjectURL).toHaveBeenCalled());
+  expect(exportUrl!.searchParams.get('status')).toBe('IN_REVIEW');
+  expect(exportUrl!.searchParams.get('lang')).toBe('uz_latn');
+  expect(exportUrl!.searchParams.has('page')).toBe(false);
+  expect(exportUrl!.searchParams.has('page_size')).toBe(false);
 });

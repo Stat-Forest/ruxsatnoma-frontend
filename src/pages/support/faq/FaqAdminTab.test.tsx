@@ -3,6 +3,7 @@ import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { setupServer } from 'msw/node';
+import { vi } from 'vitest';
 import { DICTIONARIES, I18nContext } from '../../../i18n/context';
 import { FaqAdminTab } from './FaqAdminTab';
 import type { FaqOut } from './api';
@@ -162,4 +163,49 @@ test('a click anywhere on a FAQ row opens its editor', async () => {
   const row = await screen.findByTestId(`faq-admin-row-${DRAFT.id}`);
   await user.click(within(row).getAllByRole('cell')[0]);
   expect(await screen.findByTestId('faq-question-ru')).toBeInTheDocument();
+});
+
+test('the Excel button asks the server for the export with the applied filters, never paging the list itself', async () => {
+  const user = userEvent.setup();
+  const listCalls: string[] = [];
+  let exportUrl: URL | null = null;
+  server.use(
+    http.get('*/api/v1/admin/help/faq', ({ request }) => {
+      listCalls.push(request.url);
+      return HttpResponse.json([DRAFT]);
+    }),
+    http.get('*/api/v1/admin/help/faq/export.xlsx', ({ request }) => {
+      exportUrl = new URL(request.url);
+      return HttpResponse.text('xlsx-bytes', {
+        headers: {
+          'Content-Disposition': 'attachment; filename="faq-2026-09-11.xlsx"',
+          'X-Export-Total': '1',
+          'X-Export-Rows': '1',
+          'X-Export-Truncated': 'false',
+        },
+      });
+    }),
+  );
+
+  // jsdom's URL has no createObjectURL/revokeObjectURL at all — assigned
+  // directly (never `vi.stubGlobal('URL', {...})`, which would replace the
+  // constructor itself and break MSW's own `new URL(request.url)` parsing).
+  const createObjectURL = vi.fn().mockReturnValue('blob:mock');
+  const revokeObjectURL = vi.fn();
+  URL.createObjectURL = createObjectURL;
+  URL.revokeObjectURL = revokeObjectURL;
+  const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+
+  renderTab();
+  await screen.findByTestId(`faq-admin-row-${DRAFT.id}`);
+  const listCallsBefore = listCalls.length;
+
+  await user.click(screen.getByTestId('export-xlsx'));
+
+  await waitFor(() => expect(createObjectURL).toHaveBeenCalled());
+  expect(clickSpy).toHaveBeenCalled();
+  expect(listCalls.length).toBe(listCallsBefore); // the export never re-fetches the list
+  expect(exportUrl!.searchParams.get('lang')).toBe('ru'); // this screen's own UI language
+  expect(exportUrl!.searchParams.has('page')).toBe(false);
+  expect(exportUrl!.searchParams.has('page_size')).toBe(false);
 });

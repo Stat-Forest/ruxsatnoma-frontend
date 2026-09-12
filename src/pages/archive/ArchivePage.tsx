@@ -20,6 +20,7 @@ import { satisfies } from '../../shell/navigation';
 import { ApiError } from '../../api/errors';
 import { Button } from '../../components/ui/button';
 import { DataTable, type Column } from '../../components/ui/DataTable';
+import { ExportXlsxButton } from '../../components/ui/ExportXlsxButton';
 import { FormField, Select } from '../../components/ui/FormControls';
 import { useLanguage, useT } from '../../i18n/useT';
 import { pickLocalizedName, useLeshozOrganizations } from '../search/refs';
@@ -153,6 +154,13 @@ export function ArchivePage() {
             />
           </FormField>
         </div>
+      </div>
+
+      <div className="flex justify-end">
+        <ExportXlsxButton
+          path="/api/v1/archive"
+          query={{ object_type: objectType || undefined, status: status || undefined }}
+        />
       </div>
 
       {list.error && (

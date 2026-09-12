@@ -15,6 +15,7 @@ import { Loader2, Plus } from 'lucide-react';
 import { useAuth } from '../../auth/useAuth';
 import { useT } from '../../i18n/useT';
 import { Button } from '../../components/ui/button';
+import { ExportXlsxButton } from '../../components/ui/ExportXlsxButton';
 import { Select } from '../../components/ui/FormControls';
 import { Pagination } from '../../components/ui/Navigation';
 import { StatusBadge, type StatusType } from '../../components/ui/StatusBadge';
@@ -98,7 +99,8 @@ export function ActsTab({ active }: { active: boolean }) {
   const [page, setPage] = useState(1);
 
   const canCreate = !!me?.permissions.includes(INSPECTIONS_ACTS_WRITE);
-  const list = useActsList({ result: result || undefined, page, page_size: PAGE_SIZE }, { enabled: active });
+  const filters = { result: result || undefined, page, page_size: PAGE_SIZE };
+  const list = useActsList(filters, { enabled: active });
   const totalPages = list.data ? Math.max(1, Math.ceil(list.data.total / PAGE_SIZE)) : 1;
 
   return (
@@ -118,21 +120,24 @@ export function ActsTab({ active }: { active: boolean }) {
         </div>
       )}
 
-      <div className="max-w-xs">
-        <Select
-          touchSize
-          value={result}
-          onChange={(e) => {
-            setResult(e.target.value as ResultFilter);
-            setPage(1);
-          }}
-          options={[
-            { value: '', label: t('inspector.acts.status.all') },
-            { value: 'compliant', label: t('inspector.actForm.result.compliant') },
-            { value: 'warning', label: t('inspector.actForm.result.warning') },
-            { value: 'violation', label: t('inspector.actForm.result.violation') },
-          ]}
-        />
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <div className="max-w-xs">
+          <Select
+            touchSize
+            value={result}
+            onChange={(e) => {
+              setResult(e.target.value as ResultFilter);
+              setPage(1);
+            }}
+            options={[
+              { value: '', label: t('inspector.acts.status.all') },
+              { value: 'compliant', label: t('inspector.actForm.result.compliant') },
+              { value: 'warning', label: t('inspector.actForm.result.warning') },
+              { value: 'violation', label: t('inspector.actForm.result.violation') },
+            ]}
+          />
+        </div>
+        <ExportXlsxButton path="/api/v1/inspections/acts" query={filters} className="w-full sm:w-auto" />
       </div>
 
       {list.error && (

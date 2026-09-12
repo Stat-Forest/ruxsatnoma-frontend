@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { render, screen, within } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router';
 import { http, HttpResponse } from 'msw';
 import { setupServer } from 'msw/node';
@@ -23,7 +24,7 @@ function invoice(overrides: Record<string, unknown>) {
     due_at: '2026-09-11T09:00:00Z',
     paid_at: null,
     recipients: null,
-    settled_by_benefit: false,
+    settled_without_payment: false,
     ...overrides,
   };
 }
@@ -127,4 +128,48 @@ test('the status badge follows the UI language, not a fixed uz_latn label', asyn
   await screen.findByText('INV-2026-000001');
   const table = screen.getByRole('table');
   expect(within(table).getByText(INVOICE_STATUS_LABEL_I18N.ru.pending)).toBeInTheDocument();
+});
+
+test('the Excel button asks the server for the export with the applied status filter, never paging the list itself', async () => {
+  const user = userEvent.setup();
+  const listCalls: string[] = [];
+  let exportUrl: URL | null = null;
+  server.use(
+    http.get('*/api/v1/invoices', ({ request }) => {
+      listCalls.push(request.url);
+      return HttpResponse.json(page([invoice({})]));
+    }),
+    http.get('*/api/v1/applications', () => HttpResponse.json(page([]))),
+    http.get('*/api/v1/invoices/export.xlsx', ({ request }) => {
+      exportUrl = new URL(request.url);
+      return HttpResponse.text('xlsx-bytes', {
+        headers: {
+          'Content-Disposition': 'attachment; filename="hisoblar-2026-09-11.xlsx"',
+          'X-Export-Total': '1',
+          'X-Export-Rows': '1',
+          'X-Export-Truncated': 'false',
+        },
+      });
+    }),
+  );
+  const createObjectURL = vi.fn().mockReturnValue('blob:mock');
+  URL.createObjectURL = createObjectURL;
+  URL.revokeObjectURL = vi.fn();
+  const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+
+  renderTab();
+  await screen.findByText('INV-2026-000001');
+  await user.selectOptions(screen.getByLabelText('Holati'), 'pending');
+  const listCallsBefore = listCalls.length;
+
+  await user.click(screen.getByTestId('export-xlsx'));
+
+  await waitFor(() => expect(createObjectURL).toHaveBeenCalled());
+  expect(clickSpy).toHaveBeenCalled();
+  expect(listCalls.length).toBe(listCallsBefore); // the export never re-fetches the list
+  expect(exportUrl!.searchParams.get('status')).toBe('pending');
+  expect(exportUrl!.searchParams.get('lang')).toBe('uz_latn');
+  expect(exportUrl!.searchParams.has('application_id')).toBe(false);
+  expect(exportUrl!.searchParams.has('limit')).toBe(false);
+  expect(exportUrl!.searchParams.has('offset')).toBe(false);
 });

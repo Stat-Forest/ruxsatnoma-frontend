@@ -525,3 +525,59 @@ test('the organization filter narrows the list and the map\'s parcels together',
   expect(listQuery.get('page')).toBe('1');
   expect(new URL(featureUrls[1]).searchParams.get('organization_id')).toBe('org-1');
 });
+
+test('the Excel button asks the server for the export with the applied organization filter, never paging the list itself', async () => {
+  let listCalls = 0;
+  let exportUrl: URL | null = null;
+  let exportCalls = 0;
+  server.use(
+    ...referenceHandlers(),
+    http.get('*/api/v1/gis/contours', () => {
+      listCalls += 1;
+      return HttpResponse.json({ items: [], total: 0 });
+    }),
+    http.get('*/api/v1/gis/contours/export.xlsx', ({ request }) => {
+      exportCalls += 1;
+      exportUrl = new URL(request.url);
+      return HttpResponse.text('xlsx-bytes', {
+        headers: {
+          'Content-Disposition': 'attachment; filename="konturlar-2026-09-11.xlsx"',
+          'X-Export-Total': '0',
+          'X-Export-Rows': '0',
+          'X-Export-Truncated': 'false',
+        },
+      });
+    }),
+  );
+
+  const createObjectURL = vi.fn().mockReturnValue('blob:mock');
+  const revokeObjectURL = vi.fn();
+  URL.createObjectURL = createObjectURL;
+  URL.revokeObjectURL = revokeObjectURL;
+  const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+
+  const ui = userEvent.setup();
+  renderTab(['gis.contours.manage']);
+  await screen.findByText('gis.contours.empty');
+
+  const filter = await screen.findByRole('combobox', { name: 'gis.contours.filterOrganization' });
+  await waitFor(() => expect(within(filter).getByText('Burchmulla LX')).toBeInTheDocument());
+  await ui.selectOptions(filter, 'org-1');
+  await waitFor(() => expect(listCalls).toBe(2));
+  const listCallsBefore = listCalls;
+
+  await ui.click(screen.getByTestId('export-xlsx'));
+
+  await waitFor(() => expect(createObjectURL).toHaveBeenCalled());
+  expect(clickSpy).toHaveBeenCalled();
+  expect(exportCalls).toBe(1);
+  expect(listCalls).toBe(listCallsBefore); // the export never re-fetches the list
+  expect(exportUrl!.searchParams.get('organization_id')).toBe('org-1');
+  expect(exportUrl!.searchParams.get('lang')).toBe('uz_latn');
+  // The client-only `number` search box narrows nothing server-side — no
+  // `number`/`bbox` parameter reaches the export at all.
+  expect(exportUrl!.searchParams.has('number')).toBe(false);
+  expect(exportUrl!.searchParams.has('bbox')).toBe(false);
+  expect(exportUrl!.searchParams.has('page')).toBe(false);
+  expect(exportUrl!.searchParams.has('page_size')).toBe(false);
+});

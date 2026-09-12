@@ -10,6 +10,7 @@
 import { useState } from 'react';
 import { Loader2, Plus } from 'lucide-react';
 import { Button } from '../../../components/ui/button';
+import { ExportXlsxButton } from '../../../components/ui/ExportXlsxButton';
 import { FormField, Select } from '../../../components/ui/FormControls';
 import { ApiError } from '../../../api/errors';
 import { useApiErrorText } from '../../../i18n/useApiErrorText';
@@ -48,6 +49,7 @@ export function FaqAdminTab() {
   const [status, setStatus] = useState<FaqStatus | ''>('');
   const [editing, setEditing] = useState<{ faq: FaqOut | null } | null>(null);
 
+  const filters = { status: status || undefined };
   const list = useFaqAdmin(status || undefined);
   const patch = usePatchFaq();
   const items = list.data ?? [];
@@ -64,19 +66,22 @@ export function FaqAdminTab() {
         </Button>
       </div>
 
-      <div className="max-w-xs">
-        <FormField label={t('support.faq.admin.filterStatus')} htmlFor="faq-admin-status-filter">
-          <Select
-            id="faq-admin-status-filter"
-            data-testid="faq-admin-status-filter"
-            value={status}
-            onChange={(e) => setStatus(e.target.value as FaqStatus | '')}
-            options={[
-              { value: '', label: t('support.common.all') },
-              ...FAQ_STATUSES.map((s) => ({ value: s, label: t(STATUS_META[s].labelKey) })),
-            ]}
-          />
-        </FormField>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <div className="max-w-xs">
+          <FormField label={t('support.faq.admin.filterStatus')} htmlFor="faq-admin-status-filter">
+            <Select
+              id="faq-admin-status-filter"
+              data-testid="faq-admin-status-filter"
+              value={status}
+              onChange={(e) => setStatus(e.target.value as FaqStatus | '')}
+              options={[
+                { value: '', label: t('support.common.all') },
+                ...FAQ_STATUSES.map((s) => ({ value: s, label: t(STATUS_META[s].labelKey) })),
+              ]}
+            />
+          </FormField>
+        </div>
+        <ExportXlsxButton path="/api/v1/admin/help/faq" query={filters} className="w-full sm:w-auto" />
       </div>
 
       {list.error && (

@@ -4,6 +4,7 @@ import { Button } from '../../components/ui/button';
 import { FormField, Input, Select, Textarea } from '../../components/ui/FormControls';
 import { Modal } from '../../components/ui/Overlay';
 import { Alert } from '../../components/ui/Feedback';
+import { ExportXlsxButton } from '../../components/ui/ExportXlsxButton';
 import { useAuth } from '../../auth/useAuth';
 import { ApiError } from '../../api/errors';
 import { useApiErrorText } from '../../i18n/useApiErrorText';
@@ -92,6 +93,7 @@ function RefundsRegister({ canFile, canApprove }: { canFile: boolean; canApprove
                 { value: 'rejected', label: getRefundStatusLabel('rejected', lang) },
               ]}
             />
+            <ExportXlsxButton path="/api/v1/refunds" query={{ status: status || undefined }} />
             {canFile && (
               <Button size="sm" className="w-full sm:w-auto" leftIcon={<Plus className="h-4 w-4" />} onClick={() => setNewRequestOpen(true)}>
                 {t('accountant.refunds.newRequest')}

@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { Loader2, MapPinOff, Plus, Scissors } from 'lucide-react';
 import { useAuth } from '../../../auth/useAuth';
 import { Button } from '../../../components/ui/button';
+import { ExportXlsxButton } from '../../../components/ui/ExportXlsxButton';
 import { Alert } from '../../../components/ui/Feedback';
 import { Input, Select } from '../../../components/ui/FormControls';
 import { useApiErrorText } from '../../../i18n/useApiErrorText';
@@ -420,6 +421,18 @@ export function ContoursTab({ t }: { t: (key: string) => string }) {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
+            {/* `search` (the `number` substring filter above) is CLIENT-ONLY
+                — `GET /gis/contours` has no such parameter, only what
+                `contoursQuery` itself sends (`organization_id`), so that is
+                the whole export query too; the file holds the server's own
+                set for the organization filter, not this browser's further
+                narrowing by number. */}
+            <div className="flex justify-end">
+              <ExportXlsxButton
+                path="/api/v1/gis/contours"
+                query={{ organization_id: orgFilter || undefined }}
+              />
+            </div>
             <div className="max-h-96 overflow-y-auto divide-y divide-[#E4E7EA] border border-[#E4E7EA] rounded-xl">
               {contoursQuery.isLoading && (
                 <p className="p-4 text-xs text-[#5A646D]">

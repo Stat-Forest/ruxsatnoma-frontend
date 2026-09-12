@@ -21,6 +21,7 @@ import { Save, Search as SearchIcon, Trash2 } from 'lucide-react';
 import { ApiError } from '../../api/errors';
 import { Button } from '../../components/ui/button';
 import { DataTable, type Column } from '../../components/ui/DataTable';
+import { ExportXlsxButton } from '../../components/ui/ExportXlsxButton';
 import { FormField, Input, Select } from '../../components/ui/FormControls';
 import { Drawer } from '../../components/ui/Overlay';
 import { useLanguage, useT } from '../../i18n/useT';
@@ -439,6 +440,20 @@ export function SearchPage() {
           {results.error instanceof ApiError ? `${results.error.code}: ${results.error.message}` : t('search.error')}
         </div>
       )}
+
+      <div className="flex justify-end">
+        <ExportXlsxButton
+          path="/api/v1/search"
+          query={{
+            kind,
+            q: applied.q.trim() || undefined,
+            status: normalizedStatus,
+            organization_id: applied.organization_id || undefined,
+            activity_type_id: kind === 'applications' ? applied.activity_type_id || undefined : undefined,
+            series: kind === 'permits' ? applied.series.trim() || undefined : undefined,
+          }}
+        />
+      </div>
 
       <div className="bg-white border border-[#E4E7EA] rounded-2xl overflow-hidden shadow-xs">
         <DataTable

@@ -1175,9 +1175,9 @@ export const ru = {
   'permits.signatures.errors.pdfFetchFailed': 'Не удалось загрузить документ для подписания — попробуйте ещё раз.',
 
   // --- I1: реестры прокурора только для чтения, с экспортом --------------
-  'prosecutor.exportCsv': 'Экспорт CSV',
-  'prosecutor.exportTruncated':
-    'Внимание: в списке более 2000 записей — экспортированы только первые 2000. Для точного результата сузьте фильтры.',
+  'export.xlsxButton': 'Excel',
+  'export.truncated': 'В файл вошли первые {rows} строк из {total}. Для точного результата сузьте фильтры.',
+  'export.error': 'Не удалось скачать файл',
 
   // --- J3: панель руководства (leadership dashboard) ----------------------
   'leadership.dash.loading': 'Загрузка...',

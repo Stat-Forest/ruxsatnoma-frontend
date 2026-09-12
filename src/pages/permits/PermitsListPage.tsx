@@ -1,17 +1,15 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Download, Loader2, RotateCcw } from 'lucide-react';
+import { Loader2, RotateCcw } from 'lucide-react';
 import { Button } from '../../components/ui/button';
 import { FormField, Input, Select } from '../../components/ui/FormControls';
 import { Pagination } from '../../components/ui/Navigation';
 import { ApiError } from '../../api/errors';
 import { useApiErrorText } from '../../i18n/useApiErrorText';
-import { api } from '../../api/client';
-import { apiError } from '../../api/errors';
-import { useLanguage, useT } from '../../i18n/useT';
-import { downloadCsv, fetchAllPages, toCsv } from '../../lib/csvExport';
-import { toPermitsQuery, usePermitsList, type PermitListFilters, type PermitOut, type PermitStatus } from './queries';
+import { useLanguage } from '../../i18n/useT';
+import { ExportXlsxButton } from '../../components/ui/ExportXlsxButton';
+import { toPermitsQuery, usePermitsList, type PermitListFilters, type PermitStatus } from './queries';
 import { useLeshozOrganizations } from './useRefsLookup';
-import { formatDate, formatMoney, formatPermitNumber, pickLocalizedName } from './format';
+import { pickLocalizedName } from './format';
 import { PERMIT_STATUS_LABEL, getPermitStatusLabel } from './statusMeta';
 import { PermitRow } from './components/PermitRow';
 import { PermitCard } from './components/PermitCard';
@@ -162,15 +160,12 @@ const EMPTY_FILTERS: FilterFormState = { status: '', series: '', number: '', org
  */
 export function PermitsListPage({ variant }: { variant: 'staff' | 'applicant' }) {
   const { lang } = useLanguage();
-  const t = useT();
   const lt = PERMITS_LIST_I18N[lang as keyof typeof PERMITS_LIST_I18N] || PERMITS_LIST_I18N.uz_latn;
   const errorText = useApiErrorText();
   const isStaff = variant === 'staff';
   const [filters, setFilters] = useState(EMPTY_FILTERS);
   const [appliedFilters, setAppliedFilters] = useState(EMPTY_FILTERS);
   const [page, setPage] = useState(1);
-  const [exporting, setExporting] = useState(false);
-  const [exportTruncated, setExportTruncated] = useState(false);
 
   // Auto-apply text filters with debounce so typing immediately filters
   useEffect(() => {
@@ -213,33 +208,6 @@ export function PermitsListPage({ variant }: { variant: 'staff' | 'applicant' })
     setFilters(EMPTY_FILTERS);
     setAppliedFilters(EMPTY_FILTERS);
     setPage(1);
-  }
-
-  async function exportCsv() {
-    setExporting(true);
-    setExportTruncated(false);
-    try {
-      const { rows, truncated } = await fetchAllPages<PermitOut>(async (p, pageSize) => {
-        const { data, error } = await api.GET('/api/v1/permits', {
-          params: { query: { ...toPermitsQuery(queryFilters), page: p, page_size: pageSize } },
-        });
-        if (error) throw apiError(error);
-        return data;
-      });
-      const csv = toCsv(rows, [
-        { header: 'number', value: (r) => formatPermitNumber(r.series, r.number) },
-        { header: 'status', value: (r) => getPermitStatusLabel(r.status, lang) },
-        { header: 'organization_id', value: (r) => r.organization_id },
-        { header: 'period_from', value: (r) => formatDate(r.period_from) },
-        { header: 'period_to', value: (r) => formatDate(r.period_to) },
-        { header: 'area_ha', value: (r) => r.area_ha ?? '' },
-        { header: 'amount', value: (r) => formatMoney(r.amount) },
-      ]);
-      downloadCsv(`permits-${new Date().toISOString().slice(0, 10)}.csv`, csv);
-      setExportTruncated(truncated);
-    } finally {
-      setExporting(false);
-    }
   }
 
   const totalPages = list.data ? Math.max(1, Math.ceil(list.data.total / PAGE_SIZE)) : 1;
@@ -313,18 +281,12 @@ export function PermitsListPage({ variant }: { variant: 'staff' | 'applicant' })
           )}
         </div>
         <div className="flex justify-end gap-2">
-          {isStaff && (
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              leftIcon={<Download className="w-3.5 h-3.5" />}
-              isLoading={exporting}
-              onClick={() => void exportCsv()}
-            >
-              {t('prosecutor.exportCsv')}
-            </Button>
-          )}
+          {/* Same route for both variants: `GET /permits` is already scoped to the
+              caller server-side (the applicant's own permits, or — holding
+              `permits.view_any` — their zone's, `permits/service.py::list_permits`),
+              so the citizen's own list gets the export with no new backend work
+              (stage 13, Track B). */}
+          <ExportXlsxButton path="/api/v1/permits" query={toPermitsQuery(queryFilters)} />
           <Button type="button" variant="outline" size="sm" leftIcon={<RotateCcw className="w-3.5 h-3.5" />} onClick={resetFilters}>
             {lt.reset}
           </Button>
@@ -333,12 +295,6 @@ export function PermitsListPage({ variant }: { variant: 'staff' | 'applicant' })
           </Button>
         </div>
       </form>
-
-      {isStaff && exportTruncated && (
-        <div className="p-3 bg-[#FFFBEB] border border-[#FDE68A] rounded-xl text-xs text-[#92400E]" role="alert">
-          {t('prosecutor.exportTruncated')}
-        </div>
-      )}
 
       {list.error && (
         <div className="p-4 bg-[#FEF2F2] border border-[#FCA5A5] rounded-2xl text-sm text-[#991B1B]" role="alert">

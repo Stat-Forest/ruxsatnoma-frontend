@@ -1,13 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Download, Loader2, RotateCcw } from 'lucide-react';
-import { api } from '../../api/client';
-import { ApiError, apiError } from '../../api/errors';
+import { Loader2, RotateCcw } from 'lucide-react';
+import { ApiError } from '../../api/errors';
 import { Button } from '../../components/ui/button';
 import { FormField, Input, Select } from '../../components/ui/FormControls';
 import { Pagination, Tabs } from '../../components/ui/Navigation';
 import { useApiErrorText } from '../../i18n/useApiErrorText';
 import { useT } from '../../i18n/useT';
-import { downloadCsv, fetchAllPages, toCsv } from '../../lib/csvExport';
+import { ExportXlsxButton } from '../../components/ui/ExportXlsxButton';
 import {
   formatDateTime,
   formatEventType,
@@ -217,8 +216,6 @@ function RiskIndicatorsTab({ t }: { t: (key: string) => string }) {
   const [draft, setDraft] = useState<RiskDraft>(EMPTY_RISK_DRAFT);
   const [applied, setApplied] = useState<RiskDraft>(EMPTY_RISK_DRAFT);
   const [page, setPage] = useState(1);
-  const [exporting, setExporting] = useState(false);
-  const [exportTruncated, setExportTruncated] = useState(false);
 
   const queryFilters = toRiskFilters(applied, page);
   const list = useRiskIndicators(queryFilters);
@@ -264,35 +261,6 @@ function RiskIndicatorsTab({ t }: { t: (key: string) => string }) {
     setDraft(EMPTY_RISK_DRAFT);
     setApplied(EMPTY_RISK_DRAFT);
     setPage(1);
-  }
-
-  async function exportCsv() {
-    setExporting(true);
-    setExportTruncated(false);
-    try {
-      const { rows, truncated } = await fetchAllPages<RiskIndicatorOut>(async (p, pageSize) => {
-        const { data, error } = await api.GET('/api/v1/oversight/risk-indicators', {
-          params: { query: { ...toRiskFilters(applied, p), page_size: pageSize } },
-        });
-        if (error) throw apiError(error);
-        return data;
-      });
-      const filteredRows = filterRiskIndicators(rows, applied);
-      const csv = toCsv(filteredRows, [
-        { header: 'code', value: (r) => r.code },
-        { header: 'level', value: (r) => r.level },
-        { header: 'status', value: (r) => r.status },
-        { header: 'object_type', value: (r) => r.object_type ?? '' },
-        { header: 'object_id', value: (r) => r.object_id ?? '' },
-        { header: 'description', value: (r) => r.description },
-        { header: 'occurred_at', value: (r) => r.occurred_at },
-        { header: 'rn_status', value: (r) => r.rn_status },
-      ]);
-      downloadCsv(`risk-indicators-${new Date().toISOString().slice(0, 10)}.csv`, csv);
-      setExportTruncated(truncated);
-    } finally {
-      setExporting(false);
-    }
   }
 
   return (
@@ -378,16 +346,7 @@ function RiskIndicatorsTab({ t }: { t: (key: string) => string }) {
           </FormField>
         </div>
         <div className="flex justify-end gap-2">
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            leftIcon={<Download className="w-3.5 h-3.5" />}
-            isLoading={exporting}
-            onClick={() => void exportCsv()}
-          >
-            {t('prosecutor.exportCsv')}
-          </Button>
+          <ExportXlsxButton path="/api/v1/oversight/risk-indicators" query={toRiskFilters(applied, 1)} />
           <Button type="button" variant="outline" size="sm" leftIcon={<RotateCcw className="w-3.5 h-3.5" />} onClick={resetFilters}>
             {t('leadership.dash.filters.reset')}
           </Button>
@@ -396,12 +355,6 @@ function RiskIndicatorsTab({ t }: { t: (key: string) => string }) {
           </Button>
         </div>
       </form>
-
-      {exportTruncated && (
-        <div className="p-3 bg-[#FFFBEB] border border-[#FDE68A] rounded-xl text-xs text-[#92400E]" role="alert">
-          {t('prosecutor.exportTruncated')}
-        </div>
-      )}
 
       {list.error && (
         <div className="p-4 bg-[#FEF2F2] border border-[#FCA5A5] rounded-2xl text-sm text-[#991B1B]" role="alert">
@@ -480,8 +433,6 @@ function EventsTab({ t }: { t: (key: string) => string }) {
   const [draft, setDraft] = useState<EventDraft>(EMPTY_EVENT_DRAFT);
   const [applied, setApplied] = useState<EventDraft>(EMPTY_EVENT_DRAFT);
   const [page, setPage] = useState(1);
-  const [exporting, setExporting] = useState(false);
-  const [exportTruncated, setExportTruncated] = useState(false);
 
   const queryFilters = toEventFilters(applied, page);
   const list = useEvents(queryFilters);
@@ -531,34 +482,6 @@ function EventsTab({ t }: { t: (key: string) => string }) {
     setPage(1);
   }
 
-  async function exportCsv() {
-    setExporting(true);
-    setExportTruncated(false);
-    try {
-      const { rows, truncated } = await fetchAllPages<OversightEventOut>(async (p, pageSize) => {
-        const { data, error } = await api.GET('/api/v1/oversight/events', {
-          params: { query: { ...toEventFilters(applied, p), page_size: pageSize } },
-        });
-        if (error) throw apiError(error);
-        return data;
-      });
-      const filteredRows = filterOversightEvents(rows, applied);
-      const csv = toCsv(filteredRows, [
-        { header: 'event_type', value: (r) => r.event_type },
-        { header: 'object_type', value: (r) => r.object_type ?? '' },
-        { header: 'object_id', value: (r) => r.object_id ?? '' },
-        { header: 'correlation_id', value: (r) => r.correlation_id ?? '' },
-        { header: 'occurred_at', value: (r) => r.occurred_at },
-        { header: 'rn_status', value: (r) => r.rn_status },
-        { header: 'payload', value: (r) => JSON.stringify(r.payload ?? {}) },
-      ]);
-      downloadCsv(`oversight-events-${new Date().toISOString().slice(0, 10)}.csv`, csv);
-      setExportTruncated(truncated);
-    } finally {
-      setExporting(false);
-    }
-  }
-
   return (
     <div className="space-y-4" data-testid="events-tab">
       <form
@@ -601,16 +524,7 @@ function EventsTab({ t }: { t: (key: string) => string }) {
           </FormField>
         </div>
         <div className="flex justify-end gap-2">
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            leftIcon={<Download className="w-3.5 h-3.5" />}
-            isLoading={exporting}
-            onClick={() => void exportCsv()}
-          >
-            {t('prosecutor.exportCsv')}
-          </Button>
+          <ExportXlsxButton path="/api/v1/oversight/events" query={toEventFilters(applied, 1)} />
           <Button type="button" variant="outline" size="sm" leftIcon={<RotateCcw className="w-3.5 h-3.5" />} onClick={resetFilters}>
             {t('leadership.dash.filters.reset')}
           </Button>
@@ -619,12 +533,6 @@ function EventsTab({ t }: { t: (key: string) => string }) {
           </Button>
         </div>
       </form>
-
-      {exportTruncated && (
-        <div className="p-3 bg-[#FFFBEB] border border-[#FDE68A] rounded-xl text-xs text-[#92400E]" role="alert">
-          {t('prosecutor.exportTruncated')}
-        </div>
-      )}
 
       {list.error && (
         <div className="p-4 bg-[#FEF2F2] border border-[#FCA5A5] rounded-2xl text-sm text-[#991B1B]" role="alert">

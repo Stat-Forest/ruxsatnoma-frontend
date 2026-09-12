@@ -110,7 +110,7 @@ export function invoice(overrides: Partial<InvoiceOut> = {}): InvoiceOut {
     status: 'paid',
     issued_at: '2026-04-10T10:00:00+05:00',
     due_at: '2026-04-20T10:00:00+05:00',
-    settled_by_benefit: false,
+    settled_without_payment: false,
     paid_at: '2026-04-12T10:00:00+05:00',
     ...overrides,
   };

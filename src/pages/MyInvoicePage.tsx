@@ -93,12 +93,12 @@ export function MyInvoicePage() {
   const applicationQuery = useQuery({
     queryKey: ['application-for-invoice', invoiceQuery.data?.application_id],
     queryFn: () => getApplicationCard(invoiceQuery.data!.application_id),
-    enabled: !!invoiceQuery.data?.settled_by_benefit,
+    enabled: !!invoiceQuery.data?.settled_without_payment,
   });
   const benefitCategoriesQuery = useQuery({
     queryKey: ['classifier-items', 'benefit_categories'],
     queryFn: () => listClassifierItems('benefit_categories'),
-    enabled: !!invoiceQuery.data?.settled_by_benefit,
+    enabled: !!invoiceQuery.data?.settled_without_payment,
   });
 
   const [paymentUrl, setPaymentUrl] = useState<string | null>(null);
@@ -218,7 +218,7 @@ export function MyInvoicePage() {
         </div>
       </div>
 
-      {invoice.settled_by_benefit ? (
+      {invoice.settled_without_payment ? (
         <div className="bg-white border border-[#E4E7EA] rounded-2xl p-6 shadow-xs space-y-2">
           <h2 className="text-base font-bold text-[#1A1F24] flex items-center gap-2">
             <Gift className="w-5 h-5 text-[#2E7D4F]" /> {benefitCopy.title}

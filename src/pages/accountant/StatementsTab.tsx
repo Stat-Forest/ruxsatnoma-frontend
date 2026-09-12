@@ -3,6 +3,7 @@ import { AlertTriangle, Search, UploadCloud } from 'lucide-react';
 import { Button } from '../../components/ui/button';
 import { FileInput, FormField, Input } from '../../components/ui/FormControls';
 import { Alert } from '../../components/ui/Feedback';
+import { ExportXlsxButton } from '../../components/ui/ExportXlsxButton';
 import { useAuth } from '../../auth/useAuth';
 import { ApiError } from '../../api/errors';
 import { useApiErrorText } from '../../i18n/useApiErrorText';
@@ -72,7 +73,10 @@ export function StatementsTab() {
 
       {canView && (
         <section className="rounded-2xl border border-[#E4E7EA] bg-white p-4 shadow-xs">
-          <h2 className="mb-3 text-sm font-bold text-[#1A1F24]">{t('accountant.statements.openIdLabel')}</h2>
+          <div className="mb-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <h2 className="text-sm font-bold text-[#1A1F24]">{t('accountant.statements.openIdLabel')}</h2>
+            <ExportXlsxButton path="/api/v1/payments/bank-statements" query={{}} />
+          </div>
           <form
             className="flex flex-col sm:flex-row sm:items-end gap-2.5"
             onSubmit={(e) => {

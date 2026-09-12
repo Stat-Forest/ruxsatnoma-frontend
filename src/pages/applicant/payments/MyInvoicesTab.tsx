@@ -4,6 +4,7 @@ import { CreditCard, Eye } from 'lucide-react';
 import { DataTable, type Column } from '../../../components/ui/DataTable';
 import { FormField, Select } from '../../../components/ui/FormControls';
 import { Alert } from '../../../components/ui/Feedback';
+import { ExportXlsxButton } from '../../../components/ui/ExportXlsxButton';
 import { useLanguage, useT } from '../../../i18n/useT';
 import { INVOICE_STATUS_LABEL, INVOICE_STATUS_STYLE, getInvoiceStatusLabel } from '../../permits/statusMeta';
 import { formatDateTime, formatMoney } from '../../permits/format';
@@ -86,6 +87,7 @@ export function MyInvoicesTab() {
             ]}
           />
         </FormField>
+        <ExportXlsxButton path="/api/v1/invoices" query={{ status: status || undefined }} />
       </div>
       <DataTable
         columns={columns}

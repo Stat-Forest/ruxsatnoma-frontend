@@ -4,6 +4,7 @@ import { Plus } from 'lucide-react';
 import { Button } from '../../../components/ui/button';
 import { DataTable, type Column } from '../../../components/ui/DataTable';
 import { Alert } from '../../../components/ui/Feedback';
+import { ExportXlsxButton } from '../../../components/ui/ExportXlsxButton';
 import { useT, useLanguage } from '../../../i18n/useT';
 import { REFUND_STATUS_STYLE, getRefundStatusLabel } from '../../accountant/statusMeta';
 import { formatDate, formatDateTime, formatMoney } from '../../permits/format';
@@ -118,7 +119,8 @@ export function MyRefundsTab() {
   const total = refundsQuery.data?.total ?? 0;
   return (
     <div className="space-y-4">
-      <div className="flex justify-end">
+      <div className="flex justify-end gap-2">
+        <ExportXlsxButton path="/api/v1/refunds" query={{}} />
         <Button variant="primary" leftIcon={<Plus className="w-4 h-4" />} onClick={() => setOpen(true)}>
           {t('myPayments.refunds.newRequest')}
         </Button>

@@ -19,6 +19,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router';
 import { Loader2 } from 'lucide-react';
 import { useT } from '../../i18n/useT';
+import { ExportXlsxButton } from '../../components/ui/ExportXlsxButton';
 import { Select } from '../../components/ui/FormControls';
 import { Button } from '../../components/ui/button';
 import { Pagination } from '../../components/ui/Navigation';
@@ -112,10 +113,8 @@ export function CasesTab({ active, applicantId }: { active: boolean; applicantId
   const [status, setStatus] = useState<CaseStatusFilter>('');
   const [page, setPage] = useState(1);
 
-  const list = useCasesList(
-    { status: status || undefined, applicant_id: applicantId, page, page_size: PAGE_SIZE },
-    { enabled: active },
-  );
+  const filters = { status: status || undefined, applicant_id: applicantId, page, page_size: PAGE_SIZE };
+  const list = useCasesList(filters, { enabled: active });
   const totalPages = list.data ? Math.max(1, Math.ceil(list.data.total / PAGE_SIZE)) : 1;
 
   return (
@@ -131,25 +130,28 @@ export function CasesTab({ active, applicantId }: { active: boolean; applicantId
           </Button>
         </div>
       )}
-      <div className="max-w-xs">
-        <Select
-          touchSize
-          value={status}
-          onChange={(e) => {
-            setStatus(e.target.value as CaseStatusFilter);
-            setPage(1);
-          }}
-          options={[
-            { value: '', label: t('inspector.cases.status.all') },
-            { value: 'opened', label: t('inspector.cases.status.opened') },
-            { value: 'explanation_requested', label: t('inspector.cases.status.explanationRequested') },
-            { value: 'explained', label: t('inspector.cases.status.explained') },
-            { value: 'decided', label: t('inspector.cases.status.decided') },
-            { value: 'appealed', label: t('inspector.cases.status.appealed') },
-            { value: 'closed', label: t('inspector.cases.status.closed') },
-            { value: 'archived', label: t('inspector.cases.status.archived') },
-          ]}
-        />
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <div className="max-w-xs">
+          <Select
+            touchSize
+            value={status}
+            onChange={(e) => {
+              setStatus(e.target.value as CaseStatusFilter);
+              setPage(1);
+            }}
+            options={[
+              { value: '', label: t('inspector.cases.status.all') },
+              { value: 'opened', label: t('inspector.cases.status.opened') },
+              { value: 'explanation_requested', label: t('inspector.cases.status.explanationRequested') },
+              { value: 'explained', label: t('inspector.cases.status.explained') },
+              { value: 'decided', label: t('inspector.cases.status.decided') },
+              { value: 'appealed', label: t('inspector.cases.status.appealed') },
+              { value: 'closed', label: t('inspector.cases.status.closed') },
+              { value: 'archived', label: t('inspector.cases.status.archived') },
+            ]}
+          />
+        </div>
+        <ExportXlsxButton path="/api/v1/inspections/cases" query={filters} className="w-full sm:w-auto" />
       </div>
 
       {list.error && (

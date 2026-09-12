@@ -3,6 +3,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { Loader2, UploadCloud } from 'lucide-react';
 import { useAuth } from '../../../auth/useAuth';
 import { Button } from '../../../components/ui/button';
+import { ExportXlsxButton } from '../../../components/ui/ExportXlsxButton';
 import { Alert } from '../../../components/ui/Feedback';
 import { Input, Select } from '../../../components/ui/FormControls';
 import { Pagination } from '../../../components/ui/Navigation';
@@ -330,7 +331,8 @@ function ImportsListPanel({ t, onOpen }: { t: (key: string) => string; onOpen: (
   const errorText = useApiErrorText();
   const [status, setStatus] = useState('');
   const [page, setPage] = useState(1);
-  const listQuery = useImportsList({ status: status || undefined, page, page_size: IMPORTS_PAGE_SIZE });
+  const queryFilters = { status: status || undefined };
+  const listQuery = useImportsList({ ...queryFilters, page, page_size: IMPORTS_PAGE_SIZE });
   const layersQuery = useLayers();
   const organizationsQuery = useOrganizations();
 
@@ -349,20 +351,23 @@ function ImportsListPanel({ t, onOpen }: { t: (key: string) => string; onOpen: (
     <div className="bg-white border border-[#E4E7EA] rounded-2xl shadow-xs" data-testid="imports-list-panel">
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#E4E7EA] p-4">
         <h3 className="text-xs font-bold uppercase tracking-wider text-[#5A646D]">{t('gis.imports.list.title')}</h3>
-        <label className="flex items-center gap-2 text-xs">
-          <span className="text-[#5A646D]">{t('gis.imports.list.colStatus')}</span>
-          <Select
-            value={status}
-            onChange={(e) => {
-              setStatus(e.target.value);
-              setPage(1);
-            }}
-            options={[
-              { value: '', label: t('gis.imports.list.statusFilterAll') },
-              ...Object.entries(STATUS_LABEL_KEYS).map(([value, key]) => ({ value, label: t(key) })),
-            ]}
-          />
-        </label>
+        <div className="flex items-center gap-3">
+          <label className="flex items-center gap-2 text-xs">
+            <span className="text-[#5A646D]">{t('gis.imports.list.colStatus')}</span>
+            <Select
+              value={status}
+              onChange={(e) => {
+                setStatus(e.target.value);
+                setPage(1);
+              }}
+              options={[
+                { value: '', label: t('gis.imports.list.statusFilterAll') },
+                ...Object.entries(STATUS_LABEL_KEYS).map(([value, key]) => ({ value, label: t(key) })),
+              ]}
+            />
+          </label>
+          <ExportXlsxButton path="/api/v1/gis/imports" query={queryFilters} />
+        </div>
       </div>
 
       {listQuery.isLoading ? (

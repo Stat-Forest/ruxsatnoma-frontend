@@ -118,9 +118,14 @@ test('switching to the Events tab requests /oversight/events and renders its own
   expect(riskCalls).toBe(1);
 });
 
-test('CSV export on the risk indicators tab downloads a real file', async () => {
+test('the Excel button on the risk indicators tab downloads the server file', async () => {
   server.use(
     http.get('*/api/v1/oversight/risk-indicators', () => HttpResponse.json(page([riskIndicatorFixture()]))),
+    http.get('*/api/v1/oversight/risk-indicators/export.xlsx', () =>
+      HttpResponse.text('xlsx-bytes', {
+        headers: { 'Content-Disposition': 'attachment; filename="xavf.xlsx"', 'X-Export-Truncated': 'false' },
+      }),
+    ),
   );
 
   const createObjectURL = vi.fn().mockReturnValue('blob:mock');
@@ -137,7 +142,7 @@ test('CSV export on the risk indicators tab downloads a real file', async () => 
   await screen.findByTestId(`risk-row-${RISK_ROW_ID}`);
 
   const user = userEvent.setup();
-  await user.click(screen.getByText('CSV eksport'));
+  await user.click(screen.getByTestId('export-xlsx'));
 
   await waitFor(() => expect(createObjectURL).toHaveBeenCalled());
   expect(clickSpy).toHaveBeenCalled();
@@ -286,7 +291,7 @@ test('Events tab filters by event_type client-side', async () => {
   });
 });
 
-test('CSV export respects active filters and only exports matching rows', async () => {
+test('the Excel export carries the applied filters to the server and nothing about paging', async () => {
   const rowRi01 = riskIndicatorFixture({
     id: 'ri000000-0000-4000-8000-000000000001',
     code: 'RI-01',
@@ -298,22 +303,22 @@ test('CSV export respects active filters and only exports matching rows', async 
     description: 'Retroactive tariff oʻzgarishi',
   });
 
+  let exportUrl: URL | null = null;
   server.use(
     http.get('*/api/v1/oversight/risk-indicators', () =>
       HttpResponse.json(page([rowRi01, rowRi04])),
     ),
+    http.get('*/api/v1/oversight/risk-indicators/export.xlsx', ({ request }) => {
+      exportUrl = new URL(request.url);
+      return HttpResponse.text('xlsx-bytes', {
+        headers: { 'Content-Disposition': 'attachment; filename="xavf.xlsx"', 'X-Export-Truncated': 'false' },
+      });
+    }),
   );
 
-  let exportedCsvContent = '';
-  const createObjectURL = vi.fn().mockImplementation((blob: Blob) => {
-    blob.text().then((text) => {
-      exportedCsvContent = text;
-    });
-    return 'blob:mock';
-  });
-  const revokeObjectURL = vi.fn();
+  const createObjectURL = vi.fn().mockReturnValue('blob:mock');
   URL.createObjectURL = createObjectURL;
-  URL.revokeObjectURL = revokeObjectURL;
+  URL.revokeObjectURL = vi.fn();
   vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
 
   render(
@@ -332,12 +337,49 @@ test('CSV export respects active filters and only exports matching rows', async 
     expect(screen.queryByTestId('risk-row-ri000000-0000-4000-8000-000000000004')).not.toBeInTheDocument();
   });
 
-  await user.click(screen.getByText('CSV eksport'));
+  await user.click(screen.getByTestId('export-xlsx'));
   await waitFor(() => expect(createObjectURL).toHaveBeenCalled());
-  await waitFor(() => {
-    expect(exportedCsvContent).toContain('RI-01');
-    expect(exportedCsvContent).not.toContain('RI-04');
-  });
+  expect(exportUrl!.searchParams.get('code')).toBe('RI-01');
+  expect(exportUrl!.searchParams.has('page')).toBe(false);
+  expect(exportUrl!.searchParams.has('page_size')).toBe(false);
+});
+
+test('the events tab Excel export carries the applied object_type filter and nothing about paging', async () => {
+  let exportUrl: URL | null = null;
+  server.use(
+    http.get('*/api/v1/oversight/risk-indicators', () => HttpResponse.json(page([]))),
+    http.get('*/api/v1/oversight/events', () => HttpResponse.json(page([eventFixture()]))),
+    http.get('*/api/v1/oversight/events/export.xlsx', ({ request }) => {
+      exportUrl = new URL(request.url);
+      return HttpResponse.text('xlsx-bytes', {
+        headers: { 'Content-Disposition': 'attachment; filename="hodisalar.xlsx"', 'X-Export-Truncated': 'false' },
+      });
+    }),
+  );
+
+  const createObjectURL = vi.fn().mockReturnValue('blob:mock');
+  URL.createObjectURL = createObjectURL;
+  URL.revokeObjectURL = vi.fn();
+  vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+
+  render(
+    <Providers>
+      <OversightPage />
+    </Providers>,
+  );
+
+  const user = userEvent.setup();
+  await user.click(screen.getByText('Voqealar'));
+  await screen.findByTestId(`event-row-${EVENT_ROW_ID}`);
+
+  await user.type(screen.getByLabelText('Obyekt turi'), 'permit');
+  await user.click(screen.getByRole('button', { name: /qo.*llash/i }));
+
+  await user.click(screen.getByTestId('export-xlsx'));
+  await waitFor(() => expect(createObjectURL).toHaveBeenCalled());
+  expect(exportUrl!.searchParams.get('object_type')).toBe('permit');
+  expect(exportUrl!.searchParams.has('page')).toBe(false);
+  expect(exportUrl!.searchParams.has('page_size')).toBe(false);
 });
 
 
