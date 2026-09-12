@@ -14,6 +14,7 @@ import { HistoryPanel } from './components/HistoryPanel';
 import { DecisionPanel } from './components/DecisionPanel';
 import { ReviewActionsPanel } from './components/ReviewActionsPanel';
 import { BenefitClaimPanel } from './components/BenefitClaimPanel';
+import { ContourBoundaryPanel } from '../gis/ContourBoundaryPanel';
 
 const STAFF_CARD_I18N = {
   uz_latn: {
@@ -179,6 +180,7 @@ export function StaffApplicationCard() {
         <div className="space-y-6 min-w-0">
           <GeneralInfoPanel card={card} />
           <CalculationPanel card={card} />
+          <ContourBoundaryPanel contourId={card.contour_id} />
           <ChecksPanel card={card} />
           <DocumentsPanel card={card} />
           {timelineQuery.data && <HistoryPanel timeline={timelineQuery.data} />}

@@ -11,7 +11,7 @@
  */
 import type { UiLanguage } from '../i18n/context';
 
-const API_BASE = import.meta.env.VITE_API_BASE ?? 'http://localhost:8000';
+export const API_BASE = import.meta.env.VITE_API_BASE ?? 'http://localhost:8000';
 
 /** The two header languages the server renders (ruling R5). */
 export type ExportLang = 'uz_latn' | 'ru';
@@ -54,8 +54,8 @@ export function buildExportUrl(path: string, query: ExportQuery, lang: ExportLan
 
 /** The name the server put in `Content-Disposition` — the RFC 5987
  *  `filename*=` first (it carries the exact, possibly non-ASCII name), the
- *  legacy `filename=` next, a generated name if neither is there. */
-function filenameFrom(disposition: string | null, path: string): string {
+ *  legacy `filename=` next, the caller's fallback if neither is there. */
+function filenameFrom(disposition: string | null, fallbackName: string): string {
   const star = disposition?.match(/filename\*=UTF-8''([^;]+)/i);
   if (star) {
     try {
@@ -66,8 +66,7 @@ function filenameFrom(disposition: string | null, path: string): string {
   }
   const plain = disposition?.match(/filename="([^"]+)"/i);
   if (plain) return plain[1];
-  const last = path.split('/').filter(Boolean).pop() ?? 'export';
-  return `${last}-${new Date().toISOString().slice(0, 10)}.xlsx`;
+  return fallbackName;
 }
 
 function triggerDownload(blob: Blob, fileName: string) {
@@ -81,12 +80,14 @@ function triggerDownload(blob: Blob, fileName: string) {
   URL.revokeObjectURL(url);
 }
 
-export async function downloadXlsx(
-  path: string,
-  query: ExportQuery,
-  lang: ExportLang,
-): Promise<ExportResult> {
-  const res = await fetch(buildExportUrl(path, query, lang), { credentials: 'include' });
+/** Fetch one server-built file with the session cookie and hand it to the
+ *  browser as a download, named by the server's `Content-Disposition`.
+ *  Shared by the XLSX registers below and by the contour KMZ button
+ *  (`gis/ContourBoundaryPanel.tsx`) — one download path, not two subtly
+ *  different copies. A non-2xx answer becomes an `Error` carrying the
+ *  server's own `error.message` when the body is the `ERR-*` envelope. */
+export async function downloadAttachment(url: string, fallbackName: string): Promise<Response> {
+  const res = await fetch(url, { credentials: 'include' });
   if (!res.ok) {
     let message = `Faylni yuklab boʻlmadi (${res.status})`;
     try {
@@ -98,7 +99,20 @@ export async function downloadXlsx(
     throw new Error(message);
   }
   const blob = await res.blob();
-  triggerDownload(blob, filenameFrom(res.headers.get('Content-Disposition'), path));
+  triggerDownload(blob, filenameFrom(res.headers.get('Content-Disposition'), fallbackName));
+  return res;
+}
+
+export async function downloadXlsx(
+  path: string,
+  query: ExportQuery,
+  lang: ExportLang,
+): Promise<ExportResult> {
+  const last = path.split('/').filter(Boolean).pop() ?? 'export';
+  const res = await downloadAttachment(
+    buildExportUrl(path, query, lang),
+    `${last}-${new Date().toISOString().slice(0, 10)}.xlsx`,
+  );
   const total = Number(res.headers.get('X-Export-Total') ?? 0);
   const rows = Number(res.headers.get('X-Export-Rows') ?? total);
   return {

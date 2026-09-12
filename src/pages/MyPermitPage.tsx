@@ -10,6 +10,7 @@ import { formatPermitNumber } from './permits/format';
 import { PermitPdfPanel } from './permits/PermitPdfPanel';
 import { PermitRatingPanel } from './permits/PermitRatingPanel';
 import { PermitRequisitesPanel } from './permits/PermitRequisitesPanel';
+import { ContourBoundaryPanel } from './gis/ContourBoundaryPanel';
 import { PermitSignaturesPanel } from './permits/PermitSignaturesPanel';
 import { useAuth } from '../auth/useAuth';
 import { useLanguage } from '../i18n/useT';
@@ -177,6 +178,8 @@ export function MyPermitPage() {
         permit={permit}
         applicantName={me?.applicant && me.applicant.id === permit.applicant_id ? me.applicant.name : null}
       />
+
+      <ContourBoundaryPanel contourId={permit.contour_id} />
 
       <PermitPdfPanel
         permitId={permit.id}
