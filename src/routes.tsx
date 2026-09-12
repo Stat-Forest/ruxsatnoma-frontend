@@ -146,19 +146,14 @@ const DETAIL_ROUTES: {
   element: ReactNode;
   permission?: string;
   noSuperuser?: true;
-  forbidden?: 'refuse' | 'home';
 }[] = [
   // `noSuperuser` for the same reason as the `/my/*` entries of `NAVIGATION`:
   // the superuser has no applicant profile to file for (`NavItem.noSuperuser`).
-  // `forbidden: 'home'` because the landing links EVERY visitor here — see
-  // `RequireAuth`'s prop for why a refused role gets the dashboard, not a
-  // refusal.
   {
     path: 'my/applications/new',
     element: <ApplicationWizardPage />,
     permission: 'applications.create',
     noSuperuser: true,
-    forbidden: 'home',
   },
   { path: 'my/applications/:id', element: <MyApplicationCardPage /> },
   { path: 'my/invoices/:id', element: <MyInvoicePage /> },
@@ -185,10 +180,10 @@ const DETAIL_ROUTES: {
 ];
 
 const detailRouteChildren: RouteObject[] = DETAIL_ROUTES.map(
-  ({ path, element, permission, noSuperuser, forbidden }) => ({
+  ({ path, element, permission, noSuperuser }) => ({
     path,
     element: permission ? (
-      <RequireAuth permission={permission} noSuperuser={noSuperuser} forbidden={forbidden}>
+      <RequireAuth permission={permission} noSuperuser={noSuperuser}>
         {element}
       </RequireAuth>
     ) : (
