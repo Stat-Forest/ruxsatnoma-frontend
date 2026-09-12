@@ -26,6 +26,27 @@ const ME = {
   registration_complete: true,
 };
 
+/** A citizen — the one role the video guide is shown to. */
+const APPLICANT_ME = {
+  ...ME,
+  user: { ...ME.user, full_name: 'Aliyev Vali', login: 'applicant1' },
+  role: { code: 'applicant', name: { uz_latn: 'Ariza beruvchi', ru: 'Заявитель' } },
+  permissions: [],
+  applicant: {
+    id: 'ap000000-0000-4000-8000-000000000001',
+    kind: 'individual',
+    pinfl: '31708860250017',
+    stir: null,
+    name: 'Aliyev Vali',
+    phone: null,
+    email: null,
+    region_id: null,
+    district_id: null,
+    address: null,
+    verified_at: null,
+  },
+};
+
 /** jsdom implements no `matchMedia` at all; AppShell itself does not call it
  *  (ruling R5 — the drawer's visibility is driven by `open` state alone, never
  *  a media query), but a polyfill still belongs in test setup as a backstop
@@ -77,19 +98,34 @@ test('on a phone the navigation is a drawer, closed by default', async () => {
   expect(await screen.findByTestId('nav-drawer')).toBeVisible();
 });
 
-// The tech-support line and the video guide (Oybek, 2026-09-11). jsdom applies
-// no CSS, so the `lg:`-gated header copy and the drawer copy are both in the
-// DOM here — each is checked inside its own landmark.
-test('the header carries the tech-support line as a tel: link and the video guide in a new tab', async () => {
+// The tech-support line (Oybek, 2026-09-11). jsdom applies no CSS, so the
+// `lg:`-gated header copy and the drawer copy are both in the DOM here — each
+// is checked inside its own landmark.
+test('the header carries the tech-support line as a tel: link', async () => {
   await renderShell();
   const header = await screen.findByRole('banner');
   const phone = within(header).getByRole('link', { name: /\+998 71 207 88 77/ });
   expect(phone).toHaveAttribute('href', 'tel:+998712078877');
   expect(header).toHaveTextContent('1010');
+});
+
+// The video guide is for citizens only (Oybek, 2026-09-13): an applicant gets
+// it in a new tab, a staff role does not get the button at all.
+test('the video guide is shown to an applicant, in a new tab', async () => {
+  server.use(http.get('*/auth/me', () => HttpResponse.json(APPLICANT_ME)));
+  await renderShell();
+  const header = await screen.findByRole('banner');
   const video = within(header).getByRole('link', { name: /video qo.llanma/i });
   expect(video).toHaveAttribute('target', '_blank');
   expect(video.getAttribute('rel')).toContain('noopener');
   expect(video.getAttribute('href')).toMatch(/^https:\/\//);
+});
+
+test('the video guide is hidden from staff roles', async () => {
+  await renderShell();
+  const header = await screen.findByRole('banner');
+  expect(within(header).queryByRole('link', { name: /video qo.llanma/i })).toBeNull();
+  expect(screen.queryByTestId('video-guide-link')).toBeNull();
 });
 
 // Below `lg` the header hides the line: the drawer (phones) and the persistent

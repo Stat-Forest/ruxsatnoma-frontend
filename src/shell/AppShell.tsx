@@ -65,6 +65,10 @@ export function AppShell() {
   if (!me) return null;
 
   const roleName = pickLocalizedName(me.role.name, lang, me.role.code);
+  // The video guide is made for citizens filing applications; staff have
+  // their own training and the button only crowded their header
+  // (Oybek, 2026-09-13). Same role test as `ProfilePage`.
+  const isApplicant = me.role.code === 'applicant';
   const unreadCount = unreadQuery.data?.count ?? 0;
 
   return (
@@ -93,17 +97,19 @@ export function AppShell() {
 
         <div className="flex-1" />
 
-        <a
-          href={VIDEO_GUIDE_URL}
-          target="_blank"
-          rel="noopener noreferrer"
-          aria-label={t('shell.videoGuide')}
-          data-testid="video-guide-link"
-          className="flex h-11 w-11 lg:w-auto lg:px-3 items-center justify-center gap-1.5 rounded-md bg-[#2E7D4F] text-white text-xs font-semibold hover:bg-[#23653F] transition-colors shrink-0"
-        >
-          <Video className="w-5 h-5 lg:w-4 lg:h-4" />
-          <span className="hidden lg:inline">{t('shell.videoGuide')}</span>
-        </a>
+        {isApplicant && (
+          <a
+            href={VIDEO_GUIDE_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label={t('shell.videoGuide')}
+            data-testid="video-guide-link"
+            className="flex h-11 w-11 lg:w-auto lg:px-3 items-center justify-center gap-1.5 rounded-md bg-[#2E7D4F] text-white text-xs font-semibold hover:bg-[#23653F] transition-colors shrink-0"
+          >
+            <Video className="w-5 h-5 lg:w-4 lg:h-4" />
+            <span className="hidden lg:inline">{t('shell.videoGuide')}</span>
+          </a>
+        )}
 
         <LanguageMenu
           value={backendLang}
