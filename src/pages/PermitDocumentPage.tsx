@@ -13,6 +13,7 @@ import { toApiError } from './permits/apiErrorHelpers';
 import { formatPermitNumber } from './permits/format';
 import { PermitPdfPanel } from './permits/PermitPdfPanel';
 import { PermitRequisitesPanel } from './permits/PermitRequisitesPanel';
+import { ContourBoundaryPanel } from './gis/ContourBoundaryPanel';
 import { PermitSignaturesPanel } from './permits/PermitSignaturesPanel';
 import { PermitTimelinePanel } from './permits/PermitTimelinePanel';
 import { PermitLifecyclePanel } from './permits/components/PermitLifecyclePanel';
@@ -306,6 +307,8 @@ export function PermitDocumentPage() {
       </div>
 
       <PermitRequisitesPanel permit={permit} />
+
+      <ContourBoundaryPanel contourId={permit.contour_id} />
 
       <PermitPdfPanel
         permitId={permit.id}

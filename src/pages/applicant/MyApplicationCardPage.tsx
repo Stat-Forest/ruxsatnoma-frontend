@@ -14,6 +14,7 @@ import {
 import { formatDate, formatDateTime, formatMoney, pickName } from './format';
 import { STATUS_BADGE_KIND, getStatusLabel } from './statusMeta';
 import { ApplicantTimeline } from './components/ApplicantTimeline';
+import { ContourBoundaryPanel } from '../gis/ContourBoundaryPanel';
 import { formatPermitNumber } from '../permits/format';
 import { usePermitForApplication } from '../permits/usePermitForApplication';
 import { useLanguage } from '../../i18n/useT';
@@ -341,6 +342,9 @@ export function MyApplicationCardPage() {
           </Button>
         </section>
       )}
+
+      {/* The plot on a map + KMZ (Odilxon, 2026-09-13) */}
+      <ContourBoundaryPanel contourId={card.contour_id} />
 
       {/* Documents */}
       <section className="bg-white border border-[#E4E7EA] rounded-2xl shadow-xs p-4 sm:p-6 space-y-3">
