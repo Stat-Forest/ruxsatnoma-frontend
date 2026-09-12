@@ -2101,4 +2101,13 @@ export const kaa = {
   'myPayments.refunds.requestSent': 'Soraw jiberildi. Juwap múddeti — 20 jumıs kúni.',
   'myPayments.backToPayments': 'Tólemlerge qaytıw',
   'wizard.step5.benefitNotForActivity': "Tańlanǵan jeńillik bul iskerlik túrine qollanılmaydı. 4-basqıshqa qaytıp, jeńillikti ózgertiń yamasa alıp taslań.",
+
+  // 2026-09-13 — the dialog a successful filing opens before the card:
+  // which phone the status SMS will reach (`me.user.phone`), and a way to
+  // the profile if that number is stale.
+  'wizard.filed.title': 'Arza jiberildi',
+  'wizard.filed.phoneNotice': 'Arza jaǵdayı haqqındaǵı xabarlar {phone} nomerine jiberiledi. Nomerińiz ózgergen bolsa, onı profil bóliminde jańalań.',
+  'wizard.filed.noPhone': 'Profilińizde telefon nomeri kórsetilmegen — arza jaǵdayı haqqındaǵı xabarlardı alıw ushın onı profil bóliminde kiritiń.',
+  'wizard.filed.openCard': 'Arzaǵa ótiw',
+  'wizard.filed.changePhone': 'Telefondı ózgertiw',
 };

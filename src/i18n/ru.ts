@@ -2290,4 +2290,13 @@ export const ru = {
   'myPayments.refunds.requestSent': 'Запрос отправлен. Срок ответа — 20 рабочих дней.',
   'myPayments.backToPayments': 'К платежам',
   'wizard.step5.benefitNotForActivity': "Выбранная льгота не действует для этого вида деятельности. Вернитесь на шаг 4 и измените или уберите льготу.",
+
+  // 2026-09-13 — the dialog a successful filing opens before the card:
+  // which phone the status SMS will reach (`me.user.phone`), and a way to
+  // the profile if that number is stale.
+  'wizard.filed.title': 'Заявка отправлена',
+  'wizard.filed.phoneNotice': 'Сообщения о статусе заявки будут приходить на номер {phone}. Если номер изменился, обновите его в профиле.',
+  'wizard.filed.noPhone': 'В профиле не указан номер телефона — чтобы получать сообщения о статусе заявки, укажите его в профиле.',
+  'wizard.filed.openCard': 'Перейти к заявке',
+  'wizard.filed.changePhone': 'Изменить телефон',
 };

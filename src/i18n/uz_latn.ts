@@ -2322,4 +2322,13 @@ export const uz_latn = {
   'myPayments.refunds.requestSent': 'Soʻrov yuborildi. Javob muddati — 20 ish kuni.',
   'myPayments.backToPayments': 'Toʻlovlarga qaytish',
   'wizard.step5.benefitNotForActivity': "Tanlangan imtiyoz ushbu faoliyat turiga qoʻllanilmaydi. 4-bosqichga qaytib, imtiyozni oʻzgartiring yoki olib tashlang.",
+
+  // 2026-09-13 — the dialog a successful filing opens before the card:
+  // which phone the status SMS will reach (`me.user.phone`), and a way to
+  // the profile if that number is stale.
+  'wizard.filed.title': 'Ariza yuborildi',
+  'wizard.filed.phoneNotice': 'Ariza holati haqidagi xabarlar {phone} raqamiga yuboriladi. Raqamingiz oʻzgargan boʻlsa, uni profil boʻlimida yangilang.',
+  'wizard.filed.noPhone': 'Profilingizda telefon raqami koʻrsatilmagan — ariza holati haqidagi xabarlarni olish uchun uni profil boʻlimida kiriting.',
+  'wizard.filed.openCard': 'Arizaga oʻtish',
+  'wizard.filed.changePhone': 'Telefonni oʻzgartirish',
 };
