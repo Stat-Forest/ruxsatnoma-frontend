@@ -7,8 +7,9 @@
  * prop in isolation.
  */
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { render, screen } from '@testing-library/react';
-import { MemoryRouter } from 'react-router';
+import { render, screen, waitFor, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { MemoryRouter, useLocation } from 'react-router';
 import { http, HttpResponse } from 'msw';
 import { setupServer } from 'msw/node';
 import { AuthContext } from '../../auth/AuthContext';
@@ -73,12 +74,22 @@ function authValue(): AuthContextValue {
 }
 
 const server = setupServer();
+const actsCalls: URL[] = [];
 beforeAll(() => server.listen({ onUnhandledRequest: 'error' }));
 afterEach(() => server.resetHandlers());
 afterAll(() => server.close());
 
+function LocationProbe() {
+  const location = useLocation();
+  return <div data-testid="current-url">{location.pathname + location.search}</div>;
+}
+
 function renderAt(path: string) {
   server.use(
+    http.get('*/api/v1/inspections/acts', ({ request }) => {
+      actsCalls.push(new URL(request.url));
+      return HttpResponse.json({ items: [], total: 0, page: 1, page_size: 20 });
+    }),
     http.get('*/api/v1/inspections/cases', ({ request }) => {
       const url = new URL(request.url);
       return HttpResponse.json({
@@ -97,6 +108,7 @@ function renderAt(path: string) {
         <I18nContext.Provider value={i18n}>
           <AuthContext.Provider value={authValue()}>
             <InspectionsPage />
+            <LocationProbe />
           </AuthContext.Provider>
         </I18nContext.Provider>
       </QueryClientProvider>
@@ -124,4 +136,30 @@ test('an unrecognised ?tab= value falls back to the tasks tab rather than showin
   renderAt('/inspections?tab=bogus');
   const tasksTab = await screen.findByTestId('inspector-tasks-tab');
   expect(tasksTab.closest('[hidden]')).toBeNull();
+});
+
+// The tab used to live in component state, initialised from `?tab=` once:
+// open an act, press Back, and the reader was on the tasks tab again. The
+// URL is the tab's only home now — and each tab's filters ride along under
+// their own prefix, so the tabs (mounted side by side) never overwrite each
+// other's page or status.
+test('choosing a tab writes ?tab=; the other tabs keep their own filters, applicant_id is dropped', async () => {
+  const user = userEvent.setup();
+  renderAt(`/inspections?tab=cases&applicant_id=${APPLICANT_ID}&tasks_status=done&tasks_page=2`);
+  await screen.findByTestId('cases-applicant-filter-banner');
+
+  await user.click(screen.getByRole('button', { name: 'inspector.tabs.acts' }));
+  expect(screen.getByTestId('current-url')).toHaveTextContent(/^\/inspections\?tab=acts&tasks_status=done&tasks_page=2$/);
+  expect(screen.getByTestId('inspector-cases-tab').closest('[hidden]')).not.toBeNull();
+});
+
+test('an act filter chosen on the acts tab reaches the server and the URL under the acts_ prefix', async () => {
+  const user = userEvent.setup();
+  renderAt('/inspections?tab=acts');
+  await waitFor(() => expect(actsCalls.length).toBeGreaterThan(0));
+
+  const actsTab = screen.getByTestId('inspector-acts-tab');
+  await user.selectOptions(within(actsTab).getByRole('combobox'), 'violation');
+  await waitFor(() => expect(actsCalls.at(-1)!.searchParams.get('result')).toBe('violation'));
+  expect(screen.getByTestId('current-url')).toHaveTextContent(/^\/inspections\?tab=acts&acts_result=violation$/);
 });

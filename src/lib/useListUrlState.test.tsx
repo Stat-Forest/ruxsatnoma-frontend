@@ -11,8 +11,8 @@ import { useListUrlState } from './useListUrlState';
 
 const DEFAULTS = { status: '', q: '' };
 
-function Probe() {
-  const { filters, page, setFilters, setPage, reset } = useListUrlState(DEFAULTS);
+function Probe({ prefix }: { prefix?: string }) {
+  const { filters, page, setFilters, setPage, reset } = useListUrlState(DEFAULTS, { prefix });
   const location = useLocation();
   const navigate = useNavigate();
   return (
@@ -40,11 +40,11 @@ function Card() {
   );
 }
 
-function renderAt(url: string) {
+function renderAt(url: string, prefix?: string) {
   return render(
     <MemoryRouter initialEntries={[url]}>
       <Routes>
-        <Route path="/list" element={<Probe />} />
+        <Route path="/list" element={<Probe prefix={prefix} />} />
         <Route path="/list/:id" element={<Card />} />
       </Routes>
     </MemoryRouter>,
@@ -117,4 +117,16 @@ test('filter changes replace the history entry, so Back from the card returns to
   // MemoryRouter's history is real: one Back must cross every filter write.
   await user.click(screen.getByText('back'));
   expect(state()).toEqual({ status: 'NEW', q: 'RX', page: 3 });
+});
+
+test('with a prefix every key, page included, is namespaced — two lists can share one URL', async () => {
+  const user = userEvent.setup();
+  renderAt('/list?tab=acts&status=other-list&page=7&acts_status=NEW', 'acts');
+  expect(state()).toEqual({ status: 'NEW', q: '', page: 1 });
+  await user.click(screen.getByText('page=3'));
+  await user.click(screen.getByText('q=RX'));
+  expect(screen.getByTestId('url')).toHaveTextContent(/^\/list\?tab=acts&status=other-list&page=7&acts_status=NEW&acts_q=RX$/);
+  await user.click(screen.getByText('page=3'));
+  await user.click(screen.getByText('reset'));
+  expect(screen.getByTestId('url')).toHaveTextContent(/^\/list\?tab=acts&status=other-list&page=7$/);
 });

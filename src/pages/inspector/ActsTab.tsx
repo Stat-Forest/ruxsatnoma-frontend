@@ -9,9 +9,9 @@
  * `inspections.acts.write`, since a `view_any`-only holder (e.g.
  * `executor_head`) can see this tab but `POST /acts` would refuse them.
  */
-import { useState } from 'react';
 import { useNavigate } from 'react-router';
 import { Loader2, Plus } from 'lucide-react';
+import { useListUrlState } from '../../lib/useListUrlState';
 import { useAuth } from '../../auth/useAuth';
 import { useT } from '../../i18n/useT';
 import { Button } from '../../components/ui/button';
@@ -29,6 +29,8 @@ import { CLICKABLE_ROW_CLASS, clickableRowProps } from '../../lib/rowClick';
 const PAGE_SIZE = 20;
 
 type ResultFilter = '' | 'compliant' | 'warning' | 'violation';
+
+const EMPTY_FILTERS: { result: ResultFilter } = { result: '' };
 
 /** Reuses `ActFormPage`'s own `result.*` copy (task 4) — the same three
  *  values, no reason for a second translation of the same words. */
@@ -95,8 +97,10 @@ export function ActsTab({ active }: { active: boolean }) {
   const errorText = useApiErrorText();
   const { me } = useAuth();
   const navigate = useNavigate();
-  const [result, setResult] = useState<ResultFilter>('');
-  const [page, setPage] = useState(1);
+  // Filter and page live in the URL as `acts_*` (the three tabs share one
+  // address), so Back from an act returns to the same filtered page.
+  const { filters: applied, page, setFilters, setPage } = useListUrlState(EMPTY_FILTERS, { prefix: 'acts' });
+  const result = applied.result;
 
   const canCreate = !!me?.permissions.includes(INSPECTIONS_ACTS_WRITE);
   const filters = { result: result || undefined, page, page_size: PAGE_SIZE };
@@ -126,8 +130,7 @@ export function ActsTab({ active }: { active: boolean }) {
             touchSize
             value={result}
             onChange={(e) => {
-              setResult(e.target.value as ResultFilter);
-              setPage(1);
+              setFilters({ result: e.target.value as ResultFilter });
             }}
             options={[
               { value: '', label: t('inspector.acts.status.all') },

@@ -3,6 +3,13 @@ import { useSearchParams } from 'react-router';
 
 const PAGE_KEY = 'page';
 
+export interface ListUrlStateOptions {
+  /** Namespace for every key, `page` included (`acts_result`, `acts_page`):
+   * for lists that share one URL, such as the tabs of a tabbed screen that
+   * stay mounted side by side and must not overwrite each other's state. */
+  prefix?: string;
+}
+
 /** Every filter is a string (the empty string standing for "not set"); an
  * interface with string members qualifies, no index signature needed. */
 type StringFilters<F> = { [K in keyof F]: string };
@@ -35,19 +42,22 @@ export interface ListUrlState<F extends StringFilters<F>> {
  *
  * Pass `defaults` as a module-level constant: it is a memo dependency.
  */
-export function useListUrlState<F extends StringFilters<F>>(defaults: F): ListUrlState<F> {
+export function useListUrlState<F extends StringFilters<F>>(
+  defaults: F,
+  { prefix }: ListUrlStateOptions = {},
+): ListUrlState<F> {
   const [params, setParams] = useSearchParams();
 
   const filters = useMemo(() => {
     const out = { ...defaults };
     for (const key of keysOf(defaults)) {
-      const value = params.get(key);
+      const value = params.get(paramName(prefix, key));
       if (value !== null) (out as Record<string, string>)[key] = value;
     }
     return out;
-  }, [params, defaults]);
+  }, [params, defaults, prefix]);
 
-  const page = parsePage(params.get(PAGE_KEY));
+  const page = parsePage(params.get(paramName(prefix, PAGE_KEY)));
 
   const setFilters = useCallback(
     (patch: Partial<F>) => {
@@ -57,20 +67,21 @@ export function useListUrlState<F extends StringFilters<F>>(defaults: F): ListUr
           let changed = false;
           for (const [key, value] of Object.entries(patch) as [string, string | undefined][]) {
             if (value === undefined) continue;
-            const current = prev.get(key) ?? defaultOf(defaults, key);
+            const name = paramName(prefix, key);
+            const current = prev.get(name) ?? defaultOf(defaults, key);
             if (current === value) continue;
             changed = true;
-            if (value === defaultOf(defaults, key)) next.delete(key);
-            else next.set(key, value);
+            if (value === defaultOf(defaults, key)) next.delete(name);
+            else next.set(name, value);
           }
           if (!changed) return prev;
-          next.delete(PAGE_KEY);
+          next.delete(paramName(prefix, PAGE_KEY));
           return next;
         },
         { replace: true },
       );
     },
-    [setParams, defaults],
+    [setParams, defaults, prefix],
   );
 
   const setPage = useCallback(
@@ -78,29 +89,33 @@ export function useListUrlState<F extends StringFilters<F>>(defaults: F): ListUr
       setParams(
         (prev) => {
           const next = new URLSearchParams(prev);
-          if (nextPage <= 1) next.delete(PAGE_KEY);
-          else next.set(PAGE_KEY, String(nextPage));
+          if (nextPage <= 1) next.delete(paramName(prefix, PAGE_KEY));
+          else next.set(paramName(prefix, PAGE_KEY), String(nextPage));
           return next;
         },
         { replace: true },
       );
     },
-    [setParams],
+    [setParams, prefix],
   );
 
   const reset = useCallback(() => {
     setParams(
       (prev) => {
         const next = new URLSearchParams(prev);
-        for (const key of keysOf(defaults)) next.delete(key);
-        next.delete(PAGE_KEY);
+        for (const key of keysOf(defaults)) next.delete(paramName(prefix, key));
+        next.delete(paramName(prefix, PAGE_KEY));
         return next;
       },
       { replace: true },
     );
-  }, [setParams, defaults]);
+  }, [setParams, defaults, prefix]);
 
   return { filters, page, setFilters, setPage, reset };
+}
+
+function paramName(prefix: string | undefined, key: string): string {
+  return prefix ? `${prefix}_${key}` : key;
 }
 
 function keysOf<F extends StringFilters<F>>(defaults: F): string[] {

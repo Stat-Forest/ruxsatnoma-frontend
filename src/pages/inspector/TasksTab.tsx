@@ -1,6 +1,6 @@
-import { useState } from 'react';
 import { useNavigate } from 'react-router';
 import { Loader2 } from 'lucide-react';
+import { useListUrlState } from '../../lib/useListUrlState';
 import { useAuth } from '../../auth/useAuth';
 import { useT } from '../../i18n/useT';
 import { Button } from '../../components/ui/button';
@@ -17,6 +17,8 @@ import { CLICKABLE_ROW_CLASS, clickableRowProps } from '../../lib/rowClick';
 const PAGE_SIZE = 20;
 
 type TaskStatusFilter = '' | 'assigned' | 'in_progress' | 'done' | 'cancelled';
+
+const EMPTY_FILTERS: { status: TaskStatusFilter } = { status: '' };
 
 /** `StatusBadge`'s own `StatusType` enum knows nothing about a task's
  *  statuses — mapped onto the closest colour bucket; the visible TEXT is
@@ -125,8 +127,10 @@ function TaskCard({ task }: { task: TaskOut }) {
 export function TasksTab({ active }: { active: boolean }) {
   const t = useT();
   const errorText = useApiErrorText();
-  const [status, setStatus] = useState<TaskStatusFilter>('');
-  const [page, setPage] = useState(1);
+  // Filter and page live in the URL as `tasks_*` (the three tabs share one
+  // address), so Back from a task returns to the same filtered page.
+  const { filters: applied, page, setFilters, setPage } = useListUrlState(EMPTY_FILTERS, { prefix: 'tasks' });
+  const status = applied.status;
 
   const filters = { status: status || undefined, page, page_size: PAGE_SIZE };
   const list = useTasksList(filters, { enabled: active });
@@ -140,8 +144,7 @@ export function TasksTab({ active }: { active: boolean }) {
             touchSize
             value={status}
             onChange={(e) => {
-              setStatus(e.target.value as TaskStatusFilter);
-              setPage(1);
+              setFilters({ status: e.target.value as TaskStatusFilter });
             }}
             options={[
               { value: '', label: t('inspector.tasks.status.all') },

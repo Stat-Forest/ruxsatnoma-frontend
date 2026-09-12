@@ -16,7 +16,6 @@
  * existing list, pagination and zone-scoped query instead of a second one
  * a different screen would have to keep in step with it.
  */
-import { useState } from 'react';
 import { useSearchParams } from 'react-router';
 import { Tabs } from '../../components/ui/Navigation';
 import { useT } from '../../i18n/useT';
@@ -40,9 +39,11 @@ export function InspectionsPage() {
   const applicantId = searchParams.get('applicant_id') ?? undefined;
   // 'tasks' is the default: what the inspector opens this screen FOR, day
   // to day — scanning a QR is a deliberate, occasional action, not the
-  // landing view. `?tab=` (above) overrides it for a caller that arrives
-  // asking for a specific one, e.g. the repeat-violation link.
-  const [tab, setTab] = useState<TabId>(isTabId(requestedTab) ? requestedTab : 'tasks');
+  // landing view. `?tab=` overrides it for a caller that arrives asking for
+  // a specific one, e.g. the repeat-violation link — and it is the tab's
+  // only home: opening a task/act/case and pressing Back must land on the
+  // tab the reader left, which component state could not survive.
+  const tab: TabId = isTabId(requestedTab) ? requestedTab : 'tasks';
 
   return (
     <div className="space-y-6 font-sans pb-16" data-testid="inspections-page">
@@ -59,11 +60,17 @@ export function InspectionsPage() {
         ]}
         activeTabId={tab}
         onChange={(id) => {
-          setTab(id as TabId);
           // Leaving the `cases` tab drops `applicant_id` too — the filter is
           // a fact about how the reader ARRIVED here, not a standing
           // preference that should survive a trip to another tab and back.
-          setSearchParams({});
+          // Each tab's own filters (`tasks_*`, `acts_*`, `cases_*`) stay:
+          // the tab bodies stay mounted, and a tab switch never reset them.
+          setSearchParams((prev) => {
+            const next = new URLSearchParams(prev);
+            next.set('tab', id);
+            next.delete('applicant_id');
+            return next;
+          });
         }}
       />
 
