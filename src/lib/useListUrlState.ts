@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from 'react';
+import { useCallback, useLayoutEffect, useMemo, useRef } from 'react';
 import { useSearchParams } from 'react-router';
 
 const PAGE_KEY = 'page';
@@ -48,6 +48,26 @@ export function useListUrlState<F extends StringFilters<F>>(
 ): ListUrlState<F> {
   const [params, setParams] = useSearchParams();
 
+  // Every write starts from the params as they are NOW, never from the
+  // render that created the setter. A debounced write (the search box's
+  // 400 ms timer) holds the setter of the render that armed it; react-router's
+  // own functional `setSearchParams(prev => …)` would hand that setter the
+  // params of ITS render, and a status picked inside the debounce window
+  // would be written over and silently lost. The ref follows the router
+  // after every commit and is advanced eagerly on each write, so two writes
+  // in one tick compose too.
+  const live = useRef(params);
+  useLayoutEffect(() => {
+    live.current = params;
+  }, [params]);
+  const write = useCallback(
+    (next: URLSearchParams) => {
+      live.current = next;
+      setParams(next, { replace: true });
+    },
+    [setParams],
+  );
+
   const filters = useMemo(() => {
     const out = { ...defaults };
     for (const key of keysOf(defaults)) {
@@ -61,55 +81,41 @@ export function useListUrlState<F extends StringFilters<F>>(
 
   const setFilters = useCallback(
     (patch: Partial<F>) => {
-      setParams(
-        (prev) => {
-          const next = new URLSearchParams(prev);
-          let changed = false;
-          for (const [key, value] of Object.entries(patch) as [string, string | undefined][]) {
-            if (value === undefined) continue;
-            const name = paramName(prefix, key);
-            const current = prev.get(name) ?? defaultOf(defaults, key);
-            if (current === value) continue;
-            changed = true;
-            if (value === defaultOf(defaults, key)) next.delete(name);
-            else next.set(name, value);
-          }
-          if (!changed) return prev;
-          next.delete(paramName(prefix, PAGE_KEY));
-          return next;
-        },
-        { replace: true },
-      );
+      const prev = live.current;
+      const next = new URLSearchParams(prev);
+      let changed = false;
+      for (const [key, value] of Object.entries(patch) as [string, string | undefined][]) {
+        if (value === undefined) continue;
+        const name = paramName(prefix, key);
+        const current = prev.get(name) ?? defaultOf(defaults, key);
+        if (current === value) continue;
+        changed = true;
+        if (value === defaultOf(defaults, key)) next.delete(name);
+        else next.set(name, value);
+      }
+      if (!changed) return;
+      next.delete(paramName(prefix, PAGE_KEY));
+      write(next);
     },
-    [setParams, defaults, prefix],
+    [write, defaults, prefix],
   );
 
   const setPage = useCallback(
     (nextPage: number) => {
-      setParams(
-        (prev) => {
-          const next = new URLSearchParams(prev);
-          if (nextPage <= 1) next.delete(paramName(prefix, PAGE_KEY));
-          else next.set(paramName(prefix, PAGE_KEY), String(nextPage));
-          return next;
-        },
-        { replace: true },
-      );
+      const next = new URLSearchParams(live.current);
+      if (nextPage <= 1) next.delete(paramName(prefix, PAGE_KEY));
+      else next.set(paramName(prefix, PAGE_KEY), String(nextPage));
+      write(next);
     },
-    [setParams, prefix],
+    [write, prefix],
   );
 
   const reset = useCallback(() => {
-    setParams(
-      (prev) => {
-        const next = new URLSearchParams(prev);
-        for (const key of keysOf(defaults)) next.delete(paramName(prefix, key));
-        next.delete(paramName(prefix, PAGE_KEY));
-        return next;
-      },
-      { replace: true },
-    );
-  }, [setParams, defaults, prefix]);
+    const next = new URLSearchParams(live.current);
+    for (const key of keysOf(defaults)) next.delete(paramName(prefix, key));
+    next.delete(paramName(prefix, PAGE_KEY));
+    write(next);
+  }, [write, defaults, prefix]);
 
   return { filters, page, setFilters, setPage, reset };
 }

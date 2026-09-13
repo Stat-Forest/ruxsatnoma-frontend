@@ -4,17 +4,27 @@
  * Back, or the card's own "back to list" link) lands on the same filtered
  * page. Component state is lost the moment the list unmounts; the URL is not.
  */
-import { render, screen } from '@testing-library/react';
+import { useEffect } from 'react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes, useLocation, useNavigate } from 'react-router';
 import { useListUrlState } from './useListUrlState';
 
 const DEFAULTS = { status: '', q: '' };
 
-function Probe({ prefix }: { prefix?: string }) {
+function Probe({ prefix, lateWrite }: { prefix?: string; lateWrite?: boolean }) {
   const { filters, page, setFilters, setPage, reset } = useListUrlState(DEFAULTS, { prefix });
   const location = useLocation();
   const navigate = useNavigate();
+  // A debounced write the way the list screens make it: the timer holds the
+  // `setFilters` of the render that scheduled it, and fires after the URL
+  // may have moved on.
+  useEffect(() => {
+    if (!lateWrite) return;
+    const timer = setTimeout(() => setFilters({ q: 'late' }), 150);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lateWrite]);
   return (
     <div>
       <div data-testid="state">{JSON.stringify({ ...filters, page })}</div>
@@ -40,11 +50,11 @@ function Card() {
   );
 }
 
-function renderAt(url: string, prefix?: string) {
+function renderAt(url: string, prefix?: string, lateWrite?: boolean) {
   return render(
     <MemoryRouter initialEntries={[url]}>
       <Routes>
-        <Route path="/list" element={<Probe prefix={prefix} />} />
+        <Route path="/list" element={<Probe prefix={prefix} lateWrite={lateWrite} />} />
         <Route path="/list/:id" element={<Card />} />
       </Routes>
     </MemoryRouter>,
@@ -129,4 +139,19 @@ test('with a prefix every key, page included, is namespaced — two lists can sh
   await user.click(screen.getByText('page=3'));
   await user.click(screen.getByText('reset'));
   expect(screen.getByTestId('url')).toHaveTextContent(/^\/list\?tab=acts&status=other-list&page=7$/);
+});
+
+test('a write from a setter captured earlier lands on top of the CURRENT URL, not the one it was captured with', async () => {
+  // The real-world shape: the search box's 400 ms debounce is armed on mount,
+  // the reader picks a status inside that window, and the timer then fires.
+  // react-router's own functional `setSearchParams(prev => …)` hands over the
+  // params of the render that created the setter, so a naive hook would
+  // write `?q=late` over `?status=NEW` and silently drop the status.
+  const user = userEvent.setup();
+  renderAt('/list', undefined, true);
+  await user.click(screen.getByText('status=NEW'));
+  await user.click(screen.getByText('page=3'));
+  expect(screen.getByTestId('url')).toHaveTextContent(/^\/list\?status=NEW&page=3$/);
+  await waitFor(() => expect(screen.getByTestId('url')).toHaveTextContent('q=late'));
+  expect(state()).toEqual({ status: 'NEW', q: 'late', page: 1 });
 });
