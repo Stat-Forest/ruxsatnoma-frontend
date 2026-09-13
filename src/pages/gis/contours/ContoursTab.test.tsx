@@ -24,6 +24,7 @@ vi.mock('./DrawMap', () => ({
     active: boolean;
     referenceGeometry?: { type: string } | null;
     selectedGeometry?: { type: string } | null;
+    focusBounds?: readonly number[] | null;
     browsableFeatures?: { features: { properties: { contour_id: string } }[] };
     onViewportChange?: (bbox: string | null) => void;
     onPickContour?: (contourId: string) => void;
@@ -35,6 +36,7 @@ vi.mock('./DrawMap', () => ({
       data-geometry-type={props.geometryType}
       data-reference-geometry-type={props.referenceGeometry?.type ?? ''}
       data-selected-geometry-type={props.selectedGeometry?.type ?? ''}
+      data-focus-bounds={props.focusBounds?.join(',') ?? ''}
     >
       <button
         onClick={() =>
@@ -74,8 +76,16 @@ afterAll(() => server.close());
 // (no `parent_id`), then one call per root's own id — mirroring the real
 // `/refs/organizations` contract, where `parent_id` is a STRICT filter, not
 // "everything".
-const ROOT_ORG = { id: 'org-0', code: 'agency', name: { uz_latn: 'Agentlik' }, kind: 'agency', parent_id: null };
-const ORG = { id: 'org-1', code: 'burchmulla', name: { uz_latn: 'Burchmulla LX' }, kind: 'leshoz', parent_id: 'org-0' };
+const ROOT_ORG = { id: 'org-0', code: 'agency', name: { uz_latn: 'Agentlik' }, kind: 'agency', parent_id: null, region_id: null, district_id: null };
+const ORG = { id: 'org-1', code: 'burchmulla', name: { uz_latn: 'Burchmulla LX' }, kind: 'leshoz', parent_id: 'org-0', region_id: 'reg-tash', district_id: null };
+// A second leshoz in another region, for the Viloyat → Xoʻjalik cascade.
+const ORG_FAR = { id: 'org-2', code: 'zomin', name: { uz_latn: 'Zomin LX' }, kind: 'leshoz', parent_id: 'org-0', region_id: 'reg-jizz', district_id: null };
+const REGIONS = [
+  { id: 'reg-tash', code: 'tashkent-region', soato_code: null, name: { uz_latn: 'Toshkent viloyati' } },
+  { id: 'reg-jizz', code: 'jizzakh', soato_code: null, name: { uz_latn: 'Jizzax viloyati' } },
+  // No leshoz here — never offered as a filter.
+  { id: 'reg-city', code: 'tashkent-city', soato_code: null, name: { uz_latn: 'Toshkent shahri' } },
+];
 
 function referenceHandlers() {
   return [
@@ -83,9 +93,10 @@ function referenceHandlers() {
       const url = new URL(request.url);
       const parentId = url.searchParams.get('parent_id');
       if (!parentId) return HttpResponse.json({ items: [ROOT_ORG], total: 1 });
-      if (parentId === ROOT_ORG.id) return HttpResponse.json({ items: [ORG], total: 1 });
+      if (parentId === ROOT_ORG.id) return HttpResponse.json({ items: [ORG, ORG_FAR], total: 2 });
       return HttpResponse.json({ items: [], total: 0 });
     }),
+    http.get('*/api/v1/refs/regions', () => HttpResponse.json(REGIONS)),
     http.get('*/api/v1/gis/layers', () =>
       HttpResponse.json({
         items: [{ id: 'layer-contours', code: 'contours', name: { uz_latn: 'Konturlar' }, geometry_type: 'MULTIPOLYGON', is_public: true, style: {}, status: 'active' }],
@@ -94,13 +105,13 @@ function referenceHandlers() {
   ];
 }
 
-function renderTab(permissions: string[]) {
+function renderTab(permissions: string[], zone: Record<string, string | null> = {}) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
   const me = {
     user: { id: 'u-1', full_name: 'Test', login: 'test', language: 'uz_latn' },
     role: { code: 'gis_specialist', name: {} },
     permissions,
-    zone: {},
+    zone,
     csrf_token: 'tok',
     is_superuser: false,
     applicant: null,
@@ -524,6 +535,136 @@ test('the organization filter narrows the list and the map\'s parcels together',
   expect(listQuery.get('organization_id')).toBe('org-1');
   expect(listQuery.get('page')).toBe('1');
   expect(new URL(featureUrls[1]).searchParams.get('organization_id')).toBe('org-1');
+});
+
+test('the region select narrows the organization select to that region, filters the list by region_id, and drops a leshoz that left the list', async () => {
+  const listUrls: string[] = [];
+  server.use(
+    ...referenceHandlers(),
+    http.get('*/api/v1/gis/contours', ({ request }) => {
+      listUrls.push(request.url);
+      return HttpResponse.json({ items: [CONTOUR_ROW], total: 1 });
+    }),
+    http.get('*/api/v1/gis/contours/features', () =>
+      HttpResponse.json({ type: 'FeatureCollection', features: [], truncated: false }),
+    ),
+  );
+  const ui = userEvent.setup();
+  renderTab(['gis.contours.manage']);
+  await screen.findByTestId('contour-row-c-1');
+
+  const orgFilter = await screen.findByRole('combobox', { name: 'gis.contours.filterOrganization' });
+  await waitFor(() => expect(within(orgFilter).getByText('Zomin LX')).toBeInTheDocument());
+  expect(within(orgFilter).getByText('Burchmulla LX')).toBeInTheDocument();
+
+  // Pick the far leshoz, then a region it is NOT in: the organization
+  // select loses it AND the applied filter is dropped back to "all",
+  // so the list never shows a leshoz the select can no longer name.
+  await ui.selectOptions(orgFilter, 'org-2');
+  await waitFor(() => expect(new URL(listUrls[listUrls.length - 1]).searchParams.get('organization_id')).toBe('org-2'));
+
+  const regionFilter = screen.getByRole('combobox', { name: 'gis.contours.filterRegion' });
+  await waitFor(() => expect(within(regionFilter).getByText('Toshkent viloyati')).toBeInTheDocument());
+  await ui.selectOptions(regionFilter, 'reg-tash');
+
+  await waitFor(() => expect(within(orgFilter).queryByText('Zomin LX')).not.toBeInTheDocument());
+  expect(within(orgFilter).getByText('Burchmulla LX')).toBeInTheDocument();
+  expect(within(orgFilter).getByText('gis.contours.allOrganizations')).toBeInTheDocument();
+  await waitFor(() => {
+    const query = new URL(listUrls[listUrls.length - 1]).searchParams;
+    expect(query.get('organization_id')).toBeNull();
+    expect(query.get('region_id')).toBe('reg-tash');
+    expect(query.get('page')).toBe('1');
+  });
+
+  // A leshoz that IS in the chosen region survives a region change.
+  await ui.selectOptions(orgFilter, 'org-1');
+  await waitFor(() => expect(new URL(listUrls[listUrls.length - 1]).searchParams.get('organization_id')).toBe('org-1'));
+  await ui.selectOptions(regionFilter, '');
+  expect((orgFilter as HTMLSelectElement).value).toBe('org-1');
+  await waitFor(() => expect(within(orgFilter).getByText('Zomin LX')).toBeInTheDocument());
+  await waitFor(() => expect(new URL(listUrls[listUrls.length - 1]).searchParams.get('region_id')).toBeNull());
+});
+
+test('a leshoz-scoped actor is offered their own leshoz and its region only; a region with no leshoz is never offered', async () => {
+  server.use(
+    ...referenceHandlers(),
+    http.get('*/api/v1/gis/contours', () => HttpResponse.json({ items: [CONTOUR_ROW], total: 1 })),
+  );
+  renderTab(['gis.contours.manage'], { organization_id: 'org-1', region_id: 'reg-tash', district_id: null });
+  await screen.findByTestId('contour-row-c-1');
+
+  const orgFilter = screen.getByRole('combobox', { name: 'gis.contours.filterOrganization' });
+  await waitFor(() => expect(within(orgFilter).getByText('Burchmulla LX')).toBeInTheDocument());
+  expect(within(orgFilter).queryByText('Zomin LX')).not.toBeInTheDocument();
+  expect(within(orgFilter).queryByText('Agentlik')).not.toBeInTheDocument();
+
+  const regionFilter = screen.getByRole('combobox', { name: 'gis.contours.filterRegion' });
+  await waitFor(() => expect(within(regionFilter).getByText('Toshkent viloyati')).toBeInTheDocument());
+  expect(within(regionFilter).queryByText('Jizzax viloyati')).not.toBeInTheDocument();
+  expect(within(regionFilter).queryByText('Toshkent shahri')).not.toBeInTheDocument();
+});
+
+test('a picked region or organization hands its extent to the map to fly to; no filter hands nothing', async () => {
+  const extentUrls: string[] = [];
+  server.use(
+    ...referenceHandlers(),
+    http.get('*/api/v1/gis/contours', () => HttpResponse.json({ items: [CONTOUR_ROW], total: 1 })),
+    http.get('*/api/v1/gis/contours/extent', ({ request }) => {
+      extentUrls.push(request.url);
+      return HttpResponse.json({ bbox: [67.4, 39.5, 68.7, 40.1] });
+    }),
+  );
+  const ui = userEvent.setup();
+  renderTab(['gis.contours.manage']);
+  const map = await screen.findByTestId('draw-map-mock');
+  await screen.findByTestId('contour-row-c-1');
+  expect(map).toHaveAttribute('data-focus-bounds', '');
+  expect(extentUrls).toHaveLength(0);
+
+  const regionFilter = screen.getByRole('combobox', { name: 'gis.contours.filterRegion' });
+  await waitFor(() => expect(within(regionFilter).getByText('Jizzax viloyati')).toBeInTheDocument());
+  await ui.selectOptions(regionFilter, 'reg-jizz');
+  await waitFor(() => expect(map).toHaveAttribute('data-focus-bounds', '67.4,39.5,68.7,40.1'));
+  expect(new URL(extentUrls[0]).searchParams.get('region_id')).toBe('reg-jizz');
+  expect(new URL(extentUrls[0]).searchParams.get('organization_id')).toBeNull();
+
+  const orgFilter = screen.getByRole('combobox', { name: 'gis.contours.filterOrganization' });
+  await ui.selectOptions(orgFilter, 'org-2');
+  await waitFor(() => expect(extentUrls).toHaveLength(2));
+  expect(new URL(extentUrls[1]).searchParams.get('organization_id')).toBe('org-2');
+  expect(new URL(extentUrls[1]).searchParams.get('region_id')).toBe('reg-jizz');
+});
+
+test('changing the region or the organization filter drops the selected contour', async () => {
+  server.use(
+    ...referenceHandlers(),
+    http.get('*/api/v1/gis/contours', () => HttpResponse.json({ items: [CONTOUR_ROW], total: 1 })),
+    http.get('*/api/v1/gis/contours/c-1', () => HttpResponse.json(CONTOUR_CARD)),
+    http.get('*/api/v1/gis/contours/features', () =>
+      HttpResponse.json({ type: 'FeatureCollection', features: [], truncated: false }),
+    ),
+  );
+  const ui = userEvent.setup();
+  renderTab(['gis.contours.manage']);
+  const map = await screen.findByTestId('draw-map-mock');
+
+  await ui.click(await screen.findByTestId('contour-row-c-1'));
+  await waitFor(() => expect(map).toHaveAttribute('data-selected-geometry-type', 'Polygon'));
+
+  const regionFilter = screen.getByRole('combobox', { name: 'gis.contours.filterRegion' });
+  await waitFor(() => expect(within(regionFilter).getByText('Jizzax viloyati')).toBeInTheDocument());
+  await ui.selectOptions(regionFilter, 'reg-jizz');
+  expect(map).toHaveAttribute('data-selected-geometry-type', '');
+
+  await ui.selectOptions(regionFilter, '');
+  await ui.click(await screen.findByTestId('contour-row-c-1'));
+  await waitFor(() => expect(map).toHaveAttribute('data-selected-geometry-type', 'Polygon'));
+
+  const orgFilter = screen.getByRole('combobox', { name: 'gis.contours.filterOrganization' });
+  await waitFor(() => expect(within(orgFilter).getByText('Zomin LX')).toBeInTheDocument());
+  await ui.selectOptions(orgFilter, 'org-2');
+  expect(map).toHaveAttribute('data-selected-geometry-type', '');
 });
 
 test('the Excel button asks the server for the export with the applied organization filter, never paging the list itself', async () => {

@@ -2066,8 +2066,60 @@ export interface paths {
          *
          *     Send a `?bbox=` — without one this is every published contour the caller
          *     may see, and `truncated` in the response says when that hit the cap.
+         *
+         *     `?tolerance=` (degrees, at most 0.05 ≈ 5 km) asks for an overview:
+         *     simplified geometries under a ten-times-higher cap, for a map zoomed
+         *     out to a region — see `repo.contour_features_geojson`.
          */
         get: operations["list_contour_features_api_v1_gis_contours_features_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/gis/contours/extent": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Contours Extent
+         * @description The bounding box of the published contours the caller may see under
+         *     the same filters `/contours/features` takes — what the map fits itself
+         *     to when a region or a leshoz is picked. **Above `/contours/{contour_id}`
+         *     for the same reason `/contours/features` is**: `extent` is not a UUID.
+         */
+        get: operations["contours_extent_api_v1_gis_contours_extent_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/gis/contours/{contour_id}/export.kmz": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Export Contour Kmz
+         * @description The card's published boundary as a KMZ file (Odilxon, 2026-09-13):
+         *     what the application and permit cards' «KMZ yuklab olish» button
+         *     downloads. Same reader as the card, so the same people see the same
+         *     polygon; 404 `ERR-GIS-007` when the contour has no geometry to give
+         *     (decision #178) — the button hides on that card, and a direct call is
+         *     told why rather than handed an empty file.
+         */
+        get: operations["export_contour_kmz_api_v1_gis_contours__contour_id__export_kmz_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -9609,6 +9661,21 @@ export interface components {
              * Format: date-time
              */
             finished_at: string;
+        };
+        /**
+         * ExtentOut
+         * @description `GET /gis/contours/extent`. `bbox` is `[west, south, east, north]` in
+         *     WGS84 — MapLibre's own `fitBounds` order — or `None` when no published
+         *     contour matches, which a map treats as "stay where you are".
+         */
+        ExtentOut: {
+            /** Bbox */
+            bbox: [
+                number,
+                number,
+                number,
+                number
+            ] | null;
         };
         /** FaqIn */
         FaqIn: {
@@ -18388,6 +18455,7 @@ export interface operations {
             query?: {
                 organization_id?: string | null;
                 bbox?: string | null;
+                region_id?: string | null;
                 page?: number;
                 page_size?: number;
             };
@@ -18456,6 +18524,7 @@ export interface operations {
                 lang?: "uz_latn" | "ru";
                 organization_id?: string | null;
                 bbox?: string | null;
+                region_id?: string | null;
             };
             header?: never;
             path?: never;
@@ -18488,6 +18557,8 @@ export interface operations {
             query?: {
                 organization_id?: string | null;
                 bbox?: string | null;
+                region_id?: string | null;
+                tolerance?: number | null;
             };
             header?: never;
             path?: never;
@@ -18502,6 +18573,71 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["FeatureCollectionOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    contours_extent_api_v1_gis_contours_extent_get: {
+        parameters: {
+            query?: {
+                organization_id?: string | null;
+                region_id?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExtentOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    export_contour_kmz_api_v1_gis_contours__contour_id__export_kmz_get: {
+        parameters: {
+            query?: {
+                lang?: "uz_latn" | "ru";
+            };
+            header?: never;
+            path: {
+                contour_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
                 };
             };
             /** @description Validation Error */

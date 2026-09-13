@@ -24,6 +24,10 @@ export function useOrganizations() {
   return useQuery({ queryKey: ['gis', 'organizations'], queryFn: gisApi.listOrganizations });
 }
 
+export function useRegions() {
+  return useQuery({ queryKey: ['gis', 'regions'], queryFn: gisApi.listRegions });
+}
+
 export function useUploadFile() {
   return useMutation({ mutationFn: (file: File) => gisApi.uploadFile(file) });
 }
@@ -92,17 +96,44 @@ export function useArchiveLayerFeature(code: string) {
 
 // --- contours -------------------------------------------------------------
 
-export function useContours(params: { page: number; page_size?: number; organization_id?: string }) {
+export function useContours(params: {
+  page: number;
+  page_size?: number;
+  organization_id?: string;
+  region_id?: string;
+}) {
   return useQuery({
     queryKey: ['gis', 'contours', params],
     queryFn: () => gisApi.listContours(params),
   });
 }
 
-export function useContourFeatures(bbox: string | null, organizationId?: string) {
+/** Enabled only under a filter: with nothing picked there is nothing to fly
+ * to, and the country-wide extent would only yank the map out. */
+export function useContoursExtent(organizationId?: string, regionId?: string) {
   return useQuery({
-    queryKey: ['gis', 'contour-features', bbox, organizationId],
-    queryFn: () => gisApi.listContourFeatures({ bbox: bbox!, organization_id: organizationId }),
+    queryKey: ['gis', 'contours-extent', organizationId, regionId],
+    queryFn: () => gisApi.contoursExtent({ organization_id: organizationId, region_id: regionId }),
+    enabled: !!organizationId || !!regionId,
+    staleTime: 60_000,
+  });
+}
+
+export function useContourFeatures(
+  bbox: string | null,
+  organizationId?: string,
+  regionId?: string,
+  tolerance?: number,
+) {
+  return useQuery({
+    queryKey: ['gis', 'contour-features', bbox, organizationId, regionId, tolerance],
+    queryFn: () =>
+      gisApi.listContourFeatures({
+        bbox: bbox!,
+        organization_id: organizationId,
+        region_id: regionId,
+        tolerance,
+      }),
     enabled: !!bbox,
     staleTime: 60_000,
   });

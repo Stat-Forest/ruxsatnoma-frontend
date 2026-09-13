@@ -733,6 +733,8 @@ export const kaa = {
   'gis.contours.listTitle': 'Konturlar',
   'gis.contours.newContour': 'Jańa kontur',
   'gis.contours.searchPlaceholder': 'Kontur nomeri boyınsha izlew...',
+  'gis.contours.filterRegion': 'Wálayat boyınsha filtr',
+  'gis.contours.allRegions': 'Barlıq wálayatlar',
   'gis.contours.filterOrganization': 'Shólkem boyınsha filtr',
   'gis.contours.allOrganizations': 'Barlıq shólkemler',
   'gis.contours.loading': 'Júklenbekte...',

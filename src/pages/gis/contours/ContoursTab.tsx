@@ -14,10 +14,12 @@ import {
   useArchiveVersion,
   useContourCard,
   useContourFeatures,
+  useContoursExtent,
   useContours,
   useCreateContour,
   useCreateVersion,
   useOrganizations,
+  useRegions,
 } from '../queries';
 import { activeRecalledVersion } from '../localVersions';
 import { DrawMap } from './DrawMap';
@@ -230,6 +232,11 @@ export function ContoursTab({ t }: { t: (key: string) => string }) {
 
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
+  // Viloyat → Xoʻjalik → Kontur (Odilxon, 2026-09-13). A region narrows the
+  // organization select from ~70 leshozes to its own handful AND goes to the
+  // server as `region_id` on the list, the map's layer and the export, so a
+  // region with no leshoz picked is that region's contours, not the country's.
+  const [regionFilter, setRegionFilter] = useState('');
   // One leshoz, or `''` for all — narrows the list AND the map's browsable
   // layer together (both endpoints take the same `organization_id`), so the
   // two never show different sets of the same contours side by side.
@@ -239,6 +246,9 @@ export function ContoursTab({ t }: { t: (key: string) => string }) {
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [drawnGeometry, setDrawnGeometry] = useState<Geometry | null>(null);
   const [bbox, setBbox] = useState<string | null>(null);
+  // Set while the map is zoomed out to an overview (`DrawMap`'s
+  // `DETAIL_ZOOM`): the `?tolerance=` the layer is simplified to.
+  const [tolerance, setTolerance] = useState<number | undefined>(undefined);
   const [pendingContourId, setPendingContourId] = useState<string | null>(null);
   // The number the operator typed into `NewContourForm`, echoed back by the
   // create response — kept only for `pendingContourId`'s own lifetime, so the
@@ -257,8 +267,14 @@ export function ContoursTab({ t }: { t: (key: string) => string }) {
   // localStorage cache (React state, not the cache itself, drives render).
   const [recallTick, setRecallTick] = useState(0);
 
-  const contoursQuery = useContours({ page, page_size: 50, organization_id: orgFilter || undefined });
+  const contoursQuery = useContours({
+    page,
+    page_size: 50,
+    organization_id: orgFilter || undefined,
+    region_id: regionFilter || undefined,
+  });
   const organizationsQuery = useOrganizations();
+  const regionsQuery = useRegions();
   // Skipped for the contour we ourselves just created and have not yet drawn
   // a version for: `contour_card` requires a published version (backend
   // `gis/service.py::contour_card`), and a brand-new contour has none by
@@ -266,20 +282,64 @@ export function ContoursTab({ t }: { t: (key: string) => string }) {
   const cardQuery = useContourCard(selectedContourId, {
     enabled: selectedContourId !== pendingContourId,
   });
-  const featuresQuery = useContourFeatures(bbox, orgFilter || undefined);
+  const featuresQuery = useContourFeatures(
+    bbox,
+    orgFilter || undefined,
+    regionFilter || undefined,
+    tolerance,
+  );
+  const extentQuery = useContoursExtent(orgFilter || undefined, regionFilter || undefined);
   const createContour = useCreateContour();
   const createVersion = useCreateVersion(pendingContourId ?? selectedContourId ?? '');
   const archivePublished = useArchiveVersion(selectedContourId ?? '');
 
-  const orgOptions = useMemo(
-    () => (organizationsQuery.data ?? []).map((o) => ({ id: o.id, label: pickName(o.name, lang) || o.code })),
-    [organizationsQuery.data, lang],
+  // Both filters offer only what the actor's zone lets them see (Oybek,
+  // 2026-09-13): `GET /gis/contours` answers a leshoz-scoped specialist
+  // their own leshoz and nothing else, so a select naming seventy others
+  // is seventy ways to an empty list. The narrowing mirrors `zone_filter`'s
+  // axes — organization, else district, else region; a superuser or an
+  // actor with no zone sees every organization.
+  const zone = me && !me.is_superuser ? me.zone : null;
+  const visibleOrganizations = useMemo(
+    () =>
+      (organizationsQuery.data ?? []).filter((o) => {
+        if (!zone) return true;
+        if (zone.organization_id) return o.id === zone.organization_id;
+        if (zone.district_id) return o.district_id === zone.district_id;
+        if (zone.region_id) return o.region_id === zone.region_id;
+        return true;
+      }),
+    [organizationsQuery.data, zone],
   );
+  const orgOptions = useMemo(
+    () => visibleOrganizations.map((o) => ({ id: o.id, label: pickName(o.name, lang) || o.code })),
+    [visibleOrganizations, lang],
+  );
+  // Regions that hold at least one organization the actor may pick — a
+  // region with no leshoz in it (or none in the zone) is not a filter.
+  const regionOptions = useMemo(() => {
+    const withOrgs = new Set(visibleOrganizations.map((o) => o.region_id).filter(Boolean));
+    return (regionsQuery.data ?? [])
+      .filter((r) => withOrgs.has(r.id))
+      .map((r) => ({ id: r.id, label: pickName(r.name, lang) || r.code }));
+  }, [regionsQuery.data, visibleOrganizations, lang]);
+  // The organization select under a chosen region: that region's
+  // organizations only. The agency root has no region and drops out of a
+  // narrowed list on purpose — it owns no contours.
+  const orgOptionsInRegion = useMemo(() => {
+    if (!regionFilter) return orgOptions;
+    const inRegion = new Set(
+      visibleOrganizations.filter((o) => o.region_id === regionFilter).map((o) => o.id),
+    );
+    return orgOptions.filter((o) => inRegion.has(o.id));
+  }, [orgOptions, visibleOrganizations, regionFilter]);
+  // Row labels resolve against EVERY loaded organization, not the zone's
+  // pick list — a row the server chose to show is named whatever it is.
   const orgNameById = useMemo(() => {
     const map = new Map<string, string>();
-    for (const o of orgOptions) map.set(o.id, o.label);
+    for (const o of organizationsQuery.data ?? []) map.set(o.id, pickName(o.name, lang) || o.code);
     return map;
-  }, [orgOptions]);
+  }, [organizationsQuery.data, lang]);
   // `OrganizationOut.gis_enabled` (decision #178). `!== false` defaults an
   // org this browser has not loaded yet to "has a map" — the same direction
   // `ContourPicker`'s own copy of this lookup takes, for the same reason: a
@@ -323,6 +383,19 @@ export function ContoursTab({ t }: { t: (key: string) => string }) {
     setShowCreateForm(false);
     setDrawnGeometry(null);
     setSplitLine(null);
+  }
+
+  /** A changed region or organization filter drops the selection: the
+   * selected contour may no longer be in the list at all, and a card and a
+   * highlight for a row the list cannot show would outlive the filter that
+   * hid it (Oybek, 2026-09-13). Back to browse — a split line or an edit
+   * belonged to that selection. Page numbers belong to the previous
+   * filter's list too; page 2 of a narrower one may not even exist. */
+  function applyFilterChange() {
+    setSelectedContourId(null);
+    setMode('browse');
+    setSplitLine(null);
+    setPage(1);
   }
 
   /** A click on a parcel drawn on the map — the same selection the list row
@@ -405,16 +478,31 @@ export function ContoursTab({ t }: { t: (key: string) => string }) {
               )}
             </div>
             <Select
+              aria-label={t('gis.contours.filterRegion')}
+              data-testid="contour-region-filter"
+              value={regionFilter}
+              onChange={(e) => {
+                const next = e.target.value;
+                setRegionFilter(next);
+                // A leshoz picked under the previous region is not in the new
+                // region's list; keep it only while it still is.
+                const stillListed =
+                  !next ||
+                  (organizationsQuery.data ?? []).some((o) => o.id === orgFilter && o.region_id === next);
+                if (!stillListed) setOrgFilter('');
+                applyFilterChange();
+              }}
+              options={[{ value: '', label: t('gis.contours.allRegions') }, ...regionOptions.map((r) => ({ value: r.id, label: r.label }))]}
+            />
+            <Select
               aria-label={t('gis.contours.filterOrganization')}
               data-testid="contour-org-filter"
               value={orgFilter}
               onChange={(e) => {
                 setOrgFilter(e.target.value);
-                // Page numbers belong to the previous filter's list; page 2
-                // of a narrower one may not even exist.
-                setPage(1);
+                applyFilterChange();
               }}
-              options={[{ value: '', label: t('gis.contours.allOrganizations') }, ...orgOptions.map((o) => ({ value: o.id, label: o.label }))]}
+              options={[{ value: '', label: t('gis.contours.allOrganizations') }, ...orgOptionsInRegion.map((o) => ({ value: o.id, label: o.label }))]}
             />
             <Input
               placeholder={t('gis.contours.searchPlaceholder')}
@@ -430,7 +518,7 @@ export function ContoursTab({ t }: { t: (key: string) => string }) {
             <div className="flex justify-end">
               <ExportXlsxButton className="ml-auto"
                 path="/api/v1/gis/contours"
-                query={{ organization_id: orgFilter || undefined }}
+                query={{ organization_id: orgFilter || undefined, region_id: regionFilter || undefined }}
               />
             </div>
             <div className="max-h-96 overflow-y-auto divide-y divide-[#E4E7EA] border border-[#E4E7EA] rounded-xl">
@@ -614,9 +702,13 @@ export function ContoursTab({ t }: { t: (key: string) => string }) {
               active={mode !== 'browse'}
               referenceGeometry={mode === 'edit-draft' || mode === 'split' ? knownGeometry : null}
               selectedGeometry={mode === 'browse' ? knownGeometry : null}
+              focusBounds={extentQuery.data?.bbox ?? null}
               browsableFeatures={featuresQuery.data as never}
               browsableLoading={featuresQuery.isFetching}
-              onViewportChange={setBbox}
+              onViewportChange={(next, nextTolerance) => {
+                setBbox(next);
+                setTolerance(nextTolerance);
+              }}
               onPickContour={pickContourOnMap}
               onDrawFinish={(geometry) => {
                 if (mode === 'split') {

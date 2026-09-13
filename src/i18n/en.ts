@@ -825,6 +825,8 @@ export const en = {
   'gis.contours.listTitle': 'Contours',
   'gis.contours.newContour': 'New contour',
   'gis.contours.searchPlaceholder': 'Search by contour number...',
+  'gis.contours.filterRegion': 'Filter by region',
+  'gis.contours.allRegions': 'All regions',
   'gis.contours.filterOrganization': 'Filter by organization',
   'gis.contours.allOrganizations': 'All organizations',
   'gis.contours.loading': 'Loading...',
