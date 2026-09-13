@@ -285,29 +285,53 @@ export function ContoursTab({ t }: { t: (key: string) => string }) {
   const createVersion = useCreateVersion(pendingContourId ?? selectedContourId ?? '');
   const archivePublished = useArchiveVersion(selectedContourId ?? '');
 
+  // Both filters offer only what the actor's zone lets them see (Oybek,
+  // 2026-09-13): `GET /gis/contours` answers a leshoz-scoped specialist
+  // their own leshoz and nothing else, so a select naming seventy others
+  // is seventy ways to an empty list. The narrowing mirrors `zone_filter`'s
+  // axes — organization, else district, else region; a superuser or an
+  // actor with no zone sees every organization.
+  const zone = me && !me.is_superuser ? me.zone : null;
+  const visibleOrganizations = useMemo(
+    () =>
+      (organizationsQuery.data ?? []).filter((o) => {
+        if (!zone) return true;
+        if (zone.organization_id) return o.id === zone.organization_id;
+        if (zone.district_id) return o.district_id === zone.district_id;
+        if (zone.region_id) return o.region_id === zone.region_id;
+        return true;
+      }),
+    [organizationsQuery.data, zone],
+  );
   const orgOptions = useMemo(
-    () => (organizationsQuery.data ?? []).map((o) => ({ id: o.id, label: pickName(o.name, lang) || o.code })),
-    [organizationsQuery.data, lang],
+    () => visibleOrganizations.map((o) => ({ id: o.id, label: pickName(o.name, lang) || o.code })),
+    [visibleOrganizations, lang],
   );
-  const regionOptions = useMemo(
-    () => (regionsQuery.data ?? []).map((r) => ({ id: r.id, label: pickName(r.name, lang) || r.code })),
-    [regionsQuery.data, lang],
-  );
+  // Regions that hold at least one organization the actor may pick — a
+  // region with no leshoz in it (or none in the zone) is not a filter.
+  const regionOptions = useMemo(() => {
+    const withOrgs = new Set(visibleOrganizations.map((o) => o.region_id).filter(Boolean));
+    return (regionsQuery.data ?? [])
+      .filter((r) => withOrgs.has(r.id))
+      .map((r) => ({ id: r.id, label: pickName(r.name, lang) || r.code }));
+  }, [regionsQuery.data, visibleOrganizations, lang]);
   // The organization select under a chosen region: that region's
   // organizations only. The agency root has no region and drops out of a
   // narrowed list on purpose — it owns no contours.
   const orgOptionsInRegion = useMemo(() => {
     if (!regionFilter) return orgOptions;
     const inRegion = new Set(
-      (organizationsQuery.data ?? []).filter((o) => o.region_id === regionFilter).map((o) => o.id),
+      visibleOrganizations.filter((o) => o.region_id === regionFilter).map((o) => o.id),
     );
     return orgOptions.filter((o) => inRegion.has(o.id));
-  }, [orgOptions, organizationsQuery.data, regionFilter]);
+  }, [orgOptions, visibleOrganizations, regionFilter]);
+  // Row labels resolve against EVERY loaded organization, not the zone's
+  // pick list — a row the server chose to show is named whatever it is.
   const orgNameById = useMemo(() => {
     const map = new Map<string, string>();
-    for (const o of orgOptions) map.set(o.id, o.label);
+    for (const o of organizationsQuery.data ?? []) map.set(o.id, pickName(o.name, lang) || o.code);
     return map;
-  }, [orgOptions]);
+  }, [organizationsQuery.data, lang]);
   // `OrganizationOut.gis_enabled` (decision #178). `!== false` defaults an
   // org this browser has not loaded yet to "has a map" — the same direction
   // `ContourPicker`'s own copy of this lookup takes, for the same reason: a

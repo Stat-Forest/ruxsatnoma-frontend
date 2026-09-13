@@ -76,13 +76,15 @@ afterAll(() => server.close());
 // (no `parent_id`), then one call per root's own id — mirroring the real
 // `/refs/organizations` contract, where `parent_id` is a STRICT filter, not
 // "everything".
-const ROOT_ORG = { id: 'org-0', code: 'agency', name: { uz_latn: 'Agentlik' }, kind: 'agency', parent_id: null, region_id: null };
-const ORG = { id: 'org-1', code: 'burchmulla', name: { uz_latn: 'Burchmulla LX' }, kind: 'leshoz', parent_id: 'org-0', region_id: 'reg-tash' };
+const ROOT_ORG = { id: 'org-0', code: 'agency', name: { uz_latn: 'Agentlik' }, kind: 'agency', parent_id: null, region_id: null, district_id: null };
+const ORG = { id: 'org-1', code: 'burchmulla', name: { uz_latn: 'Burchmulla LX' }, kind: 'leshoz', parent_id: 'org-0', region_id: 'reg-tash', district_id: null };
 // A second leshoz in another region, for the Viloyat → Xoʻjalik cascade.
-const ORG_FAR = { id: 'org-2', code: 'zomin', name: { uz_latn: 'Zomin LX' }, kind: 'leshoz', parent_id: 'org-0', region_id: 'reg-jizz' };
+const ORG_FAR = { id: 'org-2', code: 'zomin', name: { uz_latn: 'Zomin LX' }, kind: 'leshoz', parent_id: 'org-0', region_id: 'reg-jizz', district_id: null };
 const REGIONS = [
   { id: 'reg-tash', code: 'tashkent-region', soato_code: null, name: { uz_latn: 'Toshkent viloyati' } },
   { id: 'reg-jizz', code: 'jizzakh', soato_code: null, name: { uz_latn: 'Jizzax viloyati' } },
+  // No leshoz here — never offered as a filter.
+  { id: 'reg-city', code: 'tashkent-city', soato_code: null, name: { uz_latn: 'Toshkent shahri' } },
 ];
 
 function referenceHandlers() {
@@ -103,13 +105,13 @@ function referenceHandlers() {
   ];
 }
 
-function renderTab(permissions: string[]) {
+function renderTab(permissions: string[], zone: Record<string, string | null> = {}) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
   const me = {
     user: { id: 'u-1', full_name: 'Test', login: 'test', language: 'uz_latn' },
     role: { code: 'gis_specialist', name: {} },
     permissions,
-    zone: {},
+    zone,
     csrf_token: 'tok',
     is_superuser: false,
     applicant: null,
@@ -582,6 +584,25 @@ test('the region select narrows the organization select to that region, filters 
   expect((orgFilter as HTMLSelectElement).value).toBe('org-1');
   await waitFor(() => expect(within(orgFilter).getByText('Zomin LX')).toBeInTheDocument());
   await waitFor(() => expect(new URL(listUrls[listUrls.length - 1]).searchParams.get('region_id')).toBeNull());
+});
+
+test('a leshoz-scoped actor is offered their own leshoz and its region only; a region with no leshoz is never offered', async () => {
+  server.use(
+    ...referenceHandlers(),
+    http.get('*/api/v1/gis/contours', () => HttpResponse.json({ items: [CONTOUR_ROW], total: 1 })),
+  );
+  renderTab(['gis.contours.manage'], { organization_id: 'org-1', region_id: 'reg-tash', district_id: null });
+  await screen.findByTestId('contour-row-c-1');
+
+  const orgFilter = screen.getByRole('combobox', { name: 'gis.contours.filterOrganization' });
+  await waitFor(() => expect(within(orgFilter).getByText('Burchmulla LX')).toBeInTheDocument());
+  expect(within(orgFilter).queryByText('Zomin LX')).not.toBeInTheDocument();
+  expect(within(orgFilter).queryByText('Agentlik')).not.toBeInTheDocument();
+
+  const regionFilter = screen.getByRole('combobox', { name: 'gis.contours.filterRegion' });
+  await waitFor(() => expect(within(regionFilter).getByText('Toshkent viloyati')).toBeInTheDocument());
+  expect(within(regionFilter).queryByText('Jizzax viloyati')).not.toBeInTheDocument();
+  expect(within(regionFilter).queryByText('Toshkent shahri')).not.toBeInTheDocument();
 });
 
 test('a picked region or organization hands its extent to the map to fly to; no filter hands nothing', async () => {
