@@ -24,6 +24,10 @@ export function useOrganizations() {
   return useQuery({ queryKey: ['gis', 'organizations'], queryFn: gisApi.listOrganizations });
 }
 
+export function useRegions() {
+  return useQuery({ queryKey: ['gis', 'regions'], queryFn: gisApi.listRegions });
+}
+
 export function useUploadFile() {
   return useMutation({ mutationFn: (file: File) => gisApi.uploadFile(file) });
 }

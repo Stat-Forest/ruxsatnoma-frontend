@@ -956,6 +956,8 @@ export const ru = {
   'gis.contours.listTitle': 'Контуры',
   'gis.contours.newContour': 'Новый контур',
   'gis.contours.searchPlaceholder': 'Поиск по номеру контура...',
+  'gis.contours.filterRegion': 'Фильтр по региону',
+  'gis.contours.allRegions': 'Все регионы',
   'gis.contours.filterOrganization': 'Фильтр по организации',
   'gis.contours.allOrganizations': 'Все организации',
   'gis.contours.loading': 'Загрузка...',

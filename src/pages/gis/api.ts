@@ -32,6 +32,7 @@ export type ImportOut = components['schemas']['ImportOut'];
 export type PublishImportOut = components['schemas']['PublishImportOut'];
 export type FeatureCollectionOut = components['schemas']['FeatureCollectionOut'];
 export type OrganizationOut = components['schemas']['OrganizationOut'];
+export type RegionOut = components['schemas']['RegionOut'];
 export type FileOut = components['schemas']['FileOut'];
 
 export interface Paged<T> {
@@ -378,6 +379,15 @@ async function listOrganizationsUnder(parentId: string | undefined): Promise<Org
   });
   if (error) throw apiError(error);
   return data.items;
+}
+
+/** `GET /refs/regions` — the first step of the Viloyat → Xoʻjalik → Kontur
+ * cascade on the contours tab. Duplicated from `admin/api.ts::listRegions`
+ * for the same cross-track reason as `listOrganizations` below. */
+export async function listRegions(): Promise<RegionOut[]> {
+  const { data, error } = await api.GET('/api/v1/refs/regions', {});
+  if (error) throw apiError(error);
+  return data;
 }
 
 /** The full organization tree, flattened — same two-level walk

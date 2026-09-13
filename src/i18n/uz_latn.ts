@@ -977,6 +977,8 @@ export const uz_latn = {
   'gis.contours.listTitle': 'Konturlar',
   'gis.contours.newContour': 'Yangi kontur',
   'gis.contours.searchPlaceholder': "Kontur raqami bo'yicha qidirish...",
+  'gis.contours.filterRegion': 'Viloyat boʻyicha filtr',
+  'gis.contours.allRegions': 'Barcha viloyatlar',
   'gis.contours.filterOrganization': 'Tashkilot boʻyicha filtr',
   'gis.contours.allOrganizations': 'Barcha tashkilotlar',
   'gis.contours.loading': 'Yuklanmoqda...',

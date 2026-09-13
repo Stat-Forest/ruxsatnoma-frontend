@@ -991,6 +991,8 @@ export const uz_cyrl = {
   'gis.contours.listTitle': 'Контурлар',
   'gis.contours.newContour': 'Янги контур',
   'gis.contours.searchPlaceholder': "Контур рақами бўйича қидириш...",
+  'gis.contours.filterRegion': 'Вилоят бўйича филтр',
+  'gis.contours.allRegions': 'Барча вилоятлар',
   'gis.contours.filterOrganization': 'Ташкилот бўйича филтр',
   'gis.contours.allOrganizations': 'Барча ташкилотлар',
   'gis.contours.loading': 'Юкланмоқда...',

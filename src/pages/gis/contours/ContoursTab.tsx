@@ -18,6 +18,7 @@ import {
   useCreateContour,
   useCreateVersion,
   useOrganizations,
+  useRegions,
 } from '../queries';
 import { activeRecalledVersion } from '../localVersions';
 import { DrawMap } from './DrawMap';
@@ -230,6 +231,14 @@ export function ContoursTab({ t }: { t: (key: string) => string }) {
 
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
+  // Viloyat → Xoʻjalik → Kontur (Odilxon, 2026-09-13). The region is a
+  // CLIENT-SIDE step only: it narrows the organization select from ~70
+  // leshozes to a region's handful, and nothing else — `GET /gis/contours`
+  // and `/contours/features` take `organization_id` alone, so with a region
+  // picked and no leshoz the list and the map still show every organization
+  // (the "all" label stays honest about that). A region-wide contour list
+  // needs a `region_id` parameter on the backend first.
+  const [regionFilter, setRegionFilter] = useState('');
   // One leshoz, or `''` for all — narrows the list AND the map's browsable
   // layer together (both endpoints take the same `organization_id`), so the
   // two never show different sets of the same contours side by side.
@@ -259,6 +268,7 @@ export function ContoursTab({ t }: { t: (key: string) => string }) {
 
   const contoursQuery = useContours({ page, page_size: 50, organization_id: orgFilter || undefined });
   const organizationsQuery = useOrganizations();
+  const regionsQuery = useRegions();
   // Skipped for the contour we ourselves just created and have not yet drawn
   // a version for: `contour_card` requires a published version (backend
   // `gis/service.py::contour_card`), and a brand-new contour has none by
@@ -275,6 +285,20 @@ export function ContoursTab({ t }: { t: (key: string) => string }) {
     () => (organizationsQuery.data ?? []).map((o) => ({ id: o.id, label: pickName(o.name, lang) || o.code })),
     [organizationsQuery.data, lang],
   );
+  const regionOptions = useMemo(
+    () => (regionsQuery.data ?? []).map((r) => ({ id: r.id, label: pickName(r.name, lang) || r.code })),
+    [regionsQuery.data, lang],
+  );
+  // The organization select under a chosen region: that region's
+  // organizations only. The agency root has no region and drops out of a
+  // narrowed list on purpose — it owns no contours.
+  const orgOptionsInRegion = useMemo(() => {
+    if (!regionFilter) return orgOptions;
+    const inRegion = new Set(
+      (organizationsQuery.data ?? []).filter((o) => o.region_id === regionFilter).map((o) => o.id),
+    );
+    return orgOptions.filter((o) => inRegion.has(o.id));
+  }, [orgOptions, organizationsQuery.data, regionFilter]);
   const orgNameById = useMemo(() => {
     const map = new Map<string, string>();
     for (const o of orgOptions) map.set(o.id, o.label);
@@ -405,6 +429,25 @@ export function ContoursTab({ t }: { t: (key: string) => string }) {
               )}
             </div>
             <Select
+              aria-label={t('gis.contours.filterRegion')}
+              data-testid="contour-region-filter"
+              value={regionFilter}
+              onChange={(e) => {
+                const next = e.target.value;
+                setRegionFilter(next);
+                // A leshoz picked under the previous region is not in the new
+                // region's list; keep it only while it still is.
+                const stillListed =
+                  !next ||
+                  (organizationsQuery.data ?? []).some((o) => o.id === orgFilter && o.region_id === next);
+                if (!stillListed) {
+                  setOrgFilter('');
+                  setPage(1);
+                }
+              }}
+              options={[{ value: '', label: t('gis.contours.allRegions') }, ...regionOptions.map((r) => ({ value: r.id, label: r.label }))]}
+            />
+            <Select
               aria-label={t('gis.contours.filterOrganization')}
               data-testid="contour-org-filter"
               value={orgFilter}
@@ -414,7 +457,7 @@ export function ContoursTab({ t }: { t: (key: string) => string }) {
                 // of a narrower one may not even exist.
                 setPage(1);
               }}
-              options={[{ value: '', label: t('gis.contours.allOrganizations') }, ...orgOptions.map((o) => ({ value: o.id, label: o.label }))]}
+              options={[{ value: '', label: t('gis.contours.allOrganizations') }, ...orgOptionsInRegion.map((o) => ({ value: o.id, label: o.label }))]}
             />
             <Input
               placeholder={t('gis.contours.searchPlaceholder')}

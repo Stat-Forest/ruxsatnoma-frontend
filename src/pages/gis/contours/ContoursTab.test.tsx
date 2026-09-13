@@ -74,8 +74,14 @@ afterAll(() => server.close());
 // (no `parent_id`), then one call per root's own id — mirroring the real
 // `/refs/organizations` contract, where `parent_id` is a STRICT filter, not
 // "everything".
-const ROOT_ORG = { id: 'org-0', code: 'agency', name: { uz_latn: 'Agentlik' }, kind: 'agency', parent_id: null };
-const ORG = { id: 'org-1', code: 'burchmulla', name: { uz_latn: 'Burchmulla LX' }, kind: 'leshoz', parent_id: 'org-0' };
+const ROOT_ORG = { id: 'org-0', code: 'agency', name: { uz_latn: 'Agentlik' }, kind: 'agency', parent_id: null, region_id: null };
+const ORG = { id: 'org-1', code: 'burchmulla', name: { uz_latn: 'Burchmulla LX' }, kind: 'leshoz', parent_id: 'org-0', region_id: 'reg-tash' };
+// A second leshoz in another region, for the Viloyat → Xoʻjalik cascade.
+const ORG_FAR = { id: 'org-2', code: 'zomin', name: { uz_latn: 'Zomin LX' }, kind: 'leshoz', parent_id: 'org-0', region_id: 'reg-jizz' };
+const REGIONS = [
+  { id: 'reg-tash', code: 'tashkent-region', soato_code: null, name: { uz_latn: 'Toshkent viloyati' } },
+  { id: 'reg-jizz', code: 'jizzakh', soato_code: null, name: { uz_latn: 'Jizzax viloyati' } },
+];
 
 function referenceHandlers() {
   return [
@@ -83,9 +89,10 @@ function referenceHandlers() {
       const url = new URL(request.url);
       const parentId = url.searchParams.get('parent_id');
       if (!parentId) return HttpResponse.json({ items: [ROOT_ORG], total: 1 });
-      if (parentId === ROOT_ORG.id) return HttpResponse.json({ items: [ORG], total: 1 });
+      if (parentId === ROOT_ORG.id) return HttpResponse.json({ items: [ORG, ORG_FAR], total: 2 });
       return HttpResponse.json({ items: [], total: 0 });
     }),
+    http.get('*/api/v1/refs/regions', () => HttpResponse.json(REGIONS)),
     http.get('*/api/v1/gis/layers', () =>
       HttpResponse.json({
         items: [{ id: 'layer-contours', code: 'contours', name: { uz_latn: 'Konturlar' }, geometry_type: 'MULTIPOLYGON', is_public: true, style: {}, status: 'active' }],
@@ -524,6 +531,49 @@ test('the organization filter narrows the list and the map\'s parcels together',
   expect(listQuery.get('organization_id')).toBe('org-1');
   expect(listQuery.get('page')).toBe('1');
   expect(new URL(featureUrls[1]).searchParams.get('organization_id')).toBe('org-1');
+});
+
+test('the region select narrows the organization select to that region, and drops a leshoz that left the list', async () => {
+  const listUrls: string[] = [];
+  server.use(
+    ...referenceHandlers(),
+    http.get('*/api/v1/gis/contours', ({ request }) => {
+      listUrls.push(request.url);
+      return HttpResponse.json({ items: [CONTOUR_ROW], total: 1 });
+    }),
+    http.get('*/api/v1/gis/contours/features', () =>
+      HttpResponse.json({ type: 'FeatureCollection', features: [], truncated: false }),
+    ),
+  );
+  const ui = userEvent.setup();
+  renderTab(['gis.contours.manage']);
+  await screen.findByTestId('contour-row-c-1');
+
+  const orgFilter = await screen.findByRole('combobox', { name: 'gis.contours.filterOrganization' });
+  await waitFor(() => expect(within(orgFilter).getByText('Zomin LX')).toBeInTheDocument());
+  expect(within(orgFilter).getByText('Burchmulla LX')).toBeInTheDocument();
+
+  // Pick the far leshoz, then a region it is NOT in: the organization
+  // select loses it AND the applied filter is dropped back to "all",
+  // so the list never shows a leshoz the select can no longer name.
+  await ui.selectOptions(orgFilter, 'org-2');
+  await waitFor(() => expect(new URL(listUrls[listUrls.length - 1]).searchParams.get('organization_id')).toBe('org-2'));
+
+  const regionFilter = screen.getByRole('combobox', { name: 'gis.contours.filterRegion' });
+  await waitFor(() => expect(within(regionFilter).getByText('Toshkent viloyati')).toBeInTheDocument());
+  await ui.selectOptions(regionFilter, 'reg-tash');
+
+  await waitFor(() => expect(within(orgFilter).queryByText('Zomin LX')).not.toBeInTheDocument());
+  expect(within(orgFilter).getByText('Burchmulla LX')).toBeInTheDocument();
+  expect(within(orgFilter).getByText('gis.contours.allOrganizations')).toBeInTheDocument();
+  await waitFor(() => expect(new URL(listUrls[listUrls.length - 1]).searchParams.get('organization_id')).toBeNull());
+
+  // A leshoz that IS in the chosen region survives a region change.
+  await ui.selectOptions(orgFilter, 'org-1');
+  await waitFor(() => expect(new URL(listUrls[listUrls.length - 1]).searchParams.get('organization_id')).toBe('org-1'));
+  await ui.selectOptions(regionFilter, '');
+  expect((orgFilter as HTMLSelectElement).value).toBe('org-1');
+  await waitFor(() => expect(within(orgFilter).getByText('Zomin LX')).toBeInTheDocument());
 });
 
 test('the Excel button asks the server for the export with the applied organization filter, never paging the list itself', async () => {
