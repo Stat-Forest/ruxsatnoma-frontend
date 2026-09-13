@@ -14,6 +14,7 @@
  */
 import { useState } from 'react';
 import { Link } from 'react-router';
+import { useListUrlState } from '../../lib/useListUrlState';
 import { Plus } from 'lucide-react';
 import { useAuth } from '../../auth/useAuth';
 import { satisfies } from '../../shell/navigation';
@@ -32,15 +33,18 @@ import type { ArchiveItemOut, ArchiveItemStatus, ArchiveObjectType } from './api
 const ARCHIVE_MANAGE = 'archive.manage';
 const PAGE_SIZE = 20;
 
+const EMPTY_FILTERS: { objectType: ArchiveObjectType | ''; status: ArchiveItemStatus | '' } = { objectType: '', status: '' };
+
 export function ArchivePage() {
   const t = useT();
   const { lang } = useLanguage();
   const { me } = useAuth();
   const canManage = me != null && satisfies(ARCHIVE_MANAGE, me);
 
-  const [objectType, setObjectType] = useState<ArchiveObjectType | ''>('');
-  const [status, setStatus] = useState<ArchiveItemStatus | ''>('');
-  const [page, setPage] = useState(1);
+  // Filters and page live in the URL, so Back from an archived object's own
+  // card returns to the same page of the register.
+  const { filters, page, setFilters, setPage } = useListUrlState(EMPTY_FILTERS);
+  const { objectType, status } = filters;
   const [creating, setCreating] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
@@ -129,8 +133,7 @@ export function ArchivePage() {
             <Select
               value={objectType}
               onChange={(e) => {
-                setObjectType(e.target.value as ArchiveObjectType | '');
-                setPage(1);
+                setFilters({ objectType: e.target.value as ArchiveObjectType | '' });
               }}
               options={[
                 { value: '', label: t('archive.filters.allTypes') },
@@ -143,8 +146,7 @@ export function ArchivePage() {
             <Select
               value={status}
               onChange={(e) => {
-                setStatus(e.target.value as ArchiveItemStatus | '');
-                setPage(1);
+                setFilters({ status: e.target.value as ArchiveItemStatus | '' });
               }}
               options={[
                 { value: '', label: t('archive.filters.allStatuses') },
