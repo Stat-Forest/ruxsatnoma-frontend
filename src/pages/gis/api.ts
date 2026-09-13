@@ -123,6 +123,7 @@ export async function listContours(params: {
   page?: number;
   page_size?: number;
   organization_id?: string;
+  region_id?: string;
   bbox?: string;
 }): Promise<Paged<ContourListItem>> {
   const { data, error } = await api.GET('/api/v1/gis/contours', { params: { query: params } });
@@ -136,6 +137,7 @@ export async function listContours(params: {
 export async function listContourFeatures(params: {
   bbox?: string;
   organization_id?: string;
+  region_id?: string;
 }): Promise<FeatureCollectionOut> {
   const { data, error } = await api.GET('/api/v1/gis/contours/features', {
     params: { query: params },

@@ -231,13 +231,10 @@ export function ContoursTab({ t }: { t: (key: string) => string }) {
 
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
-  // Viloyat → Xoʻjalik → Kontur (Odilxon, 2026-09-13). The region is a
-  // CLIENT-SIDE step only: it narrows the organization select from ~70
-  // leshozes to a region's handful, and nothing else — `GET /gis/contours`
-  // and `/contours/features` take `organization_id` alone, so with a region
-  // picked and no leshoz the list and the map still show every organization
-  // (the "all" label stays honest about that). A region-wide contour list
-  // needs a `region_id` parameter on the backend first.
+  // Viloyat → Xoʻjalik → Kontur (Odilxon, 2026-09-13). A region narrows the
+  // organization select from ~70 leshozes to its own handful AND goes to the
+  // server as `region_id` on the list, the map's layer and the export, so a
+  // region with no leshoz picked is that region's contours, not the country's.
   const [regionFilter, setRegionFilter] = useState('');
   // One leshoz, or `''` for all — narrows the list AND the map's browsable
   // layer together (both endpoints take the same `organization_id`), so the
@@ -266,7 +263,12 @@ export function ContoursTab({ t }: { t: (key: string) => string }) {
   // localStorage cache (React state, not the cache itself, drives render).
   const [recallTick, setRecallTick] = useState(0);
 
-  const contoursQuery = useContours({ page, page_size: 50, organization_id: orgFilter || undefined });
+  const contoursQuery = useContours({
+    page,
+    page_size: 50,
+    organization_id: orgFilter || undefined,
+    region_id: regionFilter || undefined,
+  });
   const organizationsQuery = useOrganizations();
   const regionsQuery = useRegions();
   // Skipped for the contour we ourselves just created and have not yet drawn
@@ -276,7 +278,7 @@ export function ContoursTab({ t }: { t: (key: string) => string }) {
   const cardQuery = useContourCard(selectedContourId, {
     enabled: selectedContourId !== pendingContourId,
   });
-  const featuresQuery = useContourFeatures(bbox, orgFilter || undefined);
+  const featuresQuery = useContourFeatures(bbox, orgFilter || undefined, regionFilter || undefined);
   const createContour = useCreateContour();
   const createVersion = useCreateVersion(pendingContourId ?? selectedContourId ?? '');
   const archivePublished = useArchiveVersion(selectedContourId ?? '');
@@ -440,10 +442,9 @@ export function ContoursTab({ t }: { t: (key: string) => string }) {
                 const stillListed =
                   !next ||
                   (organizationsQuery.data ?? []).some((o) => o.id === orgFilter && o.region_id === next);
-                if (!stillListed) {
-                  setOrgFilter('');
-                  setPage(1);
-                }
+                if (!stillListed) setOrgFilter('');
+                // The region changed the server-side list either way.
+                setPage(1);
               }}
               options={[{ value: '', label: t('gis.contours.allRegions') }, ...regionOptions.map((r) => ({ value: r.id, label: r.label }))]}
             />
@@ -473,7 +474,7 @@ export function ContoursTab({ t }: { t: (key: string) => string }) {
             <div className="flex justify-end">
               <ExportXlsxButton className="ml-auto"
                 path="/api/v1/gis/contours"
-                query={{ organization_id: orgFilter || undefined }}
+                query={{ organization_id: orgFilter || undefined, region_id: regionFilter || undefined }}
               />
             </div>
             <div className="max-h-96 overflow-y-auto divide-y divide-[#E4E7EA] border border-[#E4E7EA] rounded-xl">

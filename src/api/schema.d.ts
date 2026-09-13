@@ -2076,6 +2076,31 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/gis/contours/{contour_id}/export.kmz": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Export Contour Kmz
+         * @description The card's published boundary as a KMZ file (Odilxon, 2026-09-13):
+         *     what the application and permit cards' «KMZ yuklab olish» button
+         *     downloads. Same reader as the card, so the same people see the same
+         *     polygon; 404 `ERR-GIS-007` when the contour has no geometry to give
+         *     (decision #178) — the button hides on that card, and a direct call is
+         *     told why rather than handed an empty file.
+         */
+        get: operations["export_contour_kmz_api_v1_gis_contours__contour_id__export_kmz_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/gis/contours/{contour_id}": {
         parameters: {
             query?: never;
@@ -18388,6 +18413,7 @@ export interface operations {
             query?: {
                 organization_id?: string | null;
                 bbox?: string | null;
+                region_id?: string | null;
                 page?: number;
                 page_size?: number;
             };
@@ -18456,6 +18482,7 @@ export interface operations {
                 lang?: "uz_latn" | "ru";
                 organization_id?: string | null;
                 bbox?: string | null;
+                region_id?: string | null;
             };
             header?: never;
             path?: never;
@@ -18488,6 +18515,7 @@ export interface operations {
             query?: {
                 organization_id?: string | null;
                 bbox?: string | null;
+                region_id?: string | null;
             };
             header?: never;
             path?: never;
@@ -18502,6 +18530,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["FeatureCollectionOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    export_contour_kmz_api_v1_gis_contours__contour_id__export_kmz_get: {
+        parameters: {
+            query?: {
+                lang?: "uz_latn" | "ru";
+            };
+            header?: never;
+            path: {
+                contour_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
                 };
             };
             /** @description Validation Error */

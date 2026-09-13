@@ -533,7 +533,7 @@ test('the organization filter narrows the list and the map\'s parcels together',
   expect(new URL(featureUrls[1]).searchParams.get('organization_id')).toBe('org-1');
 });
 
-test('the region select narrows the organization select to that region, and drops a leshoz that left the list', async () => {
+test('the region select narrows the organization select to that region, filters the list by region_id, and drops a leshoz that left the list', async () => {
   const listUrls: string[] = [];
   server.use(
     ...referenceHandlers(),
@@ -566,7 +566,12 @@ test('the region select narrows the organization select to that region, and drop
   await waitFor(() => expect(within(orgFilter).queryByText('Zomin LX')).not.toBeInTheDocument());
   expect(within(orgFilter).getByText('Burchmulla LX')).toBeInTheDocument();
   expect(within(orgFilter).getByText('gis.contours.allOrganizations')).toBeInTheDocument();
-  await waitFor(() => expect(new URL(listUrls[listUrls.length - 1]).searchParams.get('organization_id')).toBeNull());
+  await waitFor(() => {
+    const query = new URL(listUrls[listUrls.length - 1]).searchParams;
+    expect(query.get('organization_id')).toBeNull();
+    expect(query.get('region_id')).toBe('reg-tash');
+    expect(query.get('page')).toBe('1');
+  });
 
   // A leshoz that IS in the chosen region survives a region change.
   await ui.selectOptions(orgFilter, 'org-1');
@@ -574,6 +579,7 @@ test('the region select narrows the organization select to that region, and drop
   await ui.selectOptions(regionFilter, '');
   expect((orgFilter as HTMLSelectElement).value).toBe('org-1');
   await waitFor(() => expect(within(orgFilter).getByText('Zomin LX')).toBeInTheDocument());
+  await waitFor(() => expect(new URL(listUrls[listUrls.length - 1]).searchParams.get('region_id')).toBeNull());
 });
 
 test('the Excel button asks the server for the export with the applied organization filter, never paging the list itself', async () => {

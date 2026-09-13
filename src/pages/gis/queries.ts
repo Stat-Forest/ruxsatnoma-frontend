@@ -96,17 +96,23 @@ export function useArchiveLayerFeature(code: string) {
 
 // --- contours -------------------------------------------------------------
 
-export function useContours(params: { page: number; page_size?: number; organization_id?: string }) {
+export function useContours(params: {
+  page: number;
+  page_size?: number;
+  organization_id?: string;
+  region_id?: string;
+}) {
   return useQuery({
     queryKey: ['gis', 'contours', params],
     queryFn: () => gisApi.listContours(params),
   });
 }
 
-export function useContourFeatures(bbox: string | null, organizationId?: string) {
+export function useContourFeatures(bbox: string | null, organizationId?: string, regionId?: string) {
   return useQuery({
-    queryKey: ['gis', 'contour-features', bbox, organizationId],
-    queryFn: () => gisApi.listContourFeatures({ bbox: bbox!, organization_id: organizationId }),
+    queryKey: ['gis', 'contour-features', bbox, organizationId, regionId],
+    queryFn: () =>
+      gisApi.listContourFeatures({ bbox: bbox!, organization_id: organizationId, region_id: regionId }),
     enabled: !!bbox,
     staleTime: 60_000,
   });
