@@ -41,8 +41,12 @@ export const PURPOSE_ROLE: Record<string, string | null> = {
 
 export const RECIPIENT_PURPOSE = 'permit_recipient';
 
-/** Display order — a signing UI's order, not a gate: signatures may be taken
- *  in any order (`permits/service.py::add_signature`'s own docstring). */
+/** Display order of the KNOWN purposes — a signing UI's order, not a gate
+ *  (signatures may be taken in any order, `permits/service.py::add_signature`)
+ *  and not the required set either: that is the backend's admin-editable
+ *  `permit_required_signatures`, whose default dropped `permit_recipient`
+ *  under ruling #210. `PermitSignaturesPanel` renders only the lines a permit
+ *  actually misses or carries. */
 export const SIGNATURE_ORDER = [
   'permit_head',
   'permit_chief_forester',

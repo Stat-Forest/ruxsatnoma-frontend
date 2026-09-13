@@ -14,7 +14,6 @@ import { ContourBoundaryPanel } from './gis/ContourBoundaryPanel';
 import { PermitSignaturesPanel } from './permits/PermitSignaturesPanel';
 import { useAuth } from '../auth/useAuth';
 import { useLanguage } from '../i18n/useT';
-import { getApplicationCard } from './applicant/api';
 
 const MY_PERMIT_PAGE_I18N = {
   uz_latn: {
@@ -93,16 +92,6 @@ export function MyPermitPage() {
     retry: false,
   });
 
-  // Ruling #183: whether this permit's application was filed `on_behalf=
-  // 'self'` decides how the HOLDER'S OWN line is signed — a plain button
-  // with no envelope, versus the legal entity's unchanged ERI flow inside
-  // `PermitSignaturesPanel`. Fetched only once the permit itself is known.
-  const applicationQuery = useQuery({
-    queryKey: ['application-for-permit', permitQuery.data?.application_id],
-    queryFn: () => getApplicationCard(permitQuery.data!.application_id),
-    enabled: !!permitQuery.data?.application_id,
-  });
-
   if (permitQuery.isLoading) {
     return <div className="text-sm text-[#5A646D]">{t.loading}</div>;
   }
@@ -134,13 +123,9 @@ export function MyPermitPage() {
 
   const permit = permitQuery.data!;
   const isPendingSignatures = permit.status === 'pending_signatures';
-  // Ruling #183: the holder's line on a `self` filing is a plain button inside
-  // `PermitSignaturesPanel` (`recipientSimple`), never a second panel here —
-  // the review found the first version filtering `missing_signatures` before
-  // handing the permit over, which broke the panel's own counter ("signed 1
-  // of 4" on an unsigned permit) and its slot text. The panel waits for the
-  // application read so the slot never flashes the E-IMZO form first.
-  const onBehalfSelf = applicationQuery.data?.on_behalf === 'self';
+  // Ruling #210: the holder signs nothing on the permit — their only signature
+  // is the one over the application at filing. The panel below is read-only
+  // for them: three leshoz lines, each waiting or signed.
 
   return (
     <div className="max-w-4xl mx-auto space-y-4 sm:space-y-6 font-sans pb-16">
@@ -187,13 +172,10 @@ export function MyPermitPage() {
         ready={!!permit.doc_hash}
       />
 
-      {(applicationQuery.isSuccess || applicationQuery.isError) && (
-        <PermitSignaturesPanel
-          permit={permit}
-          recipientSimple={onBehalfSelf}
-          onSigned={() => void queryClient.invalidateQueries({ queryKey: ['permit', id] })}
-        />
-      )}
+      <PermitSignaturesPanel
+        permit={permit}
+        onSigned={() => void queryClient.invalidateQueries({ queryKey: ['permit', id] })}
+      />
 
       <PermitRatingPanel permitId={permit.id} rating={permit.rating ?? null} status={permit.status} />
     </div>

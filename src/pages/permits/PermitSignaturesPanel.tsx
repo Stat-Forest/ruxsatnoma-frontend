@@ -72,8 +72,6 @@ const SIG_I18N = {
     // Stage 10, F3 (ruling #183): a holder's simple signature.
     simpleSignatureBadge: 'Oddiy imzo',
     pinflValueLabel: 'PINFL',
-    simpleSignDesc: 'Siz ushbu ruxsatnoma egasisiz. Uni kuchga kiritish uchun tugmani bosing — elektron imzo talab qilinmaydi.',
-    simpleSignButton: 'Imzolash',
   },
   uz_cyrl: {
     panelTitle: 'Электрон рақамли имзолар',
@@ -89,8 +87,6 @@ const SIG_I18N = {
     // Stage 10, F3 (ruling #183): a holder's simple signature.
     simpleSignatureBadge: 'Оддий имзо',
     pinflValueLabel: 'ЖШШИР',
-    simpleSignDesc: 'Сиз ушбу рухсатнома эгасисиз. Уни кучга киритиш учун тугмани босинг — электрон имзо талаб қилинмайди.',
-    simpleSignButton: 'Имзолаш',
   },
   ru: {
     panelTitle: 'Электронные цифровые подписи',
@@ -106,8 +102,6 @@ const SIG_I18N = {
     // Stage 10, F3 (ruling #183): a holder's simple signature.
     simpleSignatureBadge: 'Простая подпись',
     pinflValueLabel: 'ПИНФЛ',
-    simpleSignDesc: 'Вы являетесь владельцем этого разрешения. Чтобы оно вступило в силу, нажмите кнопку — электронная подпись не требуется.',
-    simpleSignButton: 'Подписать',
   },
   en: {
     panelTitle: 'Electronic digital signatures',
@@ -123,8 +117,6 @@ const SIG_I18N = {
     // Stage 10, F3 (ruling #183): a holder's simple signature.
     simpleSignatureBadge: 'Simple signature',
     pinflValueLabel: 'PINFL',
-    simpleSignDesc: 'You are the holder of this permit. Press the button to bring it into force — no electronic signature is required.',
-    simpleSignButton: 'Sign',
   },
   kaa: {
     panelTitle: 'Elektron sanlı qol qoyıwlar',
@@ -140,8 +132,6 @@ const SIG_I18N = {
     // Stage 10, F3 (ruling #183): a holder's simple signature.
     simpleSignatureBadge: 'Ápiwayı qol qoyıw',
     pinflValueLabel: 'JShShIR',
-    simpleSignDesc: 'Siz usı ruxsatnama iyesisiz. Onı kúshke kirgiziw ushın túymeni basıń — elektron qol tańba talap etilmeydi.',
-    simpleSignButton: 'Qol qoyıw',
   },
 };
 
@@ -304,17 +294,11 @@ function SignatureSlot({
   permit,
   onSigned,
   fullSignatures,
-  recipientSimple,
 }: {
   purpose: string;
   permit: PermitCardOut;
   onSigned: () => void;
   fullSignatures: Map<string, SignatureOut>;
-  /** Ruling #183: the application was filed `on_behalf='self'`, so the
-   *  HOLDER's line is a plain button with no envelope — never the E-IMZO
-   *  form. Decided by the page that knows the application; the panel only
-   *  renders what it is told. */
-  recipientSimple: boolean;
 }) {
   const { me } = useAuth();
   const { lang } = useLanguage();
@@ -345,14 +329,11 @@ function SignatureSlot({
   // alone would leave the button looking idle during that entire stretch.
   const [signing, setSigning] = useState(false);
 
-  const simpleSlot = recipientSimple && purpose === RECIPIENT_PURPOSE;
   const mutation = useMutation({
-    // `pkcs7` absent = the citizen's simple signature (ruling #183): the
-    // body carries the purpose alone, the way the backend's own tests post it.
-    mutationFn: async (pkcs7?: string) => {
+    mutationFn: async (pkcs7: string) => {
       const { data, error } = await api.POST('/api/v1/permits/{permit_id}/signatures', {
         params: { path: { permit_id: permit.id } },
-        body: pkcs7 === undefined ? { purpose } : { purpose, pkcs7 },
+        body: { purpose, pkcs7 },
       });
       if (error) throw apiError(error);
       return data;
@@ -480,25 +461,6 @@ function SignatureSlot({
         <p className="text-[#5A646D]">{tr.notRequired}</p>
       ) : !eligible ? (
         <p className="text-[#B45309]">{tr.waitingSignature}</p>
-      ) : simpleSlot ? (
-        <div className="space-y-2" data-testid="signature-simple-form">
-          <p className="text-[#5A646D]">{tr.simpleSignDesc}</p>
-          {formError && <p className="text-[#B91C1C] font-semibold">{formError}</p>}
-          <Button
-            variant="primary"
-            size="sm"
-            fullWidth
-            isLoading={mutation.isPending}
-            leftIcon={<PenTool className="w-4 h-4" />}
-            onClick={() => {
-              setFormError(null);
-              mutation.mutate(undefined);
-            }}
-            className="bg-[#2E7D4F] hover:bg-[#23653F] text-white font-bold h-9 text-xs"
-          >
-            {tr.simpleSignButton}
-          </Button>
-        </div>
       ) : (
         <div className="space-y-2">
           {/* Mock mode only: a real E-IMZO key carries the signer's identity,
@@ -536,25 +498,29 @@ function SignatureSlot({
 }
 
 /**
- * The permit's 3+1 ERI signature lines — read exactly as `permit.signatures`
- * and `permit.missing_signatures` report them, never inferred. A paid,
- * unsigned permit (fact 3 of the task brief) shows here as three or four
- * pending slots and no ACTIVE badge anywhere on the page, honestly.
+ * The permit's ERI signature lines — read exactly as `permit.signatures` and
+ * `permit.missing_signatures` report them, never inferred. A paid, unsigned
+ * permit (fact 3 of the task brief) shows here as three pending slots and no
+ * ACTIVE badge anywhere on the page, honestly.
+ *
+ * WHICH lines exist is the backend's to say (`permit_required_signatures` is
+ * an admin-editable setting; ruling #210 took the recipient's line out of its
+ * default): a line is rendered when the permit still misses it or already
+ * carries a signature for it, in `SIGNATURE_ORDER`'s print order. So a permit
+ * signed under the old four-line rule still shows all four, and a new one
+ * shows three — never "3 of 4" on a permit that is in force.
  */
-export function PermitSignaturesPanel({
-  permit,
-  onSigned,
-  recipientSimple = false,
-}: {
-  permit: PermitCardOut;
-  onSigned: () => void;
-  /** Ruling #183 — see `SignatureSlot`. The page that loaded the permit's
-   *  application passes `on_behalf === 'self'`; a staff card never does. */
-  recipientSimple?: boolean;
-}) {
+export function PermitSignaturesPanel({ permit, onSigned }: { permit: PermitCardOut; onSigned: () => void }) {
   const { lang } = useLanguage();
   const tr = SIG_I18N[lang as keyof typeof SIG_I18N] ?? SIG_I18N.uz_latn;
-  const signedCount = SIGNATURE_ORDER.length - permit.missing_signatures.length;
+  const lines = useMemo(() => {
+    const present = new Set<string>(permit.missing_signatures);
+    for (const row of permit.signatures) present.add(row.purpose);
+    const known = SIGNATURE_ORDER.filter((purpose) => present.has(purpose));
+    const extra = [...present].filter((purpose) => !(SIGNATURE_ORDER as readonly string[]).includes(purpose));
+    return [...known, ...extra];
+  }, [permit.missing_signatures, permit.signatures]);
+  const signedCount = lines.length - permit.missing_signatures.length;
   const fullSignaturesQuery = useFullSignatures(permit.id);
   const fullSignatures = useMemo(() => {
     const map = new Map<string, SignatureOut>();
@@ -566,18 +532,17 @@ export function PermitSignaturesPanel({
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#E4E7EA] pb-3">
         <h2 className="text-base font-bold text-[#1A1F24]">{tr.panelTitle}</h2>
         <span className="text-xs font-bold text-[#15803D] bg-[#DCFCE7] px-3 py-1 rounded-full border border-[#86EFAC]">
-          {tr.signedCount(signedCount, SIGNATURE_ORDER.length)}
+          {tr.signedCount(signedCount, lines.length)}
         </span>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {SIGNATURE_ORDER.map((purpose) => (
+        {lines.map((purpose) => (
           <SignatureSlot
             key={purpose}
             purpose={purpose}
             permit={permit}
             onSigned={onSigned}
             fullSignatures={fullSignatures}
-            recipientSimple={recipientSimple}
           />
         ))}
       </div>

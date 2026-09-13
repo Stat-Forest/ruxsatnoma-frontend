@@ -1,15 +1,12 @@
 /**
- * Stage 10, F1 — ruling #183: the holder's own signature on the permit page.
- * For an application filed `on_behalf='self'` the holder signs with a plain
- * button (`POST /permits/{id}/signatures` with `{purpose}` and NO `pkcs7`);
- * `src/pages/permits/**` (F3's `PermitSignaturesPanel`) stays untouched —
- * this page filters what it hands that component instead, so the OLD
- * E-IMZO/PINFL row it renders for the recipient purpose never shows for a
- * `self` filing.
+ * Ruling #210: the holder signs NOTHING on the permit — their only signature
+ * is the one over the application at filing. The permit page shows them the
+ * leshoz lines read-only: the three the backend requires by default, or
+ * every line a permit signed under the old four-line rule actually carries.
+ * (Ruling #183's plain sign button for a `self` filing went with the line.)
  */
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { render, screen, waitFor } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
+import { render, screen } from '@testing-library/react';
 import { http, HttpResponse } from 'msw';
 import { setupServer } from 'msw/node';
 import { createMemoryRouter, RouterProvider } from 'react-router';
@@ -20,7 +17,6 @@ import { DICTIONARIES, I18nContext } from '../i18n/context';
 import { MyPermitPage } from './MyPermitPage';
 
 type PermitCardOut = components['schemas']['PermitCardOut'];
-type ApplicationCardOut = components['schemas']['ApplicationCardOut'];
 
 const PERMIT_ID = 'p1000000-0000-4000-8000-000000000001';
 const APPLICATION_ID = 'a1000000-0000-4000-8000-000000000001';
@@ -81,50 +77,12 @@ function permitCard(over: Partial<PermitCardOut> = {}): PermitCardOut {
     created_at: '2026-09-01T10:00:00Z',
     signatures: [],
     history: [],
-    missing_signatures: ['permit_head', 'permit_chief_forester', 'permit_accountant', 'permit_recipient'],
+    missing_signatures: ['permit_head', 'permit_chief_forester', 'permit_accountant'],
     document_date: '2026-09-01',
     ...over,
   } as PermitCardOut;
 }
 
-function applicationCard(over: Partial<ApplicationCardOut> = {}): ApplicationCardOut {
-  return {
-    id: APPLICATION_ID,
-    number: 'A-1',
-    status: 'PERMIT_ISSUED',
-    applicant_id: APPLICANT_ID,
-    submitted_by_user_id: 'u1',
-    on_behalf: 'self',
-    representation_id: null,
-    activity_type_id: 'act00000-0000-4000-8000-000000000001',
-    contour_id: 'c0000000-0000-4000-8000-000000000001',
-    contour_version_id: 'cv000000-0000-4000-8000-000000000001',
-    requested_area_ha: '65.0694',
-    period_from: '2026-05-01',
-    period_to: '2026-07-31',
-    quantity: null,
-    channel: 'portal',
-    kind: 'new',
-    benefit_category_item_id: null,
-    benefit_certificate_no: null,
-    benefit_verification_status: 'not_required',
-    benefit_verified_by: null,
-    benefit_verified_at: null,
-    benefit_rejection_reason: null,
-    rejection_reason_item_id: null,
-    assigned_org_id: null,
-    assigned_user_id: null,
-    parent_application_id: null,
-    sla_deadline_at: null,
-    submitted_at: '2026-09-01T09:00:00Z',
-    decided_at: '2026-09-01T09:30:00Z',
-    rules_accepted_at: '2026-09-01T09:00:00Z',
-    created_at: '2026-09-01T08:00:00Z',
-    documents: [],
-    items: [],
-    ...over,
-  } as unknown as ApplicationCardOut;
-}
 
 const server = setupServer(
   // `PermitSignaturesPanel` reads the full signature rows for the masked
@@ -161,115 +119,55 @@ function renderPermitPage(auth: AuthContextValue = authValue()) {
   );
 }
 
-test('a self-filed permit offers a plain sign button for the holder, posting no pkcs7', async () => {
-  let sentBody: { purpose?: string; pkcs7?: string } = {};
-  server.use(
-    http.get('*/api/v1/permits/:id', () => HttpResponse.json(permitCard())),
-    http.get('*/api/v1/applications/:id', () => HttpResponse.json(applicationCard({ on_behalf: 'self' }))),
-    http.post('*/api/v1/permits/:id/signatures', async ({ request }) => {
-      sentBody = (await request.json()) as typeof sentBody;
-      return HttpResponse.json({ id: 'sig-1' });
-    }),
-  );
+test('the holder sees the three leshoz lines, each waiting, and no sign button of their own', async () => {
+  server.use(http.get('*/api/v1/permits/:id', () => HttpResponse.json(permitCard())));
   renderPermitPage();
 
-  const signButton = await screen.findByRole('button', { name: 'Imzolash' });
-  await userEvent.click(signButton);
-
-  await waitFor(() => expect(sentBody.purpose).toBe('permit_recipient'));
-  expect(sentBody.pkcs7).toBeUndefined();
+  await screen.findByText('Elektron raqamli imzolar');
+  expect(screen.getByText('Imzolangan 0 dan 3')).toBeInTheDocument();
+  // No line is the holder's, so every one waits on an official — and there is
+  // no button at all: neither ruling #183's plain «Imzolash» nor the E-IMZO
+  // form (the citizen never meets an E-IMZO dialog on this page).
+  expect(screen.getAllByText(/Imzo kutilmoqda/)).toHaveLength(3);
+  expect(screen.queryByRole('button', { name: 'Imzolash' })).not.toBeInTheDocument();
+  expect(screen.queryByRole('button', { name: /E-IMZO bilan imzolash/ })).not.toBeInTheDocument();
+  expect(screen.queryByText('Foydalanuvchi / Arizachi')).not.toBeInTheDocument();
 });
 
-test('a self-filed, still-unsigned permit hides the old E-IMZO row for the holder purpose', async () => {
+test('a permit signed under the old four-line rule still shows all four rows, signed', async () => {
+  const signedAt = '2026-09-10T10:00:00Z';
+  const row = (id: string, purpose: string, kind: 'eri' | 'simple') => ({
+    id,
+    purpose,
+    signer_user_id: 'u9',
+    kind,
+    certificate_id: kind === 'eri' ? 'cert-1' : null,
+    signed_at: signedAt,
+    verification_status: 'valid' as const,
+  });
   server.use(
-    http.get('*/api/v1/permits/:id', () => HttpResponse.json(permitCard())),
-    http.get('*/api/v1/applications/:id', () => HttpResponse.json(applicationCard({ on_behalf: 'self' }))),
-  );
-  renderPermitPage();
-
-  await screen.findByTestId('signature-simple-form');
-  // Ruling #183: a citizen never meets an E-IMZO dialog at all — the holder's
-  // slot is the plain button, and no "E-IMZO bilan imzolash" row exists for
-  // it. The counter still reads the permit's own `missing_signatures`
-  // (review finding 1: the first version filtered them and reported "1 of 4"
-  // signed on an unsigned permit).
-  expect(screen.queryByText('E-IMZO bilan imzolash')).not.toBeInTheDocument();
-  expect(screen.getByText('Imzolangan 0 dan 4')).toBeInTheDocument();
-});
-
-test('a legal filing keeps the unchanged ERI flow, and shows no plain-button panel', async () => {
-  server.use(
-    http.get('*/api/v1/permits/:id', () => HttpResponse.json(permitCard())),
-    http.get('*/api/v1/applications/:id', () => HttpResponse.json(applicationCard({ on_behalf: 'legal' }))),
+    http.get('*/api/v1/permits/:id', () =>
+      HttpResponse.json(
+        permitCard({
+          status: 'active',
+          issued_at: signedAt,
+          missing_signatures: [],
+          signatures: [
+            row('sig-1', 'permit_head', 'eri'),
+            row('sig-2', 'permit_chief_forester', 'eri'),
+            row('sig-3', 'permit_accountant', 'eri'),
+            row('sig-4', 'permit_recipient', 'simple'),
+          ],
+        }),
+      ),
+    ),
   );
   renderPermitPage();
 
   await screen.findByText('Elektron raqamli imzolar');
-  expect(screen.queryByText('Ruxsatnomani imzolash')).not.toBeInTheDocument();
-  // The recipient purpose's own row is still there, offering the old ERI
-  // flow — untouched, because `src/pages/permits/**` was not touched here.
-  await waitFor(
-    () => {
-      expect(screen.getByRole('button', { name: /E-IMZO bilan imzolash/ })).toBeInTheDocument();
-    },
-    { timeout: 3000 },
-  );
-});
-
-test('once the holder signature succeeds, the plain-button panel disappears', async () => {
-  let signed = false;
-  server.use(
-    http.get('*/api/v1/permits/:id', () =>
-      HttpResponse.json(
-        signed
-          ? permitCard({
-              missing_signatures: ['permit_head', 'permit_chief_forester', 'permit_accountant'],
-              signatures: [
-                {
-                  id: 'sig-1',
-                  purpose: 'permit_recipient',
-                  signer_user_id: 'u1',
-                  kind: 'simple',
-                  certificate_id: null,
-                  signed_at: '2026-09-10T10:00:00Z',
-                  verification_status: 'valid',
-                },
-              ],
-            })
-          : permitCard(),
-      ),
-    ),
-    http.get('*/api/v1/applications/:id', () => HttpResponse.json(applicationCard({ on_behalf: 'self' }))),
-    http.post('*/api/v1/permits/:id/signatures', () => {
-      signed = true;
-      return HttpResponse.json({ id: 'sig-1' });
-    }),
-  );
-  renderPermitPage();
-
-  const signButton = await screen.findByRole('button', { name: 'Imzolash' });
-  await userEvent.click(signButton);
-
-  await waitFor(() => expect(screen.queryByText('Ruxsatnomani imzolash')).not.toBeInTheDocument());
-});
-
-test('a refused holder signature shows the server reason in the plain-button panel', async () => {
-  server.use(
-    http.get('*/api/v1/permits/:id', () => HttpResponse.json(permitCard())),
-    http.get('*/api/v1/applications/:id', () => HttpResponse.json(applicationCard({ on_behalf: 'self' }))),
-    http.post('*/api/v1/permits/:id/signatures', () =>
-      HttpResponse.json(
-        { error: { code: 'ERR-SIGN-001', message: 'x', details: { reason: 'signer_pinfl_unknown' } } },
-        { status: 422 },
-      ),
-    ),
-  );
-  renderPermitPage();
-
-  const signButton = await screen.findByRole('button', { name: 'Imzolash' });
-  await userEvent.click(signButton);
-
-  expect(
-    await screen.findByText('Tizimda sizning PINFL raqamingiz qayd etilmagan — profilingizni tekshiring.'),
-  ).toBeInTheDocument();
+  // Read from the permit, never from a hard-coded count: the line exists
+  // because the permit carries it, so the counter says 4 of 4, not 3 of 4.
+  expect(screen.getByText('Imzolangan 4 dan 4')).toBeInTheDocument();
+  expect(screen.getByText('Foydalanuvchi / Arizachi')).toBeInTheDocument();
+  expect(screen.queryByText(/Imzo kutilmoqda/)).not.toBeInTheDocument();
 });

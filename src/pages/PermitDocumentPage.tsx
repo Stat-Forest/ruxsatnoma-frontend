@@ -199,7 +199,8 @@ export function PermitDocumentPage() {
             occurred_at: permit.created_at,
           },
         ],
-        missing_signatures: ['permit_head', 'permit_chief_forester', 'permit_accountant', 'permit_recipient'],
+        // Ruling #210: three leshoz lines; the card refetch replaces this seed.
+        missing_signatures: ['permit_head', 'permit_chief_forester', 'permit_accountant'],
       });
       navigate(`/permits/${permit.id}`, { replace: true });
     },

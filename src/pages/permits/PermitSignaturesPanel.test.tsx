@@ -92,11 +92,36 @@ function permitCard(over: Partial<PermitCardOut> = {}): PermitCardOut {
     created_at: '2026-09-01T10:00:00Z',
     signatures: [],
     history: [],
+    // Four lines, deliberately: the panel renders whatever the permit itself
+    // misses or carries (ruling #210 dropped `permit_recipient` from the
+    // backend's DEFAULT, but the set is an admin-editable setting), and the
+    // signing-flow tests below drive the E-IMZO form through the recipient
+    // slot, the one line the applicant this file renders as may sign.
     missing_signatures: ['permit_head', 'permit_chief_forester', 'permit_accountant', 'permit_recipient'],
     document_date: '2026-09-01',
     ...over,
   } as PermitCardOut;
 }
+
+test('the lines come from the permit: a three-line permit shows three slots, and a fourth carried row still shows', async () => {
+  const { unmount } = renderPanel(
+    permitCard({ missing_signatures: ['permit_head', 'permit_chief_forester', 'permit_accountant'] }),
+    () => {},
+  );
+  expect(await screen.findByText('Imzolangan 0 dan 3')).toBeInTheDocument();
+  expect(screen.queryByText('Foydalanuvchi / Arizachi')).not.toBeInTheDocument();
+  unmount();
+
+  renderPanel(
+    permitCard({
+      missing_signatures: ['permit_head', 'permit_chief_forester', 'permit_accountant'],
+      signatures: [permitSignatureRow({ purpose: 'permit_recipient' })],
+    }),
+    () => {},
+  );
+  expect(await screen.findByText('Imzolangan 1 dan 4')).toBeInTheDocument();
+  expect(screen.getByText('Foydalanuvchi / Arizachi')).toBeInTheDocument();
+});
 
 // Stage 10, F3: `PermitSignaturesPanel` now also fetches `GET
 // /api/v1/signatures?object_type=permit&object_id=…` (ruling #183, to learn
