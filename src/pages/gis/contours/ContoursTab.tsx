@@ -14,6 +14,7 @@ import {
   useArchiveVersion,
   useContourCard,
   useContourFeatures,
+  useContoursExtent,
   useContours,
   useCreateContour,
   useCreateVersion,
@@ -279,6 +280,7 @@ export function ContoursTab({ t }: { t: (key: string) => string }) {
     enabled: selectedContourId !== pendingContourId,
   });
   const featuresQuery = useContourFeatures(bbox, orgFilter || undefined, regionFilter || undefined);
+  const extentQuery = useContoursExtent(orgFilter || undefined, regionFilter || undefined);
   const createContour = useCreateContour();
   const createVersion = useCreateVersion(pendingContourId ?? selectedContourId ?? '');
   const archivePublished = useArchiveVersion(selectedContourId ?? '');
@@ -668,6 +670,7 @@ export function ContoursTab({ t }: { t: (key: string) => string }) {
               active={mode !== 'browse'}
               referenceGeometry={mode === 'edit-draft' || mode === 'split' ? knownGeometry : null}
               selectedGeometry={mode === 'browse' ? knownGeometry : null}
+              focusBounds={extentQuery.data?.bbox ?? null}
               browsableFeatures={featuresQuery.data as never}
               browsableLoading={featuresQuery.isFetching}
               onViewportChange={setBbox}

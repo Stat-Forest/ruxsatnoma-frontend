@@ -2076,6 +2076,29 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/gis/contours/extent": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Contours Extent
+         * @description The bounding box of the published contours the caller may see under
+         *     the same filters `/contours/features` takes — what the map fits itself
+         *     to when a region or a leshoz is picked. **Above `/contours/{contour_id}`
+         *     for the same reason `/contours/features` is**: `extent` is not a UUID.
+         */
+        get: operations["contours_extent_api_v1_gis_contours_extent_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/gis/contours/{contour_id}/export.kmz": {
         parameters: {
             query?: never;
@@ -9634,6 +9657,21 @@ export interface components {
              * Format: date-time
              */
             finished_at: string;
+        };
+        /**
+         * ExtentOut
+         * @description `GET /gis/contours/extent`. `bbox` is `[west, south, east, north]` in
+         *     WGS84 — MapLibre's own `fitBounds` order — or `None` when no published
+         *     contour matches, which a map treats as "stay where you are".
+         */
+        ExtentOut: {
+            /** Bbox */
+            bbox: [
+                number,
+                number,
+                number,
+                number
+            ] | null;
         };
         /** FaqIn */
         FaqIn: {
@@ -18530,6 +18568,38 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["FeatureCollectionOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    contours_extent_api_v1_gis_contours_extent_get: {
+        parameters: {
+            query?: {
+                organization_id?: string | null;
+                region_id?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExtentOut"];
                 };
             };
             /** @description Validation Error */

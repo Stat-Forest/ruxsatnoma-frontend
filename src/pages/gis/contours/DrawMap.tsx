@@ -154,6 +154,14 @@ export interface DrawMapProps {
    * map, so clearing a selection leaves the operator wherever they were
    * looking, just without a stale highlight left behind. */
   selectedGeometry?: Geometry | null;
+  /** `[west, south, east, north]` the map fits itself to whenever this prop
+   * changes to a new value — the extent of a picked region or leshoz
+   * (`GET /gis/contours/extent`), so a filter change moves the map to what
+   * it now lists instead of leaving it wherever it was. `null`/`undefined`
+   * fits nothing and moves nothing. A selected contour's own fit (above)
+   * still wins when both change in the same render, because its effect
+   * runs after this one. */
+  focusBounds?: readonly number[] | null;
   /** The settled viewport as the API's `bbox` string, or `null` when the map
    * is zoomed out past `MIN_FETCH_ZOOM` and nothing should be fetched. */
   onViewportChange?: (bbox: string | null) => void;
@@ -181,6 +189,7 @@ export function DrawMap({
   browsableFeatures,
   browsableLoading = false,
   selectedGeometry,
+  focusBounds,
   onViewportChange,
   onPickContour,
   onDrawFinish,
@@ -445,6 +454,24 @@ export function DrawMap({
       : EMPTY_COLLECTION;
     source?.setData(data);
   }, [referenceGeometry, mapReady]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    // The generated client types the bbox as `number[]`; anything but four
+    // finite numbers is not an extent and fits nothing.
+    if (!map || !mapReady || !focusBounds || focusBounds.length !== 4) return;
+    const [west, south, east, north] = focusBounds;
+    if (![west, south, east, north].every(Number.isFinite)) return;
+    // `maxZoom` only floors a degenerate (single-parcel, near-point) extent;
+    // a region's or a leshoz's real extent sets its own zoom.
+    map.fitBounds(
+      [
+        [west, south],
+        [east, north],
+      ],
+      { padding: 32, maxZoom: 15, duration: 500 },
+    );
+  }, [focusBounds, mapReady]);
 
   useEffect(() => {
     const map = mapRef.current;

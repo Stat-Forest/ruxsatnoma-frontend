@@ -24,6 +24,7 @@ vi.mock('./DrawMap', () => ({
     active: boolean;
     referenceGeometry?: { type: string } | null;
     selectedGeometry?: { type: string } | null;
+    focusBounds?: readonly number[] | null;
     browsableFeatures?: { features: { properties: { contour_id: string } }[] };
     onViewportChange?: (bbox: string | null) => void;
     onPickContour?: (contourId: string) => void;
@@ -35,6 +36,7 @@ vi.mock('./DrawMap', () => ({
       data-geometry-type={props.geometryType}
       data-reference-geometry-type={props.referenceGeometry?.type ?? ''}
       data-selected-geometry-type={props.selectedGeometry?.type ?? ''}
+      data-focus-bounds={props.focusBounds?.join(',') ?? ''}
     >
       <button
         onClick={() =>
@@ -580,6 +582,37 @@ test('the region select narrows the organization select to that region, filters 
   expect((orgFilter as HTMLSelectElement).value).toBe('org-1');
   await waitFor(() => expect(within(orgFilter).getByText('Zomin LX')).toBeInTheDocument());
   await waitFor(() => expect(new URL(listUrls[listUrls.length - 1]).searchParams.get('region_id')).toBeNull());
+});
+
+test('a picked region or organization hands its extent to the map to fly to; no filter hands nothing', async () => {
+  const extentUrls: string[] = [];
+  server.use(
+    ...referenceHandlers(),
+    http.get('*/api/v1/gis/contours', () => HttpResponse.json({ items: [CONTOUR_ROW], total: 1 })),
+    http.get('*/api/v1/gis/contours/extent', ({ request }) => {
+      extentUrls.push(request.url);
+      return HttpResponse.json({ bbox: [67.4, 39.5, 68.7, 40.1] });
+    }),
+  );
+  const ui = userEvent.setup();
+  renderTab(['gis.contours.manage']);
+  const map = await screen.findByTestId('draw-map-mock');
+  await screen.findByTestId('contour-row-c-1');
+  expect(map).toHaveAttribute('data-focus-bounds', '');
+  expect(extentUrls).toHaveLength(0);
+
+  const regionFilter = screen.getByRole('combobox', { name: 'gis.contours.filterRegion' });
+  await waitFor(() => expect(within(regionFilter).getByText('Jizzax viloyati')).toBeInTheDocument());
+  await ui.selectOptions(regionFilter, 'reg-jizz');
+  await waitFor(() => expect(map).toHaveAttribute('data-focus-bounds', '67.4,39.5,68.7,40.1'));
+  expect(new URL(extentUrls[0]).searchParams.get('region_id')).toBe('reg-jizz');
+  expect(new URL(extentUrls[0]).searchParams.get('organization_id')).toBeNull();
+
+  const orgFilter = screen.getByRole('combobox', { name: 'gis.contours.filterOrganization' });
+  await ui.selectOptions(orgFilter, 'org-2');
+  await waitFor(() => expect(extentUrls).toHaveLength(2));
+  expect(new URL(extentUrls[1]).searchParams.get('organization_id')).toBe('org-2');
+  expect(new URL(extentUrls[1]).searchParams.get('region_id')).toBe('reg-jizz');
 });
 
 test('changing the region or the organization filter drops the selected contour', async () => {

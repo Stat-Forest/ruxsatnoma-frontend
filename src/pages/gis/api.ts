@@ -383,6 +383,25 @@ async function listOrganizationsUnder(parentId: string | undefined): Promise<Org
   return data.items;
 }
 
+/** `components['schemas']['ExtentOut']` types `bbox` as a 4-tuple while the
+ * response as fetched is typed `number[]`; the wider shape is what a caller
+ * can actually rely on, so it is declared here rather than cast. */
+export type ExtentOut = { bbox: number[] | null };
+
+/** `GET /gis/contours/extent` — the bbox of the published contours under
+ * the same filters `/contours/features` takes; what the map flies to when a
+ * region or a leshoz is picked. */
+export async function contoursExtent(params: {
+  organization_id?: string;
+  region_id?: string;
+}): Promise<ExtentOut> {
+  const { data, error } = await api.GET('/api/v1/gis/contours/extent', {
+    params: { query: params },
+  });
+  if (error) throw apiError(error);
+  return data;
+}
+
 /** `GET /refs/regions` — the first step of the Viloyat → Xoʻjalik → Kontur
  * cascade on the contours tab. Duplicated from `admin/api.ts::listRegions`
  * for the same cross-track reason as `listOrganizations` below. */

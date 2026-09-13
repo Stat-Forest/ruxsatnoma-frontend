@@ -108,6 +108,17 @@ export function useContours(params: {
   });
 }
 
+/** Enabled only under a filter: with nothing picked there is nothing to fly
+ * to, and the country-wide extent would only yank the map out. */
+export function useContoursExtent(organizationId?: string, regionId?: string) {
+  return useQuery({
+    queryKey: ['gis', 'contours-extent', organizationId, regionId],
+    queryFn: () => gisApi.contoursExtent({ organization_id: organizationId, region_id: regionId }),
+    enabled: !!organizationId || !!regionId,
+    staleTime: 60_000,
+  });
+}
+
 export function useContourFeatures(bbox: string | null, organizationId?: string, regionId?: string) {
   return useQuery({
     queryKey: ['gis', 'contour-features', bbox, organizationId, regionId],
