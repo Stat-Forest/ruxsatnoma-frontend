@@ -138,6 +138,7 @@ export async function listContourFeatures(params: {
   bbox?: string;
   organization_id?: string;
   region_id?: string;
+  tolerance?: number;
 }): Promise<FeatureCollectionOut> {
   const { data, error } = await api.GET('/api/v1/gis/contours/features', {
     params: { query: params },

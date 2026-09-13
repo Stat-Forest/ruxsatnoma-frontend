@@ -35,13 +35,25 @@ const UZBEKISTAN_BOUNDS: [[number, number], [number, number]] = [
 const MIN_ZOOM = 4.5;
 
 /** Below this the viewport covers more ground than a browsable layer: the
- * request would ask for thousands of polygons, the server would clip the
- * answer at its own cap (`FEATURE_COLLECTION_LIMIT`, 2000) and the map would
- * draw a partial layer as if it were the whole one. So nothing is fetched —
- * `onViewportChange` reports `null` — and the map says why instead. Same
- * threshold `ContourMapPreview.tsx` uses for an applicant (Oybek, 2026-09-10:
- * the operator's map behaves the same way, on purpose). */
-const MIN_FETCH_ZOOM = 10;
+ * request would ask for tens of thousands of polygons, the server would clip
+ * the answer at its own cap and the map would draw a partial layer as if it
+ * were the whole one. So nothing is fetched — `onViewportChange` reports
+ * `null` — and the map says why instead. */
+const MIN_FETCH_ZOOM = 7;
+/** From here up the layer is DETAILED — every vertex, the server's normal
+ * cap of 2000. Between `MIN_FETCH_ZOOM` and this the layer is an OVERVIEW:
+ * `?tolerance=` simplifies every parcel to what a few pixels can show, under
+ * a ten-times-higher cap, so a whole region draws at once when picked
+ * (Oybek, 2026-09-13). The tolerance doubles per zoom level out from here —
+ * about 20 m at zoom 9, 160 m at zoom 6. `ContourMapPreview.tsx`'s applicant
+ * map keeps its fixed threshold of 10. */
+const DETAIL_ZOOM = 10;
+const OVERVIEW_TOLERANCE_AT_DETAIL_ZOOM = 0.0001;
+
+function overviewTolerance(zoom: number): number | undefined {
+  if (zoom >= DETAIL_ZOOM) return undefined;
+  return Number((OVERVIEW_TOLERANCE_AT_DETAIL_ZOOM * 2 ** (DETAIL_ZOOM - Math.floor(zoom))).toFixed(6));
+}
 
 /** The same two basemaps `ContourMapPreview.tsx` offers an applicant, carried
  * over to the operator's map (Oybek, 2026-09-08): the scheme answers "where
@@ -163,8 +175,10 @@ export interface DrawMapProps {
    * runs after this one. */
   focusBounds?: readonly number[] | null;
   /** The settled viewport as the API's `bbox` string, or `null` when the map
-   * is zoomed out past `MIN_FETCH_ZOOM` and nothing should be fetched. */
-  onViewportChange?: (bbox: string | null) => void;
+   * is zoomed out past `MIN_FETCH_ZOOM` and nothing should be fetched.
+   * `tolerance` is set below `DETAIL_ZOOM` — the overview's simplification
+   * in degrees, to be passed through as `?tolerance=`. */
+  onViewportChange?: (bbox: string | null, tolerance?: number) => void;
   /** Fired once, when the operator finishes one shape (a polygon's closing
    * click, a line's double-click, a point's single click). The drawn feature
    * is then cleared from terra-draw's own store — this component never
@@ -287,6 +301,7 @@ export function DrawMap({
       const b = map.getBounds();
       onViewportChangeRef.current?.(
         [b.getWest(), b.getSouth(), b.getEast(), b.getNorth()].map((n) => n.toFixed(5)).join(','),
+        overviewTolerance(map.getZoom()),
       );
     };
 

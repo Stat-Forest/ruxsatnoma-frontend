@@ -2066,6 +2066,10 @@ export interface paths {
          *
          *     Send a `?bbox=` — without one this is every published contour the caller
          *     may see, and `truncated` in the response says when that hit the cap.
+         *
+         *     `?tolerance=` (degrees, at most 0.05 ≈ 5 km) asks for an overview:
+         *     simplified geometries under a ten-times-higher cap, for a map zoomed
+         *     out to a region — see `repo.contour_features_geojson`.
          */
         get: operations["list_contour_features_api_v1_gis_contours_features_get"];
         put?: never;
@@ -18554,6 +18558,7 @@ export interface operations {
                 organization_id?: string | null;
                 bbox?: string | null;
                 region_id?: string | null;
+                tolerance?: number | null;
             };
             header?: never;
             path?: never;

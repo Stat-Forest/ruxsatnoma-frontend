@@ -119,11 +119,21 @@ export function useContoursExtent(organizationId?: string, regionId?: string) {
   });
 }
 
-export function useContourFeatures(bbox: string | null, organizationId?: string, regionId?: string) {
+export function useContourFeatures(
+  bbox: string | null,
+  organizationId?: string,
+  regionId?: string,
+  tolerance?: number,
+) {
   return useQuery({
-    queryKey: ['gis', 'contour-features', bbox, organizationId, regionId],
+    queryKey: ['gis', 'contour-features', bbox, organizationId, regionId, tolerance],
     queryFn: () =>
-      gisApi.listContourFeatures({ bbox: bbox!, organization_id: organizationId, region_id: regionId }),
+      gisApi.listContourFeatures({
+        bbox: bbox!,
+        organization_id: organizationId,
+        region_id: regionId,
+        tolerance,
+      }),
     enabled: !!bbox,
     staleTime: 60_000,
   });

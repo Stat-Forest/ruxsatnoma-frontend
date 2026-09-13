@@ -246,6 +246,9 @@ export function ContoursTab({ t }: { t: (key: string) => string }) {
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [drawnGeometry, setDrawnGeometry] = useState<Geometry | null>(null);
   const [bbox, setBbox] = useState<string | null>(null);
+  // Set while the map is zoomed out to an overview (`DrawMap`'s
+  // `DETAIL_ZOOM`): the `?tolerance=` the layer is simplified to.
+  const [tolerance, setTolerance] = useState<number | undefined>(undefined);
   const [pendingContourId, setPendingContourId] = useState<string | null>(null);
   // The number the operator typed into `NewContourForm`, echoed back by the
   // create response — kept only for `pendingContourId`'s own lifetime, so the
@@ -279,7 +282,12 @@ export function ContoursTab({ t }: { t: (key: string) => string }) {
   const cardQuery = useContourCard(selectedContourId, {
     enabled: selectedContourId !== pendingContourId,
   });
-  const featuresQuery = useContourFeatures(bbox, orgFilter || undefined, regionFilter || undefined);
+  const featuresQuery = useContourFeatures(
+    bbox,
+    orgFilter || undefined,
+    regionFilter || undefined,
+    tolerance,
+  );
   const extentQuery = useContoursExtent(orgFilter || undefined, regionFilter || undefined);
   const createContour = useCreateContour();
   const createVersion = useCreateVersion(pendingContourId ?? selectedContourId ?? '');
@@ -697,7 +705,10 @@ export function ContoursTab({ t }: { t: (key: string) => string }) {
               focusBounds={extentQuery.data?.bbox ?? null}
               browsableFeatures={featuresQuery.data as never}
               browsableLoading={featuresQuery.isFetching}
-              onViewportChange={setBbox}
+              onViewportChange={(next, nextTolerance) => {
+                setBbox(next);
+                setTolerance(nextTolerance);
+              }}
               onPickContour={pickContourOnMap}
               onDrawFinish={(geometry) => {
                 if (mode === 'split') {
