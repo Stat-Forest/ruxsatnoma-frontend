@@ -263,6 +263,11 @@ const ru: Record<string, ErrorCopy> = {
         return 'Запрошенный период превышает допустимый максимум (5 лет).';
       case 'quantity_required':
         return 'Не указано количество (объём) для выбранного вида деятельности.';
+      // `admin/users_service.py` — the staff-user form's own two refusals.
+      case 'duplicate_pinfl':
+        return 'Пользователь с таким ПИНФЛ уже существует.';
+      case 'duplicate_login':
+        return 'Пользователь с таким логином уже существует.';
       default:
         return 'Ошибка проверки введённых данных.';
     }
@@ -426,6 +431,10 @@ const uz_latn: Record<string, ErrorCopy> = {
         return "So'ralgan davr ruxsat etilgan maksimal muddatdan (5 yil) oshib ketdi.";
       case 'quantity_required':
         return "Tanlangan faoliyat turi uchun miqdor (hajm) ko'rsatilmagan.";
+      case 'duplicate_pinfl':
+        return 'Bunday JShShIR bilan foydalanuvchi allaqachon mavjud.';
+      case 'duplicate_login':
+        return 'Bunday login bilan foydalanuvchi allaqachon mavjud.';
       default:
         return "Kiritilgan ma'lumotlarni tekshirishda xatolik.";
     }

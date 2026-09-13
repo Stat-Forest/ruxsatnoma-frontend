@@ -153,6 +153,20 @@ test('ERR-VAL-001 names the real cause for each reason the backend sends', () =>
   );
 });
 
+// `admin/users_service.py::_check_pinfl_available` / `_check_login_available`
+// — the two refusals an operator actually hits by typing on the "new user"
+// form. Before this case both rendered as the generic sentence, so the
+// operator saw "validation error" over a form with nothing visibly wrong.
+test('ERR-VAL-001 names a duplicate PINFL / login on the staff-user form', () => {
+  const dupPinfl = { code: 'ERR-VAL-001', message: 'x', details: { reason: 'duplicate_pinfl' } };
+  const dupLogin = { code: 'ERR-VAL-001', message: 'x', details: { reason: 'duplicate_login' } };
+
+  expect(apiErrorMessage(dupPinfl, 'ru')).toBe('Пользователь с таким ПИНФЛ уже существует.');
+  expect(apiErrorMessage(dupLogin, 'ru')).toBe('Пользователь с таким логином уже существует.');
+  expect(apiErrorMessage(dupPinfl, 'uz_latn')).toBe('Bunday JShShIR bilan foydalanuvchi allaqachon mavjud.');
+  expect(apiErrorMessage(dupLogin, 'uz_latn')).toBe('Bunday login bilan foydalanuvchi allaqachon mavjud.');
+});
+
 test('ERR-VAL-001 keeps the generic sentence for a reason this map does not recognise', () => {
   const unknown = { code: 'ERR-VAL-001', message: 'x', details: { reason: 'something_new' } };
   const noDetails = { code: 'ERR-VAL-001', message: 'x' };
