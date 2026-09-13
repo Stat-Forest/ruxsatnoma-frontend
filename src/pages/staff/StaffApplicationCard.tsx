@@ -1,4 +1,5 @@
 import { useParams, Link } from 'react-router';
+import { useBackToList } from '../../lib/returnTo';
 import { ArrowLeft, Loader2, PauseCircle } from 'lucide-react';
 import { useLanguage, useT } from '../../i18n/useT';
 import { ApiError } from '../../api/errors';
@@ -83,6 +84,7 @@ const STAFF_CARD_I18N = {
  */
 export function StaffApplicationCard() {
   const { id } = useParams<{ id: string }>();
+  const backToList = useBackToList('/applications');
   const t = useT();
   const { lang } = useLanguage();
   const tr = STAFF_CARD_I18N[lang] ?? STAFF_CARD_I18N.uz_latn;
@@ -106,7 +108,7 @@ export function StaffApplicationCard() {
     return (
       <div className="space-y-4" data-testid="staff-card-error">
         <div className="flex items-center gap-2 text-xs text-[#5A646D] border-b border-[#E4E7EA] pb-3">
-          <Link to="/applications" className="inline-flex items-center gap-1.5 text-[#2E7D4F] font-bold hover:underline">
+          <Link to={backToList} className="inline-flex items-center gap-1.5 text-[#2E7D4F] font-bold hover:underline">
             <ArrowLeft className="w-4 h-4" /> {tr.backToList}
           </Link>
           <span>/</span>
@@ -132,7 +134,7 @@ export function StaffApplicationCard() {
   return (
     <div className="space-y-6" data-testid="staff-application-card-page">
       <div className="flex items-center gap-2 text-xs text-[#5A646D] border-b border-[#E4E7EA] pb-3">
-        <Link to="/applications" className="inline-flex items-center gap-1.5 text-[#2E7D4F] font-bold hover:underline">
+        <Link to={backToList} className="inline-flex items-center gap-1.5 text-[#2E7D4F] font-bold hover:underline">
           <ArrowLeft className="w-4 h-4" /> {tr.backToList}
         </Link>
         <span>/</span>

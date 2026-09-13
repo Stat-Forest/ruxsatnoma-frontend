@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { Link } from 'react-router';
 import { ArrowUpRight, Bell, Check, Loader2 } from 'lucide-react';
 import { Button } from '../../components/ui/button';
@@ -6,6 +5,7 @@ import { Pagination, Tabs } from '../../components/ui/Navigation';
 import { useAuth } from '../../auth/useAuth';
 import { useLanguage, useT } from '../../i18n/useT';
 import { useApiErrorText } from '../../i18n/useApiErrorText';
+import { useListUrlState } from '../../lib/useListUrlState';
 import { ApiError } from '../../api/errors';
 import { useMarkAllNotificationsRead, useMarkNotificationRead, useNotifications } from './queries';
 import { formatDateTime } from './format';
@@ -17,6 +17,8 @@ import { translateNotification, translateNotificationSubject } from './translate
 const PAGE_SIZE = 20;
 
 type Filter = 'all' | 'unread';
+
+const DEFAULT_FILTERS: { filter: Filter } = { filter: 'all' };
 
 /**
  * C4 — notifications inbox. `GET /notifications` (`unread` filter, paged),
@@ -41,8 +43,10 @@ export function NotificationsPage() {
   const { me } = useAuth();
   const held = { permissions: me?.permissions ?? [], is_superuser: me?.is_superuser ?? false };
   const errorText = useApiErrorText();
-  const [filter, setFilter] = useState<Filter>('all');
-  const [page, setPage] = useState(1);
+  // The unread/all switch and the page live in the URL, so Back from the
+  // record a notification opened returns to the same page of the inbox.
+  const { filters, page, setFilters, setPage } = useListUrlState(DEFAULT_FILTERS);
+  const filter = filters.filter;
 
   const query = useNotifications({ unread: filter === 'unread', page, pageSize: PAGE_SIZE });
   const markRead = useMarkNotificationRead();
@@ -53,8 +57,7 @@ export function NotificationsPage() {
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
   function changeFilter(id: string) {
-    setFilter(id as Filter);
-    setPage(1);
+    setFilters({ filter: id as Filter });
   }
 
   return (

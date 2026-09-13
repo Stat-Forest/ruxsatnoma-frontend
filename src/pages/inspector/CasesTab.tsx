@@ -15,9 +15,9 @@
  * `_case_scope`, so a zoned viewer still sees only their own zone's cases
  * against that applicant — this tab does not additionally narrow anything.
  */
-import { useState } from 'react';
 import { useNavigate } from 'react-router';
 import { Loader2 } from 'lucide-react';
+import { useListUrlState } from '../../lib/useListUrlState';
 import { useT } from '../../i18n/useT';
 import { ExportXlsxButton } from '../../components/ui/ExportXlsxButton';
 import { Select } from '../../components/ui/FormControls';
@@ -33,6 +33,8 @@ import { CLICKABLE_ROW_CLASS, clickableRowProps } from '../../lib/rowClick';
 const PAGE_SIZE = 20;
 
 type CaseStatusFilter = '' | 'opened' | 'explanation_requested' | 'explained' | 'decided' | 'appealed' | 'closed' | 'archived';
+
+const EMPTY_FILTERS: { status: CaseStatusFilter } = { status: '' };
 
 const CASE_STATUS_BADGE: Record<string, StatusType> = {
   opened: 'pending',
@@ -110,8 +112,10 @@ export function CasesTab({ active, applicantId }: { active: boolean; applicantId
   const t = useT();
   const navigate = useNavigate();
   const errorText = useApiErrorText();
-  const [status, setStatus] = useState<CaseStatusFilter>('');
-  const [page, setPage] = useState(1);
+  // Filter and page live in the URL as `cases_*` (the three tabs share one
+  // address), so Back from a case returns to the same filtered page.
+  const { filters: applied, page, setFilters, setPage } = useListUrlState(EMPTY_FILTERS, { prefix: 'cases' });
+  const status = applied.status;
 
   const filters = { status: status || undefined, applicant_id: applicantId, page, page_size: PAGE_SIZE };
   const list = useCasesList(filters, { enabled: active });
@@ -136,8 +140,7 @@ export function CasesTab({ active, applicantId }: { active: boolean; applicantId
             touchSize
             value={status}
             onChange={(e) => {
-              setStatus(e.target.value as CaseStatusFilter);
-              setPage(1);
+              setFilters({ status: e.target.value as CaseStatusFilter });
             }}
             options={[
               { value: '', label: t('inspector.cases.status.all') },

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Loader2, RotateCcw } from 'lucide-react';
 import { useAuth } from '../../auth/useAuth';
+import { useListUrlState } from '../../lib/useListUrlState';
 import { useLanguage } from '../../i18n/useT';
 import { Button } from '../../components/ui/button';
 import { FormField, Input, Select } from '../../components/ui/FormControls';
@@ -151,14 +152,21 @@ const EMPTY_FILTERS: FilterFormState = {
   period_to: '',
 };
 
+/** The URL owns `status`; the form types it more narrowly than a string. */
+function asStatus(value: string): FilterFormState['status'] {
+  return value as FilterFormState['status'];
+}
+
 export function ApplicationsListPage() {
   const { me } = useAuth();
   const { lang } = useLanguage();
   const lt = APPLICATIONS_LIST_I18N[lang as keyof typeof APPLICATIONS_LIST_I18N] || APPLICATIONS_LIST_I18N.uz_latn;
   const errorText = useApiErrorText();
-  const [filters, setFilters] = useState(EMPTY_FILTERS);
-  const [appliedFilters, setAppliedFilters] = useState(EMPTY_FILTERS);
-  const [page, setPage] = useState(1);
+  // The applied filters and the page live in the URL (`useListUrlState`), so
+  // opening a card and coming back — Back, or the card's own link — shows
+  // the same page of the same filtered list; `filters` is the form's draft.
+  const { filters: appliedFilters, page, setFilters: applyPatch, setPage, reset } = useListUrlState(EMPTY_FILTERS);
+  const [filters, setFilters] = useState<FilterFormState>(appliedFilters);
   // The row whose "Ishga olish" is awaiting confirmation; the modal is
   // rendered here, outside the clickable rows (see `StartReviewConfirmModal`).
   const [confirmRow, setConfirmRow] = useState<ApplicationOut | null>(null);
@@ -166,7 +174,7 @@ export function ApplicationsListPage() {
   // Auto-apply text/date filters with debounce
   useEffect(() => {
     const timer = setTimeout(() => {
-      setAppliedFilters(filters);
+      applyPatch({ q: filters.q, period_from: filters.period_from, period_to: filters.period_to });
     }, 400);
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -199,14 +207,12 @@ export function ApplicationsListPage() {
   const canReview = !!me && (me.is_superuser || me.permissions.includes(REVIEW_PERMISSION));
 
   function applyFilters() {
-    setAppliedFilters(filters);
-    setPage(1);
+    applyPatch(filters);
   }
 
   function resetFilters() {
     setFilters(EMPTY_FILTERS);
-    setAppliedFilters(EMPTY_FILTERS);
-    setPage(1);
+    reset();
   }
 
   const totalPages = list.data ? Math.max(1, Math.ceil(list.data.total / PAGE_SIZE)) : 1;
@@ -232,10 +238,9 @@ export function ApplicationsListPage() {
             <Select
               value={filters.status}
               onChange={(e) => {
-                const newStatus = e.target.value as FilterFormState['status'];
+                const newStatus = asStatus(e.target.value);
                 setFilters((f) => ({ ...f, status: newStatus }));
-                setAppliedFilters((af) => ({ ...af, status: newStatus }));
-                setPage(1);
+                applyPatch({ status: newStatus });
               }}
               options={statusOptions}
             />
@@ -246,8 +251,7 @@ export function ApplicationsListPage() {
               onChange={(e) => {
                 const newId = e.target.value;
                 setFilters((f) => ({ ...f, activity_type_id: newId }));
-                setAppliedFilters((af) => ({ ...af, activity_type_id: newId }));
-                setPage(1);
+                applyPatch({ activity_type_id: newId });
               }}
               options={[
                 { value: '', label: lt.all },

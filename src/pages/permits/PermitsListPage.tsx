@@ -6,6 +6,7 @@ import { Pagination } from '../../components/ui/Navigation';
 import { ApiError } from '../../api/errors';
 import { useApiErrorText } from '../../i18n/useApiErrorText';
 import { useLanguage } from '../../i18n/useT';
+import { useListUrlState } from '../../lib/useListUrlState';
 import { ExportXlsxButton } from '../../components/ui/ExportXlsxButton';
 import { toPermitsQuery, usePermitsList, type PermitListFilters, type PermitStatus } from './queries';
 import { useLeshozOrganizations } from './useRefsLookup';
@@ -159,6 +160,11 @@ interface FilterFormState {
 
 const EMPTY_FILTERS: FilterFormState = { status: '', q: '', series: '', number: '', organization_id: '' };
 
+/** The URL owns `status`; the form types it more narrowly than a string. */
+function asStatus(value: string): FilterFormState['status'] {
+  return value as FilterFormState['status'];
+}
+
 /**
  * The two permit list screens the task brief calls a "blocking gap" — ported
  * from `.reference/src/pages/shared/PermitsRegistryPage.tsx`'s own dual-mode
@@ -174,14 +180,16 @@ export function PermitsListPage({ variant }: { variant: 'staff' | 'applicant' })
   const lt = PERMITS_LIST_I18N[lang as keyof typeof PERMITS_LIST_I18N] || PERMITS_LIST_I18N.uz_latn;
   const errorText = useApiErrorText();
   const isStaff = variant === 'staff';
-  const [filters, setFilters] = useState(EMPTY_FILTERS);
-  const [appliedFilters, setAppliedFilters] = useState(EMPTY_FILTERS);
-  const [page, setPage] = useState(1);
+  // The applied filters and the page live in the URL (`useListUrlState`), so
+  // opening a permit and coming back shows the same filtered page;
+  // `filters` is the form's draft.
+  const { filters: appliedFilters, page, setFilters: applyPatch, setPage, reset } = useListUrlState(EMPTY_FILTERS);
+  const [filters, setFilters] = useState<FilterFormState>(appliedFilters);
 
   // Auto-apply text filters with debounce so typing immediately filters
   useEffect(() => {
     const timer = setTimeout(() => {
-      setAppliedFilters(filters);
+      applyPatch({ q: filters.q, series: filters.series, number: filters.number });
     }, 400);
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -212,14 +220,12 @@ export function PermitsListPage({ variant }: { variant: 'staff' | 'applicant' })
   const organizations = useLeshozOrganizations();
 
   function applyFilters() {
-    setAppliedFilters(filters);
-    setPage(1);
+    applyPatch(filters);
   }
 
   function resetFilters() {
     setFilters(EMPTY_FILTERS);
-    setAppliedFilters(EMPTY_FILTERS);
-    setPage(1);
+    reset();
   }
 
   const totalPages = list.data ? Math.max(1, Math.ceil(list.data.total / PAGE_SIZE)) : 1;
@@ -247,10 +253,9 @@ export function PermitsListPage({ variant }: { variant: 'staff' | 'applicant' })
             <Select
               value={filters.status}
               onChange={(e) => {
-                const newStatus = e.target.value as FilterFormState['status'];
+                const newStatus = asStatus(e.target.value);
                 setFilters((f) => ({ ...f, status: newStatus }));
-                setAppliedFilters((af) => ({ ...af, status: newStatus }));
-                setPage(1);
+                applyPatch({ status: newStatus });
               }}
               options={statusOptions}
             />
@@ -285,8 +290,7 @@ export function PermitsListPage({ variant }: { variant: 'staff' | 'applicant' })
                 onChange={(e) => {
                   const newOrg = e.target.value;
                   setFilters((f) => ({ ...f, organization_id: newOrg }));
-                  setAppliedFilters((af) => ({ ...af, organization_id: newOrg }));
-                  setPage(1);
+                  applyPatch({ organization_id: newOrg });
                 }}
                 options={[
                   { value: '', label: lt.all },

@@ -11,6 +11,7 @@
  * further action.
  */
 import { Link, useNavigate, useParams } from 'react-router';
+import { useBackToList } from '../lib/returnTo';
 import { ArrowLeft } from 'lucide-react';
 import { ApiError } from '../api/errors';
 import { useLanguage, useT } from '../i18n/useT';
@@ -29,6 +30,7 @@ function asApiError(err: unknown): ApiError | null {
 
 export function ReportDetailPage() {
   const { id } = useParams<{ id: string }>();
+  const backToList = useBackToList('/reports');
   const navigate = useNavigate();
   const t = useT();
   const { lang } = useLanguage();
@@ -66,7 +68,7 @@ export function ReportDetailPage() {
     <div className="max-w-4xl mx-auto space-y-6 font-sans pb-16 px-4 sm:px-0">
       <div className="border-b border-[#E4E7EA] pb-4 space-y-2">
         <Link
-          to="/reports"
+          to={backToList}
           className="inline-flex items-center gap-1 text-xs font-semibold text-[#2E7D4F] hover:underline"
         >
           <ArrowLeft className="h-3.5 w-3.5" /> {t('reports.detail.backToList')}

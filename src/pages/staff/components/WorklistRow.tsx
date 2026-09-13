@@ -1,4 +1,5 @@
 import { Link, useNavigate } from 'react-router';
+import { useReturnHereState } from '../../../lib/returnTo';
 import { FileText, Inbox, PauseCircle } from 'lucide-react';
 import { useLanguage, useT } from '../../../i18n/useT';
 import { Button } from '../../../components/ui/button';
@@ -49,7 +50,9 @@ export function WorklistRow({
   const contour = useContour(row.contour_id);
   const sla = slaStatus(row.status, row.sla_deadline_at);
   const areaUnit = lang === 'en' ? 'ha' : lang === 'ru' || lang === 'uz_cyrl' ? 'га' : 'ga';
-  const rowProps = clickableRowProps(() => navigate(`/applications/${row.id}`));
+  // The card's "back to list" returns to this URL, filters and page intact.
+  const returnHere = useReturnHereState();
+  const rowProps = clickableRowProps(() => navigate(`/applications/${row.id}`, { state: returnHere }));
 
   return (
     <tr
@@ -60,6 +63,7 @@ export function WorklistRow({
       <td className="p-3 font-mono font-bold whitespace-nowrap">
         <Link
           to={`/applications/${row.id}`}
+          state={returnHere}
           className="text-[#2E7D4F] hover:underline flex items-center gap-1"
         >
           <FileText className="w-3.5 h-3.5" />

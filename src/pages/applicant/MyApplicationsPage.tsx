@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router';
 import { Inbox, Loader2, Plus, Search } from 'lucide-react';
@@ -9,6 +9,8 @@ import { ExportXlsxButton } from '../../components/ui/ExportXlsxButton';
 import { Pagination } from '../../components/ui/Navigation';
 import { StatusBadge } from '../../components/ui/StatusBadge';
 import { listActivityTypes, listApplications, type ApplicationOut, type ApplicationStatus } from './api';
+import { useListUrlState } from '../../lib/useListUrlState';
+import { useReturnHereState } from '../../lib/returnTo';
 import { formatDate } from './format';
 import { pickName } from './format';
 import { ALL_STATUSES, STATUS_BADGE_KIND, getStatusLabel } from './statusMeta';
@@ -117,15 +119,31 @@ const MY_APPS_I18N = {
 /** B6 — the applicant's own application list, with the filters `GET
  * /applications` already supports server-side (ruling: the service scopes
  * "my own" for an applicant caller, so no `applicant_id` is sent here). */
+interface Filters {
+  status: ApplicationStatus | '';
+  activityTypeId: string;
+  number: string;
+}
+
+const EMPTY_FILTERS: Filters = { status: '', activityTypeId: '', number: '' };
+
 export function MyApplicationsPage() {
   const navigate = useNavigate();
   const { lang } = useLanguage();
   const t = MY_APPS_I18N[lang as keyof typeof MY_APPS_I18N] || MY_APPS_I18N.uz_latn;
 
-  const [page, setPage] = useState(1);
-  const [status, setStatus] = useState<ApplicationStatus | ''>('');
-  const [activityTypeId, setActivityTypeId] = useState('');
-  const [number, setNumber] = useState('');
+  // The filters and the page live in the URL (`useListUrlState`), so opening
+  // a card and coming back shows the same filtered page. The number box
+  // keeps its own draft and reaches the URL debounced — the router applies
+  // a URL change asynchronously, too late for a controlled input's cursor.
+  const { filters, page, setFilters, setPage } = useListUrlState(EMPTY_FILTERS);
+  const { status, activityTypeId, number } = filters;
+  const [numberDraft, setNumberDraft] = useState(number);
+  useEffect(() => {
+    const timer = setTimeout(() => setFilters({ number: numberDraft }), 400);
+    return () => clearTimeout(timer);
+  }, [numberDraft, setFilters]);
+  const returnHere = useReturnHereState();
 
   const activityTypesQuery = useQuery({ queryKey: ['activity-types'], queryFn: listActivityTypes });
   const activityTypeById = useMemo(() => {
@@ -184,7 +202,7 @@ export function MyApplicationsPage() {
       header: '',
       accessor: (row) => (
         <button
-          onClick={() => navigate(`/my/applications/${row.id}`)}
+          onClick={() => navigate(`/my/applications/${row.id}`, { state: returnHere })}
           className="text-xs font-bold text-[#2E7D4F] hover:underline cursor-pointer"
         >
           {t.open}
@@ -220,21 +238,15 @@ export function MyApplicationsPage() {
             id="filter-number"
             leftIcon={<Search className="w-4 h-4" />}
             placeholder="RX-2026-000123"
-            value={number}
-            onChange={(e) => {
-              setNumber(e.target.value);
-              setPage(1);
-            }}
+            value={numberDraft}
+            onChange={(e) => setNumberDraft(e.target.value)}
           />
         </FormField>
         <FormField label={t.filterStatus} htmlFor="filter-status">
           <Select
             id="filter-status"
             value={status}
-            onChange={(e) => {
-              setStatus(e.target.value as ApplicationStatus | '');
-              setPage(1);
-            }}
+            onChange={(e) => setFilters({ status: e.target.value as ApplicationStatus | '' })}
             options={[{ value: '', label: t.all }, ...ALL_STATUSES.map((s) => ({ value: s, label: getStatusLabel(s, lang) }))]}
           />
         </FormField>
@@ -242,10 +254,7 @@ export function MyApplicationsPage() {
           <Select
             id="filter-activity"
             value={activityTypeId}
-            onChange={(e) => {
-              setActivityTypeId(e.target.value);
-              setPage(1);
-            }}
+            onChange={(e) => setFilters({ activityTypeId: e.target.value })}
             options={[
               { value: '', label: t.all },
               ...(activityTypesQuery.data ?? []).map((a) => ({ value: a.id, label: pickName(a.name, lang) })),
@@ -274,7 +283,7 @@ export function MyApplicationsPage() {
           applicationsQuery.data!.items.map((row) => (
             <div
               key={row.id}
-              onClick={() => navigate(`/my/applications/${row.id}`)}
+              onClick={() => navigate(`/my/applications/${row.id}`, { state: returnHere })}
               className="bg-white border border-[#E4E7EA] rounded-2xl p-4 shadow-xs hover:border-[#2E7D4F] transition-all cursor-pointer space-y-2.5"
             >
               <div className="flex items-start justify-between gap-2">
@@ -333,7 +342,7 @@ export function MyApplicationsPage() {
           emptyTitle={t.emptyTitle}
           emptyDescription={t.emptyDesc}
           pagination={{ currentPage: page, totalPages, onPageChange: setPage, totalRecords: total }}
-          onRowClick={(row) => navigate(`/my/applications/${row.id}`)}
+          onRowClick={(row) => navigate(`/my/applications/${row.id}`, { state: returnHere })}
         />
       </div>
     </div>
