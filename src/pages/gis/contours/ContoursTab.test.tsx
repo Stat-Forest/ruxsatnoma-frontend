@@ -582,6 +582,37 @@ test('the region select narrows the organization select to that region, filters 
   await waitFor(() => expect(new URL(listUrls[listUrls.length - 1]).searchParams.get('region_id')).toBeNull());
 });
 
+test('changing the region or the organization filter drops the selected contour', async () => {
+  server.use(
+    ...referenceHandlers(),
+    http.get('*/api/v1/gis/contours', () => HttpResponse.json({ items: [CONTOUR_ROW], total: 1 })),
+    http.get('*/api/v1/gis/contours/c-1', () => HttpResponse.json(CONTOUR_CARD)),
+    http.get('*/api/v1/gis/contours/features', () =>
+      HttpResponse.json({ type: 'FeatureCollection', features: [], truncated: false }),
+    ),
+  );
+  const ui = userEvent.setup();
+  renderTab(['gis.contours.manage']);
+  const map = await screen.findByTestId('draw-map-mock');
+
+  await ui.click(await screen.findByTestId('contour-row-c-1'));
+  await waitFor(() => expect(map).toHaveAttribute('data-selected-geometry-type', 'Polygon'));
+
+  const regionFilter = screen.getByRole('combobox', { name: 'gis.contours.filterRegion' });
+  await waitFor(() => expect(within(regionFilter).getByText('Jizzax viloyati')).toBeInTheDocument());
+  await ui.selectOptions(regionFilter, 'reg-jizz');
+  expect(map).toHaveAttribute('data-selected-geometry-type', '');
+
+  await ui.selectOptions(regionFilter, '');
+  await ui.click(await screen.findByTestId('contour-row-c-1'));
+  await waitFor(() => expect(map).toHaveAttribute('data-selected-geometry-type', 'Polygon'));
+
+  const orgFilter = screen.getByRole('combobox', { name: 'gis.contours.filterOrganization' });
+  await waitFor(() => expect(within(orgFilter).getByText('Zomin LX')).toBeInTheDocument());
+  await ui.selectOptions(orgFilter, 'org-2');
+  expect(map).toHaveAttribute('data-selected-geometry-type', '');
+});
+
 test('the Excel button asks the server for the export with the applied organization filter, never paging the list itself', async () => {
   let listCalls = 0;
   let exportUrl: URL | null = null;

@@ -351,6 +351,19 @@ export function ContoursTab({ t }: { t: (key: string) => string }) {
     setSplitLine(null);
   }
 
+  /** A changed region or organization filter drops the selection: the
+   * selected contour may no longer be in the list at all, and a card and a
+   * highlight for a row the list cannot show would outlive the filter that
+   * hid it (Oybek, 2026-09-13). Back to browse — a split line or an edit
+   * belonged to that selection. Page numbers belong to the previous
+   * filter's list too; page 2 of a narrower one may not even exist. */
+  function applyFilterChange() {
+    setSelectedContourId(null);
+    setMode('browse');
+    setSplitLine(null);
+    setPage(1);
+  }
+
   /** A click on a parcel drawn on the map — the same selection the list row
    * makes, with one difference: clicking the parcel that is already selected
    * clears the selection (the toggle `ContourPicker`'s map is built on),
@@ -443,8 +456,7 @@ export function ContoursTab({ t }: { t: (key: string) => string }) {
                   !next ||
                   (organizationsQuery.data ?? []).some((o) => o.id === orgFilter && o.region_id === next);
                 if (!stillListed) setOrgFilter('');
-                // The region changed the server-side list either way.
-                setPage(1);
+                applyFilterChange();
               }}
               options={[{ value: '', label: t('gis.contours.allRegions') }, ...regionOptions.map((r) => ({ value: r.id, label: r.label }))]}
             />
@@ -454,9 +466,7 @@ export function ContoursTab({ t }: { t: (key: string) => string }) {
               value={orgFilter}
               onChange={(e) => {
                 setOrgFilter(e.target.value);
-                // Page numbers belong to the previous filter's list; page 2
-                // of a narrower one may not even exist.
-                setPage(1);
+                applyFilterChange();
               }}
               options={[{ value: '', label: t('gis.contours.allOrganizations') }, ...orgOptionsInRegion.map((o) => ({ value: o.id, label: o.label }))]}
             />
