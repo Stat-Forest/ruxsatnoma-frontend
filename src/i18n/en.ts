@@ -79,6 +79,9 @@ export const en = {
   'login.eimzoRealHint': 'Sign in using your connected E-IMZO key. The E-IMZO application itself will ask for the key password.',
   // The page frame (2026-09-10) — see the matching comment in `ru.ts`.
   'login.brandName': 'ruxsatnoma-urmon.uz',
+  'brand.line1': 'Forestry Development and',
+  'brand.line2': 'Combating Desertification Agency',
+  'brand.line3': 'Permit Acquisition Portal',
   'login.brandTagline': 'State forestry portal',
   'login.backHome': 'Home',
   'login.eyebrow': 'Personal account',

@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import type { FormEvent } from 'react';
 import { Navigate, useLocation, useNavigate, useSearchParams } from 'react-router';
-import { ArrowLeft, ArrowRight, Clock, FileText, QrCode, ShieldCheck, Trees } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Clock, FileText, QrCode, ShieldCheck, Send } from 'lucide-react';
+import ormonLogo from '../assets/img/ormonlogo.png';
 import { Button } from '../components/ui/button';
 import { FormField, Input } from '../components/ui/FormControls';
 import { api } from '../api/client';
@@ -370,7 +371,7 @@ export function LoginPage() {
     <div
       data-testid="login-page"
       data-next={next}
-      className="min-h-screen flex flex-col bg-[#F8F9FA] text-[#1A1F24]"
+      className="h-[100dvh] flex flex-col bg-[#F8F9FA] text-[#1A1F24] overflow-hidden"
     >
       {/* The landing's header (`PublicLayout.tsx` there), reduced to what an
           anonymous visitor needs here: the brand as a way home, an explicit
@@ -378,13 +379,12 @@ export function LoginPage() {
       <header className="bg-[#17331B] border-b border-white/15 shadow-md text-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-3">
           <a href={homeUrl} className="flex items-center gap-3 shrink-0 focus:outline-none">
-            <span className="w-10 h-10 rounded-xl bg-[#2E7D4F] border border-white/20 shadow-md flex items-center justify-center shrink-0">
-              <Trees className="w-5.5 h-5.5" />
-            </span>
-            <span className="hidden sm:block leading-tight whitespace-nowrap">
-              <span className="block text-base font-bold tracking-tight">{t('login.brandName')}</span>
-              <span className="block text-[11px] text-gray-200">{t('login.brandTagline')}</span>
-            </span>
+            <img src={ormonLogo} alt="Logo" className="w-10 h-10 rounded-xl shadow-md object-cover shrink-0" />
+            <div className="hidden sm:flex flex-col justify-center">
+              <span className="text-[10px] font-bold text-white leading-[1.1] uppercase tracking-wide">{t('brand.line1')}</span>
+              <span className="text-[10px] font-bold text-white leading-[1.1] uppercase tracking-wide">{t('brand.line2')}</span>
+              <span className="text-[11px] font-extrabold text-[#A5D6A7] leading-[1.2] uppercase tracking-wide">{t('brand.line3')}</span>
+            </div>
           </a>
           <div className="flex items-center gap-2 sm:gap-3">
             <a
@@ -411,32 +411,32 @@ export function LoginPage() {
         </div>
       </header>
 
-      <main className="flex-1 flex items-center">
-        <div className="max-w-7xl w-full mx-auto px-4 sm:px-6 py-8 lg:py-14 grid gap-8 lg:grid-cols-[minmax(0,1fr)_440px] lg:gap-20 items-center">
-          <section className="flex flex-col gap-4 lg:gap-6 max-w-[600px]">
-            <span className="text-xs font-bold uppercase tracking-[0.08em] text-[#2E7D4F]">
+      <main className="flex-1 flex flex-col min-h-0">
+        <div className="max-w-7xl w-full mx-auto px-4 sm:px-6 py-2 lg:py-4 grid gap-4 lg:grid-cols-[minmax(0,1fr)_400px] lg:gap-8 items-center my-auto">
+          <section className="flex flex-col gap-2 lg:gap-4 max-w-[600px]">
+            <span className="text-[10px] sm:text-xs font-bold uppercase tracking-[0.08em] text-[#2E7D4F]">
               {t('login.eyebrow')}
             </span>
-            <h1 className="text-[28px] leading-9 lg:text-4xl lg:leading-[44px] font-bold text-[#1A1F24] text-balance">
+            <h1 className="text-xl leading-7 lg:text-2xl lg:leading-8 font-bold text-[#1A1F24] text-balance">
               {t('login.heading')}
             </h1>
-            <p className="text-[15px] leading-[22px] lg:text-base lg:leading-6 text-[#5A646D] max-w-[520px]">
+            <p className="text-sm lg:text-[15px] lg:leading-[22px] text-[#5A646D] max-w-[520px]">
               {t('login.lead')}
             </p>
-            <div className="hidden lg:block mt-2">
+            <div className="hidden lg:block mt-1">
               <Benefits />
             </div>
-            <TreeLine className="hidden lg:block mt-4" />
+            <TreeLine className="hidden xl:block mt-2" />
           </section>
 
           <section className="flex flex-col gap-4">
       {/* The card is indented one level less than its position suggests so
           the sign-in forms below it — the part of this file every test and
           every earlier fix is about — keep their lines unchanged. */}
-      <div className="bg-white border border-[#E4E7EA] rounded-2xl p-5 sm:p-8 shadow-sm space-y-5">
-        <div className="space-y-1.5">
-          <h2 className="text-[22px] leading-[30px] font-bold text-[#1A1F24]">{t('login.cardTitle')}</h2>
-          <p className="text-sm text-[#5A646D]">{t('login.cardSubtitle')}</p>
+      <div className="bg-white border border-[#E4E7EA] rounded-2xl p-4 sm:p-5 shadow-sm space-y-3">
+        <div className="space-y-0.5">
+          <h2 className="text-lg sm:text-xl leading-6 font-bold text-[#1A1F24]">{t('login.cardTitle')}</h2>
+          <p className="text-xs sm:text-sm text-[#5A646D]">{t('login.cardSubtitle')}</p>
         </div>
 
         <div
@@ -831,8 +831,8 @@ export function LoginPage() {
         </div>
       </main>
 
-      <footer className="border-t border-[#E4E7EA] bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-5 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-[#767F87]">
+      <footer className="border-t border-[#E4E7EA] bg-white shrink-0 z-10">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-[#767F87]">
           <span className="text-center sm:text-left">{t('login.footerCopyright')}</span>
           <nav className="flex items-center gap-6 font-semibold text-[#5A646D]">
             <a href={landingUrl(LANDING_PATHS.about)} className="hover:text-[#1A1F24]">
@@ -843,6 +843,10 @@ export function LoginPage() {
             </a>
             <a href={landingUrl(LANDING_PATHS.documents)} className="hover:text-[#1A1F24]">
               {t('login.footerDocuments')}
+            </a>
+            <a href="https://t.me/ruxsatnoma_support" target="_blank" rel="noreferrer" className="flex items-center gap-1.5 text-[#0284C7] hover:text-[#0369A1] transition-colors ml-2">
+              <Send className="w-3.5 h-3.5" />
+              <span>Telegram Bot</span>
             </a>
           </nav>
         </div>
