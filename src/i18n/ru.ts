@@ -2215,6 +2215,25 @@ export const ru = {
   'beekeepers.remove.submit': 'Исключить',
   'beekeepers.remove.cancel': 'Отмена',
   'beekeepers.remove.error': 'Не удалось исключить.',
+  // Ruling #217 — the certificate's term and the Union's monitoring tab.
+  'beekeepers.col.validTo': 'Действует до',
+  'beekeepers.form.fieldValidTo': 'Действует до',
+  'beekeepers.form.validToHint': 'Дата «Действует до …» с удостоверения. Если срок не указан — оставьте пустым.',
+  'beekeepers.tab.register': 'Реестр',
+  'beekeepers.tab.claims': 'Заявки',
+  'beekeepers.claims.col.number': 'Номер заявки',
+  'beekeepers.claims.col.applicant': 'Заявитель',
+  'beekeepers.claims.col.certificateNo': 'Номер удостоверения',
+  'beekeepers.claims.col.organization': 'Лесхоз',
+  'beekeepers.claims.col.period': 'Период',
+  'beekeepers.claims.col.verification': 'Проверка льготы',
+  'beekeepers.claims.col.status': 'Статус заявки',
+  'beekeepers.claims.filters.status': 'Статус заявки',
+  'beekeepers.claims.empty': 'Заявок со льготой члена Союза пока нет.',
+  'beekeepers.claims.verification.pending': 'На проверке',
+  'beekeepers.claims.verification.verified': 'Подтверждена',
+  'beekeepers.claims.verification.rejected': 'Отклонена',
+  'beekeepers.claims.verification.not_required': 'Не требуется',
 
   // Stage 10, F1 — чекбокс правил (решение #184), ветка «сам/юрлицо» на
   // последнем шаге мастера (решение #183) и обязательность справки/документа

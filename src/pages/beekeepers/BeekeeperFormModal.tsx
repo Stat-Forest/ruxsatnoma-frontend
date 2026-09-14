@@ -26,10 +26,11 @@ interface FormState {
   passportNumber: string;
   stir: string;
   farmName: string;
+  validTo: string;
 }
 
 function emptyForm(): FormState {
-  return { pinfl: '', certificateNo: '', fullName: '', passportSeries: '', passportNumber: '', stir: '', farmName: '' };
+  return { pinfl: '', certificateNo: '', fullName: '', passportSeries: '', passportNumber: '', stir: '', farmName: '', validTo: '' };
 }
 
 function formFrom(row: BeekeeperOut): FormState {
@@ -41,6 +42,7 @@ function formFrom(row: BeekeeperOut): FormState {
     passportNumber: row.passport_number,
     stir: row.stir ?? '',
     farmName: row.farm_name ?? '',
+    validTo: row.valid_to ?? '',
   };
 }
 
@@ -118,6 +120,9 @@ export function BeekeeperFormModal({ mode, beekeeper, onClose }: BeekeeperFormMo
       stir: form.stir.trim() || null,
       full_name: form.fullName.trim(),
       farm_name: form.farmName.trim() || null,
+      // Ruling #217: the certificate's own term («Действует до 31.12.2025»);
+      // blank means "no term known", never a date this form invents.
+      valid_to: form.validTo || null,
     };
     if (mode === 'edit') patch.mutate(body, { onSuccess: onClose });
     else create.mutate(body, { onSuccess: onClose });
@@ -205,6 +210,10 @@ export function BeekeeperFormModal({ mode, beekeeper, onClose }: BeekeeperFormMo
 
         <FormField label={t('beekeepers.form.fieldFarmName')}>
           <Input value={form.farmName} onChange={(e) => set('farmName', e.target.value)} data-testid="beekeeper-form-farm-name" />
+        </FormField>
+
+        <FormField label={t('beekeepers.form.fieldValidTo')} helperText={t('beekeepers.form.validToHint')}>
+          <Input type="date" value={form.validTo} onChange={(e) => set('validTo', e.target.value)} data-testid="beekeeper-form-valid-to" />
         </FormField>
 
         {failure != null && (
