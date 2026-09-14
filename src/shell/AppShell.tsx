@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { Link, Outlet } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
-import { Bell, LogOut, Menu, Trees, Video, X } from 'lucide-react';
+import { Bell, LogOut, Menu, Video, X } from 'lucide-react';
+import ormonLogo from '../assets/img/ormonlogo.png';
 import { api } from '../api/client';
 import { apiError } from '../api/errors';
 import { useAuth } from '../auth/useAuth';
@@ -84,10 +85,12 @@ export function AppShell() {
         </button>
 
         <div className="flex items-center gap-2.5 shrink-0">
-          <div className="w-9 h-9 rounded-lg bg-[#2E7D4F] text-white flex items-center justify-center shadow-xs">
-            <Trees className="w-5 h-5" />
+          <img src={ormonLogo} alt="Logo" className="w-9 h-9 rounded-lg shadow-xs object-cover" />
+          <div className="hidden sm:flex flex-col justify-center">
+            <span className="text-[9px] font-bold text-[#1A1F24] leading-[1.1] uppercase tracking-wide">{t('brand.line1')}</span>
+            <span className="text-[9px] font-bold text-[#1A1F24] leading-[1.1] uppercase tracking-wide">{t('brand.line2')}</span>
+            <span className="text-[10px] font-extrabold text-[#2E7D4F] leading-[1.2] uppercase tracking-wide">{t('brand.line3')}</span>
           </div>
-          <span className="hidden sm:block text-sm font-bold text-[#1A1F24]">ruxsatnoma-urmon.uz</span>
         </div>
 
         {/* Two lines, like the profile block on the right, so it fits beside
@@ -182,7 +185,14 @@ export function AppShell() {
           <div className="fixed inset-0 bg-black/40" onClick={() => setDrawerOpen(false)} aria-hidden="true" />
           <div className="relative w-72 max-w-[80%] bg-white h-full shadow-2xl flex flex-col">
             <div className="h-16 flex items-center justify-between px-4 border-b border-[#E4E7EA] shrink-0">
-              <span className="text-sm font-bold text-[#1A1F24]">ruxsatnoma-urmon.uz</span>
+              <div className="flex items-center gap-2.5">
+                <img src={ormonLogo} alt="Logo" className="w-8 h-8 rounded-lg shadow-xs object-cover" />
+                <div className="flex flex-col justify-center">
+                  <span className="text-[8px] font-bold text-[#1A1F24] leading-[1.1] uppercase tracking-wide">{t('brand.line1')}</span>
+                  <span className="text-[8px] font-bold text-[#1A1F24] leading-[1.1] uppercase tracking-wide">{t('brand.line2')}</span>
+                  <span className="text-[9px] font-extrabold text-[#2E7D4F] leading-[1.2] uppercase tracking-wide">{t('brand.line3')}</span>
+                </div>
+              </div>
               <button
                 type="button"
                 onClick={() => setDrawerOpen(false)}

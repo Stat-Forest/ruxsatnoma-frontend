@@ -1536,6 +1536,9 @@ export const kaa = {
   'login.eimzoRealHint': 'Ulanǵan E-IMZO giltińiz arqalı tizimge kiriń. Gilttiń parolin E-IMZO dasturınıń óziniń sorайdı.',
   // The page frame (2026-09-10) — see the matching comment in `ru.ts`.
   'login.brandName': 'ruxsatnoma-urmon.uz',
+  'brand.line1': 'Orman hám jasıl aymaqlardı kóbeytiw,',
+  'brand.line2': 'shólleniwge qarsı gúresiw agentligi',
+  'brand.line3': 'Ruxsatnama alıw portalı',
   'login.brandTagline': 'Orman xojalıǵı mámleketlik portalı',
   'login.backHome': 'Bas bet',
   'login.eyebrow': 'Jeke kabinet',

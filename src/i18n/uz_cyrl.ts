@@ -118,6 +118,9 @@ export const uz_cyrl = {
     'Уланган E-IMZO калитингиз орқали тизимга киринг. Калит паролини E-IMZO дастурининг ўзи сўрайди.',
   // The page frame (2026-09-10) — see the matching comment in `ru.ts`.
   'login.brandName': 'ruxsatnoma-urmon.uz',
+  'brand.line1': 'Ўрмон ва яшил ҳудудларни кўпайтириш,',
+  'brand.line2': 'чўлланишга қарши курашиш агентлиги',
+  'brand.line3': 'Рухсатнома олиш портали',
   'login.brandTagline': 'Ўрмон хўжалиги давлат портали',
   'login.backHome': 'Бош саҳифа',
   'login.eyebrow': 'Шахсий кабинет',

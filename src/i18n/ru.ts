@@ -84,6 +84,9 @@ export const ru = {
   // card, so the login reads as part of the portal. Brand and footer copy are
   // the landing's own strings, verbatim.
   'login.brandName': 'ruxsatnoma-urmon.uz',
+  'brand.line1': 'Агентство по развитию лесного хозяйства и',
+  'brand.line2': 'борьбе с опустыниванием',
+  'brand.line3': 'Портал получения разрешений',
   'login.brandTagline': 'Государственный портал лесного хозяйства',
   'login.backHome': 'На главную',
   'login.eyebrow': 'Личный кабинет',

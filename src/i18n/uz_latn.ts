@@ -88,6 +88,9 @@ export const uz_latn = {
     "Ulangan E-IMZO kalitingiz orqali tizimga kiring. Kalit parolini E-IMZO dasturining o'zi so'raydi.",
   // The page frame (2026-09-10) — see the matching comment in `ru.ts`.
   'login.brandName': 'ruxsatnoma-urmon.uz',
+  'brand.line1': 'O‘rmon va yashil hududlarni ko‘paytirish,',
+  'brand.line2': 'cho‘llanishga qarshi kurashish agentligi',
+  'brand.line3': 'Ruxsatnoma olish portali',
   'login.brandTagline': 'Oʻrmon xoʻjaligi davlat portali',
   'login.backHome': 'Bosh sahifa',
   'login.eyebrow': 'Shaxsiy kabinet',
