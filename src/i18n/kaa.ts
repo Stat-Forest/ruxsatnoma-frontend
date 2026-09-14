@@ -2027,6 +2027,25 @@ export const kaa = {
   'beekeepers.remove.submit': 'Shıǵarıw',
   'beekeepers.remove.cancel': 'Biykar etiw',
   'beekeepers.remove.error': 'Shıǵarıp bolmadı.',
+  // Ruling #217 — the certificate's term and the Union's monitoring tab.
+  'beekeepers.col.validTo': 'Ámel qılıw múddeti',
+  'beekeepers.form.fieldValidTo': 'Ámel qılıw múddeti (shekem)',
+  'beekeepers.form.validToHint': 'Guwalıqtaǵı «... shekem ámel qıladı» sánesi. Múddet kórsetilmegen bolsa — bos qaldırıń.',
+  'beekeepers.tab.register': 'Reestr',
+  'beekeepers.tab.claims': 'Arzalar',
+  'beekeepers.claims.col.number': 'Arza nomeri',
+  'beekeepers.claims.col.applicant': 'Arza beriwshi',
+  'beekeepers.claims.col.certificateNo': 'Guwalıq nomeri',
+  'beekeepers.claims.col.organization': 'Orman xojalıǵı',
+  'beekeepers.claims.col.period': 'Dáwir',
+  'beekeepers.claims.col.verification': 'Jeńillik tekseriwi',
+  'beekeepers.claims.col.status': 'Arza jaǵdayı',
+  'beekeepers.claims.filters.status': 'Arza jaǵdayı',
+  'beekeepers.claims.empty': 'Awqam aǵzaları jeńilligin soraǵan arzalar házirshe joq.',
+  'beekeepers.claims.verification.pending': 'Tekserilmekte',
+  'beekeepers.claims.verification.verified': 'Tastıyıqlanǵan',
+  'beekeepers.claims.verification.rejected': 'Biykarlanǵan',
+  'beekeepers.claims.verification.not_required': 'Talap etilmeydi',
 
   // Stage 10, F1 — the rules checkbox (ruling #184), the self/legal branch of
   // the wizard's last step (ruling #183), and the benefit block's

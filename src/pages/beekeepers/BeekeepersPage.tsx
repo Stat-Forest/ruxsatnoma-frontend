@@ -10,7 +10,9 @@ import { FormField, Input, Select } from '../../components/ui/FormControls';
 import { useBeekeepersList } from './queries';
 import type { BeekeeperOut } from './api';
 import { BeekeeperFormModal } from './BeekeeperFormModal';
+import { BeekeepingClaimsPanel } from './BeekeepingClaimsPanel';
 import { RemoveBeekeeperModal } from './RemoveBeekeeperModal';
+import { formatDate } from '../applicant/format';
 
 const PAGE_SIZE = 20;
 
@@ -32,6 +34,10 @@ const STATUS_BADGE_CLASS: Record<string, string> = {
  * per keystroke against a route that scans certificate/name/PINFL with
  * ILIKE — only "Apply" (or the status `Select`, which is cheap enough to
  * apply immediately) commits a new query.
+ *
+ * Ruling #217 adds a second tab, «Arizalar»: `BeekeepingClaimsPanel`, the
+ * Union's read-only monitoring of every application claiming its members'
+ * benefit — the same role, the same screen, so the registrar has one place.
  */
 export function BeekeepersPage() {
   const t = useT();
@@ -44,6 +50,7 @@ export function BeekeepersPage() {
   const [formMode, setFormMode] = useState<'create' | 'edit' | null>(null);
   const [editing, setEditing] = useState<BeekeeperOut | null>(null);
   const [removing, setRemoving] = useState<BeekeeperOut | null>(null);
+  const [tab, setTab] = useState<'register' | 'claims'>('register');
 
   const list = useBeekeepersList({ q: q || undefined, status: status || undefined, page, page_size: PAGE_SIZE });
 
@@ -75,6 +82,13 @@ export function BeekeepersPage() {
     },
     { key: 'fullName', header: t('beekeepers.col.fullName'), accessor: (row) => row.full_name },
     { key: 'farmName', header: t('beekeepers.col.farmName'), accessor: (row) => row.farm_name || '—' },
+    {
+      key: 'validTo',
+      header: t('beekeepers.col.validTo'),
+      // Ruling #217: the certificate's own term. Blank when the Union
+      // recorded none — never "expired" by default.
+      accessor: (row) => (row.valid_to ? formatDate(row.valid_to) : '—'),
+    },
     {
       key: 'status',
       header: t('beekeepers.col.status'),
@@ -134,67 +148,88 @@ export function BeekeepersPage() {
         </Button>
       </header>
 
-      <div className="bg-white border border-[#E4E7EA] rounded-2xl p-5 shadow-xs">
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <FormField label={t('beekeepers.filters.q')}>
-            <Input
-              value={qDraft}
-              placeholder={t('beekeepers.filters.qPlaceholder')}
-              onChange={(e) => setQDraft(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') applySearch();
-              }}
-              data-testid="beekeepers-filter-q"
-            />
-          </FormField>
-          <FormField label={t('beekeepers.filters.status')}>
-            <Select
-              value={status}
-              onChange={(e) => {
-                setStatus(e.target.value);
-                setPage(1);
-              }}
-              options={[
-                { value: '', label: t('beekeepers.filters.all') },
-                { value: 'active', label: t('beekeepers.filters.active') },
-                { value: 'removed', label: t('beekeepers.filters.removed') },
-              ]}
-              data-testid="beekeepers-filter-status"
-            />
-          </FormField>
-        </div>
-        <div className="mt-4 flex gap-2">
-          <Button size="sm" onClick={applySearch}>
-            {t('beekeepers.apply')}
-          </Button>
-          <Button size="sm" variant="outline" onClick={resetSearch}>
-            {t('beekeepers.reset')}
-          </Button>
-        </div>
+      <div className="flex gap-2 border-b border-[#E4E7EA]" role="tablist">
+        {(['register', 'claims'] as const).map((key) => (
+          <button
+            key={key}
+            role="tab"
+            aria-selected={tab === key}
+            className={`px-4 py-2 text-sm font-semibold border-b-2 -mb-px ${tab === key ? 'border-[#2E7D4F] text-[#123522]' : 'border-transparent text-[#5A646D] hover:text-[#1A1F24]'}`}
+            onClick={() => setTab(key)}
+            data-testid={`beekeepers-tab-${key}`}
+          >
+            {t(`beekeepers.tab.${key}`)}
+          </button>
+        ))}
       </div>
 
-      <div className="flex justify-end">
-        <ExportXlsxButton className="ml-auto" path="/api/v1/beekeepers" query={{ q: q || undefined, status: status || undefined }} />
-      </div>
+      {tab === 'claims' && <BeekeepingClaimsPanel />}
 
-      {list.error && (
-        <div className="p-4 bg-[#FEF2F2] border border-[#FCA5A5] rounded-2xl text-sm text-[#991B1B]" role="alert">
-          {list.error instanceof ApiError ? errorText(list.error) : t('beekeepers.loadError')}
+      {tab === 'register' && (
+        <>
+        <div className="bg-white border border-[#E4E7EA] rounded-2xl p-5 shadow-xs">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <FormField label={t('beekeepers.filters.q')}>
+              <Input
+                value={qDraft}
+                placeholder={t('beekeepers.filters.qPlaceholder')}
+                onChange={(e) => setQDraft(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') applySearch();
+                }}
+                data-testid="beekeepers-filter-q"
+              />
+            </FormField>
+            <FormField label={t('beekeepers.filters.status')}>
+              <Select
+                value={status}
+                onChange={(e) => {
+                  setStatus(e.target.value);
+                  setPage(1);
+                }}
+                options={[
+                  { value: '', label: t('beekeepers.filters.all') },
+                  { value: 'active', label: t('beekeepers.filters.active') },
+                  { value: 'removed', label: t('beekeepers.filters.removed') },
+                ]}
+                data-testid="beekeepers-filter-status"
+              />
+            </FormField>
+          </div>
+          <div className="mt-4 flex gap-2">
+            <Button size="sm" onClick={applySearch}>
+              {t('beekeepers.apply')}
+            </Button>
+            <Button size="sm" variant="outline" onClick={resetSearch}>
+              {t('beekeepers.reset')}
+            </Button>
+          </div>
         </div>
+
+        <div className="flex justify-end">
+          <ExportXlsxButton className="ml-auto" path="/api/v1/beekeepers" query={{ q: q || undefined, status: status || undefined }} />
+        </div>
+
+        {list.error && (
+          <div className="p-4 bg-[#FEF2F2] border border-[#FCA5A5] rounded-2xl text-sm text-[#991B1B]" role="alert">
+            {list.error instanceof ApiError ? errorText(list.error) : t('beekeepers.loadError')}
+          </div>
+        )}
+
+        <DataTable
+          columns={columns}
+          data={list.data?.items ?? []}
+          isLoading={list.isLoading}
+          emptyTitle={t('beekeepers.empty')}
+          emptyDescription=""
+          pagination={{ currentPage: page, totalPages, onPageChange: setPage, totalRecords: total }}
+          onRowClick={(row) => {
+            setEditing(row);
+            setFormMode('edit');
+          }}
+        />
+        </>
       )}
-
-      <DataTable
-        columns={columns}
-        data={list.data?.items ?? []}
-        isLoading={list.isLoading}
-        emptyTitle={t('beekeepers.empty')}
-        emptyDescription=""
-        pagination={{ currentPage: page, totalPages, onPageChange: setPage, totalRecords: total }}
-        onRowClick={(row) => {
-          setEditing(row);
-          setFormMode('edit');
-        }}
-      />
 
       {formMode && (
         <BeekeeperFormModal

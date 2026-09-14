@@ -2246,6 +2246,25 @@ export const uz_latn = {
   'beekeepers.remove.submit': 'Chiqarish',
   'beekeepers.remove.cancel': 'Bekor qilish',
   'beekeepers.remove.error': "Chiqarib boʻlmadi.",
+  // Ruling #217 — the certificate's term and the Union's monitoring tab.
+  'beekeepers.col.validTo': 'Amal qilish muddati',
+  'beekeepers.form.fieldValidTo': 'Amal qilish muddati (gacha)',
+  'beekeepers.form.validToHint': 'Guvohnomadagi «... gacha amal qiladi» sanasi. Muddat koʻrsatilmagan boʻlsa — boʻsh qoldiring.',
+  'beekeepers.tab.register': 'Reyestr',
+  'beekeepers.tab.claims': 'Arizalar',
+  'beekeepers.claims.col.number': 'Ariza raqami',
+  'beekeepers.claims.col.applicant': 'Ariza beruvchi',
+  'beekeepers.claims.col.certificateNo': 'Guvohnoma raqami',
+  'beekeepers.claims.col.organization': 'Oʻrmon xoʻjaligi',
+  'beekeepers.claims.col.period': 'Davr',
+  'beekeepers.claims.col.verification': 'Imtiyoz tekshiruvi',
+  'beekeepers.claims.col.status': 'Ariza holati',
+  'beekeepers.claims.filters.status': 'Ariza holati',
+  'beekeepers.claims.empty': 'Uyushma a\'zolari imtiyozini soʻragan arizalar hozircha yoʻq.',
+  'beekeepers.claims.verification.pending': 'Tekshirilmoqda',
+  'beekeepers.claims.verification.verified': 'Tasdiqlangan',
+  'beekeepers.claims.verification.rejected': 'Rad etilgan',
+  'beekeepers.claims.verification.not_required': 'Talab qilinmaydi',
 
   // Stage 10, F1 — the rules checkbox (ruling #184), the self/legal branch of
   // the wizard's last step (ruling #183), and the benefit block's

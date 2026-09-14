@@ -3308,6 +3308,31 @@ export interface paths {
         patch: operations["patch_application_api_v1_applications__application_id__patch"];
         trace?: never;
     };
+    "/api/v1/applications/beekeeping": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Beekeeping Claims
+         * @description Ruling #217: the Beekeeping Union's registrar monitors, country-wide,
+         *     every application claiming `beekeeping_union_member` — and nothing else.
+         *     Gated on `beekeepers.manage`, the register's own code, not on any
+         *     application read code: a leshoz reviewer has their own list, and this
+         *     one carries a deliberately narrow shape. Declared before
+         *     `/applications/{application_id}` so the literal path wins.
+         */
+        get: operations["list_beekeeping_claims_api_v1_applications_beekeeping_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/applications/export.xlsx": {
         parameters: {
             query?: never;
@@ -8519,6 +8544,8 @@ export interface components {
             full_name: string;
             /** Farm Name */
             farm_name?: string | null;
+            /** Valid To */
+            valid_to?: string | null;
         };
         /**
          * BeekeeperLookupOut
@@ -8559,6 +8586,8 @@ export interface components {
             full_name: string;
             /** Farm Name */
             farm_name: string | null;
+            /** Valid To */
+            valid_to: string | null;
             /** Status */
             status: string;
             /** Removed Reason */
@@ -8603,6 +8632,8 @@ export interface components {
             full_name?: string | null;
             /** Farm Name */
             farm_name?: string | null;
+            /** Valid To */
+            valid_to?: string | null;
         };
         /** BeekeeperRemoveIn */
         BeekeeperRemoveIn: {
@@ -8719,6 +8750,49 @@ export interface components {
             updated_at: string;
             /** Documents */
             documents: components["schemas"]["ApplicationDocumentOut"][];
+        };
+        /**
+         * BenefitClaimMonitorOut
+         * @description One row of `GET /applications/beekeeping` (ruling #217): what the
+         *     Beekeeping Union's registrar may see of an application claiming its
+         *     members' benefit — the claim, its fate, who filed it and where it sits.
+         *     Deliberately NOT `ApplicationOut`: the registrar holds no application
+         *     read code, and the card's forty columns are not theirs to read.
+         */
+        BenefitClaimMonitorOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Number */
+            number: string | null;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "SUBMITTED" | "IN_REVIEW" | "PENDING_INFO" | "RETURNED" | "APPROVED" | "INVOICED" | "PAID" | "PERMIT_ISSUED" | "REJECTED" | "CANCELLED" | "EXPIRED_UNPAID" | "CLOSED" | "ARCHIVED";
+            /** Applicant Name */
+            applicant_name: string;
+            /** Organization Name */
+            organization_name: {
+                [key: string]: string;
+            } | null;
+            /** Benefit Certificate No */
+            benefit_certificate_no: string | null;
+            /**
+             * Benefit Verification Status
+             * @enum {string}
+             */
+            benefit_verification_status: "not_required" | "pending" | "verified" | "rejected";
+            /** Period From */
+            period_from: string | null;
+            /** Period To */
+            period_to: string | null;
+            /** Submitted At */
+            submitted_at: string | null;
+            /** Decided At */
+            decided_at: string | null;
         };
         /**
          * BenefitClaimRejectIn
@@ -11215,6 +11289,17 @@ export interface components {
         Page_BeekeeperOut_: {
             /** Items */
             items: components["schemas"]["BeekeeperOut"][];
+            /** Total */
+            total: number;
+            /** Page */
+            page: number;
+            /** Page Size */
+            page_size: number;
+        };
+        /** Page[BenefitClaimMonitorOut] */
+        Page_BenefitClaimMonitorOut_: {
+            /** Items */
+            items: components["schemas"]["BenefitClaimMonitorOut"][];
             /** Total */
             total: number;
             /** Page */
@@ -20993,6 +21078,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ApplicationOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_beekeeping_claims_api_v1_applications_beekeeping_get: {
+        parameters: {
+            query?: {
+                status?: ("SUBMITTED" | "IN_REVIEW" | "PENDING_INFO" | "RETURNED" | "APPROVED" | "INVOICED" | "PAID" | "PERMIT_ISSUED" | "REJECTED" | "CANCELLED" | "EXPIRED_UNPAID" | "CLOSED" | "ARCHIVED") | null;
+                page?: number;
+                page_size?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Page_BenefitClaimMonitorOut_"];
                 };
             };
             /** @description Validation Error */

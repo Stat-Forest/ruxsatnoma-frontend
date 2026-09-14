@@ -2027,6 +2027,25 @@ export const en = {
   'beekeepers.remove.submit': 'Remove',
   'beekeepers.remove.cancel': 'Cancel',
   'beekeepers.remove.error': 'Failed to remove.',
+  // Ruling #217 — the certificate's term and the Union's monitoring tab.
+  'beekeepers.col.validTo': 'Valid until',
+  'beekeepers.form.fieldValidTo': 'Valid until',
+  'beekeepers.form.validToHint': 'The "valid until" date printed on the certificate. Leave blank when it carries none.',
+  'beekeepers.tab.register': 'Register',
+  'beekeepers.tab.claims': 'Applications',
+  'beekeepers.claims.col.number': 'Application no.',
+  'beekeepers.claims.col.applicant': 'Applicant',
+  'beekeepers.claims.col.certificateNo': 'Certificate no.',
+  'beekeepers.claims.col.organization': 'Leshoz',
+  'beekeepers.claims.col.period': 'Period',
+  'beekeepers.claims.col.verification': 'Benefit check',
+  'beekeepers.claims.col.status': 'Application status',
+  'beekeepers.claims.filters.status': 'Application status',
+  'beekeepers.claims.empty': 'No applications claiming the Union member benefit yet.',
+  'beekeepers.claims.verification.pending': 'Pending',
+  'beekeepers.claims.verification.verified': 'Verified',
+  'beekeepers.claims.verification.rejected': 'Rejected',
+  'beekeepers.claims.verification.not_required': 'Not required',
 
   // Stage 10, F1 — the rules checkbox (ruling #184), the self/legal branch of
   // the wizard's last step (ruling #183), and the benefit block's

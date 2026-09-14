@@ -2249,6 +2249,25 @@ export const uz_cyrl = {
   'beekeepers.remove.submit': 'Чиқариш',
   'beekeepers.remove.cancel': 'Бекор қилиш',
   'beekeepers.remove.error': 'Чиқариб бўлмади.',
+  // Ruling #217 — the certificate's term and the Union's monitoring tab.
+  'beekeepers.col.validTo': 'Амал қилиш муддати',
+  'beekeepers.form.fieldValidTo': 'Амал қилиш муддати (гача)',
+  'beekeepers.form.validToHint': 'Гувоҳномадаги «... гача амал қилади» санаси. Муддат кўрсатилмаган бўлса — бўш қолдиринг.',
+  'beekeepers.tab.register': 'Реестр',
+  'beekeepers.tab.claims': 'Аризалар',
+  'beekeepers.claims.col.number': 'Ариза рақами',
+  'beekeepers.claims.col.applicant': 'Ариза берувчи',
+  'beekeepers.claims.col.certificateNo': 'Гувоҳнома рақами',
+  'beekeepers.claims.col.organization': 'Ўрмон хўжалиги',
+  'beekeepers.claims.col.period': 'Давр',
+  'beekeepers.claims.col.verification': 'Имтиёз текшируви',
+  'beekeepers.claims.col.status': 'Ариза ҳолати',
+  'beekeepers.claims.filters.status': 'Ариза ҳолати',
+  'beekeepers.claims.empty': 'Уюшма аъзолари имтиёзини сўраган аризалар ҳозирча йўқ.',
+  'beekeepers.claims.verification.pending': 'Текширилмоқда',
+  'beekeepers.claims.verification.verified': 'Тасдиқланган',
+  'beekeepers.claims.verification.rejected': 'Рад этилган',
+  'beekeepers.claims.verification.not_required': 'Талаб қилинмайди',
 
   // Stage 10, F1 — the rules checkbox (ruling #184), the self/legal branch of
   // the wizard's last step (ruling #183), and the benefit block's
