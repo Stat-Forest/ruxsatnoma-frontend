@@ -1386,3 +1386,98 @@ test('a pre-check refused with unknown_benefit_code says the benefit does not ap
 
   expect(await screen.findByText(UZ['wizard.step5.benefitNotForActivity'])).toBeInTheDocument();
 });
+
+// Decision #215 R6: the deadwood and recreation blanks carry lines of their
+// own (`deadwood_product`/`removal_deadline`, `recreation_purpose`/`event_at`)
+// that the backend requires at pre-check and filing for THOSE two activities
+// alone. Step 3 asks them for exactly those activities, holds Next until
+// both are filled (mirroring the server's refusal client-side, so the citizen
+// never first learns of them from `checks.missing_for_pricing`), and sends
+// them in the filing. A haymaking filing never sees them.
+const DEADWOOD_NAME = 'Oʻtin yigʻish';
+const RECREATION_NAME = 'Rekreatsiya';
+
+function activityHandler(code: string, name: string, unit: string) {
+  return http.get('*/api/v1/refs/activity-types', () =>
+    HttpResponse.json([{ id: ACTIVITY_ID, code, name: { uz_latn: name }, quantity_unit: unit }]),
+  );
+}
+function precheckRecorder(seen: unknown[]) {
+  return http.post('*/api/v1/applications/precheck', async ({ request }) => {
+    seen.push(await request.json());
+    return HttpResponse.json({ checks: [], calculation: null });
+  });
+}
+// Steps 1–2 (activity, contour + period), ending on step 3.
+async function driveToStep3(activityName = 'Pichanchilik') {
+  await chooseActivity(activityName);
+  await userEvent.click(await screen.findByText('pick-contour'));
+  fireEvent.change(screen.getByLabelText(new RegExp(UZ['wizard.step2.periodFrom'])), { target: { value: '2026-01-01' } });
+  fireEvent.change(screen.getByLabelText(new RegExp(UZ['wizard.step2.periodTo'])), { target: { value: '2026-06-01' } });
+  await userEvent.click(screen.getByRole('button', { name: new RegExp(UZ['wizard.nav.next']) }));
+  await screen.findByLabelText(new RegExp(UZ['wizard.step3.quantity']));
+}
+function nextButton() {
+  return screen.getByRole('button', { name: new RegExp(UZ['wizard.nav.next']) });
+}
+// The pre-check fires on leaving step 4 (`goNext`), so reaching it from
+// step 3 takes two Nexts — the same two `driveToStep5` already presses.
+async function nextTwiceToPrecheck() {
+  await userEvent.click(nextButton());
+  await userEvent.click(await screen.findByRole('button', { name: new RegExp(UZ['wizard.nav.next']) }));
+}
+
+test('asks a deadwood filing for its product and removal deadline, and sends them', async () => {
+  const seen: unknown[] = [];
+  server.use(activityHandler('deadwood', DEADWOOD_NAME, 'm3'), precheckRecorder(seen));
+  renderWizard();
+  await driveToStep3(DEADWOOD_NAME);
+
+  await userEvent.type(screen.getByLabelText(new RegExp(UZ['wizard.step3.quantity'])), '3');
+  // Next is held until BOTH blank lines are filled (R6, mirrored client-side).
+  expect(nextButton()).toBeDisabled();
+  await userEvent.selectOptions(screen.getByLabelText(new RegExp(UZ['wizard.step3.deadwoodProduct'])), 'firewood');
+  expect(nextButton()).toBeDisabled();
+  fireEvent.change(screen.getByLabelText(new RegExp(UZ['wizard.step3.removalDeadline'])), { target: { value: '2027-06-15' } });
+  expect(nextButton()).toBeEnabled();
+
+  await nextTwiceToPrecheck();
+  await waitFor(() => expect(seen.length).toBeGreaterThan(0));
+  expect(seen.at(-1)).toMatchObject({ deadwood_product: 'firewood', removal_deadline: '2027-06-15', quantity: '3' });
+  expect(seen.at(-1)).not.toHaveProperty('recreation_purpose');
+  expect(seen.at(-1)).not.toHaveProperty('event_at');
+});
+
+test('asks a recreation filing for its purpose and event time, and sends them', async () => {
+  const seen: unknown[] = [];
+  server.use(activityHandler('recreation', RECREATION_NAME, 'ga'), precheckRecorder(seen));
+  renderWizard();
+  await driveToStep3(RECREATION_NAME);
+
+  await userEvent.type(screen.getByLabelText(new RegExp(UZ['wizard.step3.quantity'])), '2');
+  expect(nextButton()).toBeDisabled();
+  await userEvent.selectOptions(screen.getByLabelText(new RegExp(UZ['wizard.step3.recreationPurpose'])), 'health');
+  expect(nextButton()).toBeDisabled();
+  // `datetime-local` yields `YYYY-MM-DDTHH:MM`, sent verbatim (Tashkent wall-clock).
+  fireEvent.change(screen.getByLabelText(new RegExp(UZ['wizard.step3.eventAt'])), { target: { value: '2026-05-09T10:30' } });
+  expect(nextButton()).toBeEnabled();
+
+  await nextTwiceToPrecheck();
+  await waitFor(() => expect(seen.length).toBeGreaterThan(0));
+  expect(seen.at(-1)).toMatchObject({ recreation_purpose: 'health', event_at: '2026-05-09T10:30', quantity: '2' });
+  expect(seen.at(-1)).not.toHaveProperty('deadwood_product');
+  expect(seen.at(-1)).not.toHaveProperty('removal_deadline');
+});
+
+test('does not show the deadwood or recreation lines to a haymaking filing', async () => {
+  renderWizard();
+  await driveToStep3(); // default handler: haymaking
+
+  expect(screen.queryByLabelText(new RegExp(UZ['wizard.step3.deadwoodProduct']))).toBeNull();
+  expect(screen.queryByLabelText(new RegExp(UZ['wizard.step3.removalDeadline']))).toBeNull();
+  expect(screen.queryByLabelText(new RegExp(UZ['wizard.step3.recreationPurpose']))).toBeNull();
+  expect(screen.queryByLabelText(new RegExp(UZ['wizard.step3.eventAt']))).toBeNull();
+  // Nothing of the two blanks holds Next for an activity that has no such lines.
+  await userEvent.type(screen.getByLabelText(new RegExp(UZ['wizard.step3.quantity'])), '5');
+  expect(nextButton()).toBeEnabled();
+});

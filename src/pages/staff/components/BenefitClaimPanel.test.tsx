@@ -43,6 +43,12 @@ function card(over: Partial<ApplicationCardOut> = {}): ApplicationCardOut {
     period_from: null,
     period_to: null,
     quantity: null,
+    // Decision #215 R6: the deadwood and recreation blanks' own lines —
+    // required by the schema (nullable), null for every other activity.
+    deadwood_product: null,
+    removal_deadline: null,
+    recreation_purpose: null,
+    event_at: null,
     channel: 'portal',
     kind: 'new',
     benefit_category_item_id: CATEGORY_ID,

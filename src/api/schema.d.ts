@@ -3169,6 +3169,29 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/applications/export.xlsx": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Export Applications Xlsx
+         * @description `GET /applications` as a spreadsheet (stage 13, ruling #204; the
+         *     columns of 2026-09-14): the same filters, the same scope through the
+         *     same service call, every matching row up to `register_export_max_rows`
+         *     — past it the file is cut and the `X-Export-*` headers say so.
+         */
+        get: operations["export_applications_xlsx_api_v1_applications_export_xlsx_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/applications/precheck": {
         parameters: {
             query?: never;
@@ -3325,33 +3348,6 @@ export interface paths {
          *     `/applications/{application_id}` so the literal path wins.
          */
         get: operations["list_beekeeping_claims_api_v1_applications_beekeeping_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/applications/export.xlsx": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Export Applications Xlsx
-         * @description `GET /applications` as a spreadsheet (stage 13, ruling #204): the same
-         *     filters, the same scope through the same service call, every matching
-         *     row up to `register_export_max_rows` — past it the file is cut and the
-         *     `X-Export-*` headers say so.
-         *
-         *     Declared BEFORE `/applications/{application_id}` on purpose: FastAPI
-         *     matches in declaration order, and after the card route this path would
-         *     be a 422 from the UUID parser rather than an export.
-         */
-        get: operations["export_applications_xlsx_api_v1_applications_export_xlsx_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -7573,6 +7569,14 @@ export interface components {
             benefit_verified_at: string | null;
             /** Benefit Rejection Reason */
             benefit_rejection_reason: string | null;
+            /** Deadwood Product */
+            deadwood_product: ("firewood" | "branches" | "both") | null;
+            /** Removal Deadline */
+            removal_deadline: string | null;
+            /** Recreation Purpose */
+            recreation_purpose: ("cultural_educational" | "upbringing" | "health" | "recreational" | "aesthetic") | null;
+            /** Event At */
+            event_at: string | null;
             /** Rejection Reason Item Id */
             rejection_reason_item_id: string | null;
             /** Assigned Org Id */
@@ -7687,6 +7691,14 @@ export interface components {
          *     client (`openapi-typescript`) then has no `ApplicationFilingIn` at all.
          */
         ApplicationCloneOut: {
+            /** Deadwood Product */
+            deadwood_product?: ("firewood" | "branches" | "both") | null;
+            /** Removal Deadline */
+            removal_deadline?: string | null;
+            /** Recreation Purpose */
+            recreation_purpose?: ("cultural_educational" | "upbringing" | "health" | "recreational" | "aesthetic") | null;
+            /** Event At */
+            event_at?: string | null;
             /**
              * On Behalf
              * @enum {string}
@@ -7864,6 +7876,14 @@ export interface components {
             benefit_verified_at: string | null;
             /** Benefit Rejection Reason */
             benefit_rejection_reason: string | null;
+            /** Deadwood Product */
+            deadwood_product: ("firewood" | "branches" | "both") | null;
+            /** Removal Deadline */
+            removal_deadline: string | null;
+            /** Recreation Purpose */
+            recreation_purpose: ("cultural_educational" | "upbringing" | "health" | "recreational" | "aesthetic") | null;
+            /** Event At */
+            event_at: string | null;
             /** Rejection Reason Item Id */
             rejection_reason_item_id: string | null;
             /** Assigned Org Id */
@@ -7956,6 +7976,14 @@ export interface components {
          *     all: the service refuses one without the other.
          */
         ApplicationFileIn: {
+            /** Deadwood Product */
+            deadwood_product?: ("firewood" | "branches" | "both") | null;
+            /** Removal Deadline */
+            removal_deadline?: string | null;
+            /** Recreation Purpose */
+            recreation_purpose?: ("cultural_educational" | "upbringing" | "health" | "recreational" | "aesthetic") | null;
+            /** Event At */
+            event_at?: string | null;
             /**
              * On Behalf
              * @enum {string}
@@ -8010,8 +8038,23 @@ export interface components {
          *
          *     `documents` carry file ids already uploaded through `POST /files` (plan
          *     12, R9); each must be the caller's own active upload.
+         *
+         *     `deadwood_product`/`removal_deadline`/`recreation_purpose`/`event_at`
+         *     (decision #215 R6, `BlankLinesMixin`) are the deadwood and recreation
+         *     blanks' own lines — free to be null while typing, required at pre-check
+         *     and submission for that activity alone (`checks.missing_for_pricing`).
+         *     Not in the signed package: the package prices the request, and these
+         *     price nothing.
          */
         ApplicationFilingIn: {
+            /** Deadwood Product */
+            deadwood_product?: ("firewood" | "branches" | "both") | null;
+            /** Removal Deadline */
+            removal_deadline?: string | null;
+            /** Recreation Purpose */
+            recreation_purpose?: ("cultural_educational" | "upbringing" | "health" | "recreational" | "aesthetic") | null;
+            /** Event At */
+            event_at?: string | null;
             /**
              * On Behalf
              * @enum {string}
@@ -8149,6 +8192,14 @@ export interface components {
             benefit_verified_at: string | null;
             /** Benefit Rejection Reason */
             benefit_rejection_reason: string | null;
+            /** Deadwood Product */
+            deadwood_product: ("firewood" | "branches" | "both") | null;
+            /** Removal Deadline */
+            removal_deadline: string | null;
+            /** Recreation Purpose */
+            recreation_purpose: ("cultural_educational" | "upbringing" | "health" | "recreational" | "aesthetic") | null;
+            /** Event At */
+            event_at: string | null;
             /** Rejection Reason Item Id */
             rejection_reason_item_id: string | null;
             /** Assigned Org Id */
@@ -8198,6 +8249,14 @@ export interface components {
          *     at submission for those activities (task 5).
          */
         ApplicationPatch: {
+            /** Deadwood Product */
+            deadwood_product?: ("firewood" | "branches" | "both") | null;
+            /** Removal Deadline */
+            removal_deadline?: string | null;
+            /** Recreation Purpose */
+            recreation_purpose?: ("cultural_educational" | "upbringing" | "health" | "recreational" | "aesthetic") | null;
+            /** Event At */
+            event_at?: string | null;
             /** Activity Type Id */
             activity_type_id?: string | null;
             /** Contour Id */
@@ -8722,6 +8781,14 @@ export interface components {
             benefit_verified_at: string | null;
             /** Benefit Rejection Reason */
             benefit_rejection_reason: string | null;
+            /** Deadwood Product */
+            deadwood_product: ("firewood" | "branches" | "both") | null;
+            /** Removal Deadline */
+            removal_deadline: string | null;
+            /** Recreation Purpose */
+            recreation_purpose: ("cultural_educational" | "upbringing" | "health" | "recreational" | "aesthetic") | null;
+            /** Event At */
+            event_at: string | null;
             /** Rejection Reason Item Id */
             rejection_reason_item_id: string | null;
             /** Assigned Org Id */
@@ -12390,7 +12457,9 @@ export interface components {
          *     and the list is closed: `qr_token` is the key to this very page and
          *     `holder_pinfl` is requisite 10's identity half, so neither may appear here at
          *     any width. `signatures_valid` is the STORED verification verdict of the 3+1
-         *     signatures; nothing on this path calls E-IMZO.
+         *     signatures; nothing on this path calls E-IMZO. `signatures` names the LINES
+         *     those signatures fill (decision #215 R5) — never a signer's name, user id or
+         *     certificate, which the identity-half rule above already forbids here.
          */
         PublicCheckCard: {
             /**
@@ -12421,6 +12490,8 @@ export interface components {
             activity_type: string;
             /** Signatures Valid */
             signatures_valid: boolean;
+            /** Signatures */
+            signatures: components["schemas"]["PublicSignatureLine"][];
             /** Holder */
             holder: string;
             /** Contour */
@@ -12541,6 +12612,25 @@ export interface components {
             name: {
                 [key: string]: unknown;
             };
+        };
+        /**
+         * PublicSignatureLine
+         * @description One signature LINE of the document as the QR page reports it (decision
+         *     #215 R5): which line, its label in every language, the calendar date it was
+         *     signed (Tashkent) and the kind (`eri` / `simple`, #183). No signer name, no
+         *     user id, no certificate — this page is anonymous and names lines, not people.
+         */
+        PublicSignatureLine: {
+            /** Line */
+            line: string;
+            line_label: components["schemas"]["LocalizedName"];
+            /**
+             * Signed On
+             * Format: date
+             */
+            signed_on: string;
+            /** Kind */
+            kind: string;
         };
         /**
          * PublishImportOut
@@ -20886,6 +20976,44 @@ export interface operations {
             };
         };
     };
+    export_applications_xlsx_api_v1_applications_export_xlsx_get: {
+        parameters: {
+            query?: {
+                lang?: "uz_latn" | "ru";
+                status?: ("SUBMITTED" | "IN_REVIEW" | "PENDING_INFO" | "RETURNED" | "APPROVED" | "INVOICED" | "PAID" | "PERMIT_ISSUED" | "REJECTED" | "CANCELLED" | "EXPIRED_UNPAID" | "CLOSED" | "ARCHIVED") | null;
+                activity_type_id?: string | null;
+                contour_id?: string | null;
+                applicant_id?: string | null;
+                number?: string | null;
+                period_from?: string | null;
+                period_to?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     precheck_filing_api_v1_applications_precheck_post: {
         parameters: {
             query?: never;
@@ -21111,44 +21239,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Page_BenefitClaimMonitorOut_"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    export_applications_xlsx_api_v1_applications_export_xlsx_get: {
-        parameters: {
-            query?: {
-                lang?: "uz_latn" | "ru";
-                status?: ("SUBMITTED" | "IN_REVIEW" | "PENDING_INFO" | "RETURNED" | "APPROVED" | "INVOICED" | "PAID" | "PERMIT_ISSUED" | "REJECTED" | "CANCELLED" | "EXPIRED_UNPAID" | "CLOSED" | "ARCHIVED") | null;
-                activity_type_id?: string | null;
-                contour_id?: string | null;
-                applicant_id?: string | null;
-                number?: string | null;
-                period_from?: string | null;
-                period_to?: string | null;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
                 };
             };
             /** @description Validation Error */

@@ -44,6 +44,14 @@ import {
 } from '../../../lib/eimzo';
 
 const GRAZING_CODE = 'grazing';
+// Decision #215 R6: the two activities whose blanks carry lines of their
+// own — asked on step 3 for that activity alone, required before it lets go.
+const DEADWOOD_CODE = 'deadwood';
+const RECREATION_CODE = 'recreation';
+type DeadwoodProduct = NonNullable<ApplicationFilingIn['deadwood_product']>;
+type RecreationPurpose = NonNullable<ApplicationFilingIn['recreation_purpose']>;
+const DEADWOOD_PRODUCTS: readonly DeadwoodProduct[] = ['firewood', 'branches', 'both'];
+const RECREATION_PURPOSES: readonly RecreationPurpose[] = ['cultural_educational', 'upbringing', 'health', 'recreational', 'aesthetic'];
 
 // Mirrors the backend's own ceiling (`backend/app/modules/norms/checks.py`,
 // `MAX_PERIOD_DAYS = 5 * 366`) so a reversed or overlong period is named IN
@@ -214,6 +222,12 @@ export function ApplicationWizardPage() {
   const [periodFrom, setPeriodFrom] = useState('');
   const [periodTo, setPeriodTo] = useState('');
   const [quantity, setQuantity] = useState('');
+  // Decision #215 R6 — the deadwood and recreation blanks' own lines, asked
+  // only when that activity is chosen and required before step 3 lets go.
+  const [deadwoodProduct, setDeadwoodProduct] = useState<DeadwoodProduct | ''>('');
+  const [removalDeadline, setRemovalDeadline] = useState('');
+  const [recreationPurpose, setRecreationPurpose] = useState<RecreationPurpose | ''>('');
+  const [eventAt, setEventAt] = useState('');
   const [items, setItems] = useState<LivestockRow[]>([]);
   // Step 4's local documents (plan 12, R9): each is uploaded through
   // `POST /files` the moment it is chosen, exactly as before, but there is
@@ -307,6 +321,8 @@ export function ApplicationWizardPage() {
 
   const activityCode = activityTypesQuery.data?.find((a) => a.id === activityTypeId)?.code;
   const isGrazing = activityCode === GRAZING_CODE;
+  const isDeadwood = activityCode === DEADWOOD_CODE;
+  const isRecreation = activityCode === RECREATION_CODE;
   const quantityUnit = activityTypesQuery.data?.find((a) => a.id === activityTypeId)?.quantity_unit;
 
   // Ruling #181 scopes every benefit category to ONE activity — the item's
@@ -368,6 +384,13 @@ export function ApplicationWizardPage() {
       period_from: periodFrom || undefined,
       period_to: periodTo || undefined,
       quantity: isGrazing ? undefined : quantity || undefined,
+      deadwood_product: isDeadwood ? deadwoodProduct || undefined : undefined,
+      removal_deadline: isDeadwood ? removalDeadline || undefined : undefined,
+      recreation_purpose: isRecreation ? recreationPurpose || undefined : undefined,
+      // <input type="datetime-local"> yields `YYYY-MM-DDTHH:MM` with no zone;
+      // sent as-is — the backend reads a naive value as Tashkent wall-clock time
+      // (the only zone this system serves) and stores it aware.
+      event_at: isRecreation ? eventAt || undefined : undefined,
       items: filingItems,
       benefit_category_item_id: benefitCategoryItemId || null,
       benefit_certificate_no: requiresCertificate ? benefitCertificateNo.trim() || null : null,
@@ -382,6 +405,12 @@ export function ApplicationWizardPage() {
     periodTo,
     isGrazing,
     quantity,
+    isDeadwood,
+    deadwoodProduct,
+    removalDeadline,
+    isRecreation,
+    recreationPurpose,
+    eventAt,
     items,
     benefitCategoryItemId,
     requiresCertificate,
@@ -854,9 +883,52 @@ export function ApplicationWizardPage() {
                 </Button>
               </div>
             ) : (
-              <FormField label={quantityUnit ? `${t('wizard.step3.quantity')} (${formatUnit(quantityUnit, t, lang)})` : t('wizard.step3.quantity')} required htmlFor="quantity">
-                <Input id="quantity" type="number" min={0} step="0.0001" value={quantity} onChange={(e) => setQuantity(e.target.value)} />
-              </FormField>
+              <>
+                <FormField label={quantityUnit ? `${t('wizard.step3.quantity')} (${formatUnit(quantityUnit, t, lang)})` : t('wizard.step3.quantity')} required htmlFor="quantity">
+                  <Input id="quantity" type="number" min={0} step="0.0001" value={quantity} onChange={(e) => setQuantity(e.target.value)} />
+                </FormField>
+                {/* Decision #215 R6: the deadwood blank's own lines, for
+                    that activity alone; the backend refuses a pre-check
+                    without them (`checks.missing_for_pricing`), so Next
+                    holds until both are filled. */}
+                {isDeadwood && (
+                  <>
+                    <FormField label={t('wizard.step3.deadwoodProduct')} required htmlFor="deadwood-product">
+                      <Select
+                        id="deadwood-product"
+                        value={deadwoodProduct}
+                        onChange={(e) => setDeadwoodProduct(e.target.value as DeadwoodProduct | '')}
+                        options={[
+                          { value: '', label: t('wizard.step3.selectPrompt') },
+                          ...DEADWOOD_PRODUCTS.map((code) => ({ value: code, label: t(`wizard.step3.deadwoodProduct.${code}`) })),
+                        ]}
+                      />
+                    </FormField>
+                    <FormField label={t('wizard.step3.removalDeadline')} required htmlFor="removal-deadline">
+                      <Input id="removal-deadline" type="date" value={removalDeadline} onChange={(e) => setRemovalDeadline(e.target.value)} />
+                    </FormField>
+                  </>
+                )}
+                {/* The recreation blank's lines, the same way (#215 R6). */}
+                {isRecreation && (
+                  <>
+                    <FormField label={t('wizard.step3.recreationPurpose')} required htmlFor="recreation-purpose">
+                      <Select
+                        id="recreation-purpose"
+                        value={recreationPurpose}
+                        onChange={(e) => setRecreationPurpose(e.target.value as RecreationPurpose | '')}
+                        options={[
+                          { value: '', label: t('wizard.step3.selectPrompt') },
+                          ...RECREATION_PURPOSES.map((code) => ({ value: code, label: t(`wizard.step3.recreationPurpose.${code}`) })),
+                        ]}
+                      />
+                    </FormField>
+                    <FormField label={t('wizard.step3.eventAt')} required htmlFor="event-at">
+                      <Input id="event-at" type="datetime-local" value={eventAt} onChange={(e) => setEventAt(e.target.value)} />
+                    </FormField>
+                  </>
+                )}
+              </>
             )}
           </div>
 
@@ -1063,6 +1135,11 @@ export function ApplicationWizardPage() {
                 (step === 2 && (!contour || !periodFrom || !periodTo || !!combinedPeriodError)) ||
                 (step === 3 && !isGrazing && !quantity) ||
                 (step === 3 && isGrazing && items.filter((i) => i.livestockTypeId && i.headCount).length === 0) ||
+                // Decision #215 R6: the deadwood and recreation lines are
+                // required at pre-check for those activities — held here
+                // so the server's refusal is never how the citizen learns it.
+                (step === 3 && isDeadwood && (!deadwoodProduct || !removalDeadline)) ||
+                (step === 3 && isRecreation && (!recreationPurpose || !eventAt)) ||
                 // Ruling #181: the certificate number must be filled in
                 // before the wizard moves on — the backend's own refusal
                 // (`ERR-APP-003`, `benefit_certificate_required`) must never
