@@ -1,7 +1,7 @@
 import { UserCheck, FileText } from 'lucide-react';
-import { useLanguage } from '../../../i18n/useT';
+import { useLanguage, useT } from '../../../i18n/useT';
 import { useActivityTypes, useBenefitCategories, useContour, useLivestockTypes, type ApplicationCardOut } from '../queries';
-import { formatAmount, formatDate, localizedName, shortId } from '../format';
+import { formatAmount, formatDate, formatDateTime, localizedName, shortId } from '../format';
 
 const ON_BEHALF_LABELS: Record<string, Record<ApplicationCardOut['on_behalf'], string>> = {
   uz_latn: {
@@ -55,6 +55,12 @@ const GENERAL_INFO_I18N = {
     livestock: 'Chorva mollari',
     livestockType: 'Chorva turi',
     headCount: 'Bosh soni',
+    // Decision #215 R6: the deadwood and recreation blanks' own lines — an
+    // executor reviewing one of these two activities must see them here.
+    deadwoodProduct: 'Mahsulot turi:',
+    removalDeadline: 'Olib chiqish muddati:',
+    recreationPurpose: 'Foydalanish maqsadi:',
+    eventAt: 'Tadbir sanasi va vaqti:',
   },
   uz_cyrl: {
     title: 'Умумий маълумотлар',
@@ -79,6 +85,10 @@ const GENERAL_INFO_I18N = {
     livestock: 'Чорва моллари',
     livestockType: 'Чорва тури',
     headCount: 'Бош сони',
+    deadwoodProduct: 'Маҳсулот тури:',
+    removalDeadline: 'Олиб чиқиш муддати:',
+    recreationPurpose: 'Фойдаланиш мақсади:',
+    eventAt: 'Тадбир санаси ва вақти:',
   },
   ru: {
     title: 'Общие сведения',
@@ -103,6 +113,10 @@ const GENERAL_INFO_I18N = {
     livestock: 'Скот',
     livestockType: 'Вид скота',
     headCount: 'Поголовье',
+    deadwoodProduct: 'Вид продукции:',
+    removalDeadline: 'Срок вывоза:',
+    recreationPurpose: 'Цель использования:',
+    eventAt: 'Дата и время мероприятия:',
   },
   en: {
     title: 'General Information',
@@ -127,6 +141,10 @@ const GENERAL_INFO_I18N = {
     livestock: 'Livestock',
     livestockType: 'Livestock type',
     headCount: 'Head count',
+    deadwoodProduct: 'Product type:',
+    removalDeadline: 'Removal deadline:',
+    recreationPurpose: 'Purpose of use:',
+    eventAt: 'Event date and time:',
   },
   kaa: {
     title: 'Ulıwma maǵlıwmatlar',
@@ -151,6 +169,10 @@ const GENERAL_INFO_I18N = {
     livestock: 'Qara mallar',
     livestockType: 'Mal túri',
     headCount: 'Bas sanı',
+    deadwoodProduct: 'Ónim túri:',
+    removalDeadline: 'Alıp shıǵıw múddeti:',
+    recreationPurpose: 'Paydalanıw maqseti:',
+    eventAt: 'Ilaj sánesi hám waqtı:',
   },
 };
 
@@ -172,6 +194,11 @@ export function GeneralInfoPanel({ card }: { card: ApplicationCardOut }) {
   const { lang } = useLanguage();
   const tr = GENERAL_INFO_I18N[lang] ?? GENERAL_INFO_I18N.uz_latn;
   const onBehalfTr = ON_BEHALF_LABELS[lang] ?? ON_BEHALF_LABELS.uz_latn;
+  // Task 8: the deadwood/recreation blank lines' CODES (product, purpose)
+  // are shown through the wizard's own dictionary keys
+  // (`wizard.step3.deadwoodProduct.<code>`) so the wizard and this panel
+  // cannot drift on what a code means.
+  const t = useT();
 
   const activityTypes = useActivityTypes();
   const livestockTypes = useLivestockTypes();
@@ -241,6 +268,20 @@ export function GeneralInfoPanel({ card }: { card: ApplicationCardOut }) {
               value={card.requested_area_ha ? `${formatAmount(card.requested_area_ha)} ${tr.haUnit}` : "—"}
             />
             <Fact label={tr.quantity} value={card.quantity ? formatAmount(card.quantity) : "—"} />
+            {/* Decision #215 R6: the deadwood and recreation blanks' own
+                lines — rendered only for the activity that collected them,
+                the "hiding direction" this task closes: a field the citizen
+                fills that an executor never sees. */}
+            {card.deadwood_product && (
+              <Fact label={tr.deadwoodProduct} value={t(`wizard.step3.deadwoodProduct.${card.deadwood_product}`)} />
+            )}
+            {card.removal_deadline && (
+              <Fact label={tr.removalDeadline} value={formatDate(card.removal_deadline)} />
+            )}
+            {card.recreation_purpose && (
+              <Fact label={tr.recreationPurpose} value={t(`wizard.step3.recreationPurpose.${card.recreation_purpose}`)} />
+            )}
+            {card.event_at && <Fact label={tr.eventAt} value={formatDateTime(card.event_at)} />}
           </dl>
         </div>
       </div>
