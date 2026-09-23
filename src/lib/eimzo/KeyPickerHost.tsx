@@ -81,14 +81,18 @@ export function KeyPickerHost() {
 
   if (!pending) return null;
   const now = pending.openedAt;
-  // Usable certificates first. E-IMZO hands them back in its own order,
-  // which on 2026-09-23 put five expired ones ahead of the single valid
-  // one — the signer had to scroll past a wall of grey to reach the only
-  // thing they could actually click. `sort` is stable, so within each
-  // group the provider's own order survives.
-  const ordered = [...pending.keys].sort(
-    (a, b) => Number(isExpired(a, now)) - Number(isExpired(b, now)),
-  );
+  // Usable certificates first, then by expiry date descending. E-IMZO
+  // hands them back in an order of its own, which on 2026-09-23 put five
+  // expired ones ahead of the single valid one — the signer opened the
+  // dialog onto a wall of grey. The date is the second key because it
+  // answers the question each group actually raises: among the usable
+  // ones, which lasts longest; among the dead ones, which died most
+  // recently — that last one being the certificate its owner still thinks
+  // of as theirs and needs to see first in order to renew it.
+  const ordered = [...pending.keys].sort((a, b) => {
+    const usableFirst = Number(isExpired(a, now)) - Number(isExpired(b, now));
+    return usableFirst !== 0 ? usableFirst : b.validTo.getTime() - a.validTo.getTime();
+  });
 
   return (
     <Modal

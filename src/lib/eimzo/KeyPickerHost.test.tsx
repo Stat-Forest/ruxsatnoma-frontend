@@ -88,17 +88,23 @@ describe('KeyPickerHost', () => {
     expect(order).toEqual(['eimzo-picker-key-SN-OTHER', 'eimzo-picker-key-SN-MINE']);
   });
 
-  it('keeps the provider\'s own order inside each group', async () => {
-    const secondValid = key({ id: 'pfx-2-SN-Z', serialNumber: 'SN-Z' });
+  it('orders each group by expiry date, latest first', async () => {
+    // Among the usable ones: the longest-lived first. Among the dead ones:
+    // the most RECENTLY dead first — that is the certificate its owner
+    // still thinks of as theirs and has to renew, and burying it under
+    // ones that lapsed in 2024 is what hid it on 2026-09-23.
+    const longLived = key({ id: 'v-far', serialNumber: 'SN-FAR', validTo: new Date('2030-01-01') });
+    const longAgo = key({ id: 'x-old', serialNumber: 'SN-OLD', validTo: new Date('2024-12-13') });
     render(<KeyPickerHost />);
-    ask_([COLLEAGUE_VALID, MINE_EXPIRED, secondValid]);
+    ask_([longAgo, COLLEAGUE_VALID, MINE_EXPIRED, longLived]);
 
     const list = await screen.findByTestId('eimzo-picker-list');
     const order = [...list.querySelectorAll('button')].map((b) => b.getAttribute('data-testid'));
     expect(order).toEqual([
-      'eimzo-picker-key-SN-OTHER',
-      'eimzo-picker-key-SN-Z',
-      'eimzo-picker-key-SN-MINE',
+      'eimzo-picker-key-SN-FAR', // valid, 2030
+      'eimzo-picker-key-SN-OTHER', // valid, 19.11.2026
+      'eimzo-picker-key-SN-MINE', // expired 09.09.2026 — the freshest loss
+      'eimzo-picker-key-SN-OLD', // expired 13.12.2024
     ]);
   });
 
