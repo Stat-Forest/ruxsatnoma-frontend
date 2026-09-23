@@ -101,6 +101,9 @@ export const ru = {
   'login.firstTime': 'Впервые на портале?',
   'login.firstTimeHint': 'Регистрация проходит через OneID при первом входе — отдельный аккаунт не нужен.',
   'login.verifyWithoutLogin': 'Проверить разрешение без входа',
+  'login.termsNotice': 'Входя в систему, вы принимаете {privacy} и {offer}.',
+  'login.termsPrivacy': 'политику конфиденциальности',
+  'login.termsOffer': 'условия публичной оферты',
   'login.footerCopyright': '© 2026 Агентство по увеличению лесных и зелёных зон, борьбе с опустыниванием. Все права защищены.',
   'login.footerHelp': 'Помощь',
   'login.footerContacts': 'Контакты',
@@ -122,6 +125,15 @@ export const ru = {
     'В подключённом E-IMZO не найден действующий (не просроченный) сертификат. Получите новый сертификат или обновите просроченный ключ.',
   'eimzo.errors.multipleValidKeys':
     'Обнаружено несколько действующих сертификатов E-IMZO — неясно, каким подписывать. Оставьте подключённым только нужный сертификат/ключ и повторите попытку.',
+  // The certificate picker (2026-09-23).
+  'eimzo.errors.cancelled': 'Подписание отменено.',
+  'eimzo.picker.title': 'Выберите сертификат',
+  'eimzo.picker.subtitle': 'Каким сертификатом подписать.',
+  'eimzo.picker.cancel': 'Отмена',
+  'eimzo.picker.pinfl': 'ПИНФЛ',
+  'eimzo.picker.tin': 'ИНН',
+  'eimzo.picker.validUntil': 'Действует до:',
+  'eimzo.picker.expiredOn': 'Истёк:',
   // Mock mode only (`lib/eimzo/useMockSigner.ts`): whose PINFL the mock
   // envelope carries, read from `/auth/me` instead of typed in.
   'eimzo.mock.signingAs': 'Демо-режим: подпись тестовой ЭЦП. ПИНФЛ сертификата (из вашего аккаунта):',

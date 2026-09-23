@@ -13,7 +13,7 @@ import { useApiErrorText } from '../i18n/useApiErrorText';
 import { useLanguage, useT } from '../i18n/useT';
 import { LANDING_PATHS, landingUrl } from '../lib/landing';
 import { LanguageMenu } from '../shell/LanguageMenu';
-import { EimzoError, PINFL_PATTERN, eimzoErrorMessageKey, isEimzoMock, isProviderUnreachable } from '../lib/eimzo';
+import { EimzoError, PINFL_PATTERN, eimzoErrorMessageKey, isEimzoCancelled, isEimzoMock, isProviderUnreachable } from '../lib/eimzo';
 import { SUPPORT_EXTENSION, SUPPORT_PHONE, SUPPORT_PHONE_HREF } from '../shell/support';
 import { peekStoredNext } from './oneIdReturnCache';
 
@@ -263,6 +263,10 @@ export function LoginPage() {
       await loginViaEimzo();
       navigate(next, { replace: true });
     } catch (err) {
+      // Cancel in the certificate picker is a decision, not a failure:
+      // an error banner here would claim the sign-in broke when nobody
+      // tried to sign in.
+      if (isEimzoCancelled(err)) return;
       if (err instanceof EimzoError || isProviderUnreachable(err)) {
         setEimzoErrorKey(eimzoErrorMessageKey(err));
       } else {
@@ -814,6 +818,12 @@ export function LoginPage() {
             <AdminContact />
           </div>
         )}
+
+        {/* Outside every `method === ...` branch on purpose: the notice is
+            about signing in at all, so it must read the same on all three
+            tabs. Inside one branch it would vanish the moment someone
+            switched tabs. */}
+        <TermsNotice />
       </div>
 
             <a
@@ -852,6 +862,60 @@ export function LoginPage() {
         </div>
       </footer>
     </div>
+  );
+}
+
+// The two placeholders `login.termsNotice` carries, each mapped to the key
+// holding that document's name. Spelled out rather than built from the token,
+// for the same reason `TAB_LABEL` above is: `useT`'s key type is a union of
+// the literal keys, and a computed key compiles only by widening to `string`.
+const TERMS_LINK_LABEL = {
+  '{privacy}': 'login.termsPrivacy',
+  '{offer}': 'login.termsOffer',
+} as const;
+
+function isTermsToken(part: string): part is keyof typeof TERMS_LINK_LABEL {
+  return part === '{privacy}' || part === '{offer}';
+}
+
+// Names the two documents BEFORE anyone signs. The consent that is legally
+// recorded stays exactly where it is — the two checkboxes on
+// `CompleteRegistrationGate`, written to `user_consents` with the document
+// version and the client IP, which need a user that does not exist until
+// after login. This is not that consent; it is the notice that the documents
+// exist and where to read them, on the only screen an anonymous visitor sees.
+//
+// The sentence is ONE translated string with `{privacy}`/`{offer}` markers,
+// split on them here (the shape `wizard.step5.rulesCheckboxLabel` already
+// uses). Concatenating a lead-in, two names and a connector in code would
+// freeze every language into whatever word order the first one had.
+function TermsNotice() {
+  const t = useT();
+  // Both links point at the same page: the landing has one `/documents`
+  // page holding both texts, not a route per document.
+  const documentsUrl = landingUrl(LANDING_PATHS.documents);
+  return (
+    <p data-testid="login-terms" className="text-xs text-[#5A646D] text-center leading-relaxed">
+      {t('login.termsNotice')
+        .split(/(\{privacy\}|\{offer\})/)
+        .map((part) =>
+          isTermsToken(part) ? (
+            // A new tab, so reading the offer never costs a half-filled
+            // login form.
+            <a
+              key={part}
+              href={documentsUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-medium text-[#2E7D4F] hover:underline"
+            >
+              {t(TERMS_LINK_LABEL[part])}
+            </a>
+          ) : (
+            part
+          ),
+        )}
+    </p>
   );
 }
 

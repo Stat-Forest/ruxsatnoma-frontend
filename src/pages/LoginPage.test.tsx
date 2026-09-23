@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { setupServer } from 'msw/node';
@@ -290,6 +290,35 @@ it('links back to the public site and to permit verification without signing in'
     'href',
     'http://localhost:5173/check',
   );
+});
+
+// The consent that is legally recorded has not moved — it is still the two
+// checkboxes on the finish-registration screen, which a citizen reaches only
+// AFTER signing with their ERI key. This notice is what names the two
+// documents BEFORE any of that, and it lives outside every `method === ...`
+// branch: switching tabs must not make the terms disappear.
+it('names both documents on every sign-in method, each linked to the landing', async () => {
+  render(<App />);
+  await screen.findByTestId('login-page');
+  for (const tab of ['OneID', 'E-IMZO', 'Login/Parol']) {
+    await userEvent.click(screen.getByRole('tab', { name: tab }));
+    const notice = screen.getByTestId('login-terms');
+    expect(notice).toHaveTextContent(
+      'Tizimga kirish orqali siz Maxfiylik siyosati va Ommaviy oferta shartlarini qabul qilgan hisoblanasiz.',
+    );
+    // Scoped to the notice: the page footer carries its own "Hujjatlar" link
+    // to the same page, and an unscoped query would pass on that one alone.
+    const privacy = within(notice).getByRole('link', { name: 'Maxfiylik siyosati' });
+    const offer = within(notice).getByRole('link', { name: 'Ommaviy oferta' });
+    for (const link of [privacy, offer]) {
+      expect(link).toHaveAttribute('href', 'http://localhost:5173/documents');
+      expect(link).toHaveAttribute('target', '_blank');
+      expect(link).toHaveAttribute('rel', 'noopener noreferrer');
+    }
+  }
+  // The last tab clicked above is remembered; dropped so it cannot decide
+  // which tab a later test in this file opens on.
+  localStorage.removeItem('ruxsatnoma.login.tab');
 });
 
 it('lets an anonymous visitor switch language without a session, and remembers it', async () => {

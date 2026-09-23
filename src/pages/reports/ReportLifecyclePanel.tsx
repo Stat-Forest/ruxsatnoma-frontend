@@ -28,6 +28,7 @@ import { satisfies } from '../../shell/navigation';
 import {
   buildMockSignature,
   eimzoErrorMessageKey,
+  isEimzoCancelled,
   isEimzoMock,
   MockSignerNotice,
   signDocument,
@@ -133,6 +134,9 @@ export function ReportLifecyclePanel({
       try {
         pkcs7 = await signDocument(new Uint8Array(documentBytes));
       } catch (err) {
+        // Cancel in the certificate picker is a decision, not a failure:
+        // an error banner here would claim the document failed to sign.
+        if (isEimzoCancelled(err)) return;
         setEimzoErrorKey(eimzoErrorMessageKey(err));
         return;
       } finally {
