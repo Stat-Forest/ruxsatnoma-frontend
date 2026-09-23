@@ -30,6 +30,8 @@ export const uz_cyrl_eimzo_errors: Record<string, string> = {
     'Уланган E-IMZO’да амалдаги (муддати ўтмаган) сертификат топилмади. Янги сертификат олинг ёки муддати ўтган калитни янгиланг.',
   'eimzo.errors.multipleValidKeys':
     'Бир нечта амалдаги E-IMZO сертификати аниқланди — қайси бири билан имзолаш ноаниқ. Фақат керакли сертификат/калитни улаб қолдиринг ва қайтадан уринг.',
+  // The certificate picker (2026-09-23).
+  'eimzo.errors.cancelled': 'Имзолаш бекор қилинди.',
 };
 
 /**
@@ -170,6 +172,15 @@ export const uz_cyrl = {
     'Уланган E-IMZO’да амалдаги (муддати ўтмаган) сертификат топилмади. Янги сертификат олинг ёки муддати ўтган калитни янгиланг.',
   'eimzo.errors.multipleValidKeys':
     'Бир нечта амалдаги E-IMZO сертификати аниқланди — қайси бири билан имзолаш ноаниқ. Фақат керакли сертификат/калитни улаб қолдиринг ва қайтадан уринг.',
+  // The certificate picker (2026-09-23).
+  'eimzo.errors.cancelled': 'Имзолаш бекор қилинди.',
+  'eimzo.picker.title': 'Сертификатни танланг',
+  'eimzo.picker.subtitle': 'Қайси сертификат билан имзолашни танланг.',
+  'eimzo.picker.cancel': 'Бекор қилиш',
+  'eimzo.picker.pinfl': 'ПИНФЛ',
+  'eimzo.picker.tin': 'СТИР',
+  'eimzo.picker.validUntil': 'Амал қилиш муддати:',
+  'eimzo.picker.expiredOn': 'Муддати тугаган:',
   // Mock mode only (`lib/eimzo/useMockSigner.ts`): whose PINFL the mock
   // envelope carries, read from `/auth/me` instead of typed in.
   'eimzo.mock.signingAs': 'Демо режими: мок ЭРИ билан имзоланади. Сертификат ПИНФЛ (ҳисобингиздан):',

@@ -38,6 +38,7 @@ import {
   buildMockSignature,
   EimzoError,
   eimzoErrorMessageKey,
+  isEimzoCancelled,
   isEimzoMock,
   isProviderUnreachable,
   signDocument,
@@ -586,6 +587,9 @@ export function ApplicationWizardPage() {
       skipLeaveGuardRef.current = true;
       setFiledId(created.id);
     } catch (err) {
+      // Cancel in the certificate picker is a decision, not a failure: an
+      // error banner here would claim the filing failed when nobody tried.
+      if (isEimzoCancelled(err)) return;
       // Ruling #181: a benefit-certificate refusal is a FIELD error, not a
       // banner — the wizard sends the applicant back to step 4, where the
       // certificate number actually lives, rather than leaving them on step

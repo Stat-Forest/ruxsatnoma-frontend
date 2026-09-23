@@ -11,6 +11,7 @@ import {
   buildMockAttachedSignature,
   EimzoError,
   eimzoErrorMessageKey,
+  isEimzoCancelled,
   isEimzoMock,
   isProviderUnreachable,
   PINFL_PATTERN,
@@ -102,6 +103,9 @@ export function CertificatesSection() {
       setPinfl('');
       await queryClient.invalidateQueries({ queryKey: CERTIFICATES_KEY });
     } catch (err) {
+      // Cancel in the certificate picker is a decision, not a failure:
+      // nothing was registered, and nothing went wrong either.
+      if (isEimzoCancelled(err)) return;
       if (err instanceof EimzoError || isProviderUnreachable(err)) {
         setBindError(t(eimzoErrorMessageKey(err)));
       } else {

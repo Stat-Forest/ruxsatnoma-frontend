@@ -142,6 +142,16 @@ export const uz_latn = {
     "Ulangan E-IMZO'da amaldagi (muddati o'tmagan) sertifikat topilmadi. Yangi sertifikat oling yoki muddati o'tgan kalitni yangilang.",
   'eimzo.errors.multipleValidKeys':
     "Bir nechta amaldagi E-IMZO sertifikati aniqlandi — qaysi biri bilan imzolash noaniq. Faqat kerakli sertifikat/kalitni ulab qoldiring va qaytadan urining.",
+  // The certificate picker (2026-09-23). Expired certificates are LISTED,
+  // greyed out, so a signer sees that their own is the one that lapsed.
+  'eimzo.errors.cancelled': 'Imzolash bekor qilindi.',
+  'eimzo.picker.title': 'Sertifikatni tanlang',
+  'eimzo.picker.subtitle': 'Qaysi sertifikat bilan imzolashni tanlang.',
+  'eimzo.picker.cancel': 'Bekor qilish',
+  'eimzo.picker.pinfl': 'PINFL',
+  'eimzo.picker.tin': 'STIR',
+  'eimzo.picker.validUntil': 'Amal qilish muddati:',
+  'eimzo.picker.expiredOn': 'Muddati tugagan:',
   // Mock mode only (`lib/eimzo/useMockSigner.ts`): whose PINFL the mock
   // envelope carries, read from `/auth/me` instead of typed in.
   'eimzo.mock.signingAs': 'Demo rejimi: mock ERI bilan imzolanadi. Sertifikat PINFL (hisobingizdan):',

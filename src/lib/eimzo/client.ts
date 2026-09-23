@@ -47,6 +47,7 @@ import {
   EimzoOutdatedVersionError,
   EimzoPasswordError,
 } from './errors';
+import { getEimzoKeySelector } from './keySelector';
 
 // ---- the vendor surface, typed locally (the vendor ships no .d.ts) -------
 
@@ -387,22 +388,31 @@ function isKeyExpired(key: EimzoKeyInfo, now: Date): boolean {
 }
 
 /**
- * Picks the ONE certificate to sign with, after filtering out expired ones.
+ * Decides which certificate signs. With a picker mounted (`KeyPickerHost`,
+ * the normal case) that decision belongs to the signer; without one it
+ * falls back to the pre-2026-09-23 rule below.
  *
- * Fix wave, finding 5: the previous version took `keys[0]` unconditionally
- * and logged a warning — deterministic, but deterministically wrong in two
- * concrete ways: an expired key sorting first meant every attempt failed
- * the same way (see `isKeyExpired` above), and an organisation certificate
- * sorting first ahead of a personal one meant the backend refused with
- * `certificate_pinfl_mismatch`, again with no way for a retry to recover.
+ * **Why the signer must always be asked, even for a single valid
+ * certificate.** The first run against a real E-IMZO install, 2026-09-23,
+ * found six certificates connected: four expired test ones, the operator's
+ * OWN personal certificate expired two weeks earlier, and exactly one still
+ * valid — belonging to a colleague. The old rule picked that one silently
+ * and went straight to E-IMZO's password dialog. Nothing on our screen ever
+ * named the certificate, so the only clue was a file path inside the
+ * vendor's own dialog. A signature is an act of identity; choosing the
+ * identity silently is the one thing this flow must not do.
  *
- * A full certificate-picker UI is out of scope for this fix wave (noted in
- * the fix report); with more than one unexpired certificate left, this
- * raises an explicit, actionable error instead of guessing — the specific
- * certificates (common name, serial) go to the console for whoever is
- * signing to tell apart, since the localized message itself names a count,
- * not each certificate's identity (three languages, no per-key
- * interpolation machinery elsewhere in this app to reuse).
+ * Fix wave, finding 5 (kept, as the no-picker fallback): the version before
+ * THAT took `keys[0]` unconditionally — deterministically wrong whenever an
+ * expired key or an organisation certificate sorted first, with no way for
+ * a retry to pick differently.
+ *
+ * Expired certificates are handed to the picker rather than filtered out
+ * here: the signer needs to SEE their own lapsed one to understand why it
+ * cannot be used. The picker disables them; this function refuses one
+ * anyway (`EimzoNoValidKeyError`), so a UI mistake cannot become a
+ * signature the provider rejects with a status code nobody on that screen
+ * can read.
  */
 async function pickSigningKey(): Promise<EimzoKeyInfo> {
   const keys = await listKeys();
@@ -412,17 +422,30 @@ async function pickSigningKey(): Promise<EimzoKeyInfo> {
     // Distinct from "not installed": E-IMZO answered, possibly with keys —
     // just none of them still valid (or the list was empty to begin with,
     // the minor finding this also fixes: an empty list is not evidence
-    // E-IMZO itself is missing).
+    // E-IMZO itself is missing). Checked BEFORE the picker is consulted:
+    // there is no choice to offer, and a dialog listing only unusable
+    // certificates would ask a question with no answer.
     throw new EimzoNoValidKeyError(null);
   }
-  if (validKeys.length > 1) {
-    console.warn(
-      `eimzo: ${validKeys.length} unexpired certificates found, refusing to guess which to sign with — `,
-      validKeys.map((key) => `${key.commonName} (serial ${key.serialNumber})`).join('; '),
-    );
-    throw new EimzoMultipleKeysError(validKeys.length);
+
+  const selector = getEimzoKeySelector();
+  if (!selector) {
+    // No host mounted: unit tests of the signing call sites, and any future
+    // embedding that renders no dialog of its own. Never silently widened
+    // to "just take the first" — that was the original bug.
+    if (validKeys.length > 1) {
+      console.warn(
+        `eimzo: ${validKeys.length} unexpired certificates found and no picker is mounted — `,
+        validKeys.map((key) => `${key.commonName} (serial ${key.serialNumber})`).join('; '),
+      );
+      throw new EimzoMultipleKeysError(validKeys.length);
+    }
+    return validKeys[0];
   }
-  return validKeys[0];
+
+  const chosen = await selector(keys);
+  if (isKeyExpired(chosen, new Date())) throw new EimzoNoValidKeyError(null);
+  return chosen;
 }
 
 async function signWithSelectedKey(bytes: Uint8Array, options: { detached: boolean }): Promise<string> {

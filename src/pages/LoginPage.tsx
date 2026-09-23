@@ -13,7 +13,7 @@ import { useApiErrorText } from '../i18n/useApiErrorText';
 import { useLanguage, useT } from '../i18n/useT';
 import { LANDING_PATHS, landingUrl } from '../lib/landing';
 import { LanguageMenu } from '../shell/LanguageMenu';
-import { EimzoError, PINFL_PATTERN, eimzoErrorMessageKey, isEimzoMock, isProviderUnreachable } from '../lib/eimzo';
+import { EimzoError, PINFL_PATTERN, eimzoErrorMessageKey, isEimzoCancelled, isEimzoMock, isProviderUnreachable } from '../lib/eimzo';
 import { SUPPORT_EXTENSION, SUPPORT_PHONE, SUPPORT_PHONE_HREF } from '../shell/support';
 import { peekStoredNext } from './oneIdReturnCache';
 
@@ -263,6 +263,10 @@ export function LoginPage() {
       await loginViaEimzo();
       navigate(next, { replace: true });
     } catch (err) {
+      // Cancel in the certificate picker is a decision, not a failure:
+      // an error banner here would claim the sign-in broke when nobody
+      // tried to sign in.
+      if (isEimzoCancelled(err)) return;
       if (err instanceof EimzoError || isProviderUnreachable(err)) {
         setEimzoErrorKey(eimzoErrorMessageKey(err));
       } else {

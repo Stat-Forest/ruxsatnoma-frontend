@@ -113,6 +113,15 @@ export const en = {
     'No valid (non-expired) certificate was found on the connected E-IMZO. Get a new certificate or renew the expired key.',
   'eimzo.errors.multipleValidKeys':
     'Multiple valid E-IMZO certificates were detected — it is unclear which one to sign with. Keep only the certificate/key you need connected and try again.',
+  // The certificate picker (2026-09-23).
+  'eimzo.errors.cancelled': 'Signing was cancelled.',
+  'eimzo.picker.title': 'Choose a certificate',
+  'eimzo.picker.subtitle': 'Pick the certificate to sign with.',
+  'eimzo.picker.cancel': 'Cancel',
+  'eimzo.picker.pinfl': 'PINFL',
+  'eimzo.picker.tin': 'TIN',
+  'eimzo.picker.validUntil': 'Valid until:',
+  'eimzo.picker.expiredOn': 'Expired:',
   // Mock mode only (`lib/eimzo/useMockSigner.ts`): whose PINFL the mock
   // envelope carries, read from `/auth/me` instead of typed in.
   'eimzo.mock.signingAs': 'Demo mode: signed with a mock EDS. Certificate PINFL (from your account):',

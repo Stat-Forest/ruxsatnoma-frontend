@@ -1570,6 +1570,15 @@ export const kaa = {
     'Ulanǵan E-IMZO-da ámeldegi (múddeti ótpegen) sertifikat tabılmadı. Jańa sertifikat alıń yamasa múddeti ótken gilttti jańalań.',
   'eimzo.errors.multipleValidKeys':
     'Bir neshe ámeldegi E-IMZO sertifikatı anıqlandı — qaysı biri menen qol qoyıw anıq emes. Tek kerekli sertifikat/gilttti ulanǵan halda qaldırıń hám qaytadan urınıń.',
+  // The certificate picker (2026-09-23).
+  'eimzo.errors.cancelled': 'Qol qoyıw biykarlandı.',
+  'eimzo.picker.title': 'Sertifikattı saylań',
+  'eimzo.picker.subtitle': 'Qaysı sertifikat penen qol qoyıwdı saylań.',
+  'eimzo.picker.cancel': 'Biykarlaw',
+  'eimzo.picker.pinfl': 'PINFL',
+  'eimzo.picker.tin': 'STIR',
+  'eimzo.picker.validUntil': 'Ámel etiw múddeti:',
+  'eimzo.picker.expiredOn': 'Múddeti tamamlanǵan:',
   // Mock mode only (`lib/eimzo/useMockSigner.ts`): whose PINFL the mock
   // envelope carries, read from `/auth/me` instead of typed in.
   'eimzo.mock.signingAs': 'Demo rejimi: mock ERI menen qol qoyıladı. Sertifikat PINFL (esabıńızdan):',

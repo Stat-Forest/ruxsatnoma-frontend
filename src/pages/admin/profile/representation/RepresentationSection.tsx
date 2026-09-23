@@ -10,6 +10,7 @@ import {
   buildMockSignedChallenge,
   EimzoError,
   eimzoErrorMessageKey,
+  isEimzoCancelled,
   isEimzoMock,
   isProviderUnreachable,
   PINFL_PATTERN,
@@ -161,6 +162,9 @@ function AttachLegalForm() {
       setValidUntil('');
       setTouched(false);
     } catch (err) {
+      // Cancel in the certificate picker is a decision, not a failure:
+      // the representation is simply not proven yet.
+      if (isEimzoCancelled(err)) return;
       setError(
         err instanceof EimzoError || isProviderUnreachable(err)
           ? t(eimzoErrorMessageKey(err))
@@ -355,6 +359,9 @@ function AddColleagueForm() {
       setValidUntil('');
       setTouched(false);
     } catch (err) {
+      // Cancel in the certificate picker is a decision, not a failure:
+      // the representation is simply not proven yet.
+      if (isEimzoCancelled(err)) return;
       setError(
         err instanceof EimzoError || isProviderUnreachable(err)
           ? t(eimzoErrorMessageKey(err))

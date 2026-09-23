@@ -12,6 +12,7 @@ import {
   buildMockPkcs7,
   canAttemptPurpose,
   eimzoErrorMessageKey,
+  isEimzoCancelled,
   getPurposeLabel,
   isEimzoMock,
   isPlausiblePinflOrStir,
@@ -392,6 +393,9 @@ function SignatureSlot({
       const pkcs7 = await signDocument(bytes);
       mutation.mutate(pkcs7);
     } catch (err) {
+      // Cancel in the certificate picker is a decision, not a failure:
+      // an error banner here would claim the document failed to sign.
+      if (isEimzoCancelled(err)) return;
       if (err instanceof EimzoError || isProviderUnreachable(err)) {
         setFormError(t(eimzoErrorMessageKey(err)));
       } else if (err instanceof PermitPdfFetchError) {

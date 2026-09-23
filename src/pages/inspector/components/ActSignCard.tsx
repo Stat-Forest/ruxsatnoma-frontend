@@ -20,6 +20,7 @@ import { useApiErrorText } from '../../../i18n/useApiErrorText';
 import {
   buildMockSignature,
   eimzoErrorMessageKey,
+  isEimzoCancelled,
   isEimzoMock,
   MockSignerNotice,
   signDocument,
@@ -85,6 +86,9 @@ export function ActSignCard({ act, onSigned }: ActSignCardProps) {
       try {
         pkcs7 = await signDocument(new Uint8Array(documentBytes));
       } catch (err) {
+        // Cancel in the certificate picker is a decision, not a failure:
+        // an error banner here would claim the document failed to sign.
+        if (isEimzoCancelled(err)) return;
         // Important 3 (review of stage 5.2): this used to render a message
         // only for `EimzoError`/`isProviderUnreachable` and otherwise
         // `return` bare, so anything else (the timestamp route's own rate
