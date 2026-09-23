@@ -81,6 +81,14 @@ export function KeyPickerHost() {
 
   if (!pending) return null;
   const now = pending.openedAt;
+  // Usable certificates first. E-IMZO hands them back in its own order,
+  // which on 2026-09-23 put five expired ones ahead of the single valid
+  // one — the signer had to scroll past a wall of grey to reach the only
+  // thing they could actually click. `sort` is stable, so within each
+  // group the provider's own order survives.
+  const ordered = [...pending.keys].sort(
+    (a, b) => Number(isExpired(a, now)) - Number(isExpired(b, now)),
+  );
 
   return (
     <Modal
@@ -100,7 +108,7 @@ export function KeyPickerHost() {
           the bottom of the list as anywhere else — measured 2026-09-23,
           where exactly that happened. */}
       <ul className="flex max-h-[55vh] flex-col gap-2 overflow-y-auto" data-testid="eimzo-picker-list">
-        {pending.keys.map((key) => {
+        {ordered.map((key) => {
           const expired = isExpired(key, now);
           return (
             <li key={key.id}>

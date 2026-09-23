@@ -76,6 +76,32 @@ describe('KeyPickerHost', () => {
     expect(screen.getByText(/09\.09\.2026/)).toBeTruthy();
   });
 
+  it('puts the usable certificates first, whatever order E-IMZO reported', async () => {
+    // Measured 2026-09-23: the provider listed five expired certificates
+    // ahead of the only valid one, so the signer scrolled past a wall of
+    // grey to reach the single thing they could click.
+    render(<KeyPickerHost />);
+    ask_([MINE_EXPIRED, COLLEAGUE_VALID]);
+
+    const list = await screen.findByTestId('eimzo-picker-list');
+    const order = [...list.querySelectorAll('button')].map((b) => b.getAttribute('data-testid'));
+    expect(order).toEqual(['eimzo-picker-key-SN-OTHER', 'eimzo-picker-key-SN-MINE']);
+  });
+
+  it('keeps the provider\'s own order inside each group', async () => {
+    const secondValid = key({ id: 'pfx-2-SN-Z', serialNumber: 'SN-Z' });
+    render(<KeyPickerHost />);
+    ask_([COLLEAGUE_VALID, MINE_EXPIRED, secondValid]);
+
+    const list = await screen.findByTestId('eimzo-picker-list');
+    const order = [...list.querySelectorAll('button')].map((b) => b.getAttribute('data-testid'));
+    expect(order).toEqual([
+      'eimzo-picker-key-SN-OTHER',
+      'eimzo-picker-key-SN-Z',
+      'eimzo-picker-key-SN-MINE',
+    ]);
+  });
+
   it('will not let an expired certificate be chosen', async () => {
     render(<KeyPickerHost />);
     ask_([MINE_EXPIRED, COLLEAGUE_VALID]);
