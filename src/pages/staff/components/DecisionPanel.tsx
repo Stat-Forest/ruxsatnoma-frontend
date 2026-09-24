@@ -4,7 +4,7 @@ import { AlertTriangle, ArrowUpCircle, Award, CheckCircle2, Inbox, XCircle } fro
 import { useAuth } from '../../../auth/useAuth';
 import { Button } from '../../../components/ui/button';
 import { useLanguage, useT } from '../../../i18n/useT';
-import { useApprove, useReject, type ApplicationCardOut } from '../queries';
+import { useApprove, useReject, type ApplicationCardOut, type RejectInput } from '../queries';
 import { shortId, statusLabel } from '../format';
 import { formatPermitNumber } from '../../permits/format';
 import { usePermitForApplication } from '../../permits/usePermitForApplication';
@@ -161,7 +161,7 @@ export function DecisionPanel({ card }: { card: ApplicationCardOut }) {
     });
   }
 
-  function handleRejectSubmit(input: { pkcs7: string; reason_item_id: string; legal_basis: string | null }) {
+  function handleRejectSubmit(input: RejectInput) {
     reject.mutate(input, {
       onSuccess: () => {
         setDecided('rejected');

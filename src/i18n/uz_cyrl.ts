@@ -2203,8 +2203,6 @@ export const uz_cyrl = {
   'staff.benefitClaim.notInReview': 'Текшириш учун аввал аризани кўриб чиқишга олинг.',
   'staff.decision.benefit.approveBlockedPending': 'Имтиёз ҳали текширилмаган.',
   'staff.decision.benefit.approveBlockedRejectedPrefix': 'Имтиёз рад этилган:',
-  'staff.decision.benefit.legalBasisOptionalHint':
-    'Бўш қолдирилса, текширувчи кўрсатган сабаб ҳуқуқий асос сифатида ишлатилади.',
   // `StartReviewConfirmModal` — аризани ишга олишдан олдинги савол.
   'staff.startReview.confirm.title': 'Аризани ишга оласизми?',
   'staff.startReview.confirm.bodyPrefix': 'Ариза',

@@ -17,6 +17,7 @@ import { DecisionPanel } from './components/DecisionPanel';
 import { ReviewActionsPanel } from './components/ReviewActionsPanel';
 import { BenefitClaimPanel } from './components/BenefitClaimPanel';
 import { ContourBoundaryPanel } from '../gis/ContourBoundaryPanel';
+import { ApplicationPrintoutButtons } from '../../components/ApplicationPrintoutButtons';
 
 const STAFF_CARD_I18N = {
   uz_latn: {
@@ -175,6 +176,9 @@ export function StaffApplicationCard() {
         {card.submitted_at && (
           <span className="text-xs text-[#5A646D]">{tr.submittedAt} {formatDateTime(card.submitted_at)}</span>
         )}
+        <div className="ml-auto">
+          <ApplicationPrintoutButtons applicationId={card.id} printouts={card.printouts} />
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-6 items-start">

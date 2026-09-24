@@ -148,8 +148,9 @@ export function fileUrl(fileId: string): string {
   return `${base}/api/v1/files/${fileId}`;
 }
 
-/** `rejection_reasons` — RJ-01…RJ-15 (`tz/10` §8.2, migration 0005), the
- * classifier `ApplicationRejectIn.reason_item_id` must belong to. */
+/** `rejection_reasons`: R01–R08 for a refusal, RJ-01/02/15 for a return
+ * (stage 16, ruling R4), the classifier a `RejectionGroundIn.reason_item_id`
+ * or `ApplicationReturnIn` reason must belong to. */
 export function useRejectionReasons() {
   return useQuery({
     queryKey: ['refs', 'classifiers', 'rejection_reasons'],
@@ -283,19 +284,39 @@ export function useApprove(applicationId: string) {
   });
 }
 
+/** Stage 16 (ruling R3): 1…10 grounds, every field required, plus the two
+ *  notice texts. Ruling R8: no server-side default any more — the form
+ *  prefills, the server requires. */
 export interface RejectInput {
   pkcs7: string;
-  reason_item_id: string;
-  /**
-   * Optional (ruling #182, `ApplicationRejectIn.legal_basis` in
-   * `schema.d.ts`): when the application's own benefit claim is `rejected`,
-   * the leshoz's own verify/reject pair already recorded a reason, and
-   * `decision.reject` fills `legal_basis` from `benefit_rejection_reason`
-   * when the caller leaves it out. `SignDecisionModal` sends `null` rather
-   * than an empty string in that case — an empty string would still read as
-   * "given but blank" to a caller that only checked `!== undefined`.
-   */
-  legal_basis?: string | null;
+  grounds: {
+    reason_item_id: string;
+    fact: string;
+    legal_document: string;
+    legal_clause: string;
+    evidence: string;
+    remedy: string;
+  }[];
+  reapply_text: string;
+  appeal_text: string;
+}
+
+/** The notice's language and its two default texts (stage 16). `enabled`
+ *  lets `SignDecisionModal` skip the call outside reject mode — approve
+ *  needs none of this, and the route is otherwise unmocked wherever an
+ *  approve-only test never expects it. */
+export function useRejectionDefaults(applicationId: string, options: { enabled?: boolean } = {}) {
+  return useQuery({
+    queryKey: ['staff', 'application', applicationId, 'rejection-defaults'],
+    queryFn: async () => {
+      const { data, error } = await api.GET('/api/v1/applications/{application_id}/rejection-defaults', {
+        params: { path: { application_id: applicationId } },
+      });
+      if (error) throw apiError(error);
+      return data;
+    },
+    enabled: options.enabled ?? true,
+  });
 }
 
 export function useReject(applicationId: string) {

@@ -73,6 +73,7 @@ function card(over: Partial<ApplicationCardOut> = {}): ApplicationCardOut {
     calculation: null,
     sla_overdue: false,
     conclusions: [],
+    printouts: [],
     ...over,
   };
 }

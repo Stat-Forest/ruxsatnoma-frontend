@@ -69,6 +69,7 @@ function card(over: Partial<ApplicationCardOut> = {}): ApplicationCardOut {
     calculation: null,
     sla_overdue: false,
     conclusions: [],
+    printouts: [],
     ...over,
   };
 }
@@ -309,13 +310,22 @@ test('approve stays enabled once the benefit claim is verified', () => {
   expect(screen.queryByText('staff.decision.benefit.approveBlockedPending')).not.toBeInTheDocument();
 });
 
-test('legal_basis becomes optional in the reject form once the benefit claim is rejected, and a blank field sends null', async () => {
+// Stage 16 (rulings R3/R8): the reject form now carries 1..10 detailed
+// grounds plus the two notice texts, every field required — no more
+// server-side `legal_basis` default. `RejectionGroundsEditor`'s own tests
+// (`RejectionGroundsEditor.test.tsx`) cover the editor in isolation; these
+// two pin the behaviour actually wired through `SignDecisionModal` and
+// `DecisionPanel`.
+test('reject stays disabled until every ground field is filled, then submits the full grounds and both notice texts', async () => {
   const reasonId = 'rj000000-0000-4000-8000-000000000001';
   server.use(
     http.get('*/api/v1/refs/classifiers/:code/items', ({ params }) =>
       params.code === 'rejection_reasons'
-        ? HttpResponse.json([{ id: reasonId, code: 'RJ-01', name: { uz_latn: 'Hujjatlar toʻliq emas' }, props: {}, valid_from: '2026-01-01', valid_to: null, status: 'active' }])
+        ? HttpResponse.json([{ id: reasonId, code: 'R01', name: { uz_latn: 'Hujjatlar toʻliq emas' }, props: { kind: 'reject', legal_basis: '' }, valid_from: '2026-01-01', valid_to: null, status: 'active' }])
         : HttpResponse.json([]),
+    ),
+    http.get('*/api/v1/applications/:id/rejection-defaults', () =>
+      HttpResponse.json({ language: 'uz_latn', reapply_text: 'Qayta murojaat matni', appeal_text: 'Shikoyat matni' }),
     ),
     http.get('*/api/v1/applications/:id/package', () => new HttpResponse(new Uint8Array([1, 2, 3]).buffer)),
   );
@@ -329,31 +339,170 @@ test('legal_basis becomes optional in the reject form once the benefit claim is 
 
   const user = userEvent.setup();
   const client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
+  const initial = card({ status: 'IN_REVIEW' });
+  client.setQueryData(['staff', 'application', initial.id], initial);
+  renderPanel(initial, client);
+
+  await user.click(screen.getByText('Rad etish'));
+  await screen.findByText(/Hujjatlar toʻliq emas/);
+  // The two notice texts prefill from the defaults route — loaded
+  // asynchronously, so wait for them before checking the gate.
+  await screen.findByDisplayValue('Qayta murojaat matni');
+  await screen.findByDisplayValue('Shikoyat matni');
+
+  const submitButton = screen.getByText('Rad etish va imzolash');
+  // Every ground field (including the code) is still blank.
+  expect(submitButton.closest('button')).toBeDisabled();
+
+  const groundGroup = screen.getByRole('group', { name: /Sabab 1/ });
+  // Selected by the classifier item's own id — the option's visible text
+  // is `${code} — ${name}`, which a plain string match would miss.
+  await user.selectOptions(within(groundGroup).getByRole('combobox'), reasonId);
+  const [factField, legalDocumentField, legalClauseField, evidenceField, remedyField] =
+    within(groundGroup).getAllByRole('textbox');
+  await user.type(factField, 'Ariza hujjatlari toʻliq topshirilmagan');
+  await user.type(legalDocumentField, 'VMQ 278');
+  await user.type(legalClauseField, '12-band');
+  await user.type(evidenceField, 'Tekshiruv dalolatnomasi №12');
+  await user.type(remedyField, 'Yetishmagan hujjatlarni topshirish');
+
+  await waitFor(() => expect(submitButton.closest('button')).toBeEnabled());
+  await user.click(submitButton);
+
+  await waitFor(() => expect(receivedBody).not.toBeNull());
+  const body = receivedBody as {
+    grounds: { reason_item_id: string; fact: string; legal_document: string; legal_clause: string; evidence: string; remedy: string }[];
+    reapply_text: string;
+    appeal_text: string;
+  };
+  expect(body.grounds).toHaveLength(1);
+  expect(body.grounds[0]).toEqual({
+    reason_item_id: reasonId,
+    fact: 'Ariza hujjatlari toʻliq topshirilmagan',
+    legal_document: 'VMQ 278',
+    legal_clause: '12-band',
+    evidence: 'Tekshiruv dalolatnomasi №12',
+    remedy: 'Yetishmagan hujjatlarni topshirish',
+  });
+  expect(body.reapply_text).toBe('Qayta murojaat matni');
+  expect(body.appeal_text).toBe('Shikoyat matni');
+});
+
+// G1 (fix-wave review): the backend refuses a reject carrying a character
+// the PDF font cannot draw with 422 ERR-VAL-001, `details.reason ===
+// 'unrenderable_characters'` and `details.fields` mapping each bad field's
+// wire path to the offending characters. The modal must show which field
+// and which character, not the generic validation sentence.
+test('a character the notice cannot print names the field and the character, not a generic message', async () => {
+  const reasonId = 'rj000000-0000-4000-8000-000000000001';
+  server.use(
+    http.get('*/api/v1/refs/classifiers/:code/items', ({ params }) =>
+      params.code === 'rejection_reasons'
+        ? HttpResponse.json([{ id: reasonId, code: 'R01', name: { uz_latn: 'Hujjatlar toʻliq emas' }, props: { kind: 'reject', legal_basis: '' }, valid_from: '2026-01-01', valid_to: null, status: 'active' }])
+        : HttpResponse.json([]),
+    ),
+    http.get('*/api/v1/applications/:id/rejection-defaults', () =>
+      HttpResponse.json({ language: 'uz_latn', reapply_text: 'Qayta murojaat matni', appeal_text: 'Shikoyat matni' }),
+    ),
+    http.get('*/api/v1/applications/:id/package', () => new HttpResponse(new Uint8Array([1, 2, 3]).buffer)),
+    http.post('*/api/v1/applications/:id/reject', () =>
+      HttpResponse.json(
+        {
+          error: {
+            code: 'ERR-VAL-001',
+            message: 'Unrenderable characters',
+            details: {
+              reason: 'unrenderable_characters',
+              fields: {
+                'grounds.0.fact': ['U+1F642 🙂'],
+                appeal_text: ['U+1F642 🙂'],
+              },
+            },
+          },
+        },
+        { status: 422 },
+      ),
+    ),
+  );
+
+  const user = userEvent.setup();
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
+  const initial = card({ status: 'IN_REVIEW' });
+  client.setQueryData(['staff', 'application', initial.id], initial);
+  renderPanel(initial, client);
+
+  await user.click(screen.getByText('Rad etish'));
+  await screen.findByText(/Hujjatlar toʻliq emas/);
+  await screen.findByDisplayValue('Qayta murojaat matni');
+
+  const groundGroup = screen.getByRole('group', { name: /Sabab 1/ });
+  await user.selectOptions(within(groundGroup).getByRole('combobox'), reasonId);
+  const [factField, legalDocumentField, legalClauseField, evidenceField, remedyField] =
+    within(groundGroup).getAllByRole('textbox');
+  await user.type(factField, 'Ariza hujjatlari toʻliq topshirilmagan');
+  await user.type(legalDocumentField, 'VMQ 278');
+  await user.type(legalClauseField, '12-band');
+  await user.type(evidenceField, 'Tekshiruv dalolatnomasi №12');
+  await user.type(remedyField, 'Yetishmagan hujjatlarni topshirish');
+
+  const submitButton = screen.getByText('Rad etish va imzolash');
+  await waitFor(() => expect(submitButton.closest('button')).toBeEnabled());
+  await user.click(submitButton);
+
+  const alertBlock = await screen.findByRole('alert');
+  expect(alertBlock).toHaveTextContent('Matnda chop etib boʻlmaydigan belgi bor — uni oʻchiring:');
+  expect(within(alertBlock).getByText(/Sabab 1 — Aniqlangan holat/)).toHaveTextContent('U+1F642 🙂');
+  expect(within(alertBlock).getByText(/Shikoyat qilish/)).toHaveTextContent('U+1F642 🙂');
+  // Never the generic validation sentence this code would otherwise render.
+  expect(screen.queryByText("Kiritilgan ma'lumotlarni tekshirishda xatolik.")).not.toBeInTheDocument();
+});
+
+// G3 (fix-wave review): the head signs blind to which language the printed
+// notice will actually use — `useRejectionDefaults` already returns
+// `language`, this just surfaces it above the two texts.
+test('shows which language the rejection notice will be printed in', async () => {
+  server.use(
+    http.get('*/api/v1/applications/:id/rejection-defaults', () =>
+      HttpResponse.json({ language: 'ru', reapply_text: 'Qayta murojaat matni', appeal_text: 'Shikoyat matni' }),
+    ),
+    http.get('*/api/v1/applications/:id/package', () => new HttpResponse(new Uint8Array([1, 2, 3]).buffer)),
+  );
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
+  renderPanel(card({ status: 'IN_REVIEW' }), client);
+
+  await userEvent.setup().click(screen.getByText('Rad etish'));
+
+  // The UI itself renders in uz_latn (the test harness's own language), but
+  // the NOTICE will print in ru — the label is in the UI language, the
+  // language name names the notice's own language.
+  const line = await screen.findByTestId('notice-language');
+  expect(line).toHaveTextContent('Xabarnoma tili');
+  expect(line).toHaveTextContent('Русский');
+});
+
+// Ruling R8: the server no longer fills anything from a rejected benefit
+// claim — the FORM prefills the first ground's `fact` instead, editable.
+test('a rejected benefit claim prefills the first ground\'s fact', async () => {
+  server.use(
+    http.get('*/api/v1/applications/:id/rejection-defaults', () =>
+      HttpResponse.json({ language: 'uz_latn', reapply_text: '', appeal_text: '' }),
+    ),
+    http.get('*/api/v1/applications/:id/package', () => new HttpResponse(new Uint8Array([1, 2, 3]).buffer)),
+  );
+
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
   const initial = card({
     status: 'IN_REVIEW',
     benefit_verification_status: 'rejected',
     benefit_rejection_reason: 'Sertifikat muddati oʻtgan',
   });
-  client.setQueryData(['staff', 'application', initial.id], initial);
   renderPanel(initial, client);
 
-  await user.click(screen.getByText('Rad etish'));
-  expect(await screen.findByText('staff.decision.benefit.legalBasisOptionalHint')).toBeInTheDocument();
+  await userEvent.setup().click(screen.getByText('Rad etish'));
 
-  await screen.findByText('Hujjatlar toʻliq emas');
-  const reasonSelect = screen.getByDisplayValue('Tanlang...');
-  await user.selectOptions(reasonSelect, 'Hujjatlar toʻliq emas');
-
-
-  // `legal_basis` left blank — the submit button must still enable, since
-  // the verifier's own reason will be used.
-  const submitButton = screen.getByText('Rad etish va imzolash');
-  await waitFor(() => expect(submitButton.closest('button')).toBeEnabled());
-  await user.click(submitButton);
-
-  await waitFor(() => expect(receivedBody).not.toBeNull());
-  expect((receivedBody as { legal_basis: unknown }).legal_basis).toBeNull();
-  expect((receivedBody as { reason_item_id: unknown }).reason_item_id).toBe(reasonId);
+  const groundGroup = await screen.findByRole('group', { name: /Sabab 1/ });
+  const [factField] = within(groundGroup).getAllByRole('textbox');
+  expect(factField).toHaveValue('Sertifikat muddati oʻtgan');
 });
 
 // "Koʻrib chiqishga olish" used to fire `POST /start-review` on the first

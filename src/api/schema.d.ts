@@ -3699,11 +3699,13 @@ export interface paths {
          *     422 `ERR-VAL-001`: `unknown_rejection_reason` for a `reason_item_id`
          *     outside the `rejection_reasons` classifier; `reason_not_returnable` for
          *     one that IS in it but types a refusal or a withdrawal rather than a return
-         *     (RJ-03 is a REFUSAL — returning under it would misdescribe the decision);
-         *     `fields_to_fix_required` for an empty object; `unknown_field` for a key
-         *     naming no real column of the application. 404 `ERR-SYS-003` for an id that
-         *     does not exist and for an application outside the caller's zone. 409
-         *     `ERR-APP-004` in any status but SUBMITTED or IN_REVIEW.
+         *     (R01 is a REFUSAL — returning under it would misdescribe the decision;
+         *     RJ-03, this docstring's own example before migration 0064, is now
+         *     archived and answers `unknown_rejection_reason` instead of ever reaching
+         *     this check); `fields_to_fix_required` for an empty object; `unknown_field`
+         *     for a key naming no real column of the application. 404 `ERR-SYS-003` for
+         *     an id that does not exist and for an application outside the caller's
+         *     zone. 409 `ERR-APP-004` in any status but SUBMITTED or IN_REVIEW.
          */
         post: operations["return_application_api_v1_applications__application_id__return_post"];
         delete?: never;
@@ -3876,25 +3878,47 @@ export interface paths {
         put?: never;
         /**
          * Reject Application
-         * @description IN_REVIEW -> REJECTED, with the grounds `tz/04` С8 requires.
+         * @description IN_REVIEW -> REJECTED, with 1…10 detailed grounds (stage 16, ruling R3).
          *
-         *     `reason_item_id` is a REQUIRED field of the body, so a refusal naming no
-         *     reason at all is 422 `ERR-VAL-001` from pydantic — before the handler, and
-         *     therefore before a signature could be spent on a request that cannot
-         *     succeed. A `reason_item_id` outside the `rejection_reasons` classifier, or
-         *     archived, is the service's own 422 `ERR-VAL-001` (`unknown_rejection_
-         *     reason`), still ahead of the ERI.
+         *     `grounds` is a REQUIRED, 1..10-item field of the body, and every ground's
+         *     six fields are required non-blank text — a refusal naming nothing at all,
+         *     or a blank field within a ground, is 422 `ERR-VAL-001` from pydantic
+         *     before the handler, and therefore before a signature could be spent on a
+         *     request that cannot succeed. A ground's `reason_item_id` outside the
+         *     `rejection_reasons` classifier, archived, or naming a return-only code
+         *     (RJ-01/02/15) is the service's own 422 `ERR-VAL-001`
+         *     (`unknown_rejection_reason` / `reason_not_rejectable`), still ahead of the
+         *     ERI.
          *
-         *     `legal_basis` is OPTIONAL at the wire (ruling #182): omitted while the
-         *     application's own benefit claim is `rejected`, the leshoz's own reason
-         *     for THAT becomes the grounds for this; omitted otherwise, still 422
-         *     `ERR-VAL-001` (`legal_basis_required`) — the mandatory-grounds rule
-         *     intact, just enforced one layer in.
+         *     Ruling R8 retires ruling #182's server-side default: the form prefills
+         *     `reapply_text`/`appeal_text` and the first ground's `fact` from a rejected
+         *     benefit claim, but the server always requires the full set.
          *
          *     No role limit: decision #29 caps what a head may GRANT. 404 and 409 exactly
          *     as on `/approve` above.
          */
         post: operations["reject_application_api_v1_applications__application_id__reject_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/applications/{application_id}/rejection-defaults": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Rejection Defaults
+         * @description The notice's language and its two default texts — what the reject form
+         *     prefills (stage 16, ruling R3). `applications.decide`, like the reject route.
+         */
+        get: operations["get_rejection_defaults_api_v1_applications__application_id__rejection_defaults_get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -3950,6 +3974,46 @@ export interface paths {
          *     the caller's zone, or a `check_id` that does not belong to it.
          */
         post: operations["confirm_application_check_api_v1_applications__application_id__checks__check_id__confirm_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/applications/{application_id}/letter.pdf": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Download Application Letter
+         * @description «Ariza xati» — the newest submission's letter (stage 16, R2/R6/R7).
+         */
+        get: operations["download_application_letter_api_v1_applications__application_id__letter_pdf_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/applications/{application_id}/rejection-notice.pdf": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Download Rejection Notice
+         * @description «Rad etish xati» — the rejection notice (stage 16, R2/R3/R6).
+         */
+        get: operations["download_rejection_notice_api_v1_applications__application_id__rejection_notice_pdf_get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -7622,6 +7686,8 @@ export interface components {
             sla_overdue: boolean;
             /** Conclusions */
             conclusions: components["schemas"]["ApplicationConclusionOut"][];
+            /** Printouts */
+            printouts: components["schemas"]["ApplicationPrintoutOut"][];
         };
         /**
          * ApplicationCheckIn
@@ -8283,41 +8349,40 @@ export interface components {
             benefit_certificate_no?: string | null;
         };
         /**
+         * ApplicationPrintoutOut
+         * @description A printed document the card can offer for download (stage 16, R2).
+         */
+        ApplicationPrintoutOut: {
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "letter" | "rejection_notice";
+            /** Number */
+            number: string | null;
+            /** Language */
+            language: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+        };
+        /**
          * ApplicationRejectIn
-         * @description `POST /applications/{id}/reject` — the ERI plus the grounds `tz/04` С8
-         *     requires of a refusal BY the state: an RJ-* reason from the
-         *     `rejection_reasons` classifier AND a legal basis.
-         *
-         *     **`reason_item_id` is REQUIRED here rather than validated in the
-         *     service**, which is what makes a missing one a 422 `ERR-VAL-001` before
-         *     the request body is ever handed to a function that could reach `sign()` —
-         *     a signature must never be spent on a request that cannot succeed.
-         *
-         *     **`legal_basis` is OPTIONAL** (ruling #182): when the application's own
-         *     benefit claim was `rejected` by the leshoz's own verify/reject pair, that
-         *     verdict IS the grounds for rejecting the application too, and the head
-         *     need not retype it — `decision.reject` fills `legal_basis` from the
-         *     claim's own `benefit_rejection_reason` when the caller leaves it out.
-         *     Every OTHER case keeps the ORIGINAL rule intact: a missing `legal_basis`
-         *     is refused (`ERR-VAL-001`, `reason="legal_basis_required"`) before
-         *     `sign()` is ever reached, exactly as when it was required at the wire.
-         *     `min_length=1` closes the half a plain `str` would leave open when one
-         *     IS given: an empty legal basis is a missing one.
-         *
-         *     This is the opposite of `ApplicationCancelIn` beside it, whose reason is
-         *     optional because a citizen withdrawing their own application owes nobody an
-         *     explanation.
+         * @description `POST /applications/{id}/reject` — the ERI plus 1…10 grounds and the two
+         *     texts the notice prints. Ruling R8 (stage 16) retires ruling #182's
+         *     server-side default: the form prefills, the server requires.
          */
         ApplicationRejectIn: {
             /** Pkcs7 */
             pkcs7: string;
-            /**
-             * Reason Item Id
-             * Format: uuid
-             */
-            reason_item_id: string;
-            /** Legal Basis */
-            legal_basis?: string | null;
+            /** Grounds */
+            grounds: components["schemas"]["RejectionGroundIn"][];
+            /** Reapply Text */
+            reapply_text: string;
+            /** Appeal Text */
+            appeal_text: string;
         };
         /**
          * ApplicationRequestInfoIn
@@ -13114,6 +13179,42 @@ export interface components {
             name: {
                 [key: string]: unknown;
             };
+        };
+        /**
+         * RejectionDefaultsOut
+         * @description `GET /applications/{id}/rejection-defaults` — the language the notice
+         *     will be printed in and the two default texts in that language.
+         */
+        RejectionDefaultsOut: {
+            /** Language */
+            language: string;
+            /** Reapply Text */
+            reapply_text: string;
+            /** Appeal Text */
+            appeal_text: string;
+        };
+        /**
+         * RejectionGroundIn
+         * @description One ground of a rejection (stage 16, ruling R3) — every field required:
+         *     the blank refuses a bare generic reason, so an empty or whitespace-only
+         *     field is 422 `ERR-VAL-001` before a signature is spent.
+         */
+        RejectionGroundIn: {
+            /**
+             * Reason Item Id
+             * Format: uuid
+             */
+            reason_item_id: string;
+            /** Fact */
+            fact: string;
+            /** Legal Document */
+            legal_document: string;
+            /** Legal Clause */
+            legal_clause: string;
+            /** Evidence */
+            evidence: string;
+            /** Remedy */
+            remedy: string;
         };
         /** RejectionRowOut */
         RejectionRowOut: {
@@ -21875,6 +21976,37 @@ export interface operations {
             };
         };
     };
+    get_rejection_defaults_api_v1_applications__application_id__rejection_defaults_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                application_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RejectionDefaultsOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     add_application_check_api_v1_applications__application_id__checks_post: {
         parameters: {
             query?: never;
@@ -21929,6 +22061,68 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ApplicationCheckOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    download_application_letter_api_v1_applications__application_id__letter_pdf_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                application_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    download_rejection_notice_api_v1_applications__application_id__rejection_notice_pdf_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                application_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
                 };
             };
             /** @description Validation Error */
