@@ -42,12 +42,15 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       touch: 'h-12 px-6 text-base gap-2.5 font-semibold shadow-sm', // 48px touch target for mobile/field work
     };
 
-    // Color/Variant styles using defined design tokens
+    // Color/Variant styles using defined design tokens. `outline` and
+    // `secondary` hover to the green tint, not to #F8F9FA: that grey is the
+    // hovered-row background of every worklist, so a row button hovered to it
+    // showed no change at all.
     const variantStyles: Record<ButtonVariant, string> = {
       primary:
         'bg-[#2E7D4F] hover:bg-[#23653F] active:bg-[#23653F] text-white focus:ring-[#2E7D4F] shadow-sm',
       secondary:
-        'bg-white border border-[#767F87] text-[#1A1F24] hover:bg-[#F8F9FA] hover:border-[#9AA3AB] focus:ring-[#2E7D4F]',
+        'bg-white border border-[#767F87] text-[#1A1F24] hover:bg-[#F0F7F1] hover:border-[#2E7D4F] hover:text-[#23653F] focus:ring-[#2E7D4F]',
       ghost:
         'bg-transparent text-[#2E7D4F] hover:bg-[#F0F7F1] focus:ring-[#2E7D4F]',
       danger:
@@ -55,7 +58,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       success:
         'bg-[#15803D] hover:bg-[#166534] active:bg-[#166534] text-white focus:ring-[#15803D] shadow-sm',
       outline:
-        'bg-transparent border border-[#E4E7EA] text-[#1A1F24] hover:bg-[#F8F9FA] focus:ring-[#2E7D4F]',
+        'bg-transparent border border-[#E4E7EA] text-[#1A1F24] hover:bg-[#F0F7F1] hover:border-[#7FB98A] hover:text-[#23653F] focus:ring-[#2E7D4F]',
     };
 
     const widthStyle = fullWidth ? 'w-full' : '';

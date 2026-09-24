@@ -42,7 +42,7 @@ export function LegalStatusCard({ permit, t }: { permit: PermitOut | null; t: (k
 
       <Link
         to="/my/permits"
-        className="mt-5 w-full inline-flex items-center justify-center gap-2 h-10 rounded-lg border border-[#E4E7EA] bg-white hover:bg-[#F8F9FA] text-sm font-semibold text-[#23653F] transition-colors"
+        className="mt-5 w-full inline-flex items-center justify-center gap-2 h-10 rounded-lg border border-[#E4E7EA] bg-white hover:bg-[#F0F7F1] hover:border-[#7FB98A] text-sm font-semibold text-[#23653F] transition-colors"
       >
         {t('dash.legal.openPermits')}
         <ArrowRight className="w-4 h-4" />
