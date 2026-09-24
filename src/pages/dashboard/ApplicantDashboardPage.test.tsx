@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
 import { http, HttpResponse } from 'msw';
 import { setupServer } from 'msw/node';
@@ -20,12 +20,7 @@ vi.mock('recharts', () => {
   return {
     ResponsiveContainer: passthrough,
     AreaChart: passthrough,
-    BarChart: passthrough,
-    PieChart: passthrough,
     Area: empty,
-    Bar: empty,
-    Pie: empty,
-    Cell: empty,
     XAxis: empty,
     YAxis: empty,
     CartesianGrid: empty,
@@ -145,47 +140,71 @@ test('the invoices come from ONE own-list call, not one call per application', a
 test('the fourth tile counts down to the soonest expiry, not to a field inspection', async () => {
   mockBackend({
     permits: [
-      permit({ status: 'active', period_to: '2026-11-26' }),
-      permit({ status: 'active', period_to: '2026-09-26' }),
+      permit({ status: 'active', contour_id: CONTOUR_TWO, period_to: '2026-11-26' }),
+      permit({ status: 'active', contour_id: CONTOUR_ONE, period_to: '2026-09-26' }),
     ],
   });
 
   renderDashboard();
 
   expect(await screen.findByTestId('tile-expiry')).toHaveTextContent('21 kun');
+  // The hint names the contour by its number, never by the id the permit carries.
+  expect(await screen.findByText(/Zangiota 14-kv/)).toBeInTheDocument();
+  expect(screen.getByTestId('tile-expiry')).not.toHaveTextContent(CONTOUR_ONE);
 });
 
-test('the donut legend names each activity rather than showing its id', async () => {
+test('the deadlines card lists each permit type with the days left on its soonest permit', async () => {
   mockBackend({
     permits: [
-      permit({ status: 'active', activity_type_id: ACTIVITY_GRAZING, area_ha: '42.6000' }),
-      permit({ status: 'active', activity_type_id: ACTIVITY_HAYMAKING, area_ha: '18.4000' }),
+      permit({ status: 'active', activity_type_id: ACTIVITY_GRAZING, period_to: '2026-11-26' }),
+      permit({ status: 'active', activity_type_id: ACTIVITY_GRAZING, period_to: '2026-09-26' }),
+      permit({ status: 'active', activity_type_id: ACTIVITY_HAYMAKING, period_to: '2026-10-05' }),
     ],
   });
 
   renderDashboard();
 
-  const legend = await screen.findByTestId('area-legend');
-  expect(legend).toHaveTextContent('Chorva molini boqish');
-  expect(legend).toHaveTextContent('42.6 ga');
-  expect(legend).toHaveTextContent('70%');
-  expect(legend).not.toHaveTextContent(ACTIVITY_GRAZING);
+  const list = await screen.findByTestId('expiry-by-type');
+  const rows = within(list).getAllByRole('listitem');
+  expect(rows[0]).toHaveTextContent('Chorva molini boqish');
+  expect(rows[0]).toHaveTextContent('2 ta ruxsatnoma');
+  expect(rows[0]).toHaveTextContent('21 kun qoldi');
+  expect(rows[1]).toHaveTextContent("Pichan o'rish");
+  expect(rows[1]).toHaveTextContent('30 kun qoldi');
+  expect(list).not.toHaveTextContent(ACTIVITY_GRAZING);
 });
 
-test('each contour bar is labelled with the contour number the permit points at', async () => {
+test('the deadlines card counts the working days left on each application under review', async () => {
+  // "Now" is Saturday 2026-09-05: a Friday deadline six days out is five
+  // working days away, because the weekend in front of it does not count.
   mockBackend({
-    permits: [
-      permit({ status: 'active', contour_id: CONTOUR_ONE, area_ha: '42.6000', period_to: '2026-11-26' }),
-      permit({ status: 'active', contour_id: CONTOUR_TWO, area_ha: '18.4000', period_to: '2026-09-26' }),
+    applications: [
+      application({
+        number: 'RX-2026-000007',
+        status: 'IN_REVIEW',
+        activity_type_id: ACTIVITY_GRAZING,
+        sla_deadline_at: '2026-09-11T10:00:00+05:00',
+      }),
+      application({
+        number: 'RX-2026-000009',
+        status: 'PENDING_INFO',
+        activity_type_id: ACTIVITY_HAYMAKING,
+        sla_deadline_at: '2026-09-01T10:00:00+05:00',
+      }),
     ],
   });
 
   renderDashboard();
 
-  const cards = await screen.findByTestId('contour-cards');
-  expect(cards).toHaveTextContent('Zangiota 14-kv');
-  expect(cards).toHaveTextContent('42.6 ga');
-  expect(cards).toHaveTextContent('82 kun qoldi');
+  const list = await screen.findByTestId('review-deadlines');
+  const rows = within(list).getAllByRole('listitem');
+  expect(rows[0]).toHaveTextContent('RX-2026-000007');
+  expect(rows[0]).toHaveTextContent('Chorva molini boqish');
+  expect(rows[0]).toHaveTextContent('5 ish kuni qoldi');
+  // A deadline already behind "now" while the office waits on the citizen is
+  // a paused clock, not a late office.
+  expect(rows[1]).toHaveTextContent('RX-2026-000009');
+  expect(rows[1]).toHaveTextContent("To'xtatilgan");
 });
 
 test('a citizen with nothing yet is told so, not shown a wall of zeroes', async () => {
@@ -193,8 +212,8 @@ test('a citizen with nothing yet is told so, not shown a wall of zeroes', async 
 
   renderDashboard();
 
-  expect(await screen.findByTestId('area-empty')).toBeInTheDocument();
-  expect(screen.getByTestId('contours-empty')).toBeInTheDocument();
+  expect(await screen.findByTestId('expiry-by-type-empty')).toBeInTheDocument();
+  expect(screen.getByTestId('review-deadlines-empty')).toBeInTheDocument();
 });
 
 test('a failed load says so instead of reporting zeroes as facts', async () => {
@@ -221,7 +240,13 @@ test('a failed load says so instead of reporting zeroes as facts', async () => {
 test.each(['uz_latn', 'ru'] as const)('no untranslated key reaches the screen in %s', async (lang) => {
   mockBackend({
     permits: [permit({ status: 'active', activity_type_id: ACTIVITY_GRAZING, contour_id: CONTOUR_ONE })],
-    applications: [application({ status: 'INVOICED' })],
+    applications: [
+      application({ status: 'INVOICED' }),
+      application({ status: 'IN_REVIEW', sla_deadline_at: '2026-09-11T10:00:00+05:00' }),
+      application({ status: 'SUBMITTED', sla_deadline_at: '2026-09-05T23:00:00+05:00' }),
+      application({ status: 'IN_REVIEW', sla_deadline_at: '2026-09-01T10:00:00+05:00' }),
+      application({ status: 'RETURNED', sla_deadline_at: '2026-09-11T10:00:00+05:00' }),
+    ],
     invoices: [invoice({ paid_at: null })],
   });
 
