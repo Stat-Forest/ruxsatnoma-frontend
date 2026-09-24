@@ -1981,8 +1981,6 @@ export const kaa = {
   'staff.benefitClaim.notInReview': 'Tekseriw ushın aldın arzanı qarap shıǵıwǵa alıń.',
   'staff.decision.benefit.approveBlockedPending': 'Jeńillik ele tekserilmegen.',
   'staff.decision.benefit.approveBlockedRejectedPrefix': 'Jeńillik biykar etilgen:',
-  'staff.decision.benefit.legalBasisOptionalHint':
-    'Bos qaldırılsa, tekseriwshiniń kórsetken sebebi huqıqıy tiykar sıpatında qollanıladı.',
   // `StartReviewConfirmModal` — arzanı iske alıwdan aldınǵı soraw.
   'staff.startReview.confirm.title': 'Arzanı iske alasız ba?',
   'staff.startReview.confirm.bodyPrefix': 'Arza',

@@ -1981,8 +1981,6 @@ export const en = {
   'staff.benefitClaim.notInReview': 'Take the application into review before checking the claim.',
   'staff.decision.benefit.approveBlockedPending': 'The benefit claim has not been verified yet.',
   'staff.decision.benefit.approveBlockedRejectedPrefix': 'Benefit claim rejected:',
-  'staff.decision.benefit.legalBasisOptionalHint':
-    "Left blank, the verifier's own rejection reason is used as the legal basis.",
   // `StartReviewConfirmModal` — the question before an application is taken into review.
   'staff.startReview.confirm.title': 'Take this application into review?',
   'staff.startReview.confirm.bodyPrefix': 'Application',

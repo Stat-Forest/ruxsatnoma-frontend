@@ -2209,8 +2209,6 @@ export const uz_latn = {
   'staff.decision.benefit.approveBlockedPending': 'Imtiyoz tekshirilmagan.',
   'staff.benefitClaim.notInReview': "Tekshirish uchun avval arizani ko'rib chiqishga oling.",
   'staff.decision.benefit.approveBlockedRejectedPrefix': 'Imtiyoz rad etilgan:',
-  'staff.decision.benefit.legalBasisOptionalHint':
-    "Boʻsh qoldirilsa, tekshiruvchi koʻrsatgan sabab huquqiy asos sifatida ishlatiladi.",
   // `StartReviewConfirmModal` (`pages/staff/components/`) — the question
   // before an application is taken into review; one slip of the mouse used
   // to move it into IN_REVIEW and assign it to whoever slipped.

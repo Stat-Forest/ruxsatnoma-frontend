@@ -2167,8 +2167,6 @@ export const ru = {
   'staff.benefitClaim.notInReview': 'Чтобы проверить льготу, сначала возьмите заявку в работу.',
   'staff.decision.benefit.approveBlockedPending': 'Льгота ещё не проверена.',
   'staff.decision.benefit.approveBlockedRejectedPrefix': 'Льгота отклонена:',
-  'staff.decision.benefit.legalBasisOptionalHint':
-    'Если оставить пустым, в качестве правового основания будет использована причина отклонения льготы.',
   // `StartReviewConfirmModal` — вопрос перед взятием заявки в работу.
   'staff.startReview.confirm.title': 'Взять заявку в работу?',
   'staff.startReview.confirm.bodyPrefix': 'Заявка',
