@@ -3976,6 +3976,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/applications/{application_id}/letter.pdf": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Download Application Letter
+         * @description «Ariza xati» — the newest submission's letter (stage 16, R2/R6/R7).
+         */
+        get: operations["download_application_letter_api_v1_applications__application_id__letter_pdf_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/applications/{application_id}/rejection-notice.pdf": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Download Rejection Notice
+         * @description «Rad etish xati» — the rejection notice (stage 16, R2/R3/R6).
+         */
+        get: operations["download_rejection_notice_api_v1_applications__application_id__rejection_notice_pdf_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/invoices/export.xlsx": {
         parameters: {
             query?: never;
@@ -7636,6 +7676,8 @@ export interface components {
             sla_overdue: boolean;
             /** Conclusions */
             conclusions: components["schemas"]["ApplicationConclusionOut"][];
+            /** Printouts */
+            printouts: components["schemas"]["ApplicationPrintoutOut"][];
         };
         /**
          * ApplicationCheckIn
@@ -8295,6 +8337,26 @@ export interface components {
             benefit_category_item_id?: string | null;
             /** Benefit Certificate No */
             benefit_certificate_no?: string | null;
+        };
+        /**
+         * ApplicationPrintoutOut
+         * @description A printed document the card can offer for download (stage 16, R2).
+         */
+        ApplicationPrintoutOut: {
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "letter" | "rejection_notice";
+            /** Number */
+            number: string | null;
+            /** Language */
+            language: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
         };
         /**
          * ApplicationRejectIn
@@ -21940,6 +22002,68 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ApplicationCheckOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    download_application_letter_api_v1_applications__application_id__letter_pdf_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                application_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    download_rejection_notice_api_v1_applications__application_id__rejection_notice_pdf_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                application_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
                 };
             };
             /** @description Validation Error */

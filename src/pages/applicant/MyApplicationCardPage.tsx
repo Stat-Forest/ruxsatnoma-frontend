@@ -19,6 +19,7 @@ import { ContourBoundaryPanel } from '../gis/ContourBoundaryPanel';
 import { formatPermitNumber } from '../permits/format';
 import { usePermitForApplication } from '../permits/usePermitForApplication';
 import { useLanguage, useT } from '../../i18n/useT';
+import { ApplicationPrintoutButtons } from '../../components/ApplicationPrintoutButtons';
 
 const API_BASE = (import.meta.env.VITE_API_BASE as string | undefined) ?? 'http://localhost:8000';
 
@@ -292,6 +293,12 @@ export function MyApplicationCardPage() {
             <dd className="font-semibold text-[#1A1F24] mt-0.5">{formatDateTime(card.submitted_at)}</dd>
           </div>
         </dl>
+
+        {card.printouts.length > 0 && (
+          <div className="pt-3 border-t border-[#E4E7EA]">
+            <ApplicationPrintoutButtons applicationId={card.id} printouts={card.printouts} />
+          </div>
+        )}
 
         {card.items.length > 0 && (
           <div className="pt-3 border-t border-[#E4E7EA]">
