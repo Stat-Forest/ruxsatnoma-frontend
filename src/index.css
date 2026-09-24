@@ -58,6 +58,19 @@
   --focus-ring: 0 0 0 2px #FFFFFF, 0 0 0 4px #2E7D4F;
 }
 
+/*
+ * Tailwind 4's Preflight no longer gives buttons `cursor: pointer`, so every
+ * button in the app showed the arrow and read as dead on hover. One rule here
+ * instead of a `cursor-pointer` on each of 400+ buttons; it sits in the base
+ * layer, so a `disabled:cursor-not-allowed` utility still wins.
+ */
+@layer base {
+  button:not(:disabled),
+  [role='button']:not([aria-disabled='true']) {
+    cursor: pointer;
+  }
+}
+
 body {
   background-color: var(--color-neutral-50);
   color: var(--color-neutral-900);

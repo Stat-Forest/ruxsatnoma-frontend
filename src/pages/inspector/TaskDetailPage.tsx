@@ -187,7 +187,7 @@ export function TaskDetailPage() {
           {task.permit_id && (
             <Link
               to={`/permits/${task.permit_id}`}
-              className="inline-flex items-center justify-center h-12 px-6 text-base font-semibold rounded-md border border-[#767F87] text-[#1A1F24] hover:bg-[#F8F9FA] w-full sm:w-auto"
+              className="inline-flex items-center justify-center h-12 px-6 text-base font-semibold rounded-md border border-[#767F87] text-[#1A1F24] hover:bg-[#F0F7F1] hover:border-[#2E7D4F] hover:text-[#23653F] w-full sm:w-auto"
             >
               {t('inspector.taskDetail.viewPermitButton')}
             </Link>
@@ -195,7 +195,7 @@ export function TaskDetailPage() {
           {task.application_id && (
             <Link
               to={`/applications/${task.application_id}`}
-              className="inline-flex items-center justify-center h-12 px-6 text-base font-semibold rounded-md border border-[#767F87] text-[#1A1F24] hover:bg-[#F8F9FA] w-full sm:w-auto"
+              className="inline-flex items-center justify-center h-12 px-6 text-base font-semibold rounded-md border border-[#767F87] text-[#1A1F24] hover:bg-[#F0F7F1] hover:border-[#2E7D4F] hover:text-[#23653F] w-full sm:w-auto"
             >
               {t('inspector.taskDetail.viewApplicationButton')}
             </Link>
