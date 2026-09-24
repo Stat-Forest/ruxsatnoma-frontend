@@ -212,22 +212,14 @@ export const ru = {
 
   'cabinet.registration.title': 'Завершение регистрации',
   'cabinet.registration.intro':
-    'Чтобы продолжить пользоваться системой, заполните несколько полей и подтвердите номер телефона.',
+    'Чтобы продолжить пользоваться системой, подтвердите номер телефона.',
   'cabinet.registration.phoneTitle': 'Номер телефона',
   'cabinet.registration.phoneLabel': 'Номер телефона',
   'cabinet.registration.phonePlaceholder': '+998901234567',
   'cabinet.registration.invalidPhone': 'Номер должен быть в формате +998XXXXXXXXX',
-  'cabinet.registration.detailsTitle': 'Дополнительные данные',
-  'cabinet.registration.emailLabel': 'Электронная почта',
-  'cabinet.registration.emailHint': 'Электронная почта подтверждается отдельно, позже в профиле.',
-  'cabinet.registration.regionLabel': 'Область',
-  'cabinet.registration.districtLabel': 'Район',
-  'cabinet.registration.addressLabel': 'Адрес',
-  'cabinet.registration.selectPlaceholder': 'Не выбрано',
   'cabinet.registration.submit': 'Завершить',
   'cabinet.registration.submitting': 'Отправка…',
   'cabinet.registration.needPhoneVerified': 'Чтобы продолжить, подтвердите номер телефона.',
-  'cabinet.registration.needAddress': 'Укажите адрес.',
   'cabinet.registration.genericError': 'Произошла ошибка. Попробуйте ещё раз.',
 
   'cabinet.profile.tabProfile': 'Профиль',

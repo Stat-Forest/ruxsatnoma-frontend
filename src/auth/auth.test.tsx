@@ -261,8 +261,6 @@ test('a must_change_password account gets the form that resolves it, not a dead 
 test('an applicant with an incomplete registration sees the form that resolves it, not a dead end', async () => {
   server.use(
     http.get('*/auth/me', () => HttpResponse.json({ ...ME, registration_complete: false })),
-    http.get('*/refs/regions', () => HttpResponse.json([])),
-    http.get('*/refs/districts', () => HttpResponse.json([])),
   );
   await renderAt('/');
   // The gate itself still holds the app shut, but — like `must_change_password`

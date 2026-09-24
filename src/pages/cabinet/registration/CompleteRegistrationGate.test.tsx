@@ -9,10 +9,7 @@ import type { AuthContextValue } from '../../../auth/AuthContext';
 import { I18nContext } from '../../../i18n/context';
 import { CompleteRegistrationGate } from './CompleteRegistrationGate';
 
-const server = setupServer(
-  http.get('*/refs/regions', () => HttpResponse.json([])),
-  http.get('*/refs/districts', () => HttpResponse.json([])),
-);
+const server = setupServer();
 beforeAll(() => server.listen({ onUnhandledRequest: 'error' }));
 afterEach(() => server.resetHandlers());
 afterAll(() => server.close());
@@ -66,26 +63,12 @@ test('submitting with nothing done shows the phone warning', async () => {
   expect(screen.getByText('cabinet.registration.needPhoneVerified')).toBeInTheDocument();
 });
 
-// Ruling #113 (`docs/decisions.md`): making the address field mandatory at
-// registration is the forward-looking half of the fix — it is the right
-// place for a NEW account, so registration itself never again produces an
-// account the wizard has to catch later.
-test('registration with an empty address is not sent — the field is required', async () => {
-  let called = false;
-  server.use(
-    http.post('*/auth/otp/request', () => new HttpResponse(null, { status: 204 })),
-    http.post('*/auth/otp/verify', () => HttpResponse.json({ otp_token: 'tok-otp-3' })),
-    http.post('*/auth/complete-registration', () => {
-      called = true;
-      return HttpResponse.json({});
-    }),
-  );
+test('the form asks for the phone only — no email, region, district or address', async () => {
   renderGate();
-  await completePhoneOtp();
-  await userEvent.click(screen.getByTestId('submit'));
-
-  expect(called).toBe(false);
-  expect(screen.getByText('cabinet.registration.needAddress')).toBeInTheDocument();
+  expect(screen.getByTestId('phone-input')).toBeInTheDocument();
+  for (const id of ['email-input', 'region-select', 'district-select', 'address-input']) {
+    expect(screen.queryByTestId(id)).not.toBeInTheDocument();
+  }
 });
 
 test('an unverified phone cannot be submitted', async () => {
@@ -118,7 +101,6 @@ test('the full happy path sends the otp_token and consent versions, and adopts t
   });
 
   await completePhoneOtp();
-  await userEvent.type(screen.getByTestId('address-input'), 'Toshkent sh., Chilonzor tumani, 12-uy');
   await userEvent.click(screen.getByTestId('submit'));
 
   await waitFor(() => expect(adopted).toEqual(freshMe));
@@ -126,7 +108,6 @@ test('the full happy path sends the otp_token and consent versions, and adopts t
     otp_token: 'tok-otp-1',
     phone: '+998901234567',
     consents: { privacy_policy: '1.0', offer: '1.0' },
-    address: 'Toshkent sh., Chilonzor tumani, 12-uy',
   });
 });
 
@@ -158,7 +139,6 @@ test('a stale consent version is retried once with the versions the server names
     adopted = me;
   });
   await completePhoneOtp();
-  await userEvent.type(screen.getByTestId('address-input'), 'Toshkent sh., Chilonzor tumani, 12-uy');
   await userEvent.click(screen.getByTestId('submit'));
 
   await waitFor(() => expect(adopted).toEqual(freshMe));

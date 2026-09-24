@@ -1,16 +1,15 @@
 import { useState } from 'react';
 import type { FormEvent } from 'react';
-import { useQuery } from '@tanstack/react-query';
 import { CheckCircle2, LogOut } from 'lucide-react';
 import { ApiError } from '../../../api/errors';
 import { Button } from '../../../components/ui/button';
 import { Alert } from '../../../components/ui/Feedback';
-import { FormField, Input, Select } from '../../../components/ui/FormControls';
+import { FormField, Input } from '../../../components/ui/FormControls';
 import { useAuth } from '../../../auth/useAuth';
 import { useApiErrorText } from '../../../i18n/useApiErrorText';
 import { useT } from '../../../i18n/useT';
 import { requestOtp, verifyOtp } from '../../../lib/otpApi';
-import { completeRegistration, listDistricts, listRegions } from './api';
+import { completeRegistration } from './api';
 
 const PHONE_PATTERN = /^\+998\d{9}$/;
 
@@ -38,7 +37,7 @@ function otpErrorMessage(err: unknown, t: (key: string) => string): string {
 }
 
 /**
- * Screen B2 (С2 finish registration) — phone OTP and contacts, then
+ * Screen B2 (С2 finish registration) — phone OTP, then
  * `POST /auth/complete-registration`. Rendered by `RequireAuth` in place of
  * `children` whenever `me.registration_complete` is false, the same shape it
  * already uses for `must_change_password` — see that gate's own comment for
@@ -85,21 +84,9 @@ export function CompleteRegistrationGate() {
   const [otpError, setOtpError] = useState<string | null>(null);
   const [otpBusy, setOtpBusy] = useState(false);
 
-  const [email, setEmail] = useState('');
-  const [regionId, setRegionId] = useState('');
-  const [districtId, setDistrictId] = useState('');
-  const [address, setAddress] = useState('');
-
   const [touched, setTouched] = useState(false);
   const [submitError, setSubmitError] = useState<ApiError | null>(null);
   const [submitting, setSubmitting] = useState(false);
-
-  const regionsQuery = useQuery({ queryKey: ['refs', 'regions'], queryFn: listRegions });
-  const districtsQuery = useQuery({
-    queryKey: ['refs', 'districts', regionId],
-    queryFn: () => listDistricts(regionId),
-    enabled: regionId !== '',
-  });
 
   const phoneValid = PHONE_PATTERN.test(phone);
   const phoneLocked = otpStage !== 'idle';
@@ -140,12 +127,12 @@ export function CompleteRegistrationGate() {
   }
 
   // Ruling #113 (`docs/decisions.md`): the address requisite is gated at
-  // SUBMIT, not at registration — a citizen may sign in and look around with
-  // no address at all. Requiring it here anyway is a separate, forward-looking
-  // choice: it is the right place for a NEW account, so a fresh registration
-  // never lands in the state this ruling exists to unblock (`ApplicationWizardPage`
-  // asks address-less EXISTING accounts for it at submission instead).
-  const canSubmit = otpStage === 'verified' && otpToken !== null && address.trim() !== '';
+  // SUBMIT, not at registration, and `ApplicationWizardPage` asks for it
+  // there. Registration used to ask for it anyway, together with an optional
+  // email, region and district; Oybek, 2026-09-24, cut the screen down to the
+  // phone alone — email is added and verified in the profile, and the address
+  // is asked for once, at the first submission that actually needs it.
+  const canSubmit = otpStage === 'verified' && otpToken !== null;
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
@@ -158,14 +145,6 @@ export function CompleteRegistrationGate() {
         consents,
         phone,
         otp_token: otpToken,
-        email: email.trim() ? email.trim() : null,
-        region_id: regionId || null,
-        district_id: districtId || null,
-        // `canSubmit` already requires a non-empty address (ruling #113's
-        // forward-looking choice for new accounts, see `canSubmit`'s own
-        // comment above) — unlike `email`/`region_id`/`district_id`, this one
-        // never has a `null` branch to fall into.
-        address: address.trim(),
       });
     try {
       let me;
@@ -311,62 +290,6 @@ export function CompleteRegistrationGate() {
 
           {touched && otpStage !== 'verified' && (
             <p className="text-xs text-[#B91C1C]">{t('cabinet.registration.needPhoneVerified')}</p>
-          )}
-        </section>
-
-        <section className="space-y-3">
-          <h2 className="text-xs font-semibold uppercase tracking-wider text-[#5A646D]">
-            {t('cabinet.registration.detailsTitle')}
-          </h2>
-          <FormField label={t('cabinet.registration.emailLabel')} helperText={t('cabinet.registration.emailHint')}>
-            <Input
-              data-testid="email-input"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-            />
-          </FormField>
-          <div className="grid grid-cols-2 gap-3">
-            <FormField label={t('cabinet.registration.regionLabel')}>
-              <Select
-                data-testid="region-select"
-                value={regionId}
-                onChange={(e) => {
-                  setRegionId(e.target.value);
-                  setDistrictId('');
-                }}
-                options={[
-                  { value: '', label: t('cabinet.registration.selectPlaceholder') },
-                  ...(regionsQuery.data ?? []).map((r) => ({
-                    value: r.id,
-                    label: typeof r.name.uz_latn === 'string' ? r.name.uz_latn : String(r.code),
-                  })),
-                ]}
-              />
-            </FormField>
-            <FormField label={t('cabinet.registration.districtLabel')}>
-              <Select
-                data-testid="district-select"
-                value={districtId}
-                disabled={regionId === ''}
-                onChange={(e) => setDistrictId(e.target.value)}
-                options={[
-                  { value: '', label: t('cabinet.registration.selectPlaceholder') },
-                  ...(districtsQuery.data ?? []).map((d) => ({
-                    value: d.id,
-                    label: typeof d.name.uz_latn === 'string' ? d.name.uz_latn : String(d.code),
-                  })),
-                ]}
-              />
-            </FormField>
-          </div>
-          <FormField label={t('cabinet.registration.addressLabel')} required>
-            <Input data-testid="address-input" value={address} onChange={(e) => setAddress(e.target.value)} />
-          </FormField>
-          {touched && address.trim() === '' && (
-            <p className="text-xs text-[#B91C1C]" role="alert">
-              {t('cabinet.registration.needAddress')}
-            </p>
           )}
         </section>
 

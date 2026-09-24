@@ -245,23 +245,15 @@ export const uz_latn = {
 
   'cabinet.registration.title': "Ro'yxatdan o'tishni yakunlash",
   'cabinet.registration.intro':
-    "Tizimdan foydalanishni davom ettirish uchun bir necha maydonni to'ldiring va telefon raqamingizni tasdiqlang.",
+    'Tizimdan foydalanishni davom ettirish uchun telefon raqamingizni tasdiqlang.',
   'cabinet.registration.phoneTitle': 'Telefon raqami',
   'cabinet.registration.phoneLabel': 'Telefon raqami',
   'cabinet.registration.phonePlaceholder': '+998901234567',
   'cabinet.registration.invalidPhone': "Telefon raqami +998XXXXXXXXX ko'rinishida bo'lishi kerak",
-  'cabinet.registration.detailsTitle': "Qo'shimcha ma'lumotlar",
-  'cabinet.registration.emailLabel': 'Elektron pochta',
-  'cabinet.registration.emailHint': "Elektron pochta keyinroq profilda alohida tasdiqlanadi.",
-  'cabinet.registration.regionLabel': 'Viloyat',
-  'cabinet.registration.districtLabel': 'Tuman',
-  'cabinet.registration.addressLabel': 'Manzil',
-  'cabinet.registration.selectPlaceholder': 'Tanlanmagan',
   'cabinet.registration.submit': 'Yakunlash',
   'cabinet.registration.submitting': 'Yuborilmoqda…',
   'cabinet.registration.needPhoneVerified':
     'Davom etish uchun telefon raqamini tasdiqlang.',
-  'cabinet.registration.needAddress': 'Manzilni kiriting.',
   'cabinet.registration.genericError': "Xatolik yuz berdi. Qayta urinib ko'ring.",
 
   'cabinet.profile.tabProfile': 'Profil',
