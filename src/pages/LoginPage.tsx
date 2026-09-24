@@ -415,8 +415,11 @@ export function LoginPage() {
         </div>
       </header>
 
+      {/* Anchored to the top, never centred: each sign-in tab has a form of
+          its own height, and a centred card moved every time a tab was
+          clicked — the tabs themselves jumped out from under the pointer. */}
       <main className="flex-1 flex flex-col min-h-0">
-        <div className="max-w-7xl w-full mx-auto px-4 sm:px-6 py-2 lg:py-4 grid gap-4 lg:grid-cols-[minmax(0,1fr)_400px] lg:gap-8 items-center my-auto">
+        <div className="max-w-7xl w-full mx-auto px-4 sm:px-6 pt-4 pb-2 lg:pt-10 lg:pb-4 grid gap-4 lg:grid-cols-[minmax(0,1fr)_400px] lg:gap-8 items-start">
           <section className="flex flex-col gap-2 lg:gap-4 max-w-[600px]">
             <span className="text-[10px] sm:text-xs font-bold uppercase tracking-[0.08em] text-[#2E7D4F]">
               {t('login.eyebrow')}

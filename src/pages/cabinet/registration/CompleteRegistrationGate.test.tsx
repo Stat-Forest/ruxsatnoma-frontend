@@ -57,10 +57,24 @@ test('the form carries no consent checkboxes — the login page already names bo
   expect(screen.queryByTestId('consent-offer')).not.toBeInTheDocument();
 });
 
-test('submitting with nothing done shows the phone warning', async () => {
+test('the submit button stays disabled until the phone is verified, and says why', async () => {
   renderGate();
-  await userEvent.click(screen.getByTestId('submit'));
-  expect(screen.getByText('cabinet.registration.needPhoneVerified')).toBeInTheDocument();
+  expect(screen.getByTestId('submit')).toBeDisabled();
+  expect(screen.getByTestId('need-phone-verified')).toHaveTextContent('cabinet.registration.needPhoneVerified');
+  server.use(
+    http.post('*/auth/otp/request', () => new HttpResponse(null, { status: 204 })),
+    http.post('*/auth/otp/verify', () => HttpResponse.json({ otp_token: 'tok-otp-0' })),
+  );
+  await completePhoneOtp();
+  expect(screen.getByTestId('submit')).toBeEnabled();
+  expect(screen.queryByTestId('need-phone-verified')).not.toBeInTheDocument();
+});
+
+test('a malformed phone is flagged once the field loses focus', async () => {
+  renderGate();
+  await userEvent.type(screen.getByTestId('phone-input'), '12312312');
+  await userEvent.tab();
+  expect(screen.getByText('cabinet.registration.invalidPhone')).toBeInTheDocument();
 });
 
 test('the form asks for the phone only — no email, region, district or address', async () => {
