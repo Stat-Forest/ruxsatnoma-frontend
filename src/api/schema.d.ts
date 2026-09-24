@@ -7456,7 +7456,9 @@ export interface components {
          *
          *     A reduced view of that row on purpose: `input_snapshot` and `breakdown` are
          *     the calculator's own JSON, sometimes kilobytes, and `GET /calculations/{id}`
-         *     (norms' own route) answers the full row for whoever needs it.
+         *     (norms' own route) answers the full row for whoever needs it. What the card
+         *     does carry of them is `bhm` and `lines` — the price explained, which a
+         *     citizen reads instead of the total alone.
          */
         ApplicationCalculationOut: {
             /**
@@ -7474,6 +7476,10 @@ export interface components {
             max_sb: number | null;
             /** Remaining Sb */
             remaining_sb: string | null;
+            /** Bhm */
+            bhm: string | null;
+            /** Lines */
+            lines: components["schemas"]["CalculationLineOut"][];
             /**
              * Created At
              * Format: date-time
@@ -8962,6 +8968,44 @@ export interface components {
             items?: components["schemas"]["LivestockItemIn"][];
             /** Benefit Code */
             benefit_code?: string | null;
+        };
+        /**
+         * CalculationLineOut
+         * @description One line of how a price came about — `norms.service.explain`'s reading
+         *     of the calculator's own `breakdown`, so a citizen sees «10 head × 0.45 БҲМ
+         *     × 440 000 = 1 980 000» rather than a bare total.
+         *
+         *     `livestock_code` names the line of a grazing herd, `activity_code` every
+         *     other activity's single line. `quantity` is the head count or the declared
+         *     quantity in `quantity_unit`; `coefficient` is the tariff in БҲМ as
+         *     published, BEFORE a benefit, and `benefit_modifier` multiplies it when
+         *     `benefit_code` is set. `exempt` marks a line the law charges nothing for
+         *     (`science`), which carries no quantity and no coefficient. `amount` is
+         *     rounded to the tiyin for reading; the lines may miss the rounded total by
+         *     a fraction of a sum.
+         */
+        CalculationLineOut: {
+            /** Livestock Code */
+            livestock_code?: string | null;
+            /** Activity Code */
+            activity_code?: string | null;
+            /** Quantity */
+            quantity?: string | null;
+            /** Quantity Unit */
+            quantity_unit?: string | null;
+            /** Coefficient */
+            coefficient?: string | null;
+            /** Benefit Code */
+            benefit_code?: string | null;
+            /** Benefit Modifier */
+            benefit_modifier?: string | null;
+            /** Amount */
+            amount: string | null;
+            /**
+             * Exempt
+             * @default false
+             */
+            exempt: boolean;
         };
         /**
          * CalculationOut
@@ -12339,6 +12383,13 @@ export interface components {
              * @default []
              */
             breakdown: unknown[];
+            /** Bhm */
+            bhm?: string | null;
+            /**
+             * Lines
+             * @default []
+             */
+            lines: components["schemas"]["CalculationLineOut"][];
         };
         /**
          * PrecheckCheckOut
