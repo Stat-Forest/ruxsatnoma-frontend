@@ -90,13 +90,21 @@ export function RejectionGroundsEditor({ value, onChange, reasons }: {
     onChange(value.map((g, i) => (i === index ? { ...g, ...change } : g)));
   }
 
+  // G2 (fix wave): a code change must not strand the PREVIOUS code's own
+  // default in a field the head never touched. The field is replaced when
+  // it is empty OR still equals the previous code's default; a value the
+  // head actually typed — including one that happens to equal neither
+  // default — is always kept.
   function pickCode(index: number, id: string) {
     const reason = options.find((r) => r.id === id);
     const basis = String((reason?.props as Record<string, unknown>)?.legal_basis ?? '');
     const current = value[index];
+    const previousReason = options.find((r) => r.id === current.reason_item_id);
+    const previousBasis = String((previousReason?.props as Record<string, unknown>)?.legal_basis ?? '');
+    const shouldReplace = current.legal_document.trim() === '' || current.legal_document === previousBasis;
     patch(index, {
       reason_item_id: id,
-      legal_document: current.legal_document.trim() === '' ? basis : current.legal_document,
+      legal_document: shouldReplace ? basis : current.legal_document,
     });
   }
 

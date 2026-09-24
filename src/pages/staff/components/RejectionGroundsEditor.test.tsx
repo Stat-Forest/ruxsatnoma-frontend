@@ -7,6 +7,7 @@ import { emptyGround, groundComplete, type GroundDraft } from '../groundDraft';
 const reasons = [
   { id: 'r1', code: 'R01', name: { uz_latn: 'Maʼlumot toʻliq emas' }, props: { kind: 'reject', legal_basis: '' }, valid_from: '2026-09-24', valid_to: null, status: 'active' },
   { id: 'r4', code: 'R04', name: { uz_latn: 'Yaylov normasi' }, props: { kind: 'reject', legal_basis: 'VMQ 689 (19.08.2019), 1-ilova' }, valid_from: '2026-09-24', valid_to: null, status: 'active' },
+  { id: 'r5', code: 'R05', name: { uz_latn: 'Boshqa toifa' }, props: { kind: 'reject', legal_basis: 'VMQ 278 (01.01.2020), 2-ilova' }, valid_from: '2026-09-24', valid_to: null, status: 'active' },
   { id: 'rj1', code: 'RJ-01', name: { uz_latn: 'Qaytarish' }, props: { kind: 'return' }, valid_from: '2026-01-01', valid_to: null, status: 'active' },
 ];
 
@@ -35,6 +36,29 @@ describe('RejectionGroundsEditor', () => {
     render(<Harness onChange={onChange} />);
     fireEvent.change(screen.getAllByRole('combobox')[0], { target: { value: 'r4' } });
     expect(onChange.mock.lastCall![0][0].legal_document).toBe('VMQ 689 (19.08.2019), 1-ilova');
+  });
+
+  // G2 (fix wave): switching the code must not strand the PREVIOUS code's
+  // default text in a field the head never touched.
+  it('replaces the legal document when it still equals the previous code\'s default', () => {
+    const onChange = vi.fn();
+    render(<Harness onChange={onChange} />);
+    const select = screen.getAllByRole('combobox')[0];
+    fireEvent.change(select, { target: { value: 'r4' } });
+    expect(onChange.mock.lastCall![0][0].legal_document).toBe('VMQ 689 (19.08.2019), 1-ilova');
+    fireEvent.change(select, { target: { value: 'r5' } });
+    expect(onChange.mock.lastCall![0][0].legal_document).toBe('VMQ 278 (01.01.2020), 2-ilova');
+  });
+
+  it('keeps a legal document value the head typed instead of overwriting it on a code change', () => {
+    const onChange = vi.fn();
+    render(<Harness onChange={onChange} />);
+    const select = screen.getAllByRole('combobox')[0];
+    fireEvent.change(select, { target: { value: 'r1' } }); // r1's own default is '' — no overwrite yet
+    const legalDocumentField = screen.getAllByRole('textbox')[1];
+    fireEvent.change(legalDocumentField, { target: { value: 'Boshqaruv qarori №7 boshqacha' } });
+    fireEvent.change(select, { target: { value: 'r4' } }); // r4 has its own non-empty default
+    expect(onChange.mock.lastCall![0][0].legal_document).toBe('Boshqaruv qarori №7 boshqacha');
   });
 
   it('adds and removes grounds but never removes the last one', () => {
