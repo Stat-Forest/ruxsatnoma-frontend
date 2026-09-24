@@ -175,3 +175,42 @@ test("the citizen's own list (/my/permits): the Excel button asks the server for
   expect(exportUrl!.searchParams.has('page')).toBe(false);
   expect(exportUrl!.searchParams.has('page_size')).toBe(false);
 });
+
+test('one box for the permit number: «a 155» is sent as the Cyrillic series and the number, never as two fields', async () => {
+  const user = userEvent.setup();
+  const queries: URLSearchParams[] = [];
+  server.use(
+    http.get('*/api/v1/permits', ({ request }) => {
+      queries.push(new URL(request.url).searchParams);
+      return HttpResponse.json({ items: [permit()], total: 1, page: 1, page_size: 20 });
+    }),
+  );
+
+  renderPage('applicant');
+  await screen.findByText('А № 000155');
+  expect(screen.queryByPlaceholderText('000002')).not.toBeInTheDocument();
+
+  await user.type(screen.getByTestId('permits-filter-permit-no'), 'a 155');
+
+  await waitFor(() => expect(queries.at(-1)!.get('number')).toBe('155'));
+  expect(queries.at(-1)!.get('series')).toBe('А');
+});
+
+test('an unreadable permit number is flagged on the box and filters nothing', async () => {
+  const user = userEvent.setup();
+  const queries: URLSearchParams[] = [];
+  server.use(
+    http.get('*/api/v1/permits', ({ request }) => {
+      queries.push(new URL(request.url).searchParams);
+      return HttpResponse.json({ items: [permit()], total: 1, page: 1, page_size: 20 });
+    }),
+  );
+
+  renderPage('staff');
+  await screen.findByText('А № 000155');
+
+  await user.type(screen.getByTestId('permits-filter-permit-no'), '155 А');
+
+  expect(await screen.findByText('Seriya va raqamni «А 000002» koʻrinishida kiriting')).toBeInTheDocument();
+  expect(queries.every((q) => !q.has('series') && !q.has('number'))).toBe(true);
+});

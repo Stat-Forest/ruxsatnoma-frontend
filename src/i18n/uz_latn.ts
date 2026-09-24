@@ -1657,8 +1657,8 @@ export const uz_latn = {
   'inspector.scan.qrPlaceholder': "QR-ni skanerlang yoki kodni joylashtiring",
   'inspector.scan.checkButton': "Tekshirish",
   'inspector.scan.orByNumberLabel': "yoki seriya va raqam boʻyicha",
-  'inspector.scan.seriesLabel': "Seriya",
-  'inspector.scan.numberLabel': "Raqami",
+  'inspector.scan.permitNoLabel': "Seriya va raqami",
+  'inspector.scan.permitNoInvalid': "Seriya va raqamni «А 000002» koʻrinishida kiriting",
   'inspector.scan.loading': "Tekshirilmoqda...",
   'inspector.scan.error': "Tekshirishni amalga oshirib boʻlmadi.",
   'inspector.scan.notFound': "Ruxsatnoma topilmadi yoki hali amal qilmaydi.",
@@ -2293,7 +2293,7 @@ export const uz_latn = {
   'wizard.step5.signDesc':
     "Arizani topshirish uchun quyidagi tugmani bosing — elektron imzo talab qilinmaydi, chunki tizimga OneID yoki E-IMZO orqali kirgansiz.",
   'wizard.step4.benefitProofOk': "Imtiyozni tasdiqlovchi hujjat ilova qilindi.",
-  'wizard.step4.benefitProofOptional': "Guvohnoma nusxasini ilova qilish ixtiyoriy.",
+  'wizard.step4.benefitProofRequired': "Tanlangan imtiyoz toifasi uchun tasdiqlovchi hujjat ilova qilinishi shart.",
 
   // Stage 11 — «Mening toʻlovlarim»: the citizen's invoices and refund
   // requests in one place (rulings R1-R6, ruling R1: `GET /invoices` and

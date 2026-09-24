@@ -1329,8 +1329,8 @@ export const kaa = {
   'inspector.scan.qrPlaceholder': 'QR-dı skanerleń yamasa kodtı jaylastırıń',
   'inspector.scan.checkButton': 'Tekseriw',
   'inspector.scan.orByNumberLabel': 'yamasa seriya hám nomer boyınsha',
-  'inspector.scan.seriesLabel': 'Seriya',
-  'inspector.scan.numberLabel': 'Nomeri',
+  'inspector.scan.permitNoLabel': 'Seriya hám nomeri',
+  'inspector.scan.permitNoInvalid': 'Seriya hám nomerdi «А 000002» túrinde kiritiń',
   'inspector.scan.loading': 'Tekserilmekte...',
   'inspector.scan.error': 'Tekseriwdi ámelge asırıp bolmadı.',
   'inspector.scan.notFound': 'Ruqsatnama tabılmadı yamasa ele ámel etpeydi.',
@@ -2063,7 +2063,7 @@ export const kaa = {
   'wizard.step5.signDesc':
     'Arzanı jiberiw ushın tómendegi túymeni basıń — elektron qol tańba talap etilmeydi, sebebi siz OneID yamasa E-IMZO arqalı kirdińiz.',
   'wizard.step4.benefitProofOk': 'Jeńillikti tastıyıqlawshı hújjet qosıldı.',
-  'wizard.step4.benefitProofOptional': "Gúwalıqtıń nusqasın biriktiriw ıqtıyarıy.",
+  'wizard.step4.benefitProofRequired': 'Tańlanǵan jeńillik kategoriyası ushın tastıyıqlawshı hújjet qosılıwı shárt.',
 
   // Stage 11 — the citizen's invoices and refund requests in one place
   // (rulings R1-R6) — see uz_latn.ts for the English note.

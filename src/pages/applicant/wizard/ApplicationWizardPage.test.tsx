@@ -1047,6 +1047,13 @@ async function driveToStep4() {
 function fileInput(): HTMLInputElement {
   return document.querySelector('input[type="file"]') as HTMLInputElement;
 }
+// Decision #220: a claimed benefit needs its scan before step 4's Next opens
+// — through the benefit row's own file button, the only file input on the
+// step while no other row has a type chosen.
+async function attachProof() {
+  await userEvent.upload(fileInput(), new File(['x'], 'proof.pdf', { type: 'application/pdf' }));
+  await screen.findByText(UZ['wizard.step4.benefitProofOk']);
+}
 
 test('the benefit is not asked on step 3 any more — it is an option of the document-type select on step 4', async () => {
   server.use(classifierHandler([BENEFIT_ITEM], [PROOF_DOC_TYPE, OTHER_DOC_TYPE]));
@@ -1095,12 +1102,18 @@ test('the benefit certificate number is required before Next for ANY chosen cate
   expect(nextButton).toBeDisabled();
 
   await userEvent.type(certificateInput, 'AB-12345');
-  // The number alone is enough (#189: the scan is optional).
+  // The number alone is NOT enough (#220: the scan is mandatory too).
+  expect(nextButton).toBeDisabled();
+  await attachProof();
   await waitFor(() => expect(nextButton).toBeEnabled());
   await userEvent.click(nextButton);
 
   await waitFor(() =>
-    expect(precheckBody).toMatchObject({ benefit_category_item_id: 'benefit-1', benefit_certificate_no: 'AB-12345' }),
+    expect(precheckBody).toMatchObject({
+      benefit_category_item_id: 'benefit-1',
+      benefit_certificate_no: 'AB-12345',
+      documents: [{ doc_type_item_id: 'doctype-proof', file_id: 'file-1' }],
+    }),
   );
 });
 
@@ -1245,17 +1258,57 @@ test('a simple-signature refusal (ERR-SIGN-001, simple_signature_not_allowed) is
   ).toBeInTheDocument();
 });
 
-// Ruling #181: a benefit-certificate refusal from the backend (the client's
-// own check passed, e.g. a number of whitespace only) is shown AT THE FIELD,
-// not only as a step-5 banner — the wizard sends the applicant back to step
-// 4 for it. Ruling #206 left `benefit_certificate_required` as the one such
-// reason.
-test('a benefit-certificate refusal (ERR-APP-003, benefit_certificate_required) sends the applicant back to step 4 and shows it at the field', async () => {
+// Ruling #219: the Beekeeping Union's register answers on step 4's own
+// "Next" — the pre-check runs BEFORE the stepper moves, a number the
+// register refuses keeps the applicant on step 4 with the reason at the
+// field, and a corrected number goes on to step 5.
+test('a number the register refuses on step 4 keeps the applicant there with the reason at the field', async () => {
+  const seen: string[] = [];
+  server.use(
+    classifierHandler([BENEFIT_ITEM], [PROOF_DOC_TYPE]),
+    http.post('*/api/v1/applications/precheck', async ({ request }) => {
+      const body = (await request.json()) as { benefit_certificate_no?: string };
+      seen.push(body.benefit_certificate_no ?? '');
+      if (body.benefit_certificate_no === 'AB-00000') {
+        return HttpResponse.json(
+          { error: { code: 'ERR-APP-003', message: 'x', details: { reason: 'benefit_certificate_unknown' } } },
+          { status: 422 },
+        );
+      }
+      return HttpResponse.json({ checks: [], calculation: null });
+    }),
+  );
+  renderWizard();
+  await driveToStep4();
+
+  await userEvent.selectOptions(await screen.findByRole('combobox'), 'benefit:benefit-1');
+  const certificate = await screen.findByLabelText(new RegExp(UZ['wizard.step4.certificateNumber']));
+  await userEvent.type(certificate, 'AB-00000');
+  await attachProof();
+  await userEvent.click(screen.getByRole('button', { name: new RegExp(UZ['wizard.nav.next']) }));
+
+  expect(await screen.findByText('Bu guvohnoma raqami Asalarichilar uyushmasi reyestrida topilmadi.')).toBeInTheDocument();
+  expect(screen.getByText(UZ['wizard.step4.heading'])).toBeInTheDocument();
+  expect(screen.queryByText(UZ['wizard.step5.heading'])).not.toBeInTheDocument();
+
+  await userEvent.clear(certificate);
+  await userEvent.type(certificate, 'AB-12345');
+  expect(screen.queryByText('Bu guvohnoma raqami Asalarichilar uyushmasi reyestrida topilmadi.')).not.toBeInTheDocument();
+  await userEvent.click(screen.getByRole('button', { name: new RegExp(UZ['wizard.nav.next']) }));
+
+  expect(await screen.findByText(UZ['wizard.step5.heading'])).toBeInTheDocument();
+  expect(seen).toEqual(['AB-00000', 'AB-12345']);
+});
+
+// Rulings #181/#219: a refusal of the number at FILING (the register changed
+// after step 4's pre-check passed) is shown AT THE FIELD, not only as a
+// step-5 banner — the wizard sends the applicant back to step 4 for it.
+test('a benefit-certificate refusal at filing (ERR-APP-003, benefit_certificate_expired) sends the applicant back to step 4 and shows it at the field', async () => {
   server.use(
     classifierHandler([BENEFIT_ITEM], [PROOF_DOC_TYPE]),
     http.post('*/api/v1/applications', () =>
       HttpResponse.json(
-        { error: { code: 'ERR-APP-003', message: 'x', details: { reason: 'benefit_certificate_required' } } },
+        { error: { code: 'ERR-APP-003', message: 'x', details: { reason: 'benefit_certificate_expired' } } },
         { status: 422 },
       ),
     ),
@@ -1265,6 +1318,7 @@ test('a benefit-certificate refusal (ERR-APP-003, benefit_certificate_required) 
 
   await userEvent.selectOptions(await screen.findByRole('combobox'), 'benefit:benefit-1');
   await userEvent.type(await screen.findByLabelText(new RegExp(UZ['wizard.step4.certificateNumber'])), 'AB-99999');
+  await attachProof();
   await userEvent.click(await screen.findByRole('button', { name: new RegExp(UZ['wizard.nav.next']) })); // step4 -> step5
 
   await acceptRules();
@@ -1273,15 +1327,14 @@ test('a benefit-certificate refusal (ERR-APP-003, benefit_certificate_required) 
   await userEvent.click(signButton);
 
   expect(await screen.findByText(UZ['wizard.step4.heading'])).toBeInTheDocument();
-  expect(
-    await screen.findByText("Tanlangan imtiyoz toifasi uchun guvohnoma/ma'lumotnoma raqami ko'rsatilmagan."),
-  ).toBeInTheDocument();
+  expect(await screen.findByText('Bu guvohnomaning amal qilish muddati tugagan.')).toBeInTheDocument();
 });
 
-// Ruling #189: the certificate's scan is OPTIONAL — Next is open on the
-// number alone, and the benefit row's own file button, when used, files the
-// scan under `benefit_proof` (no doc type to pick: the category IS the type).
-test('the benefit_proof scan is optional: Next opens on the number alone, and the file, when attached, is filed under benefit_proof', async () => {
+// Decision #220 (superseding #189): the certificate's scan is MANDATORY —
+// Next stays shut on the number alone, and opens once the benefit row's own
+// file button has filed the scan under `benefit_proof` (no doc type to pick:
+// the category IS the type).
+test('the benefit_proof scan is mandatory: Next stays shut on the number alone and opens once the scan is filed under benefit_proof', async () => {
   let uploadedType: string | null = null;
   server.use(
     classifierHandler([BENEFIT_ITEM], [PROOF_DOC_TYPE, OTHER_DOC_TYPE]),
@@ -1299,21 +1352,21 @@ test('the benefit_proof scan is optional: Next opens on the number alone, and th
   await userEvent.type(await screen.findByLabelText(new RegExp(UZ['wizard.step4.certificateNumber'])), 'AB-1');
 
   const nextButton = screen.getByRole('button', { name: new RegExp(UZ['wizard.nav.next']) });
-  expect(await screen.findByText(UZ['wizard.step4.benefitProofOptional'])).toBeInTheDocument();
-  await waitFor(() => expect(nextButton).toBeEnabled());
+  expect(await screen.findByText(UZ['wizard.step4.benefitProofRequired'])).toBeInTheDocument();
+  expect(nextButton).toBeDisabled();
 
-  await userEvent.upload(fileInput(), new File(['x'], 'proof.pdf', { type: 'application/pdf' }));
+  await attachProof();
 
-  await waitFor(() => expect(screen.getByText(UZ['wizard.step4.benefitProofOk'])).toBeInTheDocument());
   expect(uploadedType).toBe('uploaded');
-  expect(screen.queryByText(UZ['wizard.step4.benefitProofOptional'])).not.toBeInTheDocument();
-  expect(nextButton).toBeEnabled();
+  expect(screen.queryByText(UZ['wizard.step4.benefitProofRequired'])).not.toBeInTheDocument();
+  await waitFor(() => expect(nextButton).toBeEnabled());
 });
 
 // Without a `benefit_proof` doc type (list not loaded, or the item archived)
 // the benefit row has nothing to file a scan under, so it offers no file
-// button — and, the scan being optional (#189), the claim still moves on.
-test('an unknown benefit_proof doc type hides the file button and does not hold the claim', async () => {
+// button — and, the scan being mandatory (#220), the claim cannot move on:
+// fail-closed, exactly as the backend refuses it.
+test('an unknown benefit_proof doc type hides the file button and holds the claim', async () => {
   // `doc_types` answers without `benefit_proof`.
   server.use(classifierHandler([BENEFIT_ITEM], [OTHER_DOC_TYPE]));
   renderWizard();
@@ -1322,11 +1375,9 @@ test('an unknown benefit_proof doc type hides the file button and does not hold 
   await userEvent.selectOptions(await screen.findByRole('combobox'), 'benefit:benefit-1');
   await userEvent.type(await screen.findByLabelText(new RegExp(UZ['wizard.step4.certificateNumber'])), 'AB-1');
 
-  const nextButton = screen.getByRole('button', { name: new RegExp(UZ['wizard.nav.next']) });
-  expect(await screen.findByText(UZ['wizard.step4.benefitProofOptional'])).toBeInTheDocument();
+  expect(await screen.findByText(UZ['wizard.step4.benefitProofRequired'])).toBeInTheDocument();
   expect(screen.queryByRole('button', { name: new RegExp(UZ['wizard.step4.chooseFile']) })).not.toBeInTheDocument();
-  expect(screen.queryByText(UZ['wizard.step4.benefitProofOk'])).not.toBeInTheDocument();
-  await waitFor(() => expect(nextButton).toBeEnabled());
+  expect(screen.getByRole('button', { name: new RegExp(UZ['wizard.nav.next']) })).toBeDisabled();
 });
 
 // ─── The benefit list is scoped to the activity (ruling #181) ─────────────

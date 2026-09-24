@@ -1655,8 +1655,8 @@ export const uz_cyrl = {
   'inspector.scan.qrPlaceholder': "ҚР-ни сканерланг ёки кодни жойлаштиринг",
   'inspector.scan.checkButton': "Текшириш",
   'inspector.scan.orByNumberLabel': "ёки серия ва рақам бўйича",
-  'inspector.scan.seriesLabel': "Серия",
-  'inspector.scan.numberLabel': "Рақами",
+  'inspector.scan.permitNoLabel': "Серия ва рақами",
+  'inspector.scan.permitNoInvalid': "Серия ва рақамни «А 000002» кўринишида киритинг",
   'inspector.scan.loading': "Текширилмоқда...",
   'inspector.scan.error': "Текширишни амалга ошириб бўлмади.",
   'inspector.scan.notFound': "Рухсатнома топилмади ёки ҳали амал қилмайди.",
@@ -2285,7 +2285,7 @@ export const uz_cyrl = {
   'wizard.step5.signDesc':
     'Аризани топшириш учун қуйидаги тугмани босинг — электрон имзо талаб қилинмайди, чунки тизимга OneID ёки E-IMZO орқали киргансиз.',
   'wizard.step4.benefitProofOk': 'Имтиёзни тасдиқловчи ҳужжат илова қилинди.',
-  'wizard.step4.benefitProofOptional': "Гувоҳнома нусхасини илова қилиш ихтиёрий.",
+  'wizard.step4.benefitProofRequired': 'Танланган имтиёз тоифаси учун тасдиқловчи ҳужжат илова қилиниши шарт.',
 
   // Stage 11 — «Менинг тўловларим»: fuqaroning hisob-fakturalari va
   // qaytarish soʻrovlari (rulings R1-R6) — see uz_latn.ts for the English note.

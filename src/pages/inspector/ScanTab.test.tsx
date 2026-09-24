@@ -107,15 +107,51 @@ test('the series+number path calls the authenticated permits read, never the ano
 
   const user = userEvent.setup();
   renderScanTab();
-  expect(screen.queryByText('inspector.scan.seriesLabel')).not.toBeInTheDocument();
+  expect(screen.queryByText('inspector.scan.permitNoLabel')).not.toBeInTheDocument();
 
   await user.click(screen.getByText('inspector.scan.orByNumberLabel'));
-  await user.type(screen.getByPlaceholderText('А'), 'А');
-  await user.type(screen.getByPlaceholderText('000002'), '000042');
+  await user.type(screen.getByPlaceholderText('А 000002'), 'А № 000042');
   await user.click(screen.getAllByText('inspector.scan.checkButton')[1]);
 
   await waitFor(() => expect(capturedQuery).toEqual({ series: 'А', number: '42' }));
   expect(await screen.findByText('inspector.scan.notFound')).toBeInTheDocument();
+});
+
+test('the series is typed on a Latin keyboard and still reaches the server as the Cyrillic «А» it is stored as', async () => {
+  let capturedSeries: string | null = null;
+  server.use(
+    http.get('*/api/v1/permits', ({ request }) => {
+      capturedSeries = new URL(request.url).searchParams.get('series');
+      return HttpResponse.json({ items: [], total: 0, page: 1, page_size: 1 });
+    }),
+  );
+
+  const user = userEvent.setup();
+  renderScanTab();
+  await user.click(screen.getByText('inspector.scan.orByNumberLabel'));
+  await user.type(screen.getByPlaceholderText('А 000002'), 'a42{Enter}');
+
+  await waitFor(() => expect(capturedSeries).toBe('\u0410'));
+});
+
+test('a number with no series is refused on the spot, not sent as a lookup that answers «not found»', async () => {
+  let called = false;
+  server.use(
+    http.get('*/api/v1/permits', () => {
+      called = true;
+      return HttpResponse.json({ items: [], total: 0, page: 1, page_size: 1 });
+    }),
+  );
+
+  const user = userEvent.setup();
+  renderScanTab();
+  await user.click(screen.getByText('inspector.scan.orByNumberLabel'));
+  await user.type(screen.getByPlaceholderText('А 000002'), '000042');
+  await user.click(screen.getAllByText('inspector.scan.checkButton')[1]);
+
+  expect(await screen.findByText('inspector.scan.permitNoInvalid')).toBeInTheDocument();
+  expect(called).toBe(false);
+  expect(screen.queryByText('inspector.scan.notFound')).not.toBeInTheDocument();
 });
 
 test('a permit found by series+number renders the FULL authenticated record — real id, contour, load, no mask', async () => {
@@ -168,8 +204,7 @@ test('a permit found by series+number renders the FULL authenticated record — 
   const user = userEvent.setup();
   renderScanTab();
   await user.click(screen.getByText('inspector.scan.orByNumberLabel'));
-  await user.type(screen.getByPlaceholderText('А'), 'А');
-  await user.type(screen.getByPlaceholderText('000002'), '000042');
+  await user.type(screen.getByPlaceholderText('А 000002'), 'А 000042');
   await user.click(screen.getAllByText('inspector.scan.checkButton')[1]);
 
   expect(await screen.findByText('А № 000042')).toBeInTheDocument();

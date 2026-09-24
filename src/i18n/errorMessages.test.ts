@@ -264,20 +264,31 @@ test('ERR-APP-004 keeps the generic sentence for every other reason', () => {
 });
 
 // Stage 10, F1 — ruling #181: the mandatory benefit-certificate number,
-// named by `details.reason` the same way `ERR-VAL-001` already is. Ruling
-// #206 removed the register check, so `required` is the only reason left.
+// named by `details.reason` the same way `ERR-VAL-001` already is; ruling
+// #219: the three refusals of the Beekeeping Union's register.
 test('ERR-APP-003 names the benefit-certificate reason the backend sends', () => {
   const required = { code: 'ERR-APP-003', message: 'x', details: { reason: 'benefit_certificate_required' } };
+  const unknown = { code: 'ERR-APP-003', message: 'x', details: { reason: 'benefit_certificate_unknown' } };
+  const notYours = { code: 'ERR-APP-003', message: 'x', details: { reason: 'benefit_certificate_not_yours' } };
+  const expired = { code: 'ERR-APP-003', message: 'x', details: { reason: 'benefit_certificate_expired' } };
   const noReason = { code: 'ERR-APP-003', message: 'x' };
 
   expect(apiErrorMessage(required, 'ru')).toBe(
     'Не указан номер справки/свидетельства для выбранной льготной категории.',
   );
+  expect(apiErrorMessage(unknown, 'ru')).toBe('Этот номер удостоверения не найден в реестре Союза пчеловодов.');
+  expect(apiErrorMessage(notYours, 'ru')).toBe('Это удостоверение записано в реестре Союза пчеловодов на другое лицо.');
+  expect(apiErrorMessage(expired, 'ru')).toBe('Срок действия этого удостоверения истёк.');
   expect(apiErrorMessage(noReason, 'ru')).toBe('Неполный комплект документов.');
 
   expect(apiErrorMessage(required, 'uz_latn')).toBe(
     "Tanlangan imtiyoz toifasi uchun guvohnoma/ma'lumotnoma raqami ko'rsatilmagan.",
   );
+  expect(apiErrorMessage(unknown, 'uz_latn')).toBe('Bu guvohnoma raqami Asalarichilar uyushmasi reyestrida topilmadi.');
+  expect(apiErrorMessage(notYours, 'uz_latn')).toBe(
+    'Bu guvohnoma Asalarichilar uyushmasi reyestrida boshqa shaxs nomiga yozilgan.',
+  );
+  expect(apiErrorMessage(expired, 'uz_latn')).toBe('Bu guvohnomaning amal qilish muddati tugagan.');
 });
 
 // Ruling #183: a simple signature's own refusal reasons, plus the real-mode

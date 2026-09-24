@@ -1618,8 +1618,8 @@ export const ru = {
   'inspector.scan.qrPlaceholder': 'Отсканируйте QR или вставьте код',
   'inspector.scan.checkButton': 'Проверить',
   'inspector.scan.orByNumberLabel': 'или по серии и номеру',
-  'inspector.scan.seriesLabel': 'Серия',
-  'inspector.scan.numberLabel': 'Номер',
+  'inspector.scan.permitNoLabel': 'Серия и номер',
+  'inspector.scan.permitNoInvalid': 'Введите серию и номер в виде «А 000002»',
   'inspector.scan.loading': 'Проверяем...',
   'inspector.scan.error': 'Не удалось выполнить проверку.',
   'inspector.scan.notFound': 'Разрешение не найдено или ещё не действует.',
@@ -2249,7 +2249,7 @@ export const ru = {
   'wizard.step5.signDesc':
     'Для подачи заявки нажмите кнопку ниже — электронная подпись не требуется, так как вы вошли через OneID или E-IMZO.',
   'wizard.step4.benefitProofOk': 'Документ, подтверждающий льготу, прикреплён.',
-  'wizard.step4.benefitProofOptional': "Скан удостоверения прикреплять необязательно.",
+  'wizard.step4.benefitProofRequired': 'Для выбранной категории льготы необходимо прикрепить подтверждающий документ.',
 
   // Stage 11 — «Мои платежи»: счета и запросы на возврат гражданина в одном
   // месте (решения R1-R6; R1: `GET /invoices` и `GET /refunds` без

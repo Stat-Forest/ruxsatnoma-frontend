@@ -136,16 +136,22 @@ const ru: Record<string, ErrorCopy> = {
       ? `Активная заявка №${number} на пересекающийся период уже существует.`
       : 'Активная заявка на пересекающийся период уже существует.';
   },
-  // Ruling #181: the certificate number is mandatory for EVERY benefit
-  // category — `required` is the one way filing refuses a claim over it.
-  // Ruling #206 (2026-09-13) removed the register check at filing, so the
-  // backend no longer sends `benefit_certificate_unknown`/`_not_yours`;
-  // anything else (e.g. a missing supporting document) keeps the generic
-  // sentence.
+  // Ruling #181 and decision #220: the certificate number AND its scan are
+  // mandatory for EVERY benefit category (`required`, `needs_a_document`).
+  // Decision #219 checks the Beekeeping Union member's number against the
+  // Union's register at the pre-check and at filing —
+  // `unknown`/`not_yours`/`expired` are the three ways it can refuse.
+  // Anything else keeps the generic sentence.
   'ERR-APP-003': (details) => {
     switch (str(details, 'reason')) {
       case 'benefit_certificate_required':
         return 'Не указан номер справки/свидетельства для выбранной льготной категории.';
+      case 'benefit_certificate_unknown':
+        return 'Этот номер удостоверения не найден в реестре Союза пчеловодов.';
+      case 'benefit_certificate_not_yours':
+        return 'Это удостоверение записано в реестре Союза пчеловодов на другое лицо.';
+      case 'benefit_certificate_expired':
+        return 'Срок действия этого удостоверения истёк.';
       case 'benefit_claim_needs_a_document':
         return 'К заявке на льготу не приложен подтверждающий документ.';
       case 'benefit_doc_type_not_configured':
@@ -308,16 +314,22 @@ const uz_latn: Record<string, ErrorCopy> = {
       ? `${number}-sonli faol ariza kesishuvchi davr uchun allaqachon mavjud.`
       : 'Kesishuvchi davr uchun faol ariza allaqachon mavjud.';
   },
-  // Ruling #181: the certificate number is mandatory for EVERY benefit
-  // category — `required` is the one way filing refuses a claim over it.
-  // Ruling #206 (2026-09-13) removed the register check at filing, so the
-  // backend no longer sends `benefit_certificate_unknown`/`_not_yours`;
-  // anything else (e.g. a missing supporting document) keeps the generic
-  // sentence.
+  // Ruling #181 and decision #220: the certificate number AND its scan are
+  // mandatory for EVERY benefit category (`required`, `needs_a_document`).
+  // Decision #219 checks the Beekeeping Union member's number against the
+  // Union's register at the pre-check and at filing —
+  // `unknown`/`not_yours`/`expired` are the three ways it can refuse.
+  // Anything else keeps the generic sentence.
   'ERR-APP-003': (details) => {
     switch (str(details, 'reason')) {
       case 'benefit_certificate_required':
         return "Tanlangan imtiyoz toifasi uchun guvohnoma/ma'lumotnoma raqami ko'rsatilmagan.";
+      case 'benefit_certificate_unknown':
+        return 'Bu guvohnoma raqami Asalarichilar uyushmasi reyestrida topilmadi.';
+      case 'benefit_certificate_not_yours':
+        return 'Bu guvohnoma Asalarichilar uyushmasi reyestrida boshqa shaxs nomiga yozilgan.';
+      case 'benefit_certificate_expired':
+        return 'Bu guvohnomaning amal qilish muddati tugagan.';
       case 'benefit_claim_needs_a_document':
         return "Imtiyoz da'vosiga tasdiqlovchi hujjat biriktirilmagan.";
       case 'benefit_doc_type_not_configured':

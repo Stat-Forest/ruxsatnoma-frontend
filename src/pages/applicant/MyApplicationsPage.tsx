@@ -7,13 +7,13 @@ import { FormField, Input, Select } from '../../components/ui/FormControls';
 import { DataTable, type Column } from '../../components/ui/DataTable';
 import { ExportXlsxButton } from '../../components/ui/ExportXlsxButton';
 import { Pagination } from '../../components/ui/Navigation';
-import { StatusBadge } from '../../components/ui/StatusBadge';
 import { listActivityTypes, listApplications, type ApplicationOut, type ApplicationStatus } from './api';
 import { useListUrlState } from '../../lib/useListUrlState';
 import { useReturnHereState } from '../../lib/returnTo';
 import { formatDate } from './format';
 import { pickName } from './format';
-import { ALL_STATUSES, STATUS_BADGE_KIND, getStatusLabel } from './statusMeta';
+import { ALL_STATUSES, getStatusLabel } from './statusMeta';
+import { ApplicationStatusBadge } from './ApplicationStatusBadge';
 import { useLanguage } from '../../i18n/useT';
 
 const PAGE_SIZE = 20;
@@ -31,6 +31,10 @@ const MY_APPS_I18N = {
     filterNumber: 'Ariza raqami',
     filterStatus: 'Holati',
     filterActivity: 'Faoliyat turi',
+    filterDateBy: 'Sana boʻyicha',
+    filterDateFrom: 'Sana — dan',
+    filterDateTo: 'Sana — gacha',
+    dateReversed: 'Boshlanish sanasi tugash sanasidan keyin boʻlmasligi kerak',
     all: 'Barchasi',
     noNumber: 'raqamsiz',
     open: 'Ochish →',
@@ -50,6 +54,10 @@ const MY_APPS_I18N = {
     filterNumber: 'Ариза рақами',
     filterStatus: 'Ҳолати',
     filterActivity: 'Фаолият тури',
+    filterDateBy: 'Сана бўйича',
+    filterDateFrom: 'Сана — дан',
+    filterDateTo: 'Сана — гача',
+    dateReversed: 'Бошланиш санаси тугаш санасидан кейин бўлмаслиги керак',
     all: 'Барчаси',
     noNumber: 'рақамсиз',
     open: 'Очиш →',
@@ -69,6 +77,10 @@ const MY_APPS_I18N = {
     filterNumber: 'Номер заявки',
     filterStatus: 'Статус',
     filterActivity: 'Вид деятельности',
+    filterDateBy: 'Фильтр по дате',
+    filterDateFrom: 'Дата — с',
+    filterDateTo: 'Дата — по',
+    dateReversed: 'Дата «с» не может быть позже даты «по»',
     all: 'Все',
     noNumber: 'без номера',
     open: 'Открыть →',
@@ -88,6 +100,10 @@ const MY_APPS_I18N = {
     filterNumber: 'Application number',
     filterStatus: 'Status',
     filterActivity: 'Activity type',
+    filterDateBy: 'Filter dates by',
+    filterDateFrom: 'Date — from',
+    filterDateTo: 'Date — to',
+    dateReversed: 'The start date cannot be after the end date',
     all: 'All',
     noNumber: 'no number',
     open: 'Open →',
@@ -107,6 +123,10 @@ const MY_APPS_I18N = {
     filterNumber: 'Arza nómeri',
     filterStatus: 'Jaǵdayı',
     filterActivity: 'Xızmet túri',
+    filterDateBy: 'Sáne boyınsha',
+    filterDateFrom: 'Sáne — baslap',
+    filterDateTo: 'Sáne — deyin',
+    dateReversed: 'Baslanıw sánesi tamamlanıw sánesinen keyin bolmawı kerek',
     all: 'Barlıǵı',
     noNumber: 'nomersiz',
     open: 'Ashıw →',
@@ -116,6 +136,14 @@ const MY_APPS_I18N = {
   },
 };
 
+/** Which date the `dateFrom`/`dateTo` window reads: the day the application
+ * was filed (`created_from`/`created_to`, a Tashkent calendar day on the
+ * server), or its own period (`period_from`/`period_to`, which the server
+ * matches by OVERLAP — a window of September finds an application for
+ * 25 August – 5 September). One pair of inputs and a switch rather than four
+ * inputs: a citizen asks one of the two questions at a time. */
+type DateBy = 'created' | 'period';
+
 /** B6 — the applicant's own application list, with the filters `GET
  * /applications` already supports server-side (ruling: the service scopes
  * "my own" for an applicant caller, so no `applicant_id` is sent here). */
@@ -123,9 +151,12 @@ interface Filters {
   status: ApplicationStatus | '';
   activityTypeId: string;
   number: string;
+  dateBy: DateBy;
+  dateFrom: string;
+  dateTo: string;
 }
 
-const EMPTY_FILTERS: Filters = { status: '', activityTypeId: '', number: '' };
+const EMPTY_FILTERS: Filters = { status: '', activityTypeId: '', number: '', dateBy: 'created', dateFrom: '', dateTo: '' };
 
 export function MyApplicationsPage() {
   const navigate = useNavigate();
@@ -137,7 +168,14 @@ export function MyApplicationsPage() {
   // keeps its own draft and reaches the URL debounced — the router applies
   // a URL change asynchronously, too late for a controlled input's cursor.
   const { filters, page, setFilters, setPage } = useListUrlState(EMPTY_FILTERS);
-  const { status, activityTypeId, number } = filters;
+  const { status, activityTypeId, number, dateFrom, dateTo } = filters;
+  // A hand-edited `?dateBy=` reads as the default rather than as a third mode.
+  const dateBy: DateBy = filters.dateBy === 'period' ? 'period' : 'created';
+  // A reversed window is refused on the form, not sent: the server would
+  // answer it with an empty page that reads as "you have no applications".
+  const datesReversed = Boolean(dateFrom && dateTo && dateFrom > dateTo);
+  const windowFrom = datesReversed ? undefined : dateFrom || undefined;
+  const windowTo = datesReversed ? undefined : dateTo || undefined;
   const [numberDraft, setNumberDraft] = useState(number);
   useEffect(() => {
     const timer = setTimeout(() => setFilters({ number: numberDraft }), 400);
@@ -161,9 +199,13 @@ export function MyApplicationsPage() {
     status: status || undefined,
     activity_type_id: activityTypeId || undefined,
     number: number || undefined,
+    created_from: dateBy === 'created' ? windowFrom : undefined,
+    created_to: dateBy === 'created' ? windowTo : undefined,
+    period_from: dateBy === 'period' ? windowFrom : undefined,
+    period_to: dateBy === 'period' ? windowTo : undefined,
   };
   const applicationsQuery = useQuery({
-    queryKey: ['my-applications', { page, status, activityTypeId, number }],
+    queryKey: ['my-applications', { page, status, activityTypeId, number, dateBy, windowFrom, windowTo }],
     queryFn: () => listApplications(listQuery),
     placeholderData: (prev) => prev,
   });
@@ -190,7 +232,7 @@ export function MyApplicationsPage() {
     {
       key: 'status',
       header: t.colStatus,
-      accessor: (row) => <StatusBadge status={STATUS_BADGE_KIND[row.status]} label={getStatusLabel(row.status, lang)} size="sm" />,
+      accessor: (row) => <ApplicationStatusBadge status={row.status} label={getStatusLabel(row.status, lang)} />,
     },
     {
       key: 'created_at',
@@ -261,7 +303,54 @@ export function MyApplicationsPage() {
             ]}
           />
         </FormField>
-        <div className="sm:col-span-2 lg:col-span-3 flex justify-end">
+        {/* The switch sits as tabs on the frame around the two dates, so it
+            reads as "which date these are" rather than as a filter of its own. */}
+        <div className="sm:col-span-2">
+          <div role="group" aria-label={t.filterDateBy} className="flex gap-0.5 pl-3">
+            {(
+              [
+                ['created', t.colCreatedAt],
+                ['period', t.colPeriod],
+              ] as const
+            ).map(([value, label]) => (
+              <button
+                key={value}
+                type="button"
+                aria-pressed={dateBy === value}
+                onClick={() => setFilters({ dateBy: value })}
+                className={`relative -mb-px h-8 px-3 rounded-t-lg border text-sm cursor-pointer transition-colors ${
+                  dateBy === value
+                    ? 'z-10 bg-white border-[#E4E7EA] border-b-white text-[#2E7D4F] font-semibold'
+                    : 'border-transparent text-[#5A646D] font-medium hover:text-[#1A1F24]'
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+          <div className="rounded-lg border border-[#E4E7EA] p-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <FormField label={t.filterDateFrom} htmlFor="filter-date-from">
+              <Input
+                id="filter-date-from"
+                type="date"
+                value={dateFrom}
+                max={dateTo || undefined}
+                onChange={(e) => setFilters({ dateFrom: e.target.value })}
+              />
+            </FormField>
+            <FormField label={t.filterDateTo} htmlFor="filter-date-to" error={datesReversed ? t.dateReversed : undefined}>
+              <Input
+                id="filter-date-to"
+                type="date"
+                value={dateTo}
+                min={dateFrom || undefined}
+                error={datesReversed}
+                onChange={(e) => setFilters({ dateTo: e.target.value })}
+              />
+            </FormField>
+          </div>
+        </div>
+        <div className="sm:col-span-2 lg:col-span-1 flex justify-end items-end">
           <ExportXlsxButton className="ml-auto" path="/api/v1/applications" query={listQuery} />
         </div>
       </div>
@@ -296,11 +385,7 @@ export function MyApplicationsPage() {
                   </span>
                 </div>
                 <div className="shrink-0">
-                  <StatusBadge
-                    status={STATUS_BADGE_KIND[row.status]}
-                    label={getStatusLabel(row.status, lang)}
-                    size="sm"
-                  />
+                  <ApplicationStatusBadge status={row.status} label={getStatusLabel(row.status, lang)} />
                 </div>
               </div>
 

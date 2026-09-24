@@ -1448,8 +1448,8 @@ export const en = {
   'inspector.scan.qrPlaceholder': 'Scan QR or paste code',
   'inspector.scan.checkButton': 'Verify',
   'inspector.scan.orByNumberLabel': 'or by series and number',
-  'inspector.scan.seriesLabel': 'Series',
-  'inspector.scan.numberLabel': 'Number',
+  'inspector.scan.permitNoLabel': 'Series and number',
+  'inspector.scan.permitNoInvalid': 'Enter the series and number as «А 000002»',
   'inspector.scan.loading': 'Verifying...',
   'inspector.scan.error': 'Verification failed.',
   'inspector.scan.notFound': 'Permit not found or not yet effective.',
@@ -2063,7 +2063,7 @@ export const en = {
   'wizard.step5.signDesc':
     'Press the button below to submit the application — no electronic signature is required, since you signed in through OneID or E-IMZO.',
   'wizard.step4.benefitProofOk': 'The supporting document for the benefit is attached.',
-  'wizard.step4.benefitProofOptional': "Attaching the certificate's scan is optional.",
+  'wizard.step4.benefitProofRequired': 'A supporting document is required for the chosen benefit category.',
 
   // Stage 11 — the citizen's invoices and refund requests in one place
   // (rulings R1-R6, ruling R1: `GET /invoices` and `GET /refunds` with no
