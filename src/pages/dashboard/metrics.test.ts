@@ -1,10 +1,10 @@
 import {
   activePermitsSummary,
   applicationsInProgress,
-  areaByActivity,
-  contourRows,
+  expiryByActivity,
   monthlySeries,
   nearestExpiry,
+  reviewDeadlines,
   reviewStats,
   seasonalPayments,
 } from './metrics';
@@ -213,61 +213,97 @@ test('the history line spans the first and last application years', () => {
   expect(stats.yearsTo).toBe(2026);
 });
 
-// --- the donut ------------------------------------------------------------
+// --- the deadlines card: permits by type ---------------------------------
 
-test('the donut splits the active area by activity type', () => {
-  const slices = areaByActivity([
-    permit({ status: 'active', activity_type_id: 'grazing', area_ha: '42.6000' }),
-    permit({ status: 'active', activity_type_id: 'haymaking', area_ha: '18.4000' }),
-    permit({ status: 'expired', activity_type_id: 'haymaking', area_ha: '50.0000' }),
-  ]);
-
-  expect(slices).toHaveLength(2);
-  expect(slices[0]).toMatchObject({ activityTypeId: 'grazing', areaHa: 42.6 });
-  expect(slices[0].pct).toBeCloseTo(69.8, 1);
-});
-
-test('two permits on the same activity are one slice', () => {
-  const slices = areaByActivity([
-    permit({ status: 'active', activity_type_id: 'grazing', area_ha: '20.0000' }),
-    permit({ status: 'active', activity_type_id: 'grazing', area_ha: '22.6000' }),
-  ]);
-
-  expect(slices).toHaveLength(1);
-  expect(slices[0].areaHa).toBeCloseTo(42.6);
-  expect(slices[0].pct).toBe(100);
-});
-
-// --- the bar chart --------------------------------------------------------
-
-test('each active permit is a bar carrying its area and the days it has left', () => {
-  const rows = contourRows(
+test('each activity type shows the days left on its soonest ACTIVE permit', () => {
+  const rows = expiryByActivity(
     [
-      permit({ status: 'active', contour_id: 'c-1', area_ha: '42.6000', period_to: '2026-11-26' }),
-      permit({ status: 'active', contour_id: 'c-2', area_ha: '18.4000', period_to: '2026-09-26' }),
+      permit({ status: 'active', activity_type_id: 'grazing', period_to: '2026-11-26' }),
+      permit({ status: 'active', activity_type_id: 'grazing', period_to: '2026-09-26' }),
+      permit({ status: 'active', activity_type_id: 'haymaking', period_to: '2026-10-05' }),
+      permit({ status: 'expired', activity_type_id: 'grazing', period_to: '2026-09-06' }),
     ],
     TODAY,
   );
 
-  expect(rows).toHaveLength(2);
-  expect(rows[0]).toMatchObject({ contourId: 'c-1', areaHa: 42.6, daysLeft: 82 });
-  expect(rows[1].daysLeft).toBe(21);
+  expect(rows).toEqual([
+    { activityTypeId: 'grazing', daysLeft: 21, count: 2 },
+    { activityTypeId: 'haymaking', daysLeft: 30, count: 1 },
+  ]);
 });
 
-test('a permit already past its end date shows no negative days', () => {
-  const rows = contourRows([permit({ status: 'active', period_to: '2026-08-01' })], TODAY);
+test('an active permit already past its end date shows no negative days', () => {
+  const rows = expiryByActivity([permit({ status: 'active', period_to: '2026-08-01' })], TODAY);
 
   expect(rows[0].daysLeft).toBe(0);
 });
 
-test('the bars are ordered by the area they cover, largest first', () => {
-  const rows = contourRows(
-    [
-      permit({ status: 'active', contour_id: 'small', area_ha: '12.0000' }),
-      permit({ status: 'active', contour_id: 'big', area_ha: '42.6000' }),
-    ],
-    TODAY,
+// --- the deadlines card: applications under review ------------------------
+
+/** A Thursday, so the counts below have a weekend to skip. */
+const NOW = new Date('2026-09-24T10:00:00+05:00');
+
+test('the review countdown counts working days only, Monday to Friday', () => {
+  const [row] = reviewDeadlines(
+    [application({ status: 'IN_REVIEW', sla_deadline_at: '2026-10-01T10:00:00+05:00' })],
+    NOW,
   );
 
-  expect(rows.map((row) => row.contourId)).toEqual(['big', 'small']);
+  // Fri 25, Mon 28, Tue 29, Wed 30, Thu 1 — the weekend between is not counted.
+  expect(row).toMatchObject({ state: 'running', workingDaysLeft: 5 });
+});
+
+test('a deadline later today leaves zero working days, and is not yet overdue', () => {
+  const [row] = reviewDeadlines(
+    [application({ status: 'SUBMITTED', sla_deadline_at: '2026-09-24T18:00:00+05:00' })],
+    NOW,
+  );
+
+  expect(row).toMatchObject({ state: 'running', workingDaysLeft: 0 });
+});
+
+test('a deadline that has passed while the office holds the file is overdue', () => {
+  const [row] = reviewDeadlines(
+    [application({ status: 'IN_REVIEW', sla_deadline_at: '2026-09-23T10:00:00+05:00' })],
+    NOW,
+  );
+
+  expect(row.state).toBe('overdue');
+});
+
+test('while the office waits on the citizen the clock is paused, whatever the stored deadline says', () => {
+  const rows = reviewDeadlines(
+    [
+      application({ status: 'PENDING_INFO', sla_deadline_at: '2026-09-20T10:00:00+05:00' }),
+      application({ status: 'RETURNED', sla_deadline_at: '2026-10-01T10:00:00+05:00' }),
+    ],
+    NOW,
+  );
+
+  expect(rows.map((row) => row.state)).toEqual(['paused', 'paused']);
+});
+
+test('a decided application has no review countdown left to show', () => {
+  const rows = reviewDeadlines(
+    (['APPROVED', 'INVOICED', 'PAID', 'PERMIT_ISSUED', 'REJECTED', 'CANCELLED'] as const).map((status) =>
+      application({ status, sla_deadline_at: '2026-10-01T10:00:00+05:00' }),
+    ),
+    NOW,
+  );
+
+  expect(rows).toEqual([]);
+});
+
+test('the list puts overdue first, then the fewest working days left, then the paused', () => {
+  const rows = reviewDeadlines(
+    [
+      application({ number: 'paused', status: 'PENDING_INFO', sla_deadline_at: '2026-09-25T10:00:00+05:00' }),
+      application({ number: 'later', status: 'IN_REVIEW', sla_deadline_at: '2026-10-01T10:00:00+05:00' }),
+      application({ number: 'late', status: 'IN_REVIEW', sla_deadline_at: '2026-09-22T10:00:00+05:00' }),
+      application({ number: 'sooner', status: 'SUBMITTED', sla_deadline_at: '2026-09-28T10:00:00+05:00' }),
+    ],
+    NOW,
+  );
+
+  expect(rows.map((row) => row.number)).toEqual(['late', 'sooner', 'later', 'paused']);
 });
