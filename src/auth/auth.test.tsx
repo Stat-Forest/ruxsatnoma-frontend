@@ -269,7 +269,6 @@ test('an applicant with an incomplete registration sees the form that resolves i
   // just above — it now contains the one action that lifts it, not a notice
   // pointing at an administrator who has no route to help.
   const gate = within(await screen.findByTestId('registration-incomplete'));
-  expect(gate.getByTestId('consent-privacy')).toBeInTheDocument();
   expect(gate.getByTestId('phone-input')).toBeInTheDocument();
   expect(screen.queryByTestId('dashboard-page')).toBeNull();
 });

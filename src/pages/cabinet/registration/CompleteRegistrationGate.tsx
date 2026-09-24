@@ -5,7 +5,7 @@ import { CheckCircle2, LogOut } from 'lucide-react';
 import { ApiError } from '../../../api/errors';
 import { Button } from '../../../components/ui/button';
 import { Alert } from '../../../components/ui/Feedback';
-import { Checkbox, FormField, Input, Select } from '../../../components/ui/FormControls';
+import { FormField, Input, Select } from '../../../components/ui/FormControls';
 import { useAuth } from '../../../auth/useAuth';
 import { useApiErrorText } from '../../../i18n/useApiErrorText';
 import { useT } from '../../../i18n/useT';
@@ -15,6 +15,16 @@ import { completeRegistration, listDistricts, listRegions } from './api';
 const PHONE_PATTERN = /^\+998\d{9}$/;
 
 type OtpStage = 'idle' | 'sent' | 'verified';
+
+type ConsentVersions = { privacy_policy: string; offer: string };
+
+const DEFAULT_CONSENTS: ConsentVersions = { privacy_policy: '1.0', offer: '1.0' };
+
+/** The versions the server says are current, when it refused ours as stale. */
+function staleConsents(err: unknown): Partial<ConsentVersions> | undefined {
+  if (!(err instanceof ApiError) || err.code !== 'ERR-VAL-001') return undefined;
+  return (err.details as { consents_current?: Partial<ConsentVersions> } | undefined)?.consents_current;
+}
 
 /** `ERR-AUTH-009` (rate limit) and `ERR-AUTH-010` (bad/expired code) get their
  * own copy; anything else falls back to a generic message — the same shape
@@ -28,7 +38,7 @@ function otpErrorMessage(err: unknown, t: (key: string) => string): string {
 }
 
 /**
- * Screen B2 (С2 finish registration) — consents, phone OTP, then
+ * Screen B2 (С2 finish registration) — phone OTP and contacts, then
  * `POST /auth/complete-registration`. Rendered by `RequireAuth` in place of
  * `children` whenever `me.registration_complete` is false, the same shape it
  * already uses for `must_change_password` — see that gate's own comment for
@@ -37,14 +47,21 @@ function otpErrorMessage(err: unknown, t: (key: string) => string): string {
  * `applyMe(fresh me)` flips the gate, `RequireAuth` simply renders what was
  * already being asked for.
  *
+ * Consents carry no checkboxes here (Oybek, 2026-09-24): the login page
+ * already tells every visitor that signing in accepts the privacy policy and
+ * the offer (`login.termsNotice`), so asking again after the ERI signature
+ * was a second click on the same words. The request still sends `consents`,
+ * and the server still writes `user_consents` with the version and the client
+ * IP (#42 ruling 10) — only the redundant click is gone.
+ *
  * Consent versions (ruling R3, `docs/plans/06.5-cabinet-tails.md`): there is
  * no route an ordinary applicant can call to read the CURRENT
  * `privacy_policy_version`/`offer_version` (`GET /admin/settings` needs
  * `admin.settings.manage`). Both default to `"1.0"` server-side
  * (`app/core/settings_store.py`), so that is what this form starts with; on
- * an `ERR-VAL-001` naming `details.consents_current`, the versions are
- * corrected from the error and the citizen is asked to re-accept, rather
- * than fail a second time with no way forward.
+ * an `ERR-VAL-001` naming `details.consents_current`, the request is repeated
+ * once with the versions the server named — the documents the login page
+ * links to are always the current ones.
  */
 export function CompleteRegistrationGate() {
   const { me, applyMe, logout } = useAuth();
@@ -60,11 +77,6 @@ export function CompleteRegistrationGate() {
       setLoggingOut(false);
     }
   }
-
-  const [privacyChecked, setPrivacyChecked] = useState(false);
-  const [offerChecked, setOfferChecked] = useState(false);
-  const [consentVersions, setConsentVersions] = useState({ privacy_policy: '1.0', offer: '1.0' });
-  const [staleNotice, setStaleNotice] = useState(false);
 
   const [phone, setPhone] = useState('');
   const [otpStage, setOtpStage] = useState<OtpStage>('idle');
@@ -133,8 +145,7 @@ export function CompleteRegistrationGate() {
   // choice: it is the right place for a NEW account, so a fresh registration
   // never lands in the state this ruling exists to unblock (`ApplicationWizardPage`
   // asks address-less EXISTING accounts for it at submission instead).
-  const canSubmit =
-    privacyChecked && offerChecked && otpStage === 'verified' && otpToken !== null && address.trim() !== '';
+  const canSubmit = otpStage === 'verified' && otpToken !== null && address.trim() !== '';
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
@@ -142,10 +153,9 @@ export function CompleteRegistrationGate() {
     if (!canSubmit || !otpToken) return;
     setSubmitting(true);
     setSubmitError(null);
-    setStaleNotice(false);
-    try {
-      const me = await completeRegistration({
-        consents: consentVersions,
+    const send = (consents: ConsentVersions) =>
+      completeRegistration({
+        consents,
         phone,
         otp_token: otpToken,
         email: email.trim() ? email.trim() : null,
@@ -157,26 +167,23 @@ export function CompleteRegistrationGate() {
         // never has a `null` branch to fall into.
         address: address.trim(),
       });
+    try {
+      let me;
+      try {
+        me = await send(DEFAULT_CONSENTS);
+      } catch (err) {
+        const current = staleConsents(err);
+        if (!current) throw err;
+        me = await send({
+          privacy_policy: current.privacy_policy ?? DEFAULT_CONSENTS.privacy_policy,
+          offer: current.offer ?? DEFAULT_CONSENTS.offer,
+        });
+      }
       applyMe(me);
     } catch (err) {
-      const details =
-        err instanceof ApiError && err.code === 'ERR-VAL-001'
-          ? (err.details as { consents_current?: { privacy_policy?: string; offer?: string } } | undefined)
-              ?.consents_current
-          : undefined;
-      if (details) {
-        setConsentVersions((prev) => ({
-          privacy_policy: details.privacy_policy ?? prev.privacy_policy,
-          offer: details.offer ?? prev.offer,
-        }));
-        setPrivacyChecked(false);
-        setOfferChecked(false);
-        setStaleNotice(true);
-      } else {
-        setSubmitError(
-          err instanceof ApiError ? err : new ApiError('ERR-SYS-000', t('cabinet.registration.genericError')),
-        );
-      }
+      setSubmitError(
+        err instanceof ApiError ? err : new ApiError('ERR-SYS-000', t('cabinet.registration.genericError')),
+      );
     } finally {
       setSubmitting(false);
     }
@@ -217,30 +224,6 @@ export function CompleteRegistrationGate() {
           <p className="mt-1 text-xs text-[#5A646D] leading-relaxed">{t('cabinet.registration.intro')}</p>
         </div>
 
-        {staleNotice && <Alert variant="warning">{t('cabinet.registration.consentsStale')}</Alert>}
-
-        <section className="space-y-2">
-          <h2 className="text-xs font-semibold uppercase tracking-wider text-[#5A646D]">
-            {t('cabinet.registration.consentsTitle')}
-          </h2>
-          <Checkbox
-            data-testid="consent-privacy"
-            label={t('cabinet.registration.consentPrivacy')}
-            checked={privacyChecked}
-            onChange={(e) => setPrivacyChecked(e.target.checked)}
-          />
-          <Checkbox
-            data-testid="consent-offer"
-            label={t('cabinet.registration.consentOffer')}
-            checked={offerChecked}
-            onChange={(e) => setOfferChecked(e.target.checked)}
-          />
-          {touched && !(privacyChecked && offerChecked) && (
-            <p className="text-xs text-[#B91C1C]" role="alert">
-              {t('cabinet.registration.needConsents')}
-            </p>
-          )}
-        </section>
 
         <section className="space-y-2">
           <h2 className="text-xs font-semibold uppercase tracking-wider text-[#5A646D]">

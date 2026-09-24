@@ -213,11 +213,6 @@ export const ru = {
   'cabinet.registration.title': 'Завершение регистрации',
   'cabinet.registration.intro':
     'Чтобы продолжить пользоваться системой, заполните несколько полей и подтвердите номер телефона.',
-  'cabinet.registration.consentsTitle': 'Согласия',
-  'cabinet.registration.consentPrivacy': 'Согласен с политикой конфиденциальности',
-  'cabinet.registration.consentOffer': 'Согласен с условиями публичной оферты',
-  'cabinet.registration.consentsStale':
-    'Документы обновились — подтвердите согласия заново, чтобы продолжить.',
   'cabinet.registration.phoneTitle': 'Номер телефона',
   'cabinet.registration.phoneLabel': 'Номер телефона',
   'cabinet.registration.phonePlaceholder': '+998901234567',
@@ -231,7 +226,6 @@ export const ru = {
   'cabinet.registration.selectPlaceholder': 'Не выбрано',
   'cabinet.registration.submit': 'Завершить',
   'cabinet.registration.submitting': 'Отправка…',
-  'cabinet.registration.needConsents': 'Чтобы продолжить, отметьте оба согласия.',
   'cabinet.registration.needPhoneVerified': 'Чтобы продолжить, подтвердите номер телефона.',
   'cabinet.registration.needAddress': 'Укажите адрес.',
   'cabinet.registration.genericError': 'Произошла ошибка. Попробуйте ещё раз.',

@@ -246,11 +246,6 @@ export const uz_latn = {
   'cabinet.registration.title': "Ro'yxatdan o'tishni yakunlash",
   'cabinet.registration.intro':
     "Tizimdan foydalanishni davom ettirish uchun bir necha maydonni to'ldiring va telefon raqamingizni tasdiqlang.",
-  'cabinet.registration.consentsTitle': 'Roziliklar',
-  'cabinet.registration.consentPrivacy': "Maxfiylik siyosatiga roziman",
-  'cabinet.registration.consentOffer': "Ommaviy oferta shartlariga roziman",
-  'cabinet.registration.consentsStale':
-    "Hujjatlar yangilandi — davom etish uchun roziliklarni qaytadan tasdiqlang.",
   'cabinet.registration.phoneTitle': 'Telefon raqami',
   'cabinet.registration.phoneLabel': 'Telefon raqami',
   'cabinet.registration.phonePlaceholder': '+998901234567',
@@ -264,7 +259,6 @@ export const uz_latn = {
   'cabinet.registration.selectPlaceholder': 'Tanlanmagan',
   'cabinet.registration.submit': 'Yakunlash',
   'cabinet.registration.submitting': 'Yuborilmoqda…',
-  'cabinet.registration.needConsents': "Davom etish uchun ikkala rozilikni ham belgilang.",
   'cabinet.registration.needPhoneVerified':
     'Davom etish uchun telefon raqamini tasdiqlang.',
   'cabinet.registration.needAddress': 'Manzilni kiriting.',

@@ -263,11 +263,6 @@ export const uz_cyrl = {
   'cabinet.registration.title': "Рўйхатдан ўтишни якунлаш",
   'cabinet.registration.intro':
     "Тизимдан фойдаланишни давом эттириш учун бир неча майдонни тўлдиринг ва телефон рақамингизни тасдиқланг.",
-  'cabinet.registration.consentsTitle': 'Розиликлар',
-  'cabinet.registration.consentPrivacy': "Махфийлик сиёсатига розиман",
-  'cabinet.registration.consentOffer': "Оммавий оферта шартларига розиман",
-  'cabinet.registration.consentsStale':
-    "Ҳужжатлар янгиланди — давом этиш учун розиликларни қайтадан тасдиқланг.",
   'cabinet.registration.phoneTitle': 'Телефон рақами',
   'cabinet.registration.phoneLabel': 'Телефон рақами',
   'cabinet.registration.phonePlaceholder': '+998901234567',
@@ -281,7 +276,6 @@ export const uz_cyrl = {
   'cabinet.registration.selectPlaceholder': 'Танланмаган',
   'cabinet.registration.submit': 'Якунлаш',
   'cabinet.registration.submitting': 'Юборилмоқда…',
-  'cabinet.registration.needConsents': "Давом этиш учун иккала розиликни ҳам белгиланг.",
   'cabinet.registration.needPhoneVerified':
     "Давом этиш учун телефон рақамини тасдиқланг.",
   'cabinet.registration.needAddress': 'Манзилни киритинг.',
