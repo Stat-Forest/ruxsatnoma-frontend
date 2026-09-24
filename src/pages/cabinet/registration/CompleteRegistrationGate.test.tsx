@@ -71,6 +71,26 @@ test('the form asks for the phone only — no email, region, district or address
   }
 });
 
+test('the phone field starts with +998, and the prefix cannot be erased', async () => {
+  renderGate();
+  const input = screen.getByTestId('phone-input');
+  expect(input).toHaveValue('+998');
+  await userEvent.type(input, '{backspace}{backspace}{backspace}');
+  expect(input).toHaveValue('+998');
+  await userEvent.type(input, '901234567');
+  expect(input).toHaveValue('+998901234567');
+  await userEvent.type(input, '8');
+  expect(input).toHaveValue('+998901234567');
+});
+
+test('a pasted full number does not double the prefix', async () => {
+  renderGate();
+  const input = screen.getByTestId('phone-input');
+  await userEvent.clear(input);
+  await userEvent.paste('+998 90 123 45 67');
+  expect(input).toHaveValue('+998901234567');
+});
+
 test('an unverified phone cannot be submitted', async () => {
   let called = false;
   server.use(
