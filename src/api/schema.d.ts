@@ -9361,12 +9361,34 @@ export interface components {
             /** Activity Type Id */
             activity_type_id: string | null;
             /** Items */
-            items: components["schemas"]["ChecklistQuestion"][];
+            items: components["schemas"]["ChecklistQuestionOut"][];
             /** Status */
             status: string;
         };
         /** ChecklistQuestion */
         ChecklistQuestion: {
+            /** Code */
+            code: string;
+            question: components["schemas"]["LocalizedName"];
+            /**
+             * Type
+             * @enum {string}
+             */
+            type: "bool" | "number" | "text";
+            /**
+             * Required
+             * @default false
+             */
+            required: boolean;
+        };
+        /**
+         * ChecklistQuestionOut
+         * @description Same shape as `ChecklistQuestion`, but `code` is a plain, unbounded
+         *     `str` (I5, final review): a STORED row may predate `CodeStr`'s 64-char
+         *     bound, and a GET must still list it rather than 500 re-validating
+         *     output through the same tightened type the input schema uses.
+         */
+        ChecklistQuestionOut: {
             /** Code */
             code: string;
             question: components["schemas"]["LocalizedName"];
@@ -13302,6 +13324,29 @@ export interface components {
              */
             type: "text" | "number" | "date" | "money";
         };
+        /**
+         * ReportFormColumnOut
+         * @description Same shape as `ReportFormColumn`, but `code` is a plain, unbounded
+         *     `str` (I5, final review): a STORED row may predate `CodeStr`'s 64-char
+         *     bound, and a GET must still list it rather than 500 re-validating
+         *     output through the same tightened type the input schema uses.
+         *     `label: LocalizedName` stays as it is — a data check covers it.
+         */
+        ReportFormColumnOut: {
+            /** Code */
+            code: string;
+            label: components["schemas"]["LocalizedName"];
+            /**
+             * Source
+             * @enum {string}
+             */
+            source: "auto" | "manual";
+            /**
+             * Type
+             * @enum {string}
+             */
+            type: "text" | "number" | "date" | "money";
+        };
         /** ReportFormCreate */
         ReportFormCreate: {
             /** Code */
@@ -13349,7 +13394,7 @@ export interface components {
             /** Period Type */
             period_type: string;
             /** Columns */
-            columns: components["schemas"]["ReportFormColumn"][];
+            columns: components["schemas"]["ReportFormColumnOut"][];
             /** Rules */
             rules: {
                 [key: string]: unknown;
