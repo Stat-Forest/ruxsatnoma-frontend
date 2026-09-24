@@ -29,6 +29,7 @@ import {
 } from '../api';
 import { formatMoney, formatUnit, pickName } from '../format';
 import { fromPrecheckChecks } from '../checkTypeLabels';
+import { CalculationBreakdown } from '../components/CalculationBreakdown';
 import { ChecksList } from './ChecksList';
 import { ContourPicker, type PickedContour } from './ContourPicker';
 import { PricePreviewPanel } from './PricePreviewPanel';
@@ -1053,8 +1054,27 @@ export function ApplicationWizardPage() {
               <>
                 <ChecksList checks={fromPrecheckChecks(precheckResult.checks)} />
                 {precheckResult.calculation ? (
-                  <div className="bg-[#F0F9FF] border border-[#BAE6FD] rounded-xl p-4 font-mono text-lg font-bold text-[#123522]">
-                    {formatMoney(precheckResult.calculation.amount)} {t('wizard.step3.currency')}
+                  <div className="bg-[#F0F9FF] border border-[#BAE6FD] rounded-xl p-4 space-y-2">
+                    <div className="font-mono text-lg font-bold text-[#123522]">
+                      {formatMoney(precheckResult.calculation.amount)} {t('wizard.step3.currency')}
+                    </div>
+                    {/* The citizen signs over this figure, so they see how it
+                        came about here, before the signature — not only on
+                        the card afterwards. */}
+                    <CalculationBreakdown
+                      lines={precheckResult.calculation.lines}
+                      bhm={precheckResult.calculation.bhm}
+                      amount={precheckResult.calculation.amount}
+                      livestockName={(code) =>
+                        pickName(livestockTypesQuery.data?.find((l) => l.code === code)?.name, lang)
+                      }
+                      activityName={(code) =>
+                        pickName(activityTypesQuery.data?.find((a) => a.code === code)?.name, lang)
+                      }
+                      benefitName={(code) =>
+                        pickName(benefitCategoriesQuery.data?.find((b) => b.code === code)?.name, lang)
+                      }
+                    />
                   </div>
                 ) : (
                   <Alert variant="warning">{t('wizard.step5.incompleteWarning')}</Alert>

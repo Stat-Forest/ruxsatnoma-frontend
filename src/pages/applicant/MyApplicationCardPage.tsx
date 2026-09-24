@@ -15,6 +15,7 @@ import {
 import { formatDate, formatDateTime, formatMoney, pickName } from './format';
 import { STATUS_BADGE_KIND, getStatusLabel } from './statusMeta';
 import { ApplicantTimeline } from './components/ApplicantTimeline';
+import { CalculationBreakdown } from './components/CalculationBreakdown';
 import { ContourBoundaryPanel } from '../gis/ContourBoundaryPanel';
 import { formatPermitNumber } from '../permits/format';
 import { usePermitForApplication } from '../permits/usePermitForApplication';
@@ -203,6 +204,10 @@ export function MyApplicationCardPage() {
   const activityTypesQuery = useQuery({ queryKey: ['activity-types'], queryFn: listActivityTypes });
   const livestockTypesQuery = useQuery({ queryKey: ['livestock-types'], queryFn: listLivestockTypes });
   const docTypesQuery = useQuery({ queryKey: ['classifier-items', 'doc_types'], queryFn: () => listClassifierItems('doc_types') });
+  const benefitCategoriesQuery = useQuery({
+    queryKey: ['classifier-items', 'benefit_categories'],
+    queryFn: () => listClassifierItems('benefit_categories'),
+  });
   const invoicesQuery = useQuery({
     queryKey: ['invoices-for-application', id],
     queryFn: () => listInvoicesForApplication(id!),
@@ -242,6 +247,14 @@ export function MyApplicationCardPage() {
     pickName(livestockTypesQuery.data?.find((l) => l.id === livestockTypeId)?.name, lang);
   const docTypeName = (docTypeItemId: string) =>
     pickName(docTypesQuery.data?.find((d) => d.id === docTypeItemId)?.name, lang) || tr.defaultDocName;
+  // The price's own lines name what they charge for by CODE — the codes
+  // `norms` prices by — not by the ids the rest of this card carries.
+  const livestockNameByCode = (code: string) =>
+    pickName(livestockTypesQuery.data?.find((l) => l.code === code)?.name, lang);
+  const activityNameByCode = (code: string) =>
+    pickName(activityTypesQuery.data?.find((a) => a.code === code)?.name, lang);
+  const benefitNameByCode = (code: string) =>
+    pickName(benefitCategoriesQuery.data?.find((b) => b.code === code)?.name, lang);
 
   const invoice = invoicesQuery.data?.[0];
 
@@ -348,15 +361,19 @@ export function MyApplicationCardPage() {
         {card.calculation ? (
           <>
             <div className="font-mono text-xl sm:text-2xl font-extrabold text-[#123522] break-all">{formatMoney(card.calculation.amount)} {tr.som}</div>
-            <p className="text-xs text-[#5A646D] break-words">
-              rule_version: <code className="bg-white px-1 py-0.5 rounded border border-[#BAE6FD]">{card.calculation.rule_version}</code>
-              {card.calculation.max_sb !== null && (
-                <>
-                  {' '}
-                  · limit: {card.calculation.used_sb}/{card.calculation.max_sb} {tr.condHead}
-                </>
-              )}
-            </p>
+            {card.calculation.max_sb !== null && (
+              <p className="text-xs text-[#5A646D] break-words">
+                {t('wizard.step3.loadRatio')} {card.calculation.used_sb}/{card.calculation.max_sb} {tr.condHead}
+              </p>
+            )}
+            <CalculationBreakdown
+              lines={card.calculation.lines}
+              bhm={card.calculation.bhm}
+              amount={card.calculation.amount}
+              livestockName={livestockNameByCode}
+              activityName={activityNameByCode}
+              benefitName={benefitNameByCode}
+            />
           </>
         ) : (
           <p className="text-xs text-[#5A646D]">{tr.notCalculatedYet}</p>

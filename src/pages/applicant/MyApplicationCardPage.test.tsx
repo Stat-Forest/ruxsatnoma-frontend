@@ -139,3 +139,52 @@ test('a haymaking card (all four null) shows none of the four labels', async () 
   expect(screen.queryByText('Foydalanish maqsadi:')).not.toBeInTheDocument();
   expect(screen.queryByText('Tadbir sanasi va vaqti:')).not.toBeInTheDocument();
 });
+
+test('the price is explained line by line, and the rule version is not shown', async () => {
+  server.use(
+    http.get('*/api/v1/refs/livestock-types', () =>
+      HttpResponse.json([{ id: 'lt-1', code: 'sheep_goat_6m', name: { uz_latn: 'Qoʻy va echki' }, status: 'active' }]),
+    ),
+    http.get('*/api/v1/refs/classifiers/:code/items', ({ params }) =>
+      HttpResponse.json(
+        params.code === 'benefit_categories' ? [{ id: 'b-1', code: 'veteran', name: { uz_latn: 'Faxriy' } }] : [],
+      ),
+    ),
+  );
+  renderPage({
+    calculation: {
+      id: 'c1000000-0000-4000-8000-000000000001',
+      amount: '880000',
+      rule_version: 'norms-1.0.0',
+      used_sb: '40',
+      max_sb: null,
+      remaining_sb: null,
+      bhm: '440000',
+      lines: [
+        {
+          livestock_code: 'sheep_goat_6m',
+          quantity: '40',
+          quantity_unit: 'head',
+          coefficient: '0.1',
+          benefit_code: 'veteran',
+          benefit_modifier: '0.5',
+          amount: '880000',
+          exempt: false,
+        },
+      ],
+      created_at: '2026-09-01T10:00:00+05:00',
+    },
+  });
+
+  const breakdown = await screen.findByTestId('calculation-breakdown');
+  const text = () => breakdown.textContent?.replace(/\s+/g, ' ') ?? '';
+  expect(breakdown).toHaveTextContent('Qanday hisoblandi');
+  await screen.findByText(/Qoʻy va echki/);
+  expect(text()).toContain('Qoʻy va echki: 40 bosh × 0,1 BHM × 440 000 soʻm × 0,5 = 880 000 soʻm');
+  await screen.findByText(/Faxriy/);
+  expect(text()).toContain('Imtiyoz «Faxriy»: toʻlov 50% ga kamaytirilgan.');
+  expect(text()).toContain('BHM — bazaviy hisoblash miqdori, hisob-kitob kunida 440 000 soʻm.');
+  // One line needs no «Jami» of its own, and nothing here was rounded.
+  expect(text()).not.toContain('Jami');
+  expect(screen.queryByText(/rule_version|norms-1\.0\.0/)).not.toBeInTheDocument();
+});
