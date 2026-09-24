@@ -941,14 +941,42 @@ export function ApplicationWizardPage() {
                     </Button>
                   </div>
                 ))}
+                {/* Fix round 1 (stage 17 QA-01 review): this project's own
+                    defects keep failing in the HIDING direction, and a
+                    button that vanishes whenever the query is loading,
+                    errored, or simply not answered yet would be exactly
+                    that — a grazing applicant left with no row, no button
+                    and no message. So every branch below renders SOMETHING:
+                    a spinner-disabled button while loading; a danger Alert
+                    plus a disabled button on error (never hidden, so the
+                    applicant sees WHY nothing can be added); a "not
+                    configured" Alert with no button when the list loaded but
+                    is genuinely empty (nothing to add — the Alert IS the
+                    message, not a silent gap); and — the only case with no
+                    Alert, because it is the intended end state — no button
+                    once every known type already has its own row. */}
+                {livestockTypesQuery.isError && (
+                  <Alert variant="danger">
+                    {errorText(livestockTypesQuery.error, t('wizard.step3.livestockTypesLoadError'))}
+                  </Alert>
+                )}
+                {livestockTypesQuery.isSuccess && livestockTypesQuery.data.length === 0 && (
+                  <Alert variant="warning">{t('wizard.step3.livestockNotConfigured')}</Alert>
+                )}
                 {/* One row per known type at most — a row with no type left
                     to offer would only duplicate an existing one, which is
-                    exactly the refusal this caps client-side. */}
-                {items.length < (livestockTypesQuery.data?.length ?? 0) && (
+                    exactly the refusal this caps client-side. Hidden only
+                    once the cap is actually known and reached (including the
+                    trivial "0 types, 0 rows" case, covered by the Alert
+                    above); loading and error keep the button visible instead
+                    of hiding it (see the Alert/disabled handling above). */}
+                {!(livestockTypesQuery.isSuccess && items.length >= livestockTypesQuery.data.length) && (
                   <Button
                     variant="outline"
                     size="sm"
                     leftIcon={<Plus className="w-4 h-4" />}
+                    isLoading={livestockTypesQuery.isLoading}
+                    disabled={livestockTypesQuery.isError}
                     onClick={() => setItems([...items, { key: crypto.randomUUID(), livestockTypeId: '', headCount: '' }])}
                     className="cursor-pointer"
                   >

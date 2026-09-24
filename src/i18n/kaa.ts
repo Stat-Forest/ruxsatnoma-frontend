@@ -1743,6 +1743,8 @@ export const kaa = {
   'wizard.step3.selectPrompt': 'Tańlań...',
   'wizard.step3.addLivestock': 'Sharwa túrin qosıw',
   'wizard.step3.quantity': 'Muǵdar',
+  'wizard.step3.livestockTypesLoadError': 'Sharwa túrleri júklenbedi.',
+  'wizard.step3.livestockNotConfigured': 'Sharwa túrleri ele sazlanbaǵan — sharwa túrin qosıw múmkin emes.',
   'wizard.step3.deadwoodProduct': 'Ónim túri',
   'wizard.step3.deadwoodProduct.firewood': 'Otın',
   'wizard.step3.deadwoodProduct.branches': 'Shaqa-putaq',

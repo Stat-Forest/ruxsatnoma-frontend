@@ -1965,6 +1965,8 @@ export const uz_cyrl = {
   'wizard.step3.selectPrompt': "Танланг...",
   'wizard.step3.addLivestock': "Чорва турини қўшиш",
   'wizard.step3.quantity': "Миқдори",
+  'wizard.step3.livestockTypesLoadError': "Чорва турлари юкланмади.",
+  'wizard.step3.livestockNotConfigured': "Чорва турлари ҳали созланмаган — чорва турини қўшиш имконсиз.",
   'wizard.step3.deadwoodProduct': "Маҳсулот тури",
   'wizard.step3.deadwoodProduct.firewood': "Ўтин",
   'wizard.step3.deadwoodProduct.branches': "Шох-шабба",

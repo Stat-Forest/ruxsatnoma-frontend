@@ -1938,6 +1938,8 @@ export const ru = {
   'wizard.step3.selectPrompt': 'Выберите...',
   'wizard.step3.addLivestock': 'Добавить вид скота',
   'wizard.step3.quantity': 'Количество',
+  'wizard.step3.livestockTypesLoadError': 'Не удалось загрузить виды скота.',
+  'wizard.step3.livestockNotConfigured': 'Виды скота ещё не настроены — добавление вида скота пока недоступно.',
   'wizard.step3.deadwoodProduct': 'Вид продукции',
   'wizard.step3.deadwoodProduct.firewood': 'Дрова',
   'wizard.step3.deadwoodProduct.branches': 'Ветви',

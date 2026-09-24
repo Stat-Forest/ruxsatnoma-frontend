@@ -1977,6 +1977,8 @@ export const uz_latn = {
   'wizard.step3.selectPrompt': "Tanlang...",
   'wizard.step3.addLivestock': "Chorva turini qoʻshish",
   'wizard.step3.quantity': "Miqdori",
+  'wizard.step3.livestockTypesLoadError': "Chorva turlari yuklanmadi.",
+  'wizard.step3.livestockNotConfigured': "Chorva turlari hali sozlanmagan — chorva turini qoʻshish imkonsiz.",
   'wizard.step3.deadwoodProduct': "Mahsulot turi",
   'wizard.step3.deadwoodProduct.firewood': "Oʻtin",
   'wizard.step3.deadwoodProduct.branches': "Shox-shabba",

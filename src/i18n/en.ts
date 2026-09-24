@@ -1743,6 +1743,8 @@ export const en = {
   'wizard.step3.selectPrompt': 'Select...',
   'wizard.step3.addLivestock': 'Add livestock type',
   'wizard.step3.quantity': 'Quantity',
+  'wizard.step3.livestockTypesLoadError': 'Failed to load livestock types.',
+  'wizard.step3.livestockNotConfigured': 'Livestock types not configured yet — adding a livestock row is unavailable.',
   'wizard.step3.deadwoodProduct': 'Product type',
   'wizard.step3.deadwoodProduct.firewood': 'Firewood',
   'wizard.step3.deadwoodProduct.branches': 'Branches',

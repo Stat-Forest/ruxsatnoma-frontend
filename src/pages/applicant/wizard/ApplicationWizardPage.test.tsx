@@ -1587,13 +1587,52 @@ test('a species already picked in one livestock row is not offered again in anot
   expect(screen.queryByRole('button', { name: new RegExp(UZ['wizard.step3.addLivestock']) })).toBeNull();
 });
 
-test('the head-count input is capped at LIVESTOCK_HEAD_COUNT_MAX, and the quantity input at QUANTITY_MAX', async () => {
+test('the head-count input is capped at LIVESTOCK_HEAD_COUNT_MAX', async () => {
   server.use(activityHandler('grazing', 'Yaylov', 'head'), livestockTypesHandler([LIVESTOCK_TYPE_A, LIVESTOCK_TYPE_B]));
   renderWizard();
   await driveToStep3Grazing();
   await userEvent.click(screen.getByRole('button', { name: new RegExp(UZ['wizard.step3.addLivestock']) }));
 
   expect(screen.getAllByRole('spinbutton')[0]).toHaveAttribute('max', '1000000');
+});
+
+// Fix round 1 (stage 17 QA-01 review, Important): the add-row gate used to
+// read `items.length < (livestockTypesQuery.data?.length ?? 0)` — while the
+// query is loading, erroring, or comes back `[]`, `data?.length ?? 0` is `0`
+// and the button silently never renders. A grazing applicant would see no
+// row, no button, and no explanation — exactly the HIDING-direction defect
+// this stage exists to close. The fix keeps the button visible (disabled)
+// on error and shows a danger Alert naming what went wrong.
+test('the livestock-types query failing (500) shows an error Alert, and the add-row button stays visible but not clickable', async () => {
+  server.use(
+    activityHandler('grazing', 'Yaylov', 'head'),
+    http.get('*/api/v1/refs/livestock-types', () =>
+      HttpResponse.json({ error: { code: 'ERR-SYS-001', message: 'boom' } }, { status: 500 }),
+    ),
+  );
+  renderWizard();
+  await driveToStep3Grazing();
+
+  // The wizard's own `errorText`/`useApiErrorText` resolves a known code
+  // (`ERR-SYS-001`) to its normal localized copy — the same text any other
+  // Alert in this file would show for the same code.
+  expect(await screen.findByText("Serverning ichki xatosi. Keyinroq urinib ko'ring.")).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: new RegExp(UZ['wizard.step3.addLivestock']) })).toBeDisabled();
+});
+
+test('an empty livestock-types list shows a "not configured" message instead of a silent nothing', async () => {
+  server.use(activityHandler('grazing', 'Yaylov', 'head'), livestockTypesHandler([]));
+  renderWizard();
+  await chooseActivity('Yaylov');
+  await userEvent.click(await screen.findByText('pick-contour'));
+  fireEvent.change(screen.getByLabelText(new RegExp(UZ['wizard.step2.periodFrom'])), { target: { value: '2026-01-01' } });
+  fireEvent.change(screen.getByLabelText(new RegExp(UZ['wizard.step2.periodTo'])), { target: { value: '2026-06-01' } });
+  await userEvent.click(screen.getByRole('button', { name: new RegExp(UZ['wizard.nav.next']) }));
+
+  expect(await screen.findByText(UZ['wizard.step3.livestockNotConfigured'])).toBeInTheDocument();
+  // Nothing to add — the message IS the explanation, so the button is gone
+  // rather than sitting there disabled with nothing to point at.
+  expect(screen.queryByRole('button', { name: new RegExp(UZ['wizard.step3.addLivestock']) })).toBeNull();
 });
 
 test('the quantity input for a non-livestock activity is capped at QUANTITY_MAX', async () => {
