@@ -14,6 +14,7 @@ import {
   signDocument,
   useMockSigner,
 } from '../../../lib/eimzo';
+import { LANGUAGES } from '../../../i18n/context';
 import { useLanguage, useT } from '../../../i18n/useT';
 import { useApplicationPackage, useRejectionDefaults, useRejectionReasons, type RejectInput } from '../queries';
 import { emptyGround, groundComplete, type GroundDraft } from '../groundDraft';
@@ -67,6 +68,7 @@ const SIGN_DECISION_I18N = {
     packageErrorFallback: 'Hujjat yuklanmadi.',
     reapplyLabel: 'Qayta murojaat',
     appealLabel: 'Shikoyat qilish',
+    noticeLanguage: 'Xabarnoma tili',
   },
   uz_cyrl: {
     approveTitle: 'Аризани тасдиқлаш',
@@ -79,6 +81,7 @@ const SIGN_DECISION_I18N = {
     packageErrorFallback: 'Ҳужжат юкланмади.',
     reapplyLabel: 'Қайта мурожаат',
     appealLabel: 'Шикоят қилиш',
+    noticeLanguage: 'Хабарнома тили',
   },
   ru: {
     approveTitle: 'Утверждение заявления',
@@ -91,6 +94,7 @@ const SIGN_DECISION_I18N = {
     packageErrorFallback: 'Документ не загружен.',
     reapplyLabel: 'Повторное обращение',
     appealLabel: 'Обжалование',
+    noticeLanguage: 'Язык уведомления',
   },
   en: {
     approveTitle: 'Approve application',
@@ -103,6 +107,7 @@ const SIGN_DECISION_I18N = {
     packageErrorFallback: 'Failed to load document.',
     reapplyLabel: 'Re-applying',
     appealLabel: 'Appeal',
+    noticeLanguage: 'Notice language',
   },
   kaa: {
     approveTitle: 'Arzanı tastıyıqlaw',
@@ -115,6 +120,7 @@ const SIGN_DECISION_I18N = {
     packageErrorFallback: 'Hújjet júklenbedi.',
     reapplyLabel: 'Qayta múrájat',
     appealLabel: 'Shaǵım etiw',
+    noticeLanguage: 'Xabarnama tili',
   },
 };
 
@@ -168,6 +174,13 @@ export function SignDecisionModal({
   // in once it has loaded, and only until then.
   const reapplyText = reapply ?? defaults.data?.reapply_text ?? '';
   const appealText = appeal ?? defaults.data?.appeal_text ?? '';
+  // G3 (fix wave): the head signs blind to which language the printed
+  // notice actually uses unless this names it — `LANGUAGES` (`i18n/context`)
+  // already carries the same five display names the brief calls for, so
+  // this reads off that single source instead of a second copy of them.
+  const noticeLanguageName = defaults.data
+    ? LANGUAGES.find((l) => l.code === defaults.data.language)?.title ?? defaults.data.language
+    : null;
   const packageQuery = useApplicationPackage(applicationId);
   const loadingPackage = packageQuery.isLoading;
   const packageError = packageQuery.error
@@ -264,6 +277,11 @@ export function SignDecisionModal({
         {mode === 'reject' && (
           <>
             <RejectionGroundsEditor value={grounds} onChange={setGrounds} reasons={rejectionReasons.data ?? []} />
+            {noticeLanguageName && (
+              <p className="text-xs text-[#5A646D]" data-testid="notice-language">
+                <span className="font-bold text-[#1A1F24]">{tr.noticeLanguage}:</span> {noticeLanguageName}
+              </p>
+            )}
             <FormField label={tr.reapplyLabel} required>
               <Textarea
                 value={reapplyText}

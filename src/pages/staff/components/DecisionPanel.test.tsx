@@ -388,6 +388,29 @@ test('reject stays disabled until every ground field is filled, then submits the
   expect(body.appeal_text).toBe('Shikoyat matni');
 });
 
+// G3 (fix-wave review): the head signs blind to which language the printed
+// notice will actually use — `useRejectionDefaults` already returns
+// `language`, this just surfaces it above the two texts.
+test('shows which language the rejection notice will be printed in', async () => {
+  server.use(
+    http.get('*/api/v1/applications/:id/rejection-defaults', () =>
+      HttpResponse.json({ language: 'ru', reapply_text: 'Qayta murojaat matni', appeal_text: 'Shikoyat matni' }),
+    ),
+    http.get('*/api/v1/applications/:id/package', () => new HttpResponse(new Uint8Array([1, 2, 3]).buffer)),
+  );
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
+  renderPanel(card({ status: 'IN_REVIEW' }), client);
+
+  await userEvent.setup().click(screen.getByText('Rad etish'));
+
+  // The UI itself renders in uz_latn (the test harness's own language), but
+  // the NOTICE will print in ru — the label is in the UI language, the
+  // language name names the notice's own language.
+  const line = await screen.findByTestId('notice-language');
+  expect(line).toHaveTextContent('Xabarnoma tili');
+  expect(line).toHaveTextContent('Русский');
+});
+
 // Ruling R8: the server no longer fills anything from a rejected benefit
 // claim — the FORM prefills the first ground's `fact` instead, editable.
 test('a rejected benefit claim prefills the first ground\'s fact', async () => {
