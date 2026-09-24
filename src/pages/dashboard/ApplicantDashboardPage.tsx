@@ -3,19 +3,17 @@ import { Award, CalendarClock, CheckCircle2, Clock, CreditCard, Layers } from 'l
 import { Alert } from '../../components/ui/Feedback';
 import { useLanguage, useT } from '../../i18n/useT';
 import { pickName } from '../applicant/format';
-import { AreaDonutCard } from './components/AreaDonutCard';
-import { ContoursCard } from './components/ContoursCard';
+import { DeadlinesCard } from './components/DeadlinesCard';
 import { DynamicsCard } from './components/DynamicsCard';
 import { KpiTile, TileCount } from './components/KpiTile';
-import { LegalStatusCard } from './components/LegalStatusCard';
 import { formatCompactMoney, formatHectares } from './format';
 import {
   activePermitsSummary,
   applicationsInProgress,
-  areaByActivity,
-  contourRows,
+  expiryByActivity,
   monthlySeries,
   nearestExpiry,
+  reviewDeadlines,
   reviewStats,
   seasonalPayments,
 } from './metrics';
@@ -75,8 +73,10 @@ export function ApplicantDashboardPage() {
         { today, months: MONTHS },
       ),
       review: reviewStats(applicationItems),
-      slices: areaByActivity(permitItems),
-      contours: contourRows(permitItems, today),
+      expiryByType: expiryByActivity(permitItems, today),
+      // `today` in the deps keeps this from going stale across midnight; the
+      // instant itself is read here because an SLA deadline is a time of day.
+      reviewDeadlines: reviewDeadlines(applicationItems, new Date()),
     }),
     [applicationItems, permitItems, invoices, today],
   );
@@ -107,8 +107,6 @@ export function ApplicantDashboardPage() {
   const numberOf = (contourId: string) => contourNumbers.get(contourId) ?? '—';
 
   const expiringPermit = metrics.expiry?.permit ?? null;
-  const newestSignedPermit =
-    permitItems.filter((item) => item.status === 'active' && item.doc_hash !== null)[0] ?? null;
 
   return (
     <div className="space-y-5 pb-8">
@@ -172,14 +170,7 @@ export function ApplicantDashboardPage() {
         <div className="xl:col-span-2">
           <DynamicsCard points={metrics.series} stats={metrics.review} t={t} />
         </div>
-        <AreaDonutCard slices={metrics.slices} nameOf={nameOf} t={t} />
-      </div>
-
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-5">
-        <div className="xl:col-span-2">
-          <ContoursCard rows={metrics.contours} numberOf={numberOf} t={t} />
-        </div>
-        <LegalStatusCard permit={newestSignedPermit} t={t} />
+        <DeadlinesCard expiry={metrics.expiryByType} review={metrics.reviewDeadlines} nameOf={nameOf} t={t} />
       </div>
     </div>
   );
