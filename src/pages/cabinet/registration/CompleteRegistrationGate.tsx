@@ -234,6 +234,7 @@ export function CompleteRegistrationGate() {
                   value={phone}
                   disabled={phoneLocked}
                   onChange={(e) => setPhone(normalizePhone(e.target.value))}
+                  onBlur={() => setTouched(true)}
                 />
               </FormField>
             </div>
@@ -304,8 +305,12 @@ export function CompleteRegistrationGate() {
             </p>
           )}
 
-          {touched && otpStage !== 'verified' && (
-            <p className="text-xs text-[#B91C1C]">{t('cabinet.registration.needPhoneVerified')}</p>
+          {/* The submit button stays disabled until the phone is confirmed, so
+              this is a standing hint saying why, not an error after a click. */}
+          {otpStage !== 'verified' && (
+            <p data-testid="need-phone-verified" className="text-xs text-[#5A646D]">
+              {t('cabinet.registration.needPhoneVerified')}
+            </p>
           )}
         </section>
 
@@ -315,7 +320,13 @@ export function CompleteRegistrationGate() {
           </div>
         )}
 
-        <Button type="submit" data-testid="submit" fullWidth disabled={submitting} isLoading={submitting}>
+        <Button
+          type="submit"
+          data-testid="submit"
+          fullWidth
+          disabled={!canSubmit || submitting}
+          isLoading={submitting}
+        >
           {submitting ? t('cabinet.registration.submitting') : t('cabinet.registration.submit')}
         </Button>
       </form>
