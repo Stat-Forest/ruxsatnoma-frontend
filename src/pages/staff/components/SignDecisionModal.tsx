@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { AlertCircle, Loader2 } from 'lucide-react';
 import { Modal } from '../../../components/ui/Overlay';
 import { Button } from '../../../components/ui/button';
-import { FormField, Select, Textarea } from '../../../components/ui/FormControls';
+import { FormField, Textarea } from '../../../components/ui/FormControls';
 import { ApiError } from '../../../api/errors';
 import { useApiErrorText } from '../../../i18n/useApiErrorText';
 import {
@@ -15,8 +15,9 @@ import {
   useMockSigner,
 } from '../../../lib/eimzo';
 import { useLanguage, useT } from '../../../i18n/useT';
-import { useApplicationPackage, useRejectionReasons } from '../queries';
-import { localizedName } from '../format';
+import { useApplicationPackage, useRejectionDefaults, useRejectionReasons, type RejectInput } from '../queries';
+import { emptyGround, groundComplete, type GroundDraft } from '../groundDraft';
+import { RejectionGroundsEditor } from './RejectionGroundsEditor';
 
 export type DecisionMode = 'approve' | 'reject';
 
@@ -26,18 +27,32 @@ interface SignDecisionModalProps {
   isSubmitting: boolean;
   error: unknown;
   /**
-   * Non-null while the application's own benefit claim is `rejected`
-   * (ruling #182): `legal_basis` becomes optional in that case, and leaving
-   * it blank means "use the verifier's own reason" — `decision.reject`
-   * fills it from `benefit_rejection_reason` server-side. `null`/`undefined`
-   * for every other application (including `mode === 'approve'`, which
-   * never reads this) keeps the original rule: a missing `legal_basis` is
-   * refused.
+   * Non-null while the application's own benefit claim is `rejected`.
+   * Ruling R8 (stage 16) retires ruling #182's server-side default: this no
+   * longer makes any field optional — the server always requires the full
+   * set of grounds — it only prefills the FIRST ground's `fact`, editable,
+   * so the head does not retype what the leshoz already recorded.
+   * `null`/`undefined` for every other application (including
+   * `mode === 'approve'`, which never reads this) leaves the first ground
+   * blank as usual.
    */
   benefitRejectionReason?: string | null;
   onClose: () => void;
   onSubmitApprove: (pkcs7: string) => void;
-  onSubmitReject: (input: { pkcs7: string; reason_item_id: string; legal_basis: string | null }) => void;
+  onSubmitReject: (input: RejectInput) => void;
+}
+
+/** Every field of a ground, trimmed — the submitted body carries no leading
+ *  or trailing whitespace a head's keyboard happened to leave behind. */
+function trimAll(g: GroundDraft): GroundDraft {
+  return {
+    reason_item_id: g.reason_item_id.trim(),
+    fact: g.fact.trim(),
+    legal_document: g.legal_document.trim(),
+    legal_clause: g.legal_clause.trim(),
+    evidence: g.evidence.trim(),
+    remedy: g.remedy.trim(),
+  };
 }
 
 const SIGN_DECISION_I18N = {
@@ -50,10 +65,8 @@ const SIGN_DECISION_I18N = {
     rejectSubmit: 'Rad etish va imzolash',
     loadingPackage: 'Imzolanadigan hujjat yuklanmoqda (GET .../package)...',
     packageErrorFallback: 'Hujjat yuklanmadi.',
-    reasonLabel: 'Rad etish sababi',
-    selectPlaceholder: 'Tanlang...',
-    legalBasisLabel: 'Huquqiy asos (legal_basis)',
-    legalBasisPlaceholder: 'Masalan: VMQ 278-son, 12-band',
+    reapplyLabel: 'Qayta murojaat',
+    appealLabel: 'Shikoyat qilish',
   },
   uz_cyrl: {
     approveTitle: 'Аризани тасдиқлаш',
@@ -64,10 +77,8 @@ const SIGN_DECISION_I18N = {
     rejectSubmit: 'Рад этиш ва имзолаш',
     loadingPackage: 'Имзоланадиган ҳужжат юкланмоқда (GET .../package)...',
     packageErrorFallback: 'Ҳужжат юкланмади.',
-    reasonLabel: 'Рад этиш сабаби',
-    selectPlaceholder: 'Танланг...',
-    legalBasisLabel: 'Ҳуқуқий асос (legal_basis)',
-    legalBasisPlaceholder: 'Масалан: ВМҚ 278-сон, 12-банд',
+    reapplyLabel: 'Қайта мурожаат',
+    appealLabel: 'Шикоят қилиш',
   },
   ru: {
     approveTitle: 'Утверждение заявления',
@@ -78,10 +89,8 @@ const SIGN_DECISION_I18N = {
     rejectSubmit: 'Отклонить и подписать',
     loadingPackage: 'Загрузка подписываемого документа (GET .../package)...',
     packageErrorFallback: 'Документ не загружен.',
-    reasonLabel: 'Причина отклонения',
-    selectPlaceholder: 'Выберите...',
-    legalBasisLabel: 'Правовое основание (legal_basis)',
-    legalBasisPlaceholder: 'Например: ПКМ № 278, пункт 12',
+    reapplyLabel: 'Повторное обращение',
+    appealLabel: 'Обжалование',
   },
   en: {
     approveTitle: 'Approve application',
@@ -92,10 +101,8 @@ const SIGN_DECISION_I18N = {
     rejectSubmit: 'Reject and sign',
     loadingPackage: 'Loading document package to sign (GET .../package)...',
     packageErrorFallback: 'Failed to load document.',
-    reasonLabel: 'Rejection reason',
-    selectPlaceholder: 'Select...',
-    legalBasisLabel: 'Legal basis (legal_basis)',
-    legalBasisPlaceholder: 'For example: Resolution No. 278, item 12',
+    reapplyLabel: 'Reapplication',
+    appealLabel: 'Appeal',
   },
   kaa: {
     approveTitle: 'Arzanı tastıyıqlaw',
@@ -106,10 +113,8 @@ const SIGN_DECISION_I18N = {
     rejectSubmit: 'Biykar etiw hám qol qoyıw',
     loadingPackage: 'Qol qoyılatuǵın hújjet júklenbekte (GET .../package)...',
     packageErrorFallback: 'Hújjet júklenbedi.',
-    reasonLabel: 'Biykar etiw sebebi',
-    selectPlaceholder: 'Saylań...',
-    legalBasisLabel: 'Huqıqıy tiykar (legal_basis)',
-    legalBasisPlaceholder: 'Mısalı: VMQ 278-san, 12-bánt',
+    reapplyLabel: 'Qayta murájaat',
+    appealLabel: 'Shikayat etiw',
   },
 };
 
@@ -143,8 +148,11 @@ export function SignDecisionModal({
   const tr = SIGN_DECISION_I18N[lang] ?? SIGN_DECISION_I18N.uz_latn;
   const errorText = useApiErrorText();
   const signer = useMockSigner();
-  const [reasonItemId, setReasonItemId] = useState('');
-  const [legalBasis, setLegalBasis] = useState('');
+  // Ruling R8 (stage 16): the rejected benefit claim's own reason prefills
+  // the FIRST ground's `fact`, editable — never sent as-is.
+  const [grounds, setGrounds] = useState<GroundDraft[]>(() => [emptyGround(benefitRejectionReason ?? '')]);
+  const [reapply, setReapply] = useState<string | null>(null);
+  const [appeal, setAppeal] = useState<string | null>(null);
   // Real mode only: `signDocument` runs BEFORE `onSubmitApprove`/
   // `onSubmitReject` ever fire, so its own failure never reaches the
   // mutation's `error` prop — kept apart, same reason
@@ -153,6 +161,13 @@ export function SignDecisionModal({
   const [signing, setSigning] = useState(false);
 
   const rejectionReasons = useRejectionReasons();
+  // Reject mode only — approve never needs the notice's default texts, and
+  // the route stays unmocked wherever an approve-only test never expects it.
+  const defaults = useRejectionDefaults(applicationId, { enabled: mode === 'reject' });
+  // The user's own edit wins once they touch the field; the default fills
+  // in once it has loaded, and only until then.
+  const reapplyText = reapply ?? defaults.data?.reapply_text ?? '';
+  const appealText = appeal ?? defaults.data?.appeal_text ?? '';
   const packageQuery = useApplicationPackage(applicationId);
   const loadingPackage = packageQuery.isLoading;
   const packageError = packageQuery.error
@@ -163,18 +178,15 @@ export function SignDecisionModal({
 
   // `signer.blocked` (mock mode, no PINFL on the account) disables the
   // button — unlike the old empty-field case there is nothing the operator
-  // could type to fix it, and `MockSignerNotice` below says why.
-  // Ruling #182: with a benefit-claim rejection reason on hand, `legal_basis`
-  // is optional — the server fills it from that reason when this field is
-  // left blank (`legalBasisRequired` below feeds both the button gate and
-  // the field's own `required` marker).
-  const legalBasisRequired = mode === 'reject' && !benefitRejectionReason;
+  // could type to fix it, and `MockSignerNotice` below says why. Ruling R3:
+  // every ground's six fields are required, plus both notice texts.
   const canSubmit =
     packageQuery.data !== undefined &&
     !isSubmitting &&
     !signing &&
     !signer.blocked &&
-    (mode === 'approve' || (reasonItemId !== '' && (!legalBasisRequired || legalBasis.trim().length > 0)));
+    (mode === 'approve' ||
+      (grounds.length > 0 && grounds.every(groundComplete) && reapplyText.trim() !== '' && appealText.trim() !== ''));
 
   async function handleSubmit() {
     if (!packageQuery.data) return;
@@ -204,10 +216,12 @@ export function SignDecisionModal({
     if (mode === 'approve') {
       onSubmitApprove(pkcs7);
     } else {
-      // A blank field sends `null`, never `''` — `''` would still read as
-      // "given but empty" to a caller checking only `!== undefined`, and the
-      // whole point of leaving it blank is "use the verifier's own reason".
-      onSubmitReject({ pkcs7, reason_item_id: reasonItemId, legal_basis: legalBasis.trim() || null });
+      onSubmitReject({
+        pkcs7,
+        grounds: grounds.map(trimAll),
+        reapply_text: reapplyText.trim(),
+        appeal_text: appealText.trim(),
+      });
     }
   }
 
@@ -249,25 +263,18 @@ export function SignDecisionModal({
 
         {mode === 'reject' && (
           <>
-            <FormField label={tr.reasonLabel} required>
-              <Select
-                value={reasonItemId}
-                onChange={(e) => setReasonItemId(e.target.value)}
-                options={[
-                  { value: '', label: tr.selectPlaceholder },
-                  ...(rejectionReasons.data ?? []).map((r) => ({ value: r.id, label: localizedName(r.name, lang) || r.code })),
-                ]}
+            <RejectionGroundsEditor value={grounds} onChange={setGrounds} reasons={rejectionReasons.data ?? []} />
+            <FormField label={tr.reapplyLabel} required>
+              <Textarea
+                value={reapplyText}
+                onChange={(e) => setReapply(e.target.value)}
+                maxLength={2000}
               />
             </FormField>
-            <FormField
-              label={tr.legalBasisLabel}
-              required={legalBasisRequired}
-              helperText={!legalBasisRequired ? t('staff.decision.benefit.legalBasisOptionalHint') : undefined}
-            >
+            <FormField label={tr.appealLabel} required>
               <Textarea
-                value={legalBasis}
-                onChange={(e) => setLegalBasis(e.target.value)}
-                placeholder={tr.legalBasisPlaceholder}
+                value={appealText}
+                onChange={(e) => setAppeal(e.target.value)}
                 maxLength={2000}
               />
             </FormField>
