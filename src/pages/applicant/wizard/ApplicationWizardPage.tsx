@@ -187,6 +187,27 @@ function isUnknownBenefitCode(error: unknown): boolean {
   );
 }
 
+/** The backend's refusals of the benefit claim itself (`ERR-APP-003`): the
+ *  number missing (#181), the scan missing or its type not configured
+ *  (#220), or — for the Beekeeping Union member — a number unknown to the
+ *  Union's register, someone else's, or expired (#219). Each belongs to the
+ *  benefit row: the wizard keeps or sends the applicant back to step 4 and
+ *  shows it there, rather than a banner about a field they cannot see. */
+const BENEFIT_CLAIM_REASONS = new Set([
+  'benefit_certificate_required',
+  'benefit_claim_needs_a_document',
+  'benefit_doc_type_not_configured',
+  'benefit_certificate_unknown',
+  'benefit_certificate_not_yours',
+  'benefit_certificate_expired',
+]);
+
+function isBenefitClaimRefusal(error: unknown): boolean {
+  if (!(error instanceof ApiError) || error.code !== 'ERR-APP-003') return false;
+  const reason = (error.details as { reason?: string } | undefined)?.reason;
+  return reason !== undefined && BENEFIT_CLAIM_REASONS.has(reason);
+}
+
 /**
  * B7 — the application wizard, the core of the system. Rewritten in stage 12
  * (plan 12, R10 — filing without a draft): steps 1-4 write NOTHING, and the
@@ -251,10 +272,11 @@ export function ApplicationWizardPage() {
   // applicant first learns of it.
   const [benefitCertificateNo, setBenefitCertificateNo] = useState('');
   const [certificateTouched, setCertificateTouched] = useState(false);
-  // Set only from a filing refusal (`ERR-APP-003`,
-  // `benefit_certificate_required/unknown/not_yours`) — `handleSignAndSubmit`
-  // sends the applicant back to step 4 and shows the server's own reason
-  // right at this field, rather than only in the step-5 banner.
+  // Set only from a backend refusal of the claim (`isBenefitClaimRefusal`)
+  // — step 4's own pre-check (#219: the Union's register answers
+  // on "Next") or a filing refusal in `handleSignAndSubmit`, which sends the
+  // applicant back to step 4. Shown right at this field, never only as a
+  // step-5 banner.
   const [benefitCertificateServerError, setBenefitCertificateServerError] = useState<string | null>(null);
   // Step 4's rows that have no file yet. One empty row from the start, so
   // the step opens on a select rather than on a lone "add" button; every
@@ -354,19 +376,23 @@ export function ApplicationWizardPage() {
       ? claimedBenefitCategoryItemId
       : '';
 
-  // Ruling #181: every one of the seven benefit categories needs a
-  // certificate number — there is no `props.requires_certificate` switch to
-  // read any more. Simply: a category is chosen, or it isn't. The
-  // certificate's scan is OPTIONAL (ruling #189): the number is the claim,
-  // the file is support for whoever verifies it, and the backend no longer
-  // gates the submission on it either.
+  // Ruling #181 and decision #220: every one of the seven benefit categories
+  // needs a certificate number AND its scan — there is no
+  // `props.requires_certificate` switch to read. Simply: a category is
+  // chosen, or it isn't.
   const requiresCertificate = benefitCategoryItemId !== '';
   // The `doc_types` item the scan is filed under (`benefit_proof`,
   // migration `0024`) — looked up by CODE, never by list position (the exact
   // bug `respond_info`'s own fix wave, docs/status.md, exists to avoid
   // repeating here). Undefined while the list loads or if the item is
-  // archived — then the benefit row simply offers no file button.
+  // archived — then the benefit row offers no file button.
   const benefitProofDocTypeId = docTypesQuery.data?.find((d) => d.code === 'benefit_proof')?.id;
+  // FAIL-CLOSED, like the backend's own check (#220): while the doc-type list
+  // has not loaded, or `benefit_proof` is not in it, the gate stays SHUT —
+  // never a green "attached" over an empty list.
+  const hasBenefitProofDoc =
+    !requiresCertificate ||
+    (!!benefitProofDocTypeId && documents.some((d) => d.doc_type_item_id === benefitProofDocTypeId));
 
   // Plan 12: the whole filing, assembled from this component's own state —
   // never a server-side draft. Shared by the pre-check, the package and the
@@ -476,8 +502,27 @@ export function ApplicationWizardPage() {
       return;
     }
     if (step === 4) {
-      goToStep(5);
       setPrecheckResult(null);
+      // Ruling #219: with a benefit claimed, the pre-check runs while the
+      // applicant is STILL on step 4 — the Beekeeping Union's register
+      // answers there, and a number it refuses keeps them where the number
+      // is typed (Odilxon's own words: "returns"), never on step 5 with a
+      // banner. Any other outcome moves on as before: the result, or a
+      // refusal of something else, is shown on step 5.
+      if (requiresCertificate) {
+        precheckMutation.mutate(undefined, {
+          onSuccess: () => goToStep(5),
+          onError: (err) => {
+            if (isBenefitClaimRefusal(err)) {
+              setBenefitCertificateServerError(errorText(err));
+              return;
+            }
+            goToStep(5);
+          },
+        });
+        return;
+      }
+      goToStep(5);
       // `mutate`, not `mutateAsync`: nothing here awaits the result, and a
       // refused pre-check (a 400 on the input, `precheckFiling`'s own
       // docstring) is shown from the mutation's state on step 5 — as an
@@ -590,14 +635,11 @@ export function ApplicationWizardPage() {
       // Cancel in the certificate picker is a decision, not a failure: an
       // error banner here would claim the filing failed when nobody tried.
       if (isEimzoCancelled(err)) return;
-      // Ruling #181: a benefit-certificate refusal is a FIELD error, not a
-      // banner — the wizard sends the applicant back to step 4, where the
-      // certificate number actually lives, rather than leaving them on step
-      // 5 staring at a sentence about a field they cannot see.
-      const reason = err instanceof ApiError ? (err.details as { reason?: string } | undefined)?.reason : undefined;
-      // Ruling #206: the register is no longer consulted at filing, so
-      // `required` is the only certificate reason the backend still sends.
-      if (err instanceof ApiError && err.code === 'ERR-APP-003' && reason === 'benefit_certificate_required') {
+      // Rulings #181/#219: a refusal of the certificate number is a FIELD
+      // error, not a banner — the register may have changed since step 4's
+      // pre-check, so the filing can still refuse it, and the wizard sends
+      // the applicant back to step 4, where the number actually lives.
+      if (isBenefitClaimRefusal(err)) {
         setBenefitCertificateServerError(errorText(err));
         setStep(4);
         return;
@@ -1144,18 +1186,22 @@ export function ApplicationWizardPage() {
                 // so the server's refusal is never how the citizen learns it.
                 (step === 3 && isDeadwood && (!deadwoodProduct || !removalDeadline)) ||
                 (step === 3 && isRecreation && (!recreationPurpose || !eventAt)) ||
-                // Ruling #181: the certificate number must be filled in
-                // before the wizard moves on — the backend's own refusal
-                // (`ERR-APP-003`, `benefit_certificate_required`) must never
-                // be how the applicant first learns it was needed. The scan
-                // is optional (#189) and gates nothing.
+                // Ruling #181 and decision #220: the certificate number and
+                // its scan must both be there before the wizard moves on — the
+                // backend's own refusal (`ERR-APP-003`) must never be how the
+                // applicant first learns they were needed.
                 (step === 4 && requiresCertificate && !benefitCertificateNo.trim()) ||
+                (step === 4 && !hasBenefitProofDoc) ||
                 // A row with a type chosen and no file is a document the
                 // citizen meant to attach: moving on would drop it without
                 // a word (the hiding direction), so the row is finished or
                 // removed first — the hint under it says which.
                 (step === 4 && docRows.some((r) => r.typeValue !== ''))
               }
+              // #219: step 4's own pre-check (a benefit claimed) — one press,
+              // one request; a second one while the register answers would
+              // race the first.
+              isLoading={step === 4 && precheckMutation.isPending}
               onClick={goNext}
               className="cursor-pointer font-bold"
             >
@@ -1242,7 +1288,7 @@ type UploadedDocument = { id: string; doc_type_item_id: string; file_id: string 
  * Step 4 as rows. The "document type" select of every row carries BOTH the
  * `doc_types` items and, under a divider, the `benefit_categories` items:
  * picking a category turns that row into THE benefit row — category, its
- * certificate number (ruling #181) and, optionally (#189), its scan — because
+ * certificate number (ruling #181) and its scan (#220) — because
  * an application claims at most one benefit (`applications.benefit_category_
  * item_id` is one column), so the categories disappear from every other
  * row's select while one is chosen. `benefit_proof` itself is not offered
@@ -1383,11 +1429,11 @@ function DocumentsStep({
               <Trash2 className="w-4 h-4 text-[#B91C1C]" />
             </Button>
           </div>
-          {/* Ruling #189: the scan is optional — said so under the row, and
-              listed with its own delete once attached (filed under
-              `benefit_proof`). */}
+          {/* Decision #220: the scan is mandatory exactly like the number —
+              said so under the row until it is attached, then listed with
+              its own delete (filed under `benefit_proof`). */}
           {proofDocuments.length === 0 ? (
-            <p className="text-[11px] text-[#5A646D]">{t('wizard.step4.benefitProofOptional')}</p>
+            <Alert variant="warning">{t('wizard.step4.benefitProofRequired')}</Alert>
           ) : (
             <Alert variant="success">
               <span className="flex flex-wrap items-center justify-between gap-2">
