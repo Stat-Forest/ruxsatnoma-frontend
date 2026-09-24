@@ -261,15 +261,12 @@ test('a must_change_password account gets the form that resolves it, not a dead 
 test('an applicant with an incomplete registration sees the form that resolves it, not a dead end', async () => {
   server.use(
     http.get('*/auth/me', () => HttpResponse.json({ ...ME, registration_complete: false })),
-    http.get('*/refs/regions', () => HttpResponse.json([])),
-    http.get('*/refs/districts', () => HttpResponse.json([])),
   );
   await renderAt('/');
   // The gate itself still holds the app shut, but — like `must_change_password`
   // just above — it now contains the one action that lifts it, not a notice
   // pointing at an administrator who has no route to help.
   const gate = within(await screen.findByTestId('registration-incomplete'));
-  expect(gate.getByTestId('consent-privacy')).toBeInTheDocument();
   expect(gate.getByTestId('phone-input')).toBeInTheDocument();
   expect(screen.queryByTestId('dashboard-page')).toBeNull();
 });

@@ -1,20 +1,29 @@
 import { useState } from 'react';
 import type { FormEvent } from 'react';
-import { useQuery } from '@tanstack/react-query';
 import { CheckCircle2, LogOut } from 'lucide-react';
 import { ApiError } from '../../../api/errors';
 import { Button } from '../../../components/ui/button';
 import { Alert } from '../../../components/ui/Feedback';
-import { Checkbox, FormField, Input, Select } from '../../../components/ui/FormControls';
+import { FormField, Input } from '../../../components/ui/FormControls';
 import { useAuth } from '../../../auth/useAuth';
 import { useApiErrorText } from '../../../i18n/useApiErrorText';
 import { useT } from '../../../i18n/useT';
 import { requestOtp, verifyOtp } from '../../../lib/otpApi';
-import { completeRegistration, listDistricts, listRegions } from './api';
+import { completeRegistration } from './api';
 
 const PHONE_PATTERN = /^\+998\d{9}$/;
 
 type OtpStage = 'idle' | 'sent' | 'verified';
+
+type ConsentVersions = { privacy_policy: string; offer: string };
+
+const DEFAULT_CONSENTS: ConsentVersions = { privacy_policy: '1.0', offer: '1.0' };
+
+/** The versions the server says are current, when it refused ours as stale. */
+function staleConsents(err: unknown): Partial<ConsentVersions> | undefined {
+  if (!(err instanceof ApiError) || err.code !== 'ERR-VAL-001') return undefined;
+  return (err.details as { consents_current?: Partial<ConsentVersions> } | undefined)?.consents_current;
+}
 
 /** `ERR-AUTH-009` (rate limit) and `ERR-AUTH-010` (bad/expired code) get their
  * own copy; anything else falls back to a generic message — the same shape
@@ -28,7 +37,7 @@ function otpErrorMessage(err: unknown, t: (key: string) => string): string {
 }
 
 /**
- * Screen B2 (С2 finish registration) — consents, phone OTP, then
+ * Screen B2 (С2 finish registration) — phone OTP, then
  * `POST /auth/complete-registration`. Rendered by `RequireAuth` in place of
  * `children` whenever `me.registration_complete` is false, the same shape it
  * already uses for `must_change_password` — see that gate's own comment for
@@ -37,14 +46,21 @@ function otpErrorMessage(err: unknown, t: (key: string) => string): string {
  * `applyMe(fresh me)` flips the gate, `RequireAuth` simply renders what was
  * already being asked for.
  *
+ * Consents carry no checkboxes here (Oybek, 2026-09-24): the login page
+ * already tells every visitor that signing in accepts the privacy policy and
+ * the offer (`login.termsNotice`), so asking again after the ERI signature
+ * was a second click on the same words. The request still sends `consents`,
+ * and the server still writes `user_consents` with the version and the client
+ * IP (#42 ruling 10) — only the redundant click is gone.
+ *
  * Consent versions (ruling R3, `docs/plans/06.5-cabinet-tails.md`): there is
  * no route an ordinary applicant can call to read the CURRENT
  * `privacy_policy_version`/`offer_version` (`GET /admin/settings` needs
  * `admin.settings.manage`). Both default to `"1.0"` server-side
  * (`app/core/settings_store.py`), so that is what this form starts with; on
- * an `ERR-VAL-001` naming `details.consents_current`, the versions are
- * corrected from the error and the citizen is asked to re-accept, rather
- * than fail a second time with no way forward.
+ * an `ERR-VAL-001` naming `details.consents_current`, the request is repeated
+ * once with the versions the server named — the documents the login page
+ * links to are always the current ones.
  */
 export function CompleteRegistrationGate() {
   const { me, applyMe, logout } = useAuth();
@@ -61,11 +77,6 @@ export function CompleteRegistrationGate() {
     }
   }
 
-  const [privacyChecked, setPrivacyChecked] = useState(false);
-  const [offerChecked, setOfferChecked] = useState(false);
-  const [consentVersions, setConsentVersions] = useState({ privacy_policy: '1.0', offer: '1.0' });
-  const [staleNotice, setStaleNotice] = useState(false);
-
   const [phone, setPhone] = useState('');
   const [otpStage, setOtpStage] = useState<OtpStage>('idle');
   const [otpToken, setOtpToken] = useState<string | null>(null);
@@ -73,21 +84,9 @@ export function CompleteRegistrationGate() {
   const [otpError, setOtpError] = useState<string | null>(null);
   const [otpBusy, setOtpBusy] = useState(false);
 
-  const [email, setEmail] = useState('');
-  const [regionId, setRegionId] = useState('');
-  const [districtId, setDistrictId] = useState('');
-  const [address, setAddress] = useState('');
-
   const [touched, setTouched] = useState(false);
   const [submitError, setSubmitError] = useState<ApiError | null>(null);
   const [submitting, setSubmitting] = useState(false);
-
-  const regionsQuery = useQuery({ queryKey: ['refs', 'regions'], queryFn: listRegions });
-  const districtsQuery = useQuery({
-    queryKey: ['refs', 'districts', regionId],
-    queryFn: () => listDistricts(regionId),
-    enabled: regionId !== '',
-  });
 
   const phoneValid = PHONE_PATTERN.test(phone);
   const phoneLocked = otpStage !== 'idle';
@@ -128,13 +127,12 @@ export function CompleteRegistrationGate() {
   }
 
   // Ruling #113 (`docs/decisions.md`): the address requisite is gated at
-  // SUBMIT, not at registration — a citizen may sign in and look around with
-  // no address at all. Requiring it here anyway is a separate, forward-looking
-  // choice: it is the right place for a NEW account, so a fresh registration
-  // never lands in the state this ruling exists to unblock (`ApplicationWizardPage`
-  // asks address-less EXISTING accounts for it at submission instead).
-  const canSubmit =
-    privacyChecked && offerChecked && otpStage === 'verified' && otpToken !== null && address.trim() !== '';
+  // SUBMIT, not at registration, and `ApplicationWizardPage` asks for it
+  // there. Registration used to ask for it anyway, together with an optional
+  // email, region and district; Oybek, 2026-09-24, cut the screen down to the
+  // phone alone — email is added and verified in the profile, and the address
+  // is asked for once, at the first submission that actually needs it.
+  const canSubmit = otpStage === 'verified' && otpToken !== null;
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
@@ -142,41 +140,29 @@ export function CompleteRegistrationGate() {
     if (!canSubmit || !otpToken) return;
     setSubmitting(true);
     setSubmitError(null);
-    setStaleNotice(false);
-    try {
-      const me = await completeRegistration({
-        consents: consentVersions,
+    const send = (consents: ConsentVersions) =>
+      completeRegistration({
+        consents,
         phone,
         otp_token: otpToken,
-        email: email.trim() ? email.trim() : null,
-        region_id: regionId || null,
-        district_id: districtId || null,
-        // `canSubmit` already requires a non-empty address (ruling #113's
-        // forward-looking choice for new accounts, see `canSubmit`'s own
-        // comment above) — unlike `email`/`region_id`/`district_id`, this one
-        // never has a `null` branch to fall into.
-        address: address.trim(),
       });
+    try {
+      let me;
+      try {
+        me = await send(DEFAULT_CONSENTS);
+      } catch (err) {
+        const current = staleConsents(err);
+        if (!current) throw err;
+        me = await send({
+          privacy_policy: current.privacy_policy ?? DEFAULT_CONSENTS.privacy_policy,
+          offer: current.offer ?? DEFAULT_CONSENTS.offer,
+        });
+      }
       applyMe(me);
     } catch (err) {
-      const details =
-        err instanceof ApiError && err.code === 'ERR-VAL-001'
-          ? (err.details as { consents_current?: { privacy_policy?: string; offer?: string } } | undefined)
-              ?.consents_current
-          : undefined;
-      if (details) {
-        setConsentVersions((prev) => ({
-          privacy_policy: details.privacy_policy ?? prev.privacy_policy,
-          offer: details.offer ?? prev.offer,
-        }));
-        setPrivacyChecked(false);
-        setOfferChecked(false);
-        setStaleNotice(true);
-      } else {
-        setSubmitError(
-          err instanceof ApiError ? err : new ApiError('ERR-SYS-000', t('cabinet.registration.genericError')),
-        );
-      }
+      setSubmitError(
+        err instanceof ApiError ? err : new ApiError('ERR-SYS-000', t('cabinet.registration.genericError')),
+      );
     } finally {
       setSubmitting(false);
     }
@@ -217,30 +203,6 @@ export function CompleteRegistrationGate() {
           <p className="mt-1 text-xs text-[#5A646D] leading-relaxed">{t('cabinet.registration.intro')}</p>
         </div>
 
-        {staleNotice && <Alert variant="warning">{t('cabinet.registration.consentsStale')}</Alert>}
-
-        <section className="space-y-2">
-          <h2 className="text-xs font-semibold uppercase tracking-wider text-[#5A646D]">
-            {t('cabinet.registration.consentsTitle')}
-          </h2>
-          <Checkbox
-            data-testid="consent-privacy"
-            label={t('cabinet.registration.consentPrivacy')}
-            checked={privacyChecked}
-            onChange={(e) => setPrivacyChecked(e.target.checked)}
-          />
-          <Checkbox
-            data-testid="consent-offer"
-            label={t('cabinet.registration.consentOffer')}
-            checked={offerChecked}
-            onChange={(e) => setOfferChecked(e.target.checked)}
-          />
-          {touched && !(privacyChecked && offerChecked) && (
-            <p className="text-xs text-[#B91C1C]" role="alert">
-              {t('cabinet.registration.needConsents')}
-            </p>
-          )}
-        </section>
 
         <section className="space-y-2">
           <h2 className="text-xs font-semibold uppercase tracking-wider text-[#5A646D]">
@@ -328,62 +290,6 @@ export function CompleteRegistrationGate() {
 
           {touched && otpStage !== 'verified' && (
             <p className="text-xs text-[#B91C1C]">{t('cabinet.registration.needPhoneVerified')}</p>
-          )}
-        </section>
-
-        <section className="space-y-3">
-          <h2 className="text-xs font-semibold uppercase tracking-wider text-[#5A646D]">
-            {t('cabinet.registration.detailsTitle')}
-          </h2>
-          <FormField label={t('cabinet.registration.emailLabel')} helperText={t('cabinet.registration.emailHint')}>
-            <Input
-              data-testid="email-input"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-            />
-          </FormField>
-          <div className="grid grid-cols-2 gap-3">
-            <FormField label={t('cabinet.registration.regionLabel')}>
-              <Select
-                data-testid="region-select"
-                value={regionId}
-                onChange={(e) => {
-                  setRegionId(e.target.value);
-                  setDistrictId('');
-                }}
-                options={[
-                  { value: '', label: t('cabinet.registration.selectPlaceholder') },
-                  ...(regionsQuery.data ?? []).map((r) => ({
-                    value: r.id,
-                    label: typeof r.name.uz_latn === 'string' ? r.name.uz_latn : String(r.code),
-                  })),
-                ]}
-              />
-            </FormField>
-            <FormField label={t('cabinet.registration.districtLabel')}>
-              <Select
-                data-testid="district-select"
-                value={districtId}
-                disabled={regionId === ''}
-                onChange={(e) => setDistrictId(e.target.value)}
-                options={[
-                  { value: '', label: t('cabinet.registration.selectPlaceholder') },
-                  ...(districtsQuery.data ?? []).map((d) => ({
-                    value: d.id,
-                    label: typeof d.name.uz_latn === 'string' ? d.name.uz_latn : String(d.code),
-                  })),
-                ]}
-              />
-            </FormField>
-          </div>
-          <FormField label={t('cabinet.registration.addressLabel')} required>
-            <Input data-testid="address-input" value={address} onChange={(e) => setAddress(e.target.value)} />
-          </FormField>
-          {touched && address.trim() === '' && (
-            <p className="text-xs text-[#B91C1C]" role="alert">
-              {t('cabinet.registration.needAddress')}
-            </p>
           )}
         </section>
 

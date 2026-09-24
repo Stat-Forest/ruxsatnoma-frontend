@@ -262,29 +262,15 @@ export const uz_cyrl = {
 
   'cabinet.registration.title': "Рўйхатдан ўтишни якунлаш",
   'cabinet.registration.intro':
-    "Тизимдан фойдаланишни давом эттириш учун бир неча майдонни тўлдиринг ва телефон рақамингизни тасдиқланг.",
-  'cabinet.registration.consentsTitle': 'Розиликлар',
-  'cabinet.registration.consentPrivacy': "Махфийлик сиёсатига розиман",
-  'cabinet.registration.consentOffer': "Оммавий оферта шартларига розиман",
-  'cabinet.registration.consentsStale':
-    "Ҳужжатлар янгиланди — давом этиш учун розиликларни қайтадан тасдиқланг.",
+    'Тизимдан фойдаланишни давом эттириш учун телефон рақамингизни тасдиқланг.',
   'cabinet.registration.phoneTitle': 'Телефон рақами',
   'cabinet.registration.phoneLabel': 'Телефон рақами',
   'cabinet.registration.phonePlaceholder': '+998901234567',
   'cabinet.registration.invalidPhone': "Телефон рақами +998ХХХХХХХХХ кўринишида бўлиши керак",
-  'cabinet.registration.detailsTitle': "Қўшимча маълумотлар",
-  'cabinet.registration.emailLabel': 'Электрон почта',
-  'cabinet.registration.emailHint': "Электрон почта кейинроқ профилда алоҳида тасдиқланади.",
-  'cabinet.registration.regionLabel': 'Вилоят',
-  'cabinet.registration.districtLabel': 'Туман',
-  'cabinet.registration.addressLabel': 'Манзил',
-  'cabinet.registration.selectPlaceholder': 'Танланмаган',
   'cabinet.registration.submit': 'Якунлаш',
   'cabinet.registration.submitting': 'Юборилмоқда…',
-  'cabinet.registration.needConsents': "Давом этиш учун иккала розиликни ҳам белгиланг.",
   'cabinet.registration.needPhoneVerified':
     "Давом этиш учун телефон рақамини тасдиқланг.",
-  'cabinet.registration.needAddress': 'Манзилни киритинг.',
   'cabinet.registration.genericError': "Хатолик юз берди. Қайта уриниб кўринг.",
 
   'cabinet.profile.tabProfile': 'Профиль',
