@@ -252,46 +252,101 @@ export function reviewStats(applications: ApplicationOut[]): ReviewStats {
   };
 }
 
-// --- the donut ------------------------------------------------------------
+// --- the deadlines card: permits by type ---------------------------------
 
-export interface ActivitySlice {
+export interface ActivityExpiry {
   activityTypeId: string;
-  areaHa: number;
-  pct: number;
-}
-
-/** The active area split by what it is used for. Largest slice first, so the
- *  legend reads in the same order as the ring. */
-export function areaByActivity(permits: PermitOut[]): ActivitySlice[] {
-  const byActivity = new Map<string, number>();
-  for (const item of permits.filter(isActive)) {
-    byActivity.set(item.activity_type_id, (byActivity.get(item.activity_type_id) ?? 0) + toNumber(item.area_ha));
-  }
-  const total = [...byActivity.values()].reduce((sum, area) => sum + area, 0);
-  return [...byActivity.entries()]
-    .map(([activityTypeId, areaHa]) => ({ activityTypeId, areaHa, pct: percent(areaHa, total) ?? 0 }))
-    .sort((a, b) => b.areaHa - a.areaHa);
-}
-
-// --- the bar chart --------------------------------------------------------
-
-export interface ContourRow {
-  contourId: string;
-  areaHa: number;
   daysLeft: number;
+  count: number;
 }
 
-/** One bar per active permit: the land it covers and the time left on it.
- *  A permit whose end date has passed while its status is still `active`
- *  (the nightly expiry sweep runs once a day) shows zero days rather than a
- *  negative bar drawn below the axis. */
-export function contourRows(permits: PermitOut[], today: string): ContourRow[] {
-  return permits
-    .filter(isActive)
-    .map((item) => ({
-      contourId: item.contour_id,
-      areaHa: toNumber(item.area_ha),
-      daysLeft: Math.max(0, daysBetween(today, item.period_to)),
-    }))
-    .sort((a, b) => b.areaHa - a.areaHa);
+/** How long the citizen still has on each kind of permit they hold — one row
+ *  per activity type, counting down to the SOONEST active permit of that
+ *  type, because that is the one that runs out first and needs renewing. A
+ *  permit past its end date while still `active` (the nightly expiry sweep
+ *  runs once a day) reads as zero rather than a negative count. Soonest
+ *  first, so the list reads in order of urgency. */
+export function expiryByActivity(permits: PermitOut[], today: string): ActivityExpiry[] {
+  const byActivity = new Map<string, ActivityExpiry>();
+  for (const item of permits.filter(isActive)) {
+    const daysLeft = Math.max(0, daysBetween(today, item.period_to));
+    const row = byActivity.get(item.activity_type_id);
+    if (row) {
+      row.daysLeft = Math.min(row.daysLeft, daysLeft);
+      row.count += 1;
+    } else {
+      byActivity.set(item.activity_type_id, { activityTypeId: item.activity_type_id, daysLeft, count: 1 });
+    }
+  }
+  return [...byActivity.values()].sort((a, b) => a.daysLeft - b.daysLeft);
+}
+
+// --- the deadlines card: applications under review ------------------------
+
+/** The office is holding the file and the review clock is running — the
+ *  backend's own `applications/sla.py::SLA_ACTIVE_STATUSES`. */
+const SLA_RUNNING: ReadonlySet<string> = new Set(['SUBMITTED', 'IN_REVIEW']);
+
+/** The office is waiting on the citizen: an open information request, or the
+ *  file sent back for correction. The clock is not running, and the stored
+ *  deadline is not what it will be — a closed pause moves it forward — so no
+ *  count is shown against it. */
+const SLA_PAUSED: ReadonlySet<string> = new Set(['PENDING_INFO', 'RETURNED']);
+
+export type ReviewDeadlineState = 'running' | 'overdue' | 'paused' | 'unknown';
+
+export interface ReviewDeadline {
+  applicationId: string;
+  number: string | null;
+  activityTypeId: string | null;
+  state: ReviewDeadlineState;
+  /** Set only while `running`; zero means the deadline falls later today. */
+  workingDaysLeft: number | null;
+}
+
+/** Local `YYYY-MM-DD` of a `timestamptz`, in the viewer's own zone. */
+function localDate(instant: Date): string {
+  return `${instant.getFullYear()}-${String(instant.getMonth() + 1).padStart(2, '0')}-${String(instant.getDate()).padStart(2, '0')}`;
+}
+
+/** Monday-to-Friday days after `from` up to and including `to`. No holiday
+ *  is skipped — ruling #108, the same rule the backend's `add_working_days`
+ *  follows: no holiday calendar exists, and the error runs in the citizen's
+ *  favour. */
+function workingDaysBetween(from: string, to: string): number {
+  let count = 0;
+  for (let day = dayNumber(from) + 1; day <= dayNumber(to); day++) {
+    // Day 0 of the epoch, 1970-01-01, was a Thursday: (day + 4) % 7 is the
+    // weekday with Sunday as 0.
+    const weekday = (day + 4) % 7;
+    if (weekday >= 1 && weekday <= 5) count += 1;
+  }
+  return count;
+}
+
+const STATE_ORDER: Record<ReviewDeadlineState, number> = { overdue: 0, running: 1, paused: 2, unknown: 3 };
+
+/** Every application the office has not decided yet, with the working days
+ *  left on its review deadline. The deadline is the backend's own
+ *  `sla_deadline_at`; only the counting is done here. Overdue first, then the
+ *  fewest days left, then the paused ones, which have nothing to count. */
+export function reviewDeadlines(applications: ApplicationOut[], now: Date): ReviewDeadline[] {
+  const today = localDate(now);
+  return applications
+    .filter((item) => SLA_RUNNING.has(item.status) || SLA_PAUSED.has(item.status))
+    .map((item): ReviewDeadline => {
+      const base = { applicationId: item.id, number: item.number, activityTypeId: item.activity_type_id };
+      if (SLA_PAUSED.has(item.status)) return { ...base, state: 'paused', workingDaysLeft: null };
+      // The backend stores a deadline at submission, so this is a contract
+      // breach rather than a state — but a missing figure reads as "—", not
+      // as a count nobody computed.
+      if (!item.sla_deadline_at) return { ...base, state: 'unknown', workingDaysLeft: null };
+      const deadline = new Date(item.sla_deadline_at);
+      if (now.getTime() > deadline.getTime()) return { ...base, state: 'overdue', workingDaysLeft: null };
+      return { ...base, state: 'running', workingDaysLeft: workingDaysBetween(today, localDate(deadline)) };
+    })
+    .sort(
+      (a, b) =>
+        STATE_ORDER[a.state] - STATE_ORDER[b.state] || (a.workingDaysLeft ?? 0) - (b.workingDaysLeft ?? 0),
+    );
 }
