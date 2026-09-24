@@ -274,6 +274,11 @@ const ru: Record<string, ErrorCopy> = {
         return 'Пользователь с таким ПИНФЛ уже существует.';
       case 'duplicate_login':
         return 'Пользователь с таким логином уже существует.';
+      // Stage 17 QA-01, R6/R7: the wizard's own step 3 already hides a
+      // species once another row has it, but the server is the final say
+      // (`norms.service`, the same reason code the calculator uses).
+      case 'duplicate_livestock_type':
+        return 'Каждый вид скота можно указать только один раз.';
       default:
         return 'Ошибка проверки введённых данных.';
     }
@@ -447,6 +452,8 @@ const uz_latn: Record<string, ErrorCopy> = {
         return 'Bunday JShShIR bilan foydalanuvchi allaqachon mavjud.';
       case 'duplicate_login':
         return 'Bunday login bilan foydalanuvchi allaqachon mavjud.';
+      case 'duplicate_livestock_type':
+        return "Har bir chorva turini faqat bir marta ko'rsatish mumkin.";
       default:
         return "Kiritilgan ma'lumotlarni tekshirishda xatolik.";
     }

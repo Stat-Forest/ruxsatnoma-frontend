@@ -157,6 +157,16 @@ interface LivestockRow {
   headCount: string;
 }
 
+// Mirrors the backend's `MAX_HEAD_COUNT` (`norms/schemas.py`, moved there by
+// stage 17 R4) — a livestock row's head count is refused above this, so the
+// wizard holds the input to the same bound rather than letting the applicant
+// type past it and learn about it from a 422.
+export const LIVESTOCK_HEAD_COUNT_MAX = 1_000_000;
+// Mirrors the backend's quantity `Decimal` column: 12 digits, 4 decimal
+// places (`10**12 - 10**-4`, stage 17 R7) — the single quantity field a
+// non-livestock activity fills on step 3.
+export const QUANTITY_MAX = 99_999_999.9999;
+
 /**
  * One not-yet-uploaded row of step 4. `typeValue` is a `doc_types` item id,
  * or `''` while nothing is chosen. A row LEAVES this list the moment its
@@ -898,7 +908,18 @@ export function ApplicationWizardPage() {
                         }}
                         options={[
                           { value: '', label: t('wizard.step3.selectPrompt') },
-                          ...(livestockTypesQuery.data ?? []).map((l) => ({ value: l.id, label: pickName(l.name, lang) })),
+                          // A type another row already carries is dropped
+                          // from THIS row's own options — except the one
+                          // this row itself currently holds, or picking it
+                          // again would look chosen and then vanish from
+                          // its own select. Backend: `duplicate_livestock_type`.
+                          ...(livestockTypesQuery.data ?? [])
+                            .filter(
+                              (l) =>
+                                l.id === row.livestockTypeId ||
+                                !items.some((i) => i.livestockTypeId === l.id),
+                            )
+                            .map((l) => ({ value: l.id, label: pickName(l.name, lang) })),
                         ]}
                       />
                     </FormField>
@@ -906,6 +927,7 @@ export function ApplicationWizardPage() {
                       <Input
                         type="number"
                         min={1}
+                        max={LIVESTOCK_HEAD_COUNT_MAX}
                         value={row.headCount}
                         onChange={(e) => {
                           const next = [...items];
@@ -919,20 +941,25 @@ export function ApplicationWizardPage() {
                     </Button>
                   </div>
                 ))}
-                <Button
-                  variant="outline"
-                  size="sm"
-                  leftIcon={<Plus className="w-4 h-4" />}
-                  onClick={() => setItems([...items, { key: crypto.randomUUID(), livestockTypeId: '', headCount: '' }])}
-                  className="cursor-pointer"
-                >
-                  {t('wizard.step3.addLivestock')}
-                </Button>
+                {/* One row per known type at most — a row with no type left
+                    to offer would only duplicate an existing one, which is
+                    exactly the refusal this caps client-side. */}
+                {items.length < (livestockTypesQuery.data?.length ?? 0) && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    leftIcon={<Plus className="w-4 h-4" />}
+                    onClick={() => setItems([...items, { key: crypto.randomUUID(), livestockTypeId: '', headCount: '' }])}
+                    className="cursor-pointer"
+                  >
+                    {t('wizard.step3.addLivestock')}
+                  </Button>
+                )}
               </div>
             ) : (
               <>
                 <FormField label={quantityUnit ? `${t('wizard.step3.quantity')} (${formatUnit(quantityUnit, t, lang)})` : t('wizard.step3.quantity')} required htmlFor="quantity">
-                  <Input id="quantity" type="number" min={0} step="0.0001" value={quantity} onChange={(e) => setQuantity(e.target.value)} />
+                  <Input id="quantity" type="number" min={0} max={QUANTITY_MAX} step="0.0001" value={quantity} onChange={(e) => setQuantity(e.target.value)} />
                 </FormField>
                 {/* Decision #215 R6: the deadwood blank's own lines, for
                     that activity alone; the backend refuses a pre-check

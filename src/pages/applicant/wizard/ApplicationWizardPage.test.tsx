@@ -1532,3 +1532,89 @@ test('does not show the deadwood or recreation lines to a haymaking filing', asy
   await userEvent.type(screen.getByLabelText(new RegExp(UZ['wizard.step3.quantity'])), '5');
   expect(nextButton()).toBeEnabled();
 });
+
+// Stage 17, QA-01 task A1 — the defect that triggered the whole QA run: an
+// applicant could add livestock rows without limit and pick the same species
+// twice, because neither the row list nor the "add" button ever looked at
+// what the OTHER rows already held. `duplicate_livestock_type` (R6/R7) is
+// the backend's own name for exactly this refusal.
+const LIVESTOCK_TYPE_A = {
+  id: 'aa000000-0000-4000-8000-000000000001',
+  code: 'sheep',
+  name: { uz_latn: 'Sheep' },
+  status: 'active',
+};
+const LIVESTOCK_TYPE_B = {
+  id: 'bb000000-0000-4000-8000-000000000002',
+  code: 'cattle',
+  name: { uz_latn: 'Cattle' },
+  status: 'active',
+};
+
+function livestockTypesHandler(types: unknown[]) {
+  return http.get('*/api/v1/refs/livestock-types', () => HttpResponse.json(types));
+}
+
+// Steps 1-2 for a grazing filing, ending on step 3. Unlike `driveToStep3`,
+// there is no quantity field to wait on here (grazing's step 3 shows the
+// livestock rows instead) — the row list starts empty, so the "add" button
+// is what marks step 3 as reached.
+async function driveToStep3Grazing() {
+  await chooseActivity('Yaylov');
+  await userEvent.click(await screen.findByText('pick-contour'));
+  fireEvent.change(screen.getByLabelText(new RegExp(UZ['wizard.step2.periodFrom'])), { target: { value: '2026-01-01' } });
+  fireEvent.change(screen.getByLabelText(new RegExp(UZ['wizard.step2.periodTo'])), { target: { value: '2026-06-01' } });
+  await userEvent.click(screen.getByRole('button', { name: new RegExp(UZ['wizard.nav.next']) }));
+  await screen.findByRole('button', { name: new RegExp(UZ['wizard.step3.addLivestock']) });
+}
+
+test('a species already picked in one livestock row is not offered again in another, and the add button disappears once every type is used', async () => {
+  server.use(activityHandler('grazing', 'Yaylov', 'head'), livestockTypesHandler([LIVESTOCK_TYPE_A, LIVESTOCK_TYPE_B]));
+  renderWizard();
+  await driveToStep3Grazing();
+
+  const addButton = () => screen.getByRole('button', { name: new RegExp(UZ['wizard.step3.addLivestock']) });
+  await userEvent.click(addButton());
+  await userEvent.selectOptions(screen.getAllByRole('combobox')[0], LIVESTOCK_TYPE_A.id);
+
+  // A second type still exists, so the add button is still there.
+  await userEvent.click(addButton());
+  const row2 = screen.getAllByRole('combobox')[1];
+  expect(within(row2).queryByText('Sheep')).toBeNull();
+  expect(within(row2).getByText('Cattle')).toBeInTheDocument();
+
+  // Two rows, two types — nothing left to add.
+  expect(screen.queryByRole('button', { name: new RegExp(UZ['wizard.step3.addLivestock']) })).toBeNull();
+});
+
+test('the head-count input is capped at LIVESTOCK_HEAD_COUNT_MAX, and the quantity input at QUANTITY_MAX', async () => {
+  server.use(activityHandler('grazing', 'Yaylov', 'head'), livestockTypesHandler([LIVESTOCK_TYPE_A, LIVESTOCK_TYPE_B]));
+  renderWizard();
+  await driveToStep3Grazing();
+  await userEvent.click(screen.getByRole('button', { name: new RegExp(UZ['wizard.step3.addLivestock']) }));
+
+  expect(screen.getAllByRole('spinbutton')[0]).toHaveAttribute('max', '1000000');
+});
+
+test('the quantity input for a non-livestock activity is capped at QUANTITY_MAX', async () => {
+  renderWizard();
+  await driveToStep3(); // default handler: haymaking
+
+  expect(screen.getByLabelText(new RegExp(UZ['wizard.step3.quantity']))).toHaveAttribute('max', '99999999.9999');
+});
+
+test('a duplicate-livestock-type refusal (ERR-VAL-001) at the pre-check renders the specific message, not the generic one', async () => {
+  server.use(
+    http.post('*/api/v1/applications/precheck', () =>
+      HttpResponse.json(
+        { error: { code: 'ERR-VAL-001', message: 'validation failed', details: { reason: 'duplicate_livestock_type' } } },
+        { status: 422 },
+      ),
+    ),
+  );
+  renderWizard();
+
+  await driveToStep5();
+
+  expect(await screen.findByText("Har bir chorva turini faqat bir marta ko'rsatish mumkin.")).toBeInTheDocument();
+});
