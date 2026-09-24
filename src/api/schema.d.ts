@@ -7818,6 +7818,8 @@ export interface components {
          *     permissions.py` registers no code yet that means "authorised to write an
          *     application conclusion" (see that function's docstring — a gap for
          *     `decisions.md`/`design/03`, not something this schema can paper over).
+         *
+         *     `text` is required, stripped and non-blank (stage 17 C2).
          */
         ApplicationConclusionIn: {
             /**
@@ -8391,9 +8393,9 @@ export interface components {
          *     that pauses the SLA clock (`sla.py`, ruling 8) until `respond-info` closes
          *     it.
          *
-         *     `message` is required and non-empty (`min_length=1`, the same gap
-         *     `ApplicationRejectIn`'s own `legal_basis` closes) — a paused clock with
-         *     nothing asked for leaves the applicant with no way to answer.
+         *     `message` is required, stripped and non-blank (`TextStr`, stage 17 C1/C2)
+         *     — a paused clock with nothing asked for leaves the applicant with no way
+         *     to answer.
          */
         ApplicationRequestInfoIn: {
             /** Message */
@@ -8409,7 +8411,10 @@ export interface components {
          *     through `POST /files` first, the same two-step `ApplicationDocumentIn`
          *     uses — and every one must be the caller's OWN active upload
          *     (`service._own_document_file`). An empty list is a text-only reply and is
-         *     legal: not every request for information needs a document back.
+         *     legal: not every request for information needs a document back. Capped at
+         *     `RESPOND_INFO_MAX_FILES` and de-duplicated by `service.respond_info`
+         *     (stage 17, QA run 01 P1): a repeated id used to become one
+         *     `application_documents` row per repetition.
          */
         ApplicationRespondInfoIn: {
             /** Text */
@@ -8428,16 +8433,18 @@ export interface components {
          *     (`applications.review`, the hodim's own permission, holds no ERI purpose
          *     at all); only approve/reject spend one.
          *
-         *     `legal_basis` is required with the same `min_length=1` as
-         *     `ApplicationRejectIn`'s own, closing the identical gap a plain `str` would
-         *     leave open. `fields_to_fix` is a JSON **OBJECT** — field name -> what is
+         *     `legal_basis` is required, stripped and non-blank (stage 17 C2 —
+         *     `StringConstraints`, so `"   "` fails `min_length=1` before it ever
+         *     reaches the service), the same gap `ApplicationRejectIn`'s own grounds
+         *     close. `fields_to_fix` is a JSON **OBJECT** — field name -> what is
          *     wrong with it, e.g. `{"period_to": "срок выходит за пределы сезона
          *     выпаса"}` — never a bare list of names, which would tell the applicant
          *     WHAT to fix but not why; `ApplicationStatusHistory.fields_to_fix` and
          *     `TimelineHistoryRow.fields_to_fix` are both `dict[str, Any] | None` for
-         *     exactly this shape. Pydantic checks the TYPE only — that it is non-empty
-         *     and that its keys name real columns of the application is the service's
-         *     own check (`service.return_to_applicant`), which needs the row to answer
+         *     exactly this shape. Bounded by `JsonObject` (stage 17 C1, `JSON_MAX_BYTES`)
+         *     — pydantic otherwise checks the TYPE only, and that it is non-empty and
+         *     that its keys name real columns of the application is the service's own
+         *     check (`service.return_to_applicant`), which needs the row to answer
          *     "real column of THIS application".
          */
         ApplicationReturnIn: {
@@ -8944,6 +8951,9 @@ export interface components {
          *     benefit-certificate check is an administrative verification against a
          *     paper registry, not a decision `tz/04` asks the state to sign — the same
          *     reasoning `ApplicationReturnIn` states for itself.
+         *
+         *     Stripped as well as non-blank (stage 17 C2): `"   "` used to pass
+         *     `min_length=1` and land in `benefit_rejection_reason` verbatim.
          */
         BenefitClaimRejectIn: {
             /** Reason */
@@ -10648,6 +10658,9 @@ export interface components {
          *     its wake, in the same commit. A database migrated before `0032` will start
          *     rejecting writes to any row it did not cover — that migration's own docstring
          *     lists every column it backfills.
+         *
+         *     Each value is capped at `LONG_TEXT_MAX_LENGTH` (stage 17 C1): this same type
+         *     carries help answers and notification bodies, not just short names.
          */
         LocalizedName: {
             [key: string]: string;
@@ -10704,9 +10717,10 @@ export interface components {
          *
          *     **No business ceiling, deliberately.** An overpayment is a documented
          *     refund ground in `tz/08`, so capping the upper end would refuse a real
-         *     case. `max_digits`/`decimal_places` mirror `numeric(18, 2)` exactly and
-         *     exist only so an overflow is a 422 at the edge rather than a
-         *     `DataError` 500 from the database.
+         *     case. `max_digits`/`decimal_places`/`le=MAX_MONEY` mirror `numeric(18, 2)`
+         *     exactly (stage 17 R4: `10**(p-s) - 10**-s`) and exist only so an overflow
+         *     is a 422 at the edge rather than a `DataError` 500 from the database —
+         *     `le` is the column's own ceiling, not a new business one.
          */
         ManualConfirmationIn: {
             /**
@@ -10782,9 +10796,9 @@ export interface components {
          * ManualConfirmationRejectIn
          * @description `POST /payments/manual-confirmations/{id}/reject` — a rejection must
          *     say why (ruling 7). A missing field is FastAPI's own `ERR-VAL-001`; a
-         *     present-but-blank one is the service's own check, since a Pydantic `str`
-         *     requirement cannot see past whitespace the way `str.strip()` can (same
-         *     split as `ReconciliationResolveIn.comment`).
+         *     present-but-blank one is refused at the schema level too now (stage 17
+         *     R5, `TextStr` strips before checking `min_length=1`), same as
+         *     `ReconciliationResolveIn.comment`.
          */
         ManualConfirmationRejectIn: {
             /** Reason */
@@ -11185,8 +11199,11 @@ export interface components {
         OrganizationIn: {
             /** Parent Id */
             parent_id?: string | null;
-            /** Kind */
-            kind: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "agency" | "territorial" | "leshoz" | "bolim" | "aylanma" | "bolak";
             /** Code */
             code: string;
             name: components["schemas"]["LocalizedName"];
@@ -12044,7 +12061,8 @@ export interface components {
          * PermissionCodesIn
          * @description Replace-set request body, shared by `PUT /admin/roles/{id}/permissions` and
          *     `PUT /admin/users/{id}/permissions` (personal grants) — same `{codes: [...]}`
-         *     shape for both.
+         *     shape for both. 200 (stage 17 R3) is well past the 58 codes the registry
+         *     holds today (`.claude/lessons.md`'s own count for a superuser's `/auth/me`).
          */
         PermissionCodesIn: {
             /** Codes */
@@ -12952,9 +12970,10 @@ export interface components {
          *
          *     `comment` is required by the SCHEMA (its absence is `ERR-VAL-001` from
          *     FastAPI's own validation, before the service ever runs); a comment that
-         *     is present but blank (`""`, `"   "`) is a service-level check instead
-         *     (`backoffice_service.resolve_reconciliation`), because a Pydantic length
-         *     check cannot see past whitespace the way `str.strip()` can.
+         *     is present but blank (`""`, `"   "`) is now also refused at the SCHEMA
+         *     level (stage 17 R5, `TextStr` strips before checking `min_length=1`) —
+         *     `backoffice_service.resolve_reconciliation`'s own blank check stays as a
+         *     defensive second layer.
          */
         ReconciliationResolveIn: {
             /** Comment */
