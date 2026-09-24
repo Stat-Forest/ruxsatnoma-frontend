@@ -3261,7 +3261,9 @@ export interface paths {
          *     `status` is the `ApplicationStatus` literal, so a typo is a 422 rather than
          *     an empty page that reads as "no applications in that state".
          *     `period_from`/`period_to` select applications whose own period OVERLAPS the
-         *     window — the question a reviewer's queue asks.
+         *     window — the question a reviewer's queue asks. `created_from`/`created_to`
+         *     select by the Asia/Tashkent calendar day the application was filed, both
+         *     ends inclusive — the applicant's own "what did I file last week".
          */
         get: operations["list_applications_api_v1_applications_get"];
         put?: never;
@@ -20987,6 +20989,8 @@ export interface operations {
                 number?: string | null;
                 period_from?: string | null;
                 period_to?: string | null;
+                created_from?: string | null;
+                created_to?: string | null;
             };
             header?: never;
             path?: never;
@@ -21091,6 +21095,8 @@ export interface operations {
                 q?: string | null;
                 period_from?: string | null;
                 period_to?: string | null;
+                created_from?: string | null;
+                created_to?: string | null;
                 page?: number;
                 page_size?: number;
             };

@@ -6,6 +6,7 @@ import { DataTable, type Column } from "../../components/ui/DataTable";
 import { FormField, Select } from "../../components/ui/FormControls";
 import { formatDate, pickName } from "../applicant/format";
 import { statusLabel, type ApplicationStatus } from "../staff/format";
+import { ApplicationStatusBadge } from "../applicant/ApplicationStatusBadge";
 import { useBeekeepingClaims } from "./queries";
 import type { BeekeepingClaimStatus, BenefitClaimMonitorOut } from "./api";
 
@@ -100,7 +101,9 @@ export function BeekeepingClaimsPanel() {
     {
       key: "status",
       header: t("beekeepers.claims.col.status"),
-      accessor: (row) => statusLabel(row.status as ApplicationStatus, lang),
+      accessor: (row) => (
+        <ApplicationStatusBadge status={row.status} label={statusLabel(row.status as ApplicationStatus, lang)} />
+      ),
     },
   ];
 
