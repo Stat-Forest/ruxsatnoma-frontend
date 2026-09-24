@@ -2,7 +2,7 @@ import { Button } from '../../../components/ui/button';
 import { FormField, Select, Textarea, Input } from '../../../components/ui/FormControls';
 import { useLanguage } from '../../../i18n/useT';
 import { localizedName } from '../format';
-import { emptyGround, MAX_GROUNDS, type GroundDraft } from '../groundDraft';
+import { emptyGround, GROUND_LABELS, MAX_GROUNDS, type GroundDraft } from '../groundDraft';
 import type { components } from '../../../api/schema';
 
 // `emptyGround`/`groundComplete`/`GroundDraft` live in `../groundDraft.ts`
@@ -16,63 +16,43 @@ import type { components } from '../../../api/schema';
 type Reason = components['schemas']['ClassifierItemOut'];
 const REJECTABLE = new Set(['reject', 'both']);
 
+// `ground`/`fact`/`legal_document`/`legal_clause`/`evidence`/`remedy` come
+// from `GROUND_LABELS` (`../groundDraft`) — shared with `SignDecisionModal`'s
+// G1 unrenderable-character breakdown, so the two can never name the same
+// field two different ways. Only the strings unique to this editor
+// (`code`/`add`/`remove`/`select`) live here.
 const I18N = {
   uz_latn: {
-    ground: 'Sabab {n}',
+    ...GROUND_LABELS.uz_latn,
     code: 'Rad etish toifasi',
-    fact: 'Aniqlangan holat',
-    legalDocument: 'Hujjat nomi',
-    legalClause: 'Band yoki modda',
-    evidence: 'Dalil va manba',
-    remedy: 'Bartaraf etish tartibi',
     add: '+ Sabab qoʻshish',
     remove: 'Oʻchirish',
     select: 'Tanlang',
   },
   uz_cyrl: {
-    ground: 'Сабаб {n}',
+    ...GROUND_LABELS.uz_cyrl,
     code: 'Рад этиш тоифаси',
-    fact: 'Аниқланган ҳолат',
-    legalDocument: 'Ҳужжат номи',
-    legalClause: 'Банд ёки модда',
-    evidence: 'Далил ва манба',
-    remedy: 'Бартараф этиш тартиби',
     add: '+ Сабаб қўшиш',
     remove: 'Ўчириш',
     select: 'Танланг',
   },
   ru: {
-    ground: 'Причина {n}',
+    ...GROUND_LABELS.ru,
     code: 'Категория отказа',
-    fact: 'Установленное обстоятельство',
-    legalDocument: 'Нормативный документ',
-    legalClause: 'Пункт или статья',
-    evidence: 'Доказательство и источник',
-    remedy: 'Порядок устранения',
     add: '+ Добавить причину',
     remove: 'Удалить',
     select: 'Выберите',
   },
   en: {
-    ground: 'Ground {n}',
+    ...GROUND_LABELS.en,
     code: 'Rejection category',
-    fact: 'Fact established',
-    legalDocument: 'Legal document',
-    legalClause: 'Clause or article',
-    evidence: 'Evidence and source',
-    remedy: 'How to remedy',
     add: '+ Add ground',
     remove: 'Remove',
     select: 'Select',
   },
   kaa: {
-    ground: 'Sebep {n}',
+    ...GROUND_LABELS.kaa,
     code: 'Biykar etiw túri',
-    fact: 'Anıqlanǵan jaǵday',
-    legalDocument: 'Hújjet atı',
-    legalClause: 'Bánt yamasa statya',
-    evidence: 'Dálil hám derek',
-    remedy: 'Saplastırıw tártibi',
     add: '+ Sebep qosıw',
     remove: 'Óshiriw',
     select: 'Saylań',
@@ -127,10 +107,10 @@ export function RejectionGroundsEditor({ value, onChange, reasons }: {
             <Textarea value={g.fact} maxLength={2000} onChange={(e) => patch(index, { fact: e.target.value })} />
           </FormField>
           <div className="grid grid-cols-1 sm:grid-cols-[2fr_1fr] gap-3">
-            <FormField label={t.legalDocument} required>
+            <FormField label={t.legal_document} required>
               <Input value={g.legal_document} maxLength={300} onChange={(e) => patch(index, { legal_document: e.target.value })} />
             </FormField>
-            <FormField label={t.legalClause} required>
+            <FormField label={t.legal_clause} required>
               <Input value={g.legal_clause} maxLength={100} onChange={(e) => patch(index, { legal_clause: e.target.value })} />
             </FormField>
           </div>
