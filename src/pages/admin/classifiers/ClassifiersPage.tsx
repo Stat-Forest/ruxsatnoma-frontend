@@ -58,6 +58,8 @@ import { CLICKABLE_ROW_CLASS, clickableRowProps } from '../../../lib/rowClick';
 /** `ClassifierIn.code`/`ClassifierItemIn.code` (`CodeStr`, `app/core/schemas.py`) —
  *  shared by both the classifier's own code and each item's code. */
 const CLASSIFIER_CODE_MAX_LENGTH = 64;
+/** `ClassifierItemIn.sort_order` — `ge=0, le=SORT_ORDER_MAX`. */
+const CLASSIFIER_SORT_ORDER_MAX = 10000;
 
 // --- plain calendar dates, never re-parsed through a local `Date` -----------
 
@@ -745,6 +747,8 @@ export function ClassifiersPage() {
                 id="field-sort-order"
                 data-testid="field-sort-order"
                 type="number"
+                min={0}
+                max={CLASSIFIER_SORT_ORDER_MAX}
                 value={form.sortOrder}
                 onChange={(e) => setForm((f) => ({ ...f, sortOrder: e.target.value }))}
               />

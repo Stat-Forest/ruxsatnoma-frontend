@@ -31,8 +31,15 @@ const CONTOURS_MANAGE = 'gis.contours.manage';
 const CONTOURS_APPROVE = 'gis.contours.approve';
 
 /** `ContourIn.number` (`CodeStr`, `app/core/schemas.py`) — `SplitPanel.tsx`
- *  carries the same bound for `SplitPieceIn.number`. */
+ *  carries the same bound for `SplitPieceIn.number`, duplicated rather than
+ *  imported across the two sibling files: a leaf bound like this is stated
+ *  for itself in each screen that needs it, not shared through a module —
+ *  the same convention `norms/tariffs/labels.ts` states for its own leaf
+ *  constants (permission codes there, a `CodeStr` bound here). */
 const CONTOUR_NUMBER_MAX_LENGTH = 64;
+/** `VersionIn.declared_area_ha` — `Decimal`, 12 digits/4 decimals
+ *  (`10**(12-4) - 10**-4`), same shape as the wizard's own `QUANTITY_MAX`. */
+const VERSION_DECLARED_AREA_MAX = 99_999_999.9999;
 
 type WorkMode = 'browse' | 'draw-new' | 'edit-draft' | 'split';
 
@@ -101,6 +108,8 @@ function VersionFieldsForm({
           <Input
             type="number"
             step="0.0001"
+            min={0}
+            max={VERSION_DECLARED_AREA_MAX}
             value={declaredAreaHa}
             onChange={(e) => setDeclaredAreaHa(e.target.value)}
             data-testid="version-declared-area-input"

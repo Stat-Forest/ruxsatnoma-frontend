@@ -180,7 +180,7 @@ test('a new document cannot be saved without its Latin title, number and date', 
   expect(posted).toBe(false);
 });
 
-test('the number, title and source URL fields cap input at the backend bounds', async () => {
+test('the number, title, source URL and sort-order fields cap input at the backend bounds', async () => {
   mockBackend();
   renderPage('ru');
 
@@ -191,6 +191,8 @@ test('the number, title and source URL fields cap input at the backend bounds', 
   expect(screen.getByTestId('legal-document-summary-uz_latn')).toHaveAttribute('maxLength', '10000');
   expect(screen.getByTestId('legal-document-source-url')).toHaveAttribute('maxLength', '2048');
   expect(screen.getByTestId('legal-document-source-url')).toHaveAttribute('type', 'url');
+  expect(screen.getByTestId('legal-document-sort-order')).toHaveAttribute('min', '0');
+  expect(screen.getByTestId('legal-document-sort-order')).toHaveAttribute('max', '10000');
 });
 
 test('a filled form posts exactly what the editor typed', async () => {

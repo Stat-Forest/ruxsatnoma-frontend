@@ -22,6 +22,8 @@ import { useCreateUser, useDistricts, useOrganizations, usePatchUser, useRegions
 const USER_LOGIN_MAX_LENGTH = 64;
 /** `UserCreateIn.full_name`/`UserPatchIn.full_name` (`NameStr`). */
 const USER_FULL_NAME_MAX_LENGTH = 255;
+/** `UserCreateIn.position`/`UserPatchIn.position` (`NameStr`). */
+const USER_POSITION_MAX_LENGTH = 255;
 
 /** Everything the form edits, as strings — `''` stands for "not set", which
  *  on a PATCH becomes an explicit `null` rather than a dropped key. */
@@ -197,6 +199,7 @@ export function UserFormModal({ mode, user, onClose, onCreated }: UserFormModalP
               id="user-form-position"
               value={form.position}
               onChange={(e) => set('position', e.target.value)}
+              maxLength={USER_POSITION_MAX_LENGTH}
             />
           </FormField>
         </div>

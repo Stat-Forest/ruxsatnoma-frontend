@@ -251,6 +251,7 @@ function LegalDocumentForm({
               id="legal-document-sort-order"
               data-testid="legal-document-sort-order"
               type="number"
+              min={0}
               value={form.sortOrder}
               onChange={(e) => set('sortOrder', e.target.value)}
               max={LEGAL_DOCUMENT_SORT_ORDER_MAX}

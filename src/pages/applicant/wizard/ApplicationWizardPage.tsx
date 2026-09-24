@@ -163,13 +163,53 @@ interface LivestockRow {
 // type past it and learn about it from a 422.
 export const LIVESTOCK_HEAD_COUNT_MAX = 1_000_000;
 // Mirrors the backend's quantity `Decimal` column: 12 digits, 4 decimal
-// places (`10**12 - 10**-4`, stage 17 R7) — the single quantity field a
+// places (`10**(12-4) - 10**-4`, stage 17 R7) — the single quantity field a
 // non-livestock activity fills on step 3.
 export const QUANTITY_MAX = 99_999_999.9999;
 // Mirrors `ApplicantAddressIn.address` (stage 17 C1) — a bound of its own,
 // not one of the shared `CodeStr`/`NameStr`/`TextStr` types — the address
 // this step collects when the applicant's own profile has none yet.
 export const APPLICANT_ADDRESS_MAX_LENGTH = 500;
+// Mirrors the backend's `MAX_LIVESTOCK_ITEMS` (`norms/schemas.py`, stage 17
+// R3) — the add-row button additionally stops here even if more livestock
+// types than this exist (ten are seeded today).
+export const LIVESTOCK_ITEMS_MAX = 20;
+
+/**
+ * Fix round 1 (stage 17 QA-01 review, Important — this was the QA trigger):
+ * `max={LIVESTOCK_HEAD_COUNT_MAX}` on the input does nothing without a
+ * `<form>`, and a row with a species but no head count (or the reverse) used
+ * to be silently dropped by `buildFiling`/`calculationRequest` rather than
+ * named. A fully empty row (freshly added, neither field touched) is not an
+ * error — it simply does not count as complete yet; `null` from both means
+ * "nothing to say about this row".
+ */
+function livestockRowIssue(
+  row: LivestockRow,
+  t: (key: string) => string,
+): { typeError: string | null; countError: string | null } {
+  const hasType = row.livestockTypeId !== '';
+  const hasCount = row.headCount !== '';
+  if (!hasType && !hasCount) return { typeError: null, countError: null };
+  if (!hasType) return { typeError: t('wizard.step3.typeRequired'), countError: null };
+  if (!hasCount) return { typeError: null, countError: t('wizard.step3.headCountRequired') };
+  const n = Number(row.headCount);
+  const valid = Number.isInteger(n) && n >= 1 && n <= LIVESTOCK_HEAD_COUNT_MAX;
+  return { typeError: null, countError: valid ? null : t('wizard.step3.headCountInvalid') };
+}
+
+/** Same QA trigger, the non-livestock side: `max={QUANTITY_MAX}` on the
+ *  input does nothing without a `<form>` either, so a value outside
+ *  0..`QUANTITY_MAX` or with more than 4 decimal places must be named IN THE
+ *  FIELD, not learned from a 422 after Next. */
+function quantityIssue(quantity: string, t: (key: string) => string): string | null {
+  if (!quantity) return null;
+  const n = Number(quantity);
+  if (!Number.isFinite(n) || n < 0 || n > QUANTITY_MAX) return t('wizard.step3.quantityInvalid');
+  const decimals = quantity.split('.')[1];
+  if (decimals && decimals.length > 4) return t('wizard.step3.quantityInvalid');
+  return null;
+}
 
 /**
  * One not-yet-uploaded row of step 4. `typeValue` is a `doc_types` item id,
@@ -552,6 +592,18 @@ export function ApplicationWizardPage() {
     setStep((s) => Math.max(1, s - 1));
   }
 
+  // Fix round 1 (stage 17 QA-01 review, Important): one entry per row,
+  // `null`/`null` for a row with nothing to say (fully empty, or complete
+  // and valid) — read by both the row's own fields (below) and the Next
+  // button's `disabled` (further down) so the two never disagree about
+  // which row is blocking.
+  const grazingRowIssues = useMemo(
+    () => items.map((row) => livestockRowIssue(row, t)),
+    [items, t],
+  );
+  const grazingHasBlockingRow = grazingRowIssues.some((issue) => issue.typeError || issue.countError);
+  const quantityError = useMemo(() => quantityIssue(quantity, t), [quantity, t]);
+
   const calculationRequest: CalculationIn | null = useMemo(() => {
     if (!activityTypeId || !contour || !periodFrom || !periodTo) return null;
     if (isGrazing) {
@@ -900,51 +952,64 @@ export function ApplicationWizardPage() {
             <h2 className="text-sm font-bold text-[#1A1F24] uppercase tracking-wider">{t('wizard.step3.heading')}</h2>
             {isGrazing ? (
               <div className="space-y-3">
-                {items.map((row, idx) => (
-                  <div key={row.key} className="flex items-end gap-3">
-                    <FormField label={t('wizard.step3.livestockType')} className="flex-1">
-                      <Select
-                        value={row.livestockTypeId}
-                        onChange={(e) => {
-                          const next = [...items];
-                          next[idx] = { ...row, livestockTypeId: e.target.value };
-                          setItems(next);
-                        }}
-                        options={[
-                          { value: '', label: t('wizard.step3.selectPrompt') },
-                          // A type another row already carries is dropped
-                          // from THIS row's own options — except the one
-                          // this row itself currently holds, or picking it
-                          // again would look chosen and then vanish from
-                          // its own select. Backend: `duplicate_livestock_type`.
-                          ...(livestockTypesQuery.data ?? [])
-                            .filter(
-                              (l) =>
-                                l.id === row.livestockTypeId ||
-                                !items.some((i) => i.livestockTypeId === l.id),
-                            )
-                            .map((l) => ({ value: l.id, label: pickName(l.name, lang) })),
-                        ]}
-                      />
-                    </FormField>
-                    <FormField label={t('wizard.step3.headCount')} className="w-32">
-                      <Input
-                        type="number"
-                        min={1}
-                        max={LIVESTOCK_HEAD_COUNT_MAX}
-                        value={row.headCount}
-                        onChange={(e) => {
-                          const next = [...items];
-                          next[idx] = { ...row, headCount: e.target.value };
-                          setItems(next);
-                        }}
-                      />
-                    </FormField>
-                    <Button variant="ghost" size="sm" onClick={() => setItems(items.filter((_, i) => i !== idx))} className="cursor-pointer">
-                      <Trash2 className="w-4 h-4 text-[#B91C1C]" />
-                    </Button>
-                  </div>
-                ))}
+                {items.map((row, idx) => {
+                  const rowIssue = grazingRowIssues[idx] ?? { typeError: null, countError: null };
+                  return (
+                    <div key={row.key} className="flex items-end gap-3">
+                      <FormField
+                        label={t('wizard.step3.livestockType')}
+                        className="flex-1"
+                        error={rowIssue.typeError ?? undefined}
+                      >
+                        <Select
+                          value={row.livestockTypeId}
+                          error={!!rowIssue.typeError}
+                          onChange={(e) => {
+                            const next = [...items];
+                            next[idx] = { ...row, livestockTypeId: e.target.value };
+                            setItems(next);
+                          }}
+                          options={[
+                            { value: '', label: t('wizard.step3.selectPrompt') },
+                            // A type another row already carries is dropped
+                            // from THIS row's own options — except the one
+                            // this row itself currently holds, or picking it
+                            // again would look chosen and then vanish from
+                            // its own select. Backend: `duplicate_livestock_type`.
+                            ...(livestockTypesQuery.data ?? [])
+                              .filter(
+                                (l) =>
+                                  l.id === row.livestockTypeId ||
+                                  !items.some((i) => i.livestockTypeId === l.id),
+                              )
+                              .map((l) => ({ value: l.id, label: pickName(l.name, lang) })),
+                          ]}
+                        />
+                      </FormField>
+                      <FormField
+                        label={t('wizard.step3.headCount')}
+                        className="w-32"
+                        error={rowIssue.countError ?? undefined}
+                      >
+                        <Input
+                          type="number"
+                          min={1}
+                          max={LIVESTOCK_HEAD_COUNT_MAX}
+                          error={!!rowIssue.countError}
+                          value={row.headCount}
+                          onChange={(e) => {
+                            const next = [...items];
+                            next[idx] = { ...row, headCount: e.target.value };
+                            setItems(next);
+                          }}
+                        />
+                      </FormField>
+                      <Button variant="ghost" size="sm" onClick={() => setItems(items.filter((_, i) => i !== idx))} className="cursor-pointer">
+                        <Trash2 className="w-4 h-4 text-[#B91C1C]" />
+                      </Button>
+                    </div>
+                  );
+                })}
                 {/* Fix round 1 (stage 17 QA-01 review): this project's own
                     defects keep failing in the HIDING direction, and a
                     button that vanishes whenever the query is loading,
@@ -967,14 +1032,19 @@ export function ApplicationWizardPage() {
                 {livestockTypesQuery.isSuccess && livestockTypesQuery.data.length === 0 && (
                   <Alert variant="warning">{t('wizard.step3.livestockNotConfigured')}</Alert>
                 )}
-                {/* One row per known type at most — a row with no type left
-                    to offer would only duplicate an existing one, which is
-                    exactly the refusal this caps client-side. Hidden only
-                    once the cap is actually known and reached (including the
-                    trivial "0 types, 0 rows" case, covered by the Alert
-                    above); loading and error keep the button visible instead
-                    of hiding it (see the Alert/disabled handling above). */}
-                {!(livestockTypesQuery.isSuccess && items.length >= livestockTypesQuery.data.length) && (
+                {/* One row per known type at most, and never more than
+                    `LIVESTOCK_ITEMS_MAX` (stage 17 R3/M2) — a row with no
+                    type left to offer would only duplicate an existing one,
+                    which is exactly the refusal this caps client-side.
+                    Hidden only once the cap is actually known and reached
+                    (including the trivial "0 types, 0 rows" case, covered by
+                    the Alert above); loading and error keep the button
+                    visible instead of hiding it (see the Alert/disabled
+                    handling above). */}
+                {!(
+                  livestockTypesQuery.isSuccess &&
+                  items.length >= Math.min(livestockTypesQuery.data.length, LIVESTOCK_ITEMS_MAX)
+                ) && (
                   <Button
                     variant="outline"
                     size="sm"
@@ -990,8 +1060,22 @@ export function ApplicationWizardPage() {
               </div>
             ) : (
               <>
-                <FormField label={quantityUnit ? `${t('wizard.step3.quantity')} (${formatUnit(quantityUnit, t, lang)})` : t('wizard.step3.quantity')} required htmlFor="quantity">
-                  <Input id="quantity" type="number" min={0} max={QUANTITY_MAX} step="0.0001" value={quantity} onChange={(e) => setQuantity(e.target.value)} />
+                <FormField
+                  label={quantityUnit ? `${t('wizard.step3.quantity')} (${formatUnit(quantityUnit, t, lang)})` : t('wizard.step3.quantity')}
+                  required
+                  htmlFor="quantity"
+                  error={quantityError ?? undefined}
+                >
+                  <Input
+                    id="quantity"
+                    type="number"
+                    min={0}
+                    max={QUANTITY_MAX}
+                    step="0.0001"
+                    error={!!quantityError}
+                    value={quantity}
+                    onChange={(e) => setQuantity(e.target.value)}
+                  />
                 </FormField>
                 {/* Decision #215 R6: the deadwood blank's own lines, for
                     that activity alone; the backend refuses a pre-check
@@ -1259,8 +1343,15 @@ export function ApplicationWizardPage() {
               disabled={
                 (step === 1 && !activityTypeId) ||
                 (step === 2 && (!contour || !periodFrom || !periodTo || !!combinedPeriodError)) ||
-                (step === 3 && !isGrazing && !quantity) ||
-                (step === 3 && isGrazing && items.filter((i) => i.livestockTypeId && i.headCount).length === 0) ||
+                (step === 3 && !isGrazing && (!quantity || !!quantityError)) ||
+                // Fix round 1 (QA-01 review, Important — the QA trigger):
+                // at least one COMPLETE row, and no row half-filled or out
+                // of range — `grazingHasBlockingRow` covers both a species
+                // with no count (or the reverse) and a head count outside
+                // 1..LIVESTOCK_HEAD_COUNT_MAX / not an integer.
+                (step === 3 &&
+                  isGrazing &&
+                  (items.filter((i) => i.livestockTypeId && i.headCount).length === 0 || grazingHasBlockingRow)) ||
                 // Decision #215 R6: the deadwood and recreation lines are
                 // required at pre-check for those activities — held here
                 // so the server's refusal is never how the citizen learns it.

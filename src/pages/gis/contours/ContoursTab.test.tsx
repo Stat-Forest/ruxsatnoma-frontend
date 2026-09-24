@@ -427,6 +427,10 @@ test('creating a contour for a leshoz with no GIS layer skips the map and saves 
   // until it is filled (the DB's own `geom_or_declared_area` CHECK, caught
   // here instead of round-tripped as a 422).
   expect(saveButton).toBeDisabled();
+  // `VersionIn.declared_area_ha` — `ge=0`, 12 digits/4 decimals (stage 17
+  // QA-01 M1 fix round).
+  expect(screen.getByTestId('version-declared-area-input')).toHaveAttribute('min', '0');
+  expect(screen.getByTestId('version-declared-area-input')).toHaveAttribute('max', '99999999.9999');
   await ui.type(screen.getByTestId('version-declared-area-input'), '3.5');
   expect(saveButton).not.toBeDisabled();
   await ui.click(saveButton);

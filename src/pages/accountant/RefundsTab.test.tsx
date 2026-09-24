@@ -135,6 +135,23 @@ test('filing a new refund request sends the application id, chosen basis and com
   expect(requestBody).toEqual({ application_id: APPLICATION_ID, basis_item_id: RF03, comment: 'Mijoz talabi' });
 });
 
+// Stage 17 QA-01 M1 fix round: `RefundRequestIn.comment` (`NoteStr`) is
+// capped at 2000 chars — the new-request modal's comment field mirrors it.
+test('the new-request comment field caps input at the backend bound (2000)', async () => {
+  server.use(
+    http.get('*/api/v1/refunds', () => HttpResponse.json({ items: [], total: 0, page: 1, page_size: 100 })),
+    http.get('*/api/v1/refs/classifiers/refund_reasons/items', () => HttpResponse.json(REASONS)),
+  );
+  const user = userEvent.setup();
+  renderTab(['payments.view', 'payments.manage']);
+
+  await screen.findByText('Arizalar topilmadi.');
+  await user.click(screen.getByRole('button', { name: 'Yangi ariza' }));
+
+  const dialog = screen.getByRole('dialog');
+  expect(within(dialog).getByLabelText('Izoh')).toHaveAttribute('maxLength', '2000');
+});
+
 test('a failed refund_reasons load says so in the new-request modal, not a silently disabled Submit', async () => {
   server.use(
     http.get('*/api/v1/refunds', () => HttpResponse.json({ items: [], total: 0, page: 1, page_size: 100 })),

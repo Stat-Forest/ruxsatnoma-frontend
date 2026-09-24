@@ -22,6 +22,8 @@ import { formatDate } from './format';
 
 type Basis = 'org_eri' | 'director_registry' | 'poa';
 const STIR_PATTERN = /^\d{9}$/;
+/** `AttachLegalIn.name` (`NameStr`, `app/core/schemas.py`). */
+const REPRESENTATION_ORG_NAME_MAX_LENGTH = 255;
 
 /** The three-basis picker shared by "attach a legal entity" (B4's own
  * `AttachLegalIn.basis`) and "add a colleague" (`AddRepresentationIn.basis`)
@@ -219,7 +221,12 @@ function AttachLegalForm() {
         {basis === 'poa' && (
           <>
             <FormField label={t('cabinet.representation.orgNameLabel')} required>
-              <Input data-testid="attach-org-name" value={orgName} onChange={(e) => setOrgName(e.target.value)} />
+              <Input
+                data-testid="attach-org-name"
+                value={orgName}
+                onChange={(e) => setOrgName(e.target.value)}
+                maxLength={REPRESENTATION_ORG_NAME_MAX_LENGTH}
+              />
             </FormField>
             <FormField label={t('cabinet.representation.poaFileLabel')} required>
               <FileInput

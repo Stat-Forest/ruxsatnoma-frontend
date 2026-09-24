@@ -7,7 +7,7 @@
  * this route family has no bare `:id` handler today.
  */
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { setupServer } from 'msw/node';
@@ -119,7 +119,7 @@ test('"Add" is shown with reports.forms.manage', async () => {
   expect(screen.getByTestId('report-forms-add')).toBeInTheDocument();
 });
 
-test('the create form\'s code and column-code fields cap input at the backend bound (CodeStr, 64)', async () => {
+test('the create form\'s code, column-code and version fields cap input at the backend bounds (CodeStr 64, version 1..1000)', async () => {
   mockBackend({ forms: [DRAFT_FORM] });
   const ui = userEvent.setup();
   renderTab(['reports.view', 'reports.forms.manage']);
@@ -130,6 +130,31 @@ test('the create form\'s code and column-code fields cap input at the backend bo
   await screen.findByTestId('report-form-column-0');
   expect(screen.getByTestId('report-form-code')).toHaveAttribute('maxLength', '64');
   expect(screen.getByTestId('report-form-column-0-code')).toHaveAttribute('maxLength', '64');
+  expect(screen.getByTestId('report-form-version')).toHaveAttribute('min', '1');
+  expect(screen.getByTestId('report-form-version')).toHaveAttribute('max', '1000');
+});
+
+// I2 (stage 17 QA-01 review): "add column" used to be unlimited while the
+// backend accepts at most 100 (`ReportFormCreate.columns`, `max_length=100`)
+// — the same unbounded "add row" pattern the wizard's own fix round closes
+// for livestock rows. The button must disappear at the cap.
+test('the "add column" button disappears once REPORT_FORM_COLUMNS_MAX (100) is reached', async () => {
+  mockBackend({ forms: [DRAFT_FORM] });
+  const ui = userEvent.setup();
+  renderTab(['reports.view', 'reports.forms.manage']);
+
+  await screen.findByText('RPT-1');
+  await ui.click(screen.getByTestId('report-forms-add'));
+  await screen.findByTestId('report-form-column-0');
+
+  const addButton = screen.getByTestId('report-form-column-add');
+  // One column exists from the start; 99 more clicks reach the cap.
+  for (let i = 1; i < 100; i++) {
+    fireEvent.click(addButton);
+  }
+
+  expect(screen.getByTestId('report-form-column-99')).toBeInTheDocument();
+  expect(screen.queryByTestId('report-form-column-add')).not.toBeInTheDocument();
 });
 
 test('"Activate" is hidden on a non-draft row', async () => {
