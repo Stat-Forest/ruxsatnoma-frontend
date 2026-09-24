@@ -152,6 +152,15 @@ test('"new contour" is offered only to a contours.manage holder', async () => {
   expect(screen.queryByRole('button', { name: 'gis.contours.newContour' })).not.toBeInTheDocument();
 });
 
+test('the new-contour number field caps input at the backend bound (CodeStr, 64)', async () => {
+  server.use(...referenceHandlers(), http.get('*/api/v1/gis/contours', () => HttpResponse.json({ items: [], total: 0 })));
+  const ui = userEvent.setup();
+  renderTab(['gis.contours.manage']);
+
+  await ui.click(await screen.findByRole('button', { name: 'gis.contours.newContour' }));
+  expect(screen.getByPlaceholderText('K-001')).toHaveAttribute('maxLength', '64');
+});
+
 test('creating a contour, drawing its first version, and holding it through to a draft VersionPanel', async () => {
   server.use(
     ...referenceHandlers(),

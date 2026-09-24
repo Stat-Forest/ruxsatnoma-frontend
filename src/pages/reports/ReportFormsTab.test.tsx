@@ -119,6 +119,19 @@ test('"Add" is shown with reports.forms.manage', async () => {
   expect(screen.getByTestId('report-forms-add')).toBeInTheDocument();
 });
 
+test('the create form\'s code and column-code fields cap input at the backend bound (CodeStr, 64)', async () => {
+  mockBackend({ forms: [DRAFT_FORM] });
+  const ui = userEvent.setup();
+  renderTab(['reports.view', 'reports.forms.manage']);
+
+  await screen.findByText('RPT-1');
+  await ui.click(screen.getByTestId('report-forms-add'));
+
+  await screen.findByTestId('report-form-column-0');
+  expect(screen.getByTestId('report-form-code')).toHaveAttribute('maxLength', '64');
+  expect(screen.getByTestId('report-form-column-0-code')).toHaveAttribute('maxLength', '64');
+});
+
 test('"Activate" is hidden on a non-draft row', async () => {
   mockBackend({ forms: [{ ...DRAFT_FORM, status: 'active' }] });
   renderTab(['reports.view', 'reports.forms.manage']);

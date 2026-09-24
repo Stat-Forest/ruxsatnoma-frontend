@@ -180,6 +180,21 @@ test('create posts the typed body', async () => {
   });
 });
 
+test('the certificate no. field caps input at the backend bound (CodeStr, 64)', async () => {
+  server.use(
+    http.get('*/api/v1/beekeepers/lookup', () =>
+      HttpResponse.json({ error: { code: 'ERR-SYS-003', message: 'not found' } }, { status: 404 }),
+    ),
+  );
+  const user = userEvent.setup();
+  renderPage();
+
+  await user.click(await screen.findByTestId('beekeeper-create-button'));
+
+  expect(screen.getByTestId('beekeeper-form-certificate-no')).toHaveAttribute('maxLength', '64');
+  expect(screen.getByTestId('beekeeper-form-full-name')).toHaveAttribute('maxLength', '255');
+});
+
 test('removal posts a mandatory reason to the remove route, never a DELETE', async () => {
   let removeCalled = false;
   let receivedBody: unknown = null;

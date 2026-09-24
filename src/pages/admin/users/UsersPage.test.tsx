@@ -152,6 +152,18 @@ test('creating sends the zone fields exactly as chosen', async () => {
   });
 });
 
+test('the login field caps input at the backend bound (CodeStr, 64)', async () => {
+  server.use(...referenceHandlers());
+  const ui = userEvent.setup();
+  renderUsers();
+
+  await screen.findByText('Karimov Alisher Baxtiyorovich');
+  await ui.click(screen.getByRole('button', { name: L.create }));
+  const form = within(await screen.findByTestId('user-form'));
+
+  expect(form.getByLabelText(L.formLogin)).toHaveAttribute('maxLength', '64');
+});
+
 test('the zone warning is next to the zone fields', async () => {
   server.use(...referenceHandlers());
   const ui = userEvent.setup();

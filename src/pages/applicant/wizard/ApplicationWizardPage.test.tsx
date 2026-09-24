@@ -506,6 +506,17 @@ test('an account with no address is asked for it in step 5, and can submit once 
   expect(vi.mocked(buildMockSignature).mock.calls.length).toBe(signaturesBefore);
 });
 
+test('the address field caps input at the backend bound (ApplicantAddressIn, 500)', async () => {
+  const auth = authValueWithAddress(null);
+  renderWizard(auth);
+
+  await driveToStep5();
+  await acceptRules();
+
+  const addressInput = await screen.findByLabelText(/Manzil/);
+  expect(addressInput).toHaveAttribute('maxLength', '500');
+});
+
 // Ruling #113, the representative's case: the address that gets printed is
 // the HOLDER's, and when a representative files on behalf of a legal entity
 // the holder is that entity. A citizen whose own record carries an address

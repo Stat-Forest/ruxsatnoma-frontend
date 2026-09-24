@@ -8,6 +8,12 @@ import { useApiErrorText } from '../../../i18n/useApiErrorText';
 import { useSplitContour } from '../queries';
 import { splitPolygonWithLine, type SplitFailureReason } from './splitContour';
 
+/** `SplitPieceIn.number` (`CodeStr`, `app/core/schemas.py`) — the same bound
+ *  `ContourIn.number` gets in `ContoursTab.tsx`. Duplicated rather than
+ *  imported across sibling files, per that constant's own comment: a leaf
+ *  bound is stated for itself, not shared through a module. */
+const CONTOUR_NUMBER_MAX_LENGTH = 64;
+
 const REASON_KEYS: Record<SplitFailureReason, string> = {
   line_too_short: 'gis.contours.split.errors.lineTooShort',
   line_does_not_cross: 'gis.contours.split.errors.doesNotCross',
@@ -118,11 +124,11 @@ export function SplitPanel({
           <div className="grid grid-cols-2 gap-3">
             <label className="block space-y-1 text-xs">
               <span className="text-[#5A646D]">{t('gis.contours.split.pieceA')}</span>
-              <Input value={numberA} onChange={(e) => setNumberA(e.target.value)} />
+              <Input value={numberA} onChange={(e) => setNumberA(e.target.value)} maxLength={CONTOUR_NUMBER_MAX_LENGTH} />
             </label>
             <label className="block space-y-1 text-xs">
               <span className="text-[#5A646D]">{t('gis.contours.split.pieceB')}</span>
-              <Input value={numberB} onChange={(e) => setNumberB(e.target.value)} />
+              <Input value={numberB} onChange={(e) => setNumberB(e.target.value)} maxLength={CONTOUR_NUMBER_MAX_LENGTH} />
             </label>
           </div>
           {splitMutation.isError && (

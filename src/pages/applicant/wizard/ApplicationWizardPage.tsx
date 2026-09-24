@@ -166,6 +166,10 @@ export const LIVESTOCK_HEAD_COUNT_MAX = 1_000_000;
 // places (`10**12 - 10**-4`, stage 17 R7) — the single quantity field a
 // non-livestock activity fills on step 3.
 export const QUANTITY_MAX = 99_999_999.9999;
+// Mirrors `ApplicantAddressIn.address` (stage 17 C1) — a bound of its own,
+// not one of the shared `CodeStr`/`NameStr`/`TextStr` types — the address
+// this step collects when the applicant's own profile has none yet.
+export const APPLICANT_ADDRESS_MAX_LENGTH = 500;
 
 /**
  * One not-yet-uploaded row of step 4. `typeValue` is a `doc_types` item id,
@@ -1160,6 +1164,7 @@ export function ApplicationWizardPage() {
                   value={address}
                   onChange={(e) => setAddress(e.target.value)}
                   onBlur={() => setAddressTouched(true)}
+                  maxLength={APPLICANT_ADDRESS_MAX_LENGTH}
                 />
               </FormField>
             </div>

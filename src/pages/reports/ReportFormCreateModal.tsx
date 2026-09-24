@@ -31,6 +31,11 @@ function emptyColumn(): ColumnDraft {
   return { code: '', labelUz: '', labelRu: '', source: 'manual', type: 'text' };
 }
 
+/** `ReportFormCreate.code` and `ReportFormColumn.code` (`CodeStr`,
+ *  `app/core/schemas.py`) — the same bound on the form's own code and on
+ *  each column's. */
+const REPORT_FORM_CODE_MAX_LENGTH = 64;
+
 function localizedName(uz: string, ru: string): Record<string, string> {
   const name: Record<string, string> = {};
   if (uz.trim()) name.uz_latn = uz.trim();
@@ -149,7 +154,12 @@ export function ReportFormCreateModal({ onClose, onSaved }: { onClose: () => voi
       <div className="space-y-4">
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <FormField label={t('reports.forms.create.codeLabel')} required>
-            <Input value={code} onChange={(e) => setCode(e.target.value)} />
+            <Input
+              data-testid="report-form-code"
+              value={code}
+              onChange={(e) => setCode(e.target.value)}
+              maxLength={REPORT_FORM_CODE_MAX_LENGTH}
+            />
           </FormField>
           <FormField label={t('reports.forms.create.versionLabel')} required>
             <Input type="number" min={1} value={version} onChange={(e) => setVersion(e.target.value)} />
@@ -194,9 +204,11 @@ export function ReportFormCreateModal({ onClose, onSaved }: { onClose: () => voi
             {columns.map((col, index) => (
               <div key={index} className="grid grid-cols-1 gap-2 rounded-lg border border-[#E4E7EA] p-3 sm:grid-cols-6" data-testid={`report-form-column-${index}`}>
                 <Input
+                  data-testid={`report-form-column-${index}-code`}
                   placeholder={t('reports.forms.create.columnCode')}
                   value={col.code}
                   onChange={(e) => updateColumn(index, { code: e.target.value })}
+                  maxLength={REPORT_FORM_CODE_MAX_LENGTH}
                 />
                 <Input
                   placeholder={t('reports.forms.create.columnLabelUz')}

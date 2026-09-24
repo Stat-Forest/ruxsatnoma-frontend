@@ -217,6 +217,16 @@ test('invalid JSON in props refuses the save and shows the parse error', async (
   expect(screen.getByTestId('field-props')).toBeInTheDocument();
 });
 
+test('the item code field caps input at the backend bound (CodeStr, 64)', async () => {
+  mockBackend(() => [RJ_01]);
+  renderPage();
+
+  await row(ACTIVE_ID);
+  await userEvent.click(screen.getByRole('button', { name: L.actionAdd }));
+
+  expect(screen.getByTestId('field-code')).toHaveAttribute('maxLength', '64');
+});
+
 test('valid JSON in props is sent as an object, not as a string', async () => {
   mockBackend(() => [RJ_01]);
   renderPage();

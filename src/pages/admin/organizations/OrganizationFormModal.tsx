@@ -36,6 +36,8 @@ import { useCreateOrganization, useDistricts, useOrganizationDetail, useRegions,
 
 const CODE_PATTERN = /^[a-z0-9][a-z0-9-]*$/i;
 const STIR_PATTERN = /^[0-9]{9}$/;
+/** `OrganizationIn.code` (`CodeStr`, `app/core/schemas.py`). */
+const ORGANIZATION_CODE_MAX_LENGTH = 64;
 
 /** What the page asked for: a blank form, a blank form under a known parent, or
  *  one organization loaded for editing. */
@@ -353,6 +355,7 @@ function OrganizationForm({
             error={Boolean(errors.code)}
             onChange={(e) => patch({ code: e.target.value })}
             placeholder="burchmulla"
+            maxLength={ORGANIZATION_CODE_MAX_LENGTH}
           />
           <FieldError testId="error-code" message={errors.code} />
         </FormField>

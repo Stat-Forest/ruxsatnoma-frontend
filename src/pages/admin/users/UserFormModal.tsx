@@ -18,6 +18,11 @@ import {
 } from './formBody';
 import { useCreateUser, useDistricts, useOrganizations, usePatchUser, useRegions, useRoles } from './queries';
 
+/** `UserCreateIn.login`/`UserPatchIn.login` (`CodeStr`, `app/core/schemas.py`). */
+const USER_LOGIN_MAX_LENGTH = 64;
+/** `UserCreateIn.full_name`/`UserPatchIn.full_name` (`NameStr`). */
+const USER_FULL_NAME_MAX_LENGTH = 255;
+
 /** Everything the form edits, as strings — `''` stands for "not set", which
  *  on a PATCH becomes an explicit `null` rather than a dropped key. */
 export interface UserFormModalProps {
@@ -146,6 +151,7 @@ export function UserFormModal({ mode, user, onClose, onCreated }: UserFormModalP
               onChange={(e) => set('login', e.target.value)}
               error={!!errors.login}
               autoComplete="off"
+              maxLength={USER_LOGIN_MAX_LENGTH}
             />
           </FormField>
           <FormField label={L.formFullName} required error={errors.full_name} htmlFor="user-form-full-name">
@@ -154,6 +160,7 @@ export function UserFormModal({ mode, user, onClose, onCreated }: UserFormModalP
               value={form.full_name}
               onChange={(e) => set('full_name', e.target.value)}
               error={!!errors.full_name}
+              maxLength={USER_FULL_NAME_MAX_LENGTH}
             />
           </FormField>
           <FormField

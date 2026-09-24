@@ -55,6 +55,10 @@ import {
 import { KNOWN_CLASSIFIER_CODES, LABELS, type ClassifiersLabels } from './labels';
 import { CLICKABLE_ROW_CLASS, clickableRowProps } from '../../../lib/rowClick';
 
+/** `ClassifierIn.code`/`ClassifierItemIn.code` (`CodeStr`, `app/core/schemas.py`) —
+ *  shared by both the classifier's own code and each item's code. */
+const CLASSIFIER_CODE_MAX_LENGTH = 64;
+
 // --- plain calendar dates, never re-parsed through a local `Date` -----------
 
 /** Today as `YYYY-MM-DD`, in the viewer's own calendar. Read through
@@ -661,6 +665,7 @@ export function ClassifiersPage() {
               // code at all — `ClassifierItemPatch` has no such field.
               disabled={formMode !== 'add'}
               onChange={(e) => setForm((f) => ({ ...f, code: e.target.value }))}
+              maxLength={CLASSIFIER_CODE_MAX_LENGTH}
             />
           </FormField>
 
@@ -844,6 +849,7 @@ export function ClassifiersPage() {
               data-testid="new-classifier-code"
               value={newClassifier.code}
               onChange={(e) => setNewClassifier((c) => ({ ...c, code: e.target.value }))}
+              maxLength={CLASSIFIER_CODE_MAX_LENGTH}
             />
           </FormField>
           <FormField label={L.fieldNameUz} required htmlFor="new-classifier-name-uz">

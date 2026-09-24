@@ -30,6 +30,10 @@ import type { Geometry, LineString, MultiPolygon, Polygon } from 'geojson';
 const CONTOURS_MANAGE = 'gis.contours.manage';
 const CONTOURS_APPROVE = 'gis.contours.approve';
 
+/** `ContourIn.number` (`CodeStr`, `app/core/schemas.py`) — `SplitPanel.tsx`
+ *  carries the same bound for `SplitPieceIn.number`. */
+const CONTOUR_NUMBER_MAX_LENGTH = 64;
+
 type WorkMode = 'browse' | 'draw-new' | 'edit-draft' | 'split';
 
 /** The small form for the fields `VersionIn` needs beyond geometry itself —
@@ -193,7 +197,12 @@ function NewContourForm({
       </label>
       <label className="block space-y-1 text-xs">
         <span className="text-[#5A646D]">{t('gis.contours.form.number')}</span>
-        <Input value={number} onChange={(e) => setNumber(e.target.value)} placeholder="K-001" />
+        <Input
+          value={number}
+          onChange={(e) => setNumber(e.target.value)}
+          placeholder="K-001"
+          maxLength={CONTOUR_NUMBER_MAX_LENGTH}
+        />
       </label>
       {error != null && <Alert variant="danger">{errorText(error, t('gis.contours.form.createFailed'))}</Alert>}
       <div className="flex gap-2">

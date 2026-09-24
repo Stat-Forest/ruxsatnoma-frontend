@@ -34,6 +34,13 @@ import { useLabels, type RecipientLabels } from './labels';
 import { useCreateRecipient, usePatchRecipient, useRecipientsList } from './queries';
 import { CLICKABLE_ROW_CLASS, clickableRowProps } from '../../../lib/rowClick';
 
+/** `PaymentRecipientIn.payme_account_id` (`CodeStr`, `app/core/schemas.py`). */
+const RECIPIENT_PAYME_ACCOUNT_ID_MAX_LENGTH = 64;
+/** `PaymentRecipientIn.note` (`NoteStr`). */
+const RECIPIENT_NOTE_MAX_LENGTH = 2000;
+/** `PaymentRecipientIn.sort_order` — `le=SORT_ORDER_MAX`. */
+const RECIPIENT_SORT_ORDER_MAX = 10000;
+
 /** `50.00` -> `"50%"`, `12.50` -> `"12.5%"` — trailing zeros trimmed, the
  *  same reading `formatMoney` gives a whole so'm amount. */
 function formatPercent(value: string | number): string {
@@ -434,6 +441,7 @@ function RecipientFormModal({
             data-testid="recipient-payme-id"
             value={form.paymeAccountId}
             onChange={(e) => set('paymeAccountId', e.target.value)}
+            maxLength={RECIPIENT_PAYME_ACCOUNT_ID_MAX_LENGTH}
           />
         </FormField>
 
@@ -444,11 +452,20 @@ function RecipientFormModal({
             type="number"
             value={form.sortOrder}
             onChange={(e) => set('sortOrder', e.target.value)}
+            min={0}
+            max={RECIPIENT_SORT_ORDER_MAX}
           />
         </FormField>
 
         <FormField label={L.fieldNote} htmlFor="recipient-note">
-          <Textarea id="recipient-note" data-testid="recipient-note" rows={2} value={form.note} onChange={(e) => set('note', e.target.value)} />
+          <Textarea
+            id="recipient-note"
+            data-testid="recipient-note"
+            rows={2}
+            value={form.note}
+            onChange={(e) => set('note', e.target.value)}
+            maxLength={RECIPIENT_NOTE_MAX_LENGTH}
+          />
         </FormField>
 
         {recipientId !== null && (
