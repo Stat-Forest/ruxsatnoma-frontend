@@ -9,6 +9,7 @@ import { useApiErrorText } from '../../i18n/useApiErrorText';
 import { formatDate, formatDecimal, formatPermitNumber, shortId } from './format';
 import { PERMIT_STATUS_STYLE, getPermitStatusLabel } from '../permits/statusMeta';
 import { parseQrInput } from './qr';
+import { parsePermitNo } from '../../lib/permitNumber';
 import {
   useActivityTypeName,
   useContourNumber,
@@ -59,8 +60,8 @@ export function ScanTab() {
   const errorText = useApiErrorText();
   const [tokenInput, setTokenInput] = useState('');
   const [seriesOpen, setSeriesOpen] = useState(false);
-  const [series, setSeries] = useState('');
-  const [number, setNumber] = useState('');
+  const [permitNo, setPermitNo] = useState('');
+  const [permitNoInvalid, setPermitNoInvalid] = useState(false);
   const [tokenSubmitted, setTokenSubmitted] = useState<PublicPermitCheckInput | null>(null);
   const [numberSubmitted, setNumberSubmitted] = useState<{ series: string; number: number } | null>(null);
 
@@ -73,9 +74,15 @@ export function ScanTab() {
   }
 
   function submitSeriesNumber() {
-    const parsedNumber = Number(number);
-    if (!series.trim() || !number || !Number.isInteger(parsedNumber) || parsedNumber <= 0) return;
-    setNumberSubmitted({ series: series.trim(), number: parsedNumber });
+    // Both halves, unlike the registry's filter: this names ONE permit, and
+    // `usePermitByNumber` reads only the first row of whatever matches.
+    const parsed = parsePermitNo(permitNo);
+    if (!parsed?.series || !parsed.number) {
+      setPermitNoInvalid(true);
+      return;
+    }
+    setPermitNoInvalid(false);
+    setNumberSubmitted({ series: parsed.series, number: parsed.number });
   }
 
   return (
@@ -107,29 +114,29 @@ export function ScanTab() {
         </button>
 
         {seriesOpen && (
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:items-end">
-            <FormField label={t('inspector.scan.seriesLabel')}>
+          <FormField
+            label={t('inspector.scan.permitNoLabel')}
+            error={permitNoInvalid ? t('inspector.scan.permitNoInvalid') : undefined}
+          >
+            <div className="flex flex-col sm:flex-row gap-2">
               <Input
                 touchSize
-                value={series}
-                onChange={(e) => setSeries(e.target.value)}
-                placeholder="А"
-                maxLength={8}
+                value={permitNo}
+                onChange={(e) => {
+                  setPermitNo(e.target.value);
+                  setPermitNoInvalid(false);
+                }}
+                onKeyDown={(e) => e.key === 'Enter' && submitSeriesNumber()}
+                placeholder="А 000002"
+                maxLength={32}
+                error={permitNoInvalid}
+                className="flex-1"
               />
-            </FormField>
-            <FormField label={t('inspector.scan.numberLabel')}>
-              <Input
-                touchSize
-                inputMode="numeric"
-                value={number}
-                onChange={(e) => setNumber(e.target.value.replace(/\D/g, ''))}
-                placeholder="000002"
-              />
-            </FormField>
-            <Button size="touch" variant="outline" onClick={submitSeriesNumber}>
-              {t('inspector.scan.checkButton')}
-            </Button>
-          </div>
+              <Button size="touch" variant="outline" onClick={submitSeriesNumber}>
+                {t('inspector.scan.checkButton')}
+              </Button>
+            </div>
+          </FormField>
         )}
       </div>
 
