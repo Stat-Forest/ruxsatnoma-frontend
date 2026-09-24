@@ -7,6 +7,7 @@ import { ApiError } from '../../api/errors';
 import { useApiErrorText } from '../../i18n/useApiErrorText';
 import { useLanguage } from '../../i18n/useT';
 import { useListUrlState } from '../../lib/useListUrlState';
+import { parsePermitNo } from '../../lib/permitNumber';
 import { ExportXlsxButton } from '../../components/ui/ExportXlsxButton';
 import { toPermitsQuery, usePermitsList, type PermitListFilters, type PermitStatus } from './queries';
 import { useLeshozOrganizations } from './useRefsLookup';
@@ -26,8 +27,8 @@ const PERMITS_LIST_I18N = {
     status: 'Status',
     search: 'Qidiruv',
     searchHint: 'Arizachining F.I.Sh.',
-    series: 'Seriya',
-    number: 'Raqami',
+    permitNo: 'Seriya va raqami',
+    permitNoInvalid: 'Seriya va raqamni «А 000002» koʻrinishida kiriting',
     organization: 'Oʻrmon xoʻjaligi',
     all: 'Barchasi',
     reset: 'Tiklash',
@@ -52,8 +53,8 @@ const PERMITS_LIST_I18N = {
     status: 'Статус',
     search: 'Қидирув',
     searchHint: 'Аризачининг Ф.И.Ш.',
-    series: 'Серия',
-    number: 'Рақами',
+    permitNo: 'Серия ва рақами',
+    permitNoInvalid: 'Серия ва рақамни «А 000002» кўринишида киритинг',
     organization: 'Ўрмон хўжалиги',
     all: 'Барчаси',
     reset: 'Тиклаш',
@@ -78,8 +79,8 @@ const PERMITS_LIST_I18N = {
     status: 'Статус',
     search: 'Поиск',
     searchHint: 'ФИО заявителя',
-    series: 'Серия',
-    number: 'Номер',
+    permitNo: 'Серия и номер',
+    permitNoInvalid: 'Введите серию и номер в виде «А 000002»',
     organization: 'Лесхоз',
     all: 'Все',
     reset: 'Сбросить',
@@ -104,8 +105,8 @@ const PERMITS_LIST_I18N = {
     status: 'Status',
     search: 'Search',
     searchHint: 'Applicant name',
-    series: 'Series',
-    number: 'Number',
+    permitNo: 'Series and number',
+    permitNoInvalid: 'Enter the series and number as «А 000002»',
     organization: 'Forestry',
     all: 'All',
     reset: 'Reset',
@@ -130,8 +131,8 @@ const PERMITS_LIST_I18N = {
     status: 'Status',
     search: 'Izlew',
     searchHint: 'Arza beriwshiniń F.A.Á.',
-    series: 'Seriya',
-    number: 'Nómeri',
+    permitNo: 'Seriya hám nómeri',
+    permitNoInvalid: 'Seriya hám nómerdi «А 000002» túrinde kiritiń',
     organization: 'Tokaý xojalıǵı',
     all: 'Barlıǵı',
     reset: 'Qayta tiklew',
@@ -153,12 +154,12 @@ const PERMITS_LIST_I18N = {
 interface FilterFormState {
   status: PermitStatus | '';
   q: string;
-  series: string;
-  number: string;
+  /** Series and number in one box, as printed: «А 000002». */
+  permit_no: string;
   organization_id: string;
 }
 
-const EMPTY_FILTERS: FilterFormState = { status: '', q: '', series: '', number: '', organization_id: '' };
+const EMPTY_FILTERS: FilterFormState = { status: '', q: '', permit_no: '', organization_id: '' };
 
 /** The URL owns `status`; the form types it more narrowly than a string. */
 function asStatus(value: string): FilterFormState['status'] {
@@ -189,11 +190,11 @@ export function PermitsListPage({ variant }: { variant: 'staff' | 'applicant' })
   // Auto-apply text filters with debounce so typing immediately filters
   useEffect(() => {
     const timer = setTimeout(() => {
-      applyPatch({ q: filters.q, series: filters.series, number: filters.number });
+      applyPatch({ q: filters.q, permit_no: filters.permit_no });
     }, 400);
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filters.q, filters.series, filters.number]);
+  }, [filters.q, filters.permit_no]);
 
   const statusOptions = useMemo(
     () => [
@@ -209,14 +210,14 @@ export function PermitsListPage({ variant }: { variant: 'staff' | 'applicant' })
   const queryFilters: PermitListFilters = {
     status: appliedFilters.status || undefined,
     q: appliedFilters.q || undefined,
-    series: appliedFilters.series || undefined,
-    number: appliedFilters.number || undefined,
+    permit_no: appliedFilters.permit_no || undefined,
     organization_id: isStaff ? appliedFilters.organization_id || undefined : undefined,
     page,
     page_size: PAGE_SIZE,
   };
 
   const list = usePermitsList(queryFilters);
+  const permitNoInvalid = parsePermitNo(filters.permit_no) === null;
   const organizations = useLeshozOrganizations();
 
   function applyFilters() {
@@ -248,7 +249,7 @@ export function PermitsListPage({ variant }: { variant: 'staff' | 'applicant' })
         }}
         className="bg-white border border-[#E4E7EA] rounded-2xl p-5 shadow-xs space-y-3"
       >
-        <div className={`grid grid-cols-1 sm:grid-cols-2 gap-3 items-end ${isStaff ? 'lg:grid-cols-4' : 'lg:grid-cols-3'}`}>
+        <div className={`grid grid-cols-1 sm:grid-cols-2 gap-3 items-start ${isStaff ? 'lg:grid-cols-4' : 'lg:grid-cols-3'}`}>
           <FormField label={lt.status}>
             <Select
               value={filters.status}
@@ -267,20 +268,14 @@ export function PermitsListPage({ variant }: { variant: 'staff' | 'applicant' })
               placeholder={lt.searchHint}
             />
           </FormField>
-          <FormField label={lt.series}>
+          <FormField label={lt.permitNo} error={permitNoInvalid ? lt.permitNoInvalid : undefined}>
             <Input
-              value={filters.series}
-              onChange={(e) => setFilters((f) => ({ ...f, series: e.target.value }))}
-              placeholder="А"
-              maxLength={8}
-            />
-          </FormField>
-          <FormField label={lt.number}>
-            <Input
-              value={filters.number}
-              onChange={(e) => setFilters((f) => ({ ...f, number: e.target.value.replace(/\D/g, '') }))}
-              placeholder="000002"
-              inputMode="numeric"
+              value={filters.permit_no}
+              onChange={(e) => setFilters((f) => ({ ...f, permit_no: e.target.value }))}
+              placeholder="А 000002"
+              maxLength={32}
+              error={permitNoInvalid}
+              data-testid="permits-filter-permit-no"
             />
           </FormField>
           {isStaff && (
