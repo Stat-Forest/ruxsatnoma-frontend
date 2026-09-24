@@ -13652,7 +13652,7 @@ export interface components {
         /** RuleParameterPatch */
         RuleParameterPatch: {
             /** Value */
-            value?: unknown;
+            value?: unknown | null;
             /** Unit */
             unit?: string | null;
             /** Effective From */
