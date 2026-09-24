@@ -101,16 +101,26 @@ test('an empty inbox shows the empty state', async () => {
   expect(await screen.findByTestId('notifications-empty')).toBeInTheDocument();
 });
 
-test('unread items show a Mark read button, read ones do not', async () => {
+/** An unread notification about nothing in particular: no card to open. */
+const UNREAD_PLAIN = {
+  ...UNREAD,
+  id: 'n-6',
+  event_code: 'announcement.published',
+  text: 'Yangi eʼlon',
+  object_type: null,
+  object_id: null,
+};
+
+test('no row carries a separate mark-read button', async () => {
   server.use(
     http.get('*/notifications', () =>
-      HttpResponse.json({ items: [UNREAD, READ], total: 2, page: 1, page_size: 20 }),
+      HttpResponse.json({ items: [UNREAD, READ, UNREAD_PLAIN], total: 3, page: 1, page_size: 20 }),
     ),
   );
   renderPage();
   expect(await screen.findByText('Arizangiz qabul qilindi')).toBeInTheDocument();
-  expect(screen.getByTestId('mark-read-n-1')).toBeInTheDocument();
-  expect(screen.queryByTestId('mark-read-n-2')).toBeNull();
+  expect(screen.queryByRole('button', { name: defaultT('cabinet.notifications.markRead') })).toBeNull();
+  expect(screen.queryByTestId('mark-read-n-1')).toBeNull();
 });
 
 test('switching to the Unread filter re-queries with unread=true', async () => {
@@ -127,21 +137,44 @@ test('switching to the Unread filter re-queries with unread=true', async () => {
   await waitFor(() => expect(seenUnread).toContain('true'));
 });
 
-test('marking one notification read calls the route and it drops off the list', async () => {
-  let marked = false;
+test('clicking an unread card with nowhere to go marks it read', async () => {
+  const markedIds: string[] = [];
   server.use(
     http.get('*/notifications', () =>
-      HttpResponse.json({ items: marked ? [] : [UNREAD], total: marked ? 0 : 1, page: 1, page_size: 20 }),
+      HttpResponse.json({
+        items: markedIds.length ? [] : [UNREAD_PLAIN],
+        total: markedIds.length ? 0 : 1,
+        page: 1,
+        page_size: 20,
+      }),
     ),
-    http.post('*/notifications/:id/read', () => {
-      marked = true;
-      return HttpResponse.json({ ...UNREAD, read_at: '2026-09-05T10:00:00Z' });
+    http.post('*/notifications/:id/read', ({ params }) => {
+      markedIds.push(String(params.id));
+      return HttpResponse.json({ ...UNREAD_PLAIN, read_at: '2026-09-05T10:00:00Z' });
     }),
   );
   renderPage();
-  await screen.findByText('Arizangiz qabul qilindi');
-  await userEvent.click(screen.getByTestId('mark-read-n-1'));
+  await userEvent.click(await screen.findByTestId('notification-card-n-6'));
   expect(await screen.findByTestId('notifications-empty')).toBeInTheDocument();
+  expect(markedIds).toEqual(['n-6']);
+  expect(screen.getByTestId('current-location')).toHaveTextContent('/notifications');
+});
+
+test('the clickable card is named by its own text and described as mark read', async () => {
+  page([UNREAD_PLAIN]);
+  renderPage();
+  const card = await screen.findByTestId('notification-card-n-6');
+  expect(card.tagName).toBe('BUTTON');
+  expect(card).toHaveAccessibleName(expect.stringContaining('Yangi eʼlon'));
+  expect(card).toHaveAccessibleDescription(defaultT('cabinet.notifications.markRead'));
+});
+
+test('a read card with nowhere to go is plain text, not a button', async () => {
+  page([{ ...UNREAD_PLAIN, read_at: '2026-09-05T09:00:00Z' }]);
+  renderPage();
+  await screen.findByText('Yangi eʼlon');
+  expect(screen.queryByTestId('notification-card-n-6')).toBeNull();
+  expect(screen.queryByRole('button', { name: /Yangi eʼlon/ })).toBeNull();
 });
 
 test('mark-all-read calls the route and clears the unread filter view', async () => {
@@ -306,16 +339,6 @@ test('a notification without a transition shows no chips', async () => {
   renderPage();
   await screen.findByText('Arizangiz qabul qilindi');
   expect(screen.queryByTestId('notification-transition-n-1')).toBeNull();
-});
-
-// --- mark read is an icon, not a sentence ---------------------------------
-
-test('the mark-read control is an icon button named by its tooltip text', async () => {
-  page([UNREAD]);
-  renderPage();
-  const button = await screen.findByTestId('mark-read-n-1');
-  expect(button).toHaveAccessibleName(defaultT('cabinet.notifications.markRead'));
-  expect(button).not.toHaveTextContent(defaultT('cabinet.notifications.markRead'));
 });
 
 // --- Excel export ----------------------------------------------------------
