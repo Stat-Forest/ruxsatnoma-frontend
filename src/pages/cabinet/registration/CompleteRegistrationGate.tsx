@@ -12,6 +12,22 @@ import { requestOtp, verifyOtp } from '../../../lib/otpApi';
 import { completeRegistration } from './api';
 
 const PHONE_PATTERN = /^\+998\d{9}$/;
+const PHONE_PREFIX = '+998';
+
+/** Keeps the field as `+998` plus at most nine digits: the prefix is typed
+ * in already and cannot be erased, a pasted full number (`+998901234567`,
+ * `998901234567`) or a bare local one (`901234567`) both land as the same
+ * value, and a keystroke that breaks into the prefix keeps the local part. */
+function normalizePhone(raw: string): string {
+  const digits = raw.replace(/\D/g, '');
+  let local: string;
+  if (raw.startsWith(PHONE_PREFIX)) local = digits.slice(3);
+  else if (digits.length > 9) local = digits.slice(-9);
+  else if ('998'.startsWith(digits)) local = '';
+  else local = digits;
+  if (local.length > 9 && local.startsWith('998')) local = local.slice(3);
+  return PHONE_PREFIX + local.slice(0, 9);
+}
 
 type OtpStage = 'idle' | 'sent' | 'verified';
 
@@ -77,7 +93,7 @@ export function CompleteRegistrationGate() {
     }
   }
 
-  const [phone, setPhone] = useState('');
+  const [phone, setPhone] = useState(PHONE_PREFIX);
   const [otpStage, setOtpStage] = useState<OtpStage>('idle');
   const [otpToken, setOtpToken] = useState<string | null>(null);
   const [code, setCode] = useState('');
@@ -217,7 +233,7 @@ export function CompleteRegistrationGate() {
                   placeholder={t('cabinet.registration.phonePlaceholder')}
                   value={phone}
                   disabled={phoneLocked}
-                  onChange={(e) => setPhone(e.target.value.replace(/[^\d+]/g, ''))}
+                  onChange={(e) => setPhone(normalizePhone(e.target.value))}
                 />
               </FormField>
             </div>
@@ -247,7 +263,7 @@ export function CompleteRegistrationGate() {
             )}
           </div>
 
-          {touched && phone !== '' && !phoneValid && (
+          {touched && phone !== PHONE_PREFIX && !phoneValid && (
             <p className="text-xs text-[#B91C1C]">{t('cabinet.registration.invalidPhone')}</p>
           )}
 
