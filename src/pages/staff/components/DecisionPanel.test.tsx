@@ -388,6 +388,75 @@ test('reject stays disabled until every ground field is filled, then submits the
   expect(body.appeal_text).toBe('Shikoyat matni');
 });
 
+// G1 (fix-wave review): the backend refuses a reject carrying a character
+// the PDF font cannot draw with 422 ERR-VAL-001, `details.reason ===
+// 'unrenderable_characters'` and `details.fields` mapping each bad field's
+// wire path to the offending characters. The modal must show which field
+// and which character, not the generic validation sentence.
+test('a character the notice cannot print names the field and the character, not a generic message', async () => {
+  const reasonId = 'rj000000-0000-4000-8000-000000000001';
+  server.use(
+    http.get('*/api/v1/refs/classifiers/:code/items', ({ params }) =>
+      params.code === 'rejection_reasons'
+        ? HttpResponse.json([{ id: reasonId, code: 'R01', name: { uz_latn: 'Hujjatlar toʻliq emas' }, props: { kind: 'reject', legal_basis: '' }, valid_from: '2026-01-01', valid_to: null, status: 'active' }])
+        : HttpResponse.json([]),
+    ),
+    http.get('*/api/v1/applications/:id/rejection-defaults', () =>
+      HttpResponse.json({ language: 'uz_latn', reapply_text: 'Qayta murojaat matni', appeal_text: 'Shikoyat matni' }),
+    ),
+    http.get('*/api/v1/applications/:id/package', () => new HttpResponse(new Uint8Array([1, 2, 3]).buffer)),
+    http.post('*/api/v1/applications/:id/reject', () =>
+      HttpResponse.json(
+        {
+          error: {
+            code: 'ERR-VAL-001',
+            message: 'Unrenderable characters',
+            details: {
+              reason: 'unrenderable_characters',
+              fields: {
+                'grounds.0.fact': ['U+1F642 🙂'],
+                appeal_text: ['U+1F642 🙂'],
+              },
+            },
+          },
+        },
+        { status: 422 },
+      ),
+    ),
+  );
+
+  const user = userEvent.setup();
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
+  const initial = card({ status: 'IN_REVIEW' });
+  client.setQueryData(['staff', 'application', initial.id], initial);
+  renderPanel(initial, client);
+
+  await user.click(screen.getByText('Rad etish'));
+  await screen.findByText(/Hujjatlar toʻliq emas/);
+  await screen.findByDisplayValue('Qayta murojaat matni');
+
+  const groundGroup = screen.getByRole('group', { name: /Sabab 1/ });
+  await user.selectOptions(within(groundGroup).getByRole('combobox'), reasonId);
+  const [factField, legalDocumentField, legalClauseField, evidenceField, remedyField] =
+    within(groundGroup).getAllByRole('textbox');
+  await user.type(factField, 'Ariza hujjatlari toʻliq topshirilmagan');
+  await user.type(legalDocumentField, 'VMQ 278');
+  await user.type(legalClauseField, '12-band');
+  await user.type(evidenceField, 'Tekshiruv dalolatnomasi №12');
+  await user.type(remedyField, 'Yetishmagan hujjatlarni topshirish');
+
+  const submitButton = screen.getByText('Rad etish va imzolash');
+  await waitFor(() => expect(submitButton.closest('button')).toBeEnabled());
+  await user.click(submitButton);
+
+  const alertBlock = await screen.findByRole('alert');
+  expect(alertBlock).toHaveTextContent('Matnda chop etib boʻlmaydigan belgi bor — uni oʻchiring:');
+  expect(within(alertBlock).getByText(/Sabab 1 — Aniqlangan holat/)).toHaveTextContent('U+1F642 🙂');
+  expect(within(alertBlock).getByText(/Shikoyat qilish/)).toHaveTextContent('U+1F642 🙂');
+  // Never the generic validation sentence this code would otherwise render.
+  expect(screen.queryByText("Kiritilgan ma'lumotlarni tekshirishda xatolik.")).not.toBeInTheDocument();
+});
+
 // G3 (fix-wave review): the head signs blind to which language the printed
 // notice will actually use — `useRejectionDefaults` already returns
 // `language`, this just surfaces it above the two texts.

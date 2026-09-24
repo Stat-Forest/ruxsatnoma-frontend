@@ -14,10 +14,10 @@ import {
   signDocument,
   useMockSigner,
 } from '../../../lib/eimzo';
-import { LANGUAGES } from '../../../i18n/context';
+import { LANGUAGES, type UiLanguage } from '../../../i18n/context';
 import { useLanguage, useT } from '../../../i18n/useT';
 import { useApplicationPackage, useRejectionDefaults, useRejectionReasons, type RejectInput } from '../queries';
-import { emptyGround, groundComplete, type GroundDraft } from '../groundDraft';
+import { emptyGround, GROUND_LABELS, groundComplete, type GroundDraft, type GroundTextField } from '../groundDraft';
 import { RejectionGroundsEditor } from './RejectionGroundsEditor';
 
 export type DecisionMode = 'approve' | 'reject';
@@ -69,6 +69,7 @@ const SIGN_DECISION_I18N = {
     reapplyLabel: 'Qayta murojaat',
     appealLabel: 'Shikoyat qilish',
     noticeLanguage: 'Xabarnoma tili',
+    unrenderableCharsIntro: 'Matnda chop etib boʻlmaydigan belgi bor — uni oʻchiring:',
   },
   uz_cyrl: {
     approveTitle: 'Аризани тасдиқлаш',
@@ -82,6 +83,7 @@ const SIGN_DECISION_I18N = {
     reapplyLabel: 'Қайта мурожаат',
     appealLabel: 'Шикоят қилиш',
     noticeLanguage: 'Хабарнома тили',
+    unrenderableCharsIntro: 'Матнда чоп этиб бўлмайдиган белги бор — уни ўчиринг:',
   },
   ru: {
     approveTitle: 'Утверждение заявления',
@@ -95,6 +97,7 @@ const SIGN_DECISION_I18N = {
     reapplyLabel: 'Повторное обращение',
     appealLabel: 'Обжалование',
     noticeLanguage: 'Язык уведомления',
+    unrenderableCharsIntro: 'В тексте есть символ, который нельзя напечатать, — удалите его:',
   },
   en: {
     approveTitle: 'Approve application',
@@ -108,6 +111,7 @@ const SIGN_DECISION_I18N = {
     reapplyLabel: 'Re-applying',
     appealLabel: 'Appeal',
     noticeLanguage: 'Notice language',
+    unrenderableCharsIntro: 'The text contains a character that cannot be printed — remove it:',
   },
   kaa: {
     approveTitle: 'Arzanı tastıyıqlaw',
@@ -121,8 +125,50 @@ const SIGN_DECISION_I18N = {
     reapplyLabel: 'Qayta múrájat',
     appealLabel: 'Shaǵım etiw',
     noticeLanguage: 'Xabarnama tili',
+    unrenderableCharsIntro: 'Tekstte basıp shıǵarıwǵa bolmaytuǵın belgi bar — onı óshiriń:',
   },
 };
+
+/**
+ * G1 (fix wave): `POST /applications/{id}/reject` refuses, BEFORE the
+ * signature, a text containing a character the notice's PDF font cannot
+ * draw — 422 `ERR-VAL-001`, `details.reason === 'unrenderable_characters'`,
+ * `details.fields` mapping each bad field's own wire path to the offending
+ * characters (`"U+1F642 🙂"`, already formatted by the backend). `details`
+ * is untyped in `schema.d.ts` (openapi-fetch has no way to type a
+ * code-specific shape), so it is narrowed here rather than in the schema.
+ */
+interface UnrenderableCharactersDetails {
+  reason: 'unrenderable_characters';
+  fields: Record<string, string[]>;
+}
+
+function unrenderableCharactersDetails(error: ApiError | null): UnrenderableCharactersDetails | null {
+  if (!error || error.code !== 'ERR-VAL-001') return null;
+  const details = error.details as { reason?: unknown; fields?: unknown } | null | undefined;
+  if (details?.reason !== 'unrenderable_characters' || typeof details.fields !== 'object' || details.fields === null) {
+    return null;
+  }
+  return details as UnrenderableCharactersDetails;
+}
+
+/** `grounds.{i}.{field}` (0-based, `field` one of the ground's five text
+ *  fields) or a bare `reapply_text`/`appeal_text` — the two path shapes G1's
+ *  refusal names a field by. An unrecognised path (a future field this
+ *  modal doesn't know about yet) falls back to the raw path rather than
+ *  hiding which field it names. */
+function unrenderableFieldLabel(path: string, lang: UiLanguage, tr: (typeof SIGN_DECISION_I18N)['uz_latn']): string {
+  const groundLabels = GROUND_LABELS[lang] ?? GROUND_LABELS.uz_latn;
+  const groundMatch = /^grounds\.(\d+)\.(fact|legal_document|legal_clause|evidence|remedy)$/.exec(path);
+  if (groundMatch) {
+    const ground = groundLabels.ground.replace('{n}', String(Number(groundMatch[1]) + 1));
+    const field = groundLabels[groundMatch[2] as GroundTextField];
+    return `${ground} — ${field}`;
+  }
+  if (path === 'reapply_text') return tr.reapplyLabel;
+  if (path === 'appeal_text') return tr.appealLabel;
+  return path;
+}
 
 /**
  * The one place both decision routes get their `pkcs7` from. Under the
@@ -239,6 +285,10 @@ export function SignDecisionModal({
   }
 
   const apiError = error instanceof ApiError ? error : null;
+  // G1: a dedicated breakdown replaces the generic ERR-VAL-001 sentence
+  // whenever the refusal is specifically about a character the notice
+  // cannot print.
+  const unrenderable = unrenderableCharactersDetails(apiError);
 
   return (
     <Modal
@@ -307,10 +357,21 @@ export function SignDecisionModal({
           </div>
         )}
 
-        {apiError && (
-          <div className="p-3 bg-[#FEF2F2] border border-[#FCA5A5] rounded-xl text-xs text-[#991B1B] space-y-1">
-            <p>{errorText(apiError)}</p>
+        {unrenderable ? (
+          <div className="p-3 bg-[#FEF2F2] border border-[#FCA5A5] rounded-xl text-xs text-[#991B1B] space-y-1" role="alert">
+            <p>{tr.unrenderableCharsIntro}</p>
+            {Object.entries(unrenderable.fields).map(([path, chars]) => (
+              <p key={path}>
+                {unrenderableFieldLabel(path, lang, tr)}: {chars.join(', ')}
+              </p>
+            ))}
           </div>
+        ) : (
+          apiError && (
+            <div className="p-3 bg-[#FEF2F2] border border-[#FCA5A5] rounded-xl text-xs text-[#991B1B] space-y-1">
+              <p>{errorText(apiError)}</p>
+            </div>
+          )
         )}
       </div>
     </Modal>
