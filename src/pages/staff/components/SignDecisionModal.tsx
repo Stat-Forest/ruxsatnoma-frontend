@@ -101,7 +101,7 @@ const SIGN_DECISION_I18N = {
     rejectSubmit: 'Reject and sign',
     loadingPackage: 'Loading document package to sign (GET .../package)...',
     packageErrorFallback: 'Failed to load document.',
-    reapplyLabel: 'Reapplication',
+    reapplyLabel: 'Re-applying',
     appealLabel: 'Appeal',
   },
   kaa: {
@@ -113,8 +113,8 @@ const SIGN_DECISION_I18N = {
     rejectSubmit: 'Biykar etiw hám qol qoyıw',
     loadingPackage: 'Qol qoyılatuǵın hújjet júklenbekte (GET .../package)...',
     packageErrorFallback: 'Hújjet júklenbedi.',
-    reapplyLabel: 'Qayta murájaat',
-    appealLabel: 'Shikayat etiw',
+    reapplyLabel: 'Qayta múrájat',
+    appealLabel: 'Shaǵım etiw',
   },
 };
 
