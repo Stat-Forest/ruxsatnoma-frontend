@@ -303,12 +303,10 @@ export function MyApplicationsPage() {
             ]}
           />
         </FormField>
-        <FormField label={t.filterDateBy}>
-          <div
-            role="group"
-            aria-label={t.filterDateBy}
-            className="flex h-10 rounded-lg border border-[#E4E7EA] overflow-hidden bg-white"
-          >
+        {/* The switch sits as tabs on the frame around the two dates, so it
+            reads as "which date these are" rather than as a filter of its own. */}
+        <div className="sm:col-span-2">
+          <div role="group" aria-label={t.filterDateBy} className="flex gap-0.5 pl-3">
             {(
               [
                 ['created', t.colCreatedAt],
@@ -320,35 +318,39 @@ export function MyApplicationsPage() {
                 type="button"
                 aria-pressed={dateBy === value}
                 onClick={() => setFilters({ dateBy: value })}
-                className={`flex-1 px-3 text-sm font-semibold cursor-pointer transition-colors ${
-                  dateBy === value ? 'bg-[#2E7D4F] text-white' : 'text-[#5A646D] hover:bg-[#F0F7F1]'
+                className={`relative -mb-px h-8 px-3 rounded-t-lg border text-sm cursor-pointer transition-colors ${
+                  dateBy === value
+                    ? 'z-10 bg-white border-[#E4E7EA] border-b-white text-[#2E7D4F] font-semibold'
+                    : 'border-transparent text-[#5A646D] font-medium hover:text-[#1A1F24]'
                 }`}
               >
                 {label}
               </button>
             ))}
           </div>
-        </FormField>
-        <FormField label={t.filterDateFrom} htmlFor="filter-date-from">
-          <Input
-            id="filter-date-from"
-            type="date"
-            value={dateFrom}
-            max={dateTo || undefined}
-            onChange={(e) => setFilters({ dateFrom: e.target.value })}
-          />
-        </FormField>
-        <FormField label={t.filterDateTo} htmlFor="filter-date-to" error={datesReversed ? t.dateReversed : undefined}>
-          <Input
-            id="filter-date-to"
-            type="date"
-            value={dateTo}
-            min={dateFrom || undefined}
-            error={datesReversed}
-            onChange={(e) => setFilters({ dateTo: e.target.value })}
-          />
-        </FormField>
-        <div className="sm:col-span-2 lg:col-span-3 flex justify-end">
+          <div className="rounded-lg border border-[#E4E7EA] p-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <FormField label={t.filterDateFrom} htmlFor="filter-date-from">
+              <Input
+                id="filter-date-from"
+                type="date"
+                value={dateFrom}
+                max={dateTo || undefined}
+                onChange={(e) => setFilters({ dateFrom: e.target.value })}
+              />
+            </FormField>
+            <FormField label={t.filterDateTo} htmlFor="filter-date-to" error={datesReversed ? t.dateReversed : undefined}>
+              <Input
+                id="filter-date-to"
+                type="date"
+                value={dateTo}
+                min={dateFrom || undefined}
+                error={datesReversed}
+                onChange={(e) => setFilters({ dateTo: e.target.value })}
+              />
+            </FormField>
+          </div>
+        </div>
+        <div className="sm:col-span-2 lg:col-span-1 flex justify-end items-end">
           <ExportXlsxButton className="ml-auto" path="/api/v1/applications" query={listQuery} />
         </div>
       </div>
