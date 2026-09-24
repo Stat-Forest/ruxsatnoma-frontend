@@ -121,3 +121,100 @@ test('the Excel button asks the server for the export with the applied filter an
   expect(exportUrl!.searchParams.has('page')).toBe(false);
   expect(exportUrl!.searchParams.has('page_size')).toBe(false);
 });
+
+function captureListRequests() {
+  const seen: URL[] = [];
+  server.use(
+    http.get('*/api/v1/applications', ({ request }) => {
+      seen.push(new URL(request.url));
+      return HttpResponse.json({ items: [row()], total: 1, page: 1, page_size: 20 });
+    }),
+  );
+  return seen;
+}
+
+test('the date window filters by the filing day by default, and by the period once switched', async () => {
+  const seen = captureListRequests();
+  renderPage();
+  await screen.findAllByText('RX-2026-000001');
+  const user = userEvent.setup();
+
+  await user.type(screen.getByLabelText('Sana — dan'), '2026-09-01');
+  await user.type(screen.getByLabelText('Sana — gacha'), '2026-09-30');
+  await waitFor(() => expect(seen.at(-1)!.searchParams.get('created_to')).toBe('2026-09-30'));
+  let last = seen.at(-1)!;
+  expect(last.searchParams.get('created_from')).toBe('2026-09-01');
+  expect(last.searchParams.has('period_from')).toBe(false);
+  expect(last.searchParams.has('period_to')).toBe(false);
+
+  await user.click(screen.getByRole('button', { name: 'Davr' }));
+  await waitFor(() => expect(seen.at(-1)!.searchParams.get('period_to')).toBe('2026-09-30'));
+  last = seen.at(-1)!;
+  expect(last.searchParams.get('period_from')).toBe('2026-09-01');
+  expect(last.searchParams.has('created_from')).toBe(false);
+  expect(last.searchParams.has('created_to')).toBe(false);
+  expect(screen.getByRole('button', { name: 'Davr' })).toHaveAttribute('aria-pressed', 'true');
+});
+
+test('a reversed window is refused on the form and never sent', async () => {
+  const seen = captureListRequests();
+  renderPage();
+  await screen.findAllByText('RX-2026-000001');
+  const user = userEvent.setup();
+
+  await user.type(screen.getByLabelText('Sana — dan'), '2026-09-30');
+  await user.type(screen.getByLabelText('Sana — gacha'), '2026-09-01');
+
+  expect(await screen.findByRole('alert')).toHaveTextContent('Boshlanish sanasi tugash sanasidan keyin boʻlmasligi kerak');
+  const last = seen.at(-1)!;
+  expect(last.searchParams.has('created_from')).toBe(false);
+  expect(last.searchParams.has('created_to')).toBe(false);
+});
+
+test('the Excel button carries the date window too', async () => {
+  let exportUrl: URL | null = null;
+  server.use(
+    http.get('*/api/v1/applications/export.xlsx', ({ request }) => {
+      exportUrl = new URL(request.url);
+      return HttpResponse.text('xlsx-bytes', {
+        headers: { 'Content-Disposition': 'attachment; filename="arizalar.xlsx"', 'X-Export-Truncated': 'false' },
+      });
+    }),
+  );
+  const createObjectURL = vi.fn().mockReturnValue('blob:mock');
+  URL.createObjectURL = createObjectURL;
+  URL.revokeObjectURL = vi.fn();
+  vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+
+  renderPage();
+  await screen.findAllByText('RX-2026-000001');
+  const user = userEvent.setup();
+  await user.type(screen.getByLabelText('Sana — dan'), '2026-09-01');
+  await user.click(screen.getByTestId('export-xlsx'));
+
+  await waitFor(() => expect(createObjectURL).toHaveBeenCalled());
+  expect(exportUrl!.searchParams.get('created_from')).toBe('2026-09-01');
+});
+
+test('each status is drawn in its own colour, not the one blue for all', async () => {
+  server.use(
+    http.get('*/api/v1/applications', () =>
+      HttpResponse.json({
+        items: [
+          row({ id: 'a1000000-0000-4000-8000-000000000011', number: 'RX-1', status: 'SUBMITTED' }),
+          row({ id: 'a1000000-0000-4000-8000-000000000012', number: 'RX-2', status: 'INVOICED' }),
+        ],
+        total: 2,
+        page: 1,
+        page_size: 20,
+      }),
+    ),
+  );
+  renderPage();
+  // The status <select> lists the same labels as <option>s; only badges carry `data-status`.
+  const badge = (els: HTMLElement[]) => els.map((el) => el.closest('[data-status]')).find((el) => el !== null)!;
+  await screen.findAllByText('RX-1');
+  const submitted = badge(screen.getAllByText('Yuborildi'));
+  const invoiced = badge(screen.getAllByText('Hisob-faktura chiqarildi'));
+  expect(submitted.className).not.toBe(invoiced.className);
+});

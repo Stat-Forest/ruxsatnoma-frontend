@@ -3,7 +3,6 @@ import { useNavigate, useParams } from 'react-router';
 import { useBackToList } from '../../lib/returnTo';
 import { ArrowLeft, Award, FileText, Receipt } from 'lucide-react';
 import { Button } from '../../components/ui/button';
-import { StatusBadge } from '../../components/ui/StatusBadge';
 import {
   getApplicationCard,
   getApplicationTimeline,
@@ -13,7 +12,8 @@ import {
   listLivestockTypes,
 } from './api';
 import { formatDate, formatDateTime, formatMoney, pickName } from './format';
-import { STATUS_BADGE_KIND, getStatusLabel } from './statusMeta';
+import { getStatusLabel } from './statusMeta';
+import { ApplicationStatusBadge } from './ApplicationStatusBadge';
 import { ApplicantTimeline } from './components/ApplicantTimeline';
 import { CalculationBreakdown } from './components/CalculationBreakdown';
 import { ContourBoundaryPanel } from '../gis/ContourBoundaryPanel';
@@ -283,7 +283,7 @@ export function MyApplicationCardPage() {
             <p className="text-sm text-[#5A646D] mt-1 break-words">{activityName}</p>
           </div>
           <div className="shrink-0">
-            <StatusBadge status={STATUS_BADGE_KIND[card.status]} label={getStatusLabel(card.status, lang)} />
+            <ApplicationStatusBadge status={card.status} label={getStatusLabel(card.status, lang)} size="md" />
           </div>
         </div>
 

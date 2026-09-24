@@ -1,6 +1,6 @@
 import { ArrowRight } from 'lucide-react';
-import { StatusBadge } from '../../components/ui/StatusBadge';
-import { getStatusLabel, STATUS_BADGE_KIND } from '../applicant/statusMeta';
+import { ApplicationStatusBadge } from '../applicant/ApplicationStatusBadge';
+import { getStatusLabel } from '../applicant/statusMeta';
 import type { ApplicationStatus } from '../applicant/api';
 import { getPermitStatusLabel, PERMIT_STATUS_STYLE } from '../permits/statusMeta';
 
@@ -18,8 +18,7 @@ function transitionOf(params: Record<string, unknown>): { from: string | null; t
 }
 
 function ApplicationChip({ status, lang }: { status: string; lang: string }) {
-  const kind = STATUS_BADGE_KIND[status as ApplicationStatus] ?? 'info';
-  return <StatusBadge status={kind} label={getStatusLabel(status as ApplicationStatus, lang)} size="sm" showIcon={false} />;
+  return <ApplicationStatusBadge status={status} label={getStatusLabel(status as ApplicationStatus, lang)} showIcon={false} />;
 }
 
 function PermitChip({ status, lang }: { status: string; lang: string }) {

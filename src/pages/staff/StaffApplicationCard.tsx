@@ -6,6 +6,7 @@ import { ApiError } from '../../api/errors';
 import { useApiErrorText } from '../../i18n/useApiErrorText';
 import { useApplicationCard, useApplicationTimeline } from './queries';
 import { formatDateTime, slaStatus, statusLabel } from './format';
+import { ApplicationStatusBadge } from '../applicant/ApplicationStatusBadge';
 import { GeneralInfoPanel } from './components/GeneralInfoPanel';
 import { ChecksPanel } from './components/ChecksPanel';
 import { ConclusionsPanel } from './components/ConclusionsPanel';
@@ -145,9 +146,7 @@ export function StaffApplicationCard() {
         <h1 className="font-mono text-2xl font-extrabold text-[#1A1F24] tracking-tight">
           {card.number ?? tr.noNumber}
         </h1>
-        <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-[#E0F2FE] text-[#0369A1] border border-[#BAE6FD]">
-          {statusLabel(card.status, lang)}
-        </span>
+        <ApplicationStatusBadge status={card.status} label={statusLabel(card.status, lang)} size="md" />
         {(() => {
           // `card.sla_overdue` is the AUTHORITATIVE, pause-aware answer
           // (`sla.is_overdue`) — preferred over recomputing from the raw
