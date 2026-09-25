@@ -175,3 +175,27 @@ test('close appears for the citizen who owns a "new" ticket, with no manage perm
   const panel = await screen.findByTestId('ticket-detail-t-1');
   expect(within(panel).getByRole('button', { name: 'Закрыть обращение' })).toBeInTheDocument();
 });
+
+test('assign-to-me is hidden once the ticket is already assigned to the viewer', async () => {
+  server.use(
+    http.get('*/api/v1/help/tickets/t-1', () =>
+      HttpResponse.json(withMessages({ id: 't-1', number: 'ST-1', status: 'in_progress', assigned_to: CITIZEN_ID })),
+    ),
+  );
+  renderPanel(['help.tickets.manage'], true);
+
+  const panel = await screen.findByTestId('ticket-detail-t-1');
+  expect(within(panel).queryByRole('button', { name: 'Взять в работу' })).not.toBeInTheDocument();
+});
+
+test('assign-to-me stays available when the ticket is assigned to a colleague', async () => {
+  server.use(
+    http.get('*/api/v1/help/tickets/t-1', () =>
+      HttpResponse.json(withMessages({ id: 't-1', number: 'ST-1', status: 'in_progress', assigned_to: STAFF_ID })),
+    ),
+  );
+  renderPanel(['help.tickets.manage'], true);
+
+  const panel = await screen.findByTestId('ticket-detail-t-1');
+  expect(within(panel).getByRole('button', { name: 'Взять в работу' })).toBeInTheDocument();
+});
