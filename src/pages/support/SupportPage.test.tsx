@@ -1,9 +1,9 @@
 /**
  * The tab shell's whole permission contract, end to end: every combination
  * of `help.faq.manage` / `public.appeals.manage` / superuser produces the
- * exact tab SET the plan's menu decision specifies — `faq` and `tickets`
- * always, `faq-admin` only with `help.faq.manage` (or superuser),
- * `appeals` only with `public.appeals.manage` (or superuser). Also checks
+ * exact tab SET the plan's menu decision specifies — `tickets` always,
+ * `faq-admin` INSTEAD of the reader `faq` with `help.faq.manage` (or
+ * superuser), `appeals` only with `public.appeals.manage` (or superuser). Also checks
  * that clicking a tab actually swaps the rendered body, not just the
  * button state.
  */
@@ -97,9 +97,9 @@ test('a plain citizen sees only the FAQ and support-ticket tabs', () => {
   expectTabs([FAQ, TICKETS], [FAQ_ADMIN, APPEALS]);
 });
 
-test('a superuser sees all four tabs', () => {
+test('a superuser sees the FAQ editor, tickets and appeals, not the reader tab', () => {
   renderPage([], true);
-  expectTabs([FAQ, FAQ_ADMIN, TICKETS, APPEALS], []);
+  expectTabs([FAQ_ADMIN, TICKETS, APPEALS], [FAQ]);
 });
 
 test('a caller holding only help.tickets.manage sees faq and tickets, not faq-admin or appeals', () => {
@@ -107,9 +107,15 @@ test('a caller holding only help.tickets.manage sees faq and tickets, not faq-ad
   expectTabs([FAQ, TICKETS], [FAQ_ADMIN, APPEALS]);
 });
 
-test('a caller holding only help.faq.manage sees faq, faq-admin and tickets, not appeals', () => {
+test('a caller holding only help.faq.manage sees faq-admin and tickets, not the reader tab or appeals', () => {
   renderPage(['help.faq.manage']);
-  expectTabs([FAQ, FAQ_ADMIN, TICKETS], [APPEALS]);
+  expectTabs([FAQ_ADMIN, TICKETS], [FAQ, APPEALS]);
+});
+
+test('a FAQ manager lands on the FAQ editor by default', async () => {
+  renderPage(['help.faq.manage']);
+  expect(await screen.findByRole('button', { name: 'Новый вопрос' })).toBeInTheDocument();
+  expect(screen.queryByText('Часто задаваемые вопросы')).not.toBeInTheDocument();
 });
 
 test('a caller holding only public.appeals.manage sees faq, tickets and appeals, not faq-admin', () => {
@@ -157,18 +163,17 @@ test.each(['uz_latn', 'uz_cyrl', 'ru', 'en', 'kaa'] as const)(
     expect(screen.getByText(dict['support.contact.telegramHint'])).toBeInTheDocument();
 
     // Tabs
-    const faqTab = screen.getByRole('button', { name: dict['support.tabs.faq'] });
     const faqAdminTab = screen.getByRole('button', { name: dict['support.tabs.faqAdmin'] });
     const ticketsTab = screen.getByRole('button', { name: dict['support.tabs.tickets'] });
     const appealsTab = screen.getByRole('button', { name: dict['support.tabs.appeals'] });
-    expect(faqTab).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: dict['support.tabs.faq'] })).not.toBeInTheDocument();
     expect(faqAdminTab).toBeInTheDocument();
     expect(ticketsTab).toBeInTheDocument();
     expect(appealsTab).toBeInTheDocument();
 
-    // Default tab: FAQ Reader
-    expect(screen.getByRole('heading', { level: 2, name: dict['support.faq.reader.title'] })).toBeInTheDocument();
-    expect(screen.getByText(dict['support.faq.reader.subtitle'])).toBeInTheDocument();
+    // Default tab for a FAQ manager: FAQ Admin
+    expect(screen.getByRole('heading', { level: 2, name: dict['support.faq.admin.title'] })).toBeInTheDocument();
+    expect(screen.getByText(dict['support.faq.admin.subtitle'])).toBeInTheDocument();
 
     // Switch to Tickets tab
     await user.click(ticketsTab);
@@ -188,6 +193,13 @@ test.each(['uz_latn', 'uz_cyrl', 'ru', 'en', 'kaa'] as const)(
     expect(screen.getByText(dict['support.appeals.subtitle'])).toBeInTheDocument();
 
     unmount();
+
+    // The reader tab is only shown to non-managers — check its copy there.
+    const reader = renderPage([], false, lang);
+    expect(screen.getByRole('button', { name: dict['support.tabs.faq'] })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { level: 2, name: dict['support.faq.reader.title'] })).toBeInTheDocument();
+    expect(screen.getByText(dict['support.faq.reader.subtitle'])).toBeInTheDocument();
+    reader.unmount();
   },
 );
 
