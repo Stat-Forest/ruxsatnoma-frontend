@@ -1662,6 +1662,62 @@ test('a single complete, in-range row enables Next', async () => {
   expect(nextButton()).toBeEnabled();
 });
 
+// The defect this fixes: step 3's own Next already refuses a half-filled
+// row, but the STEPPER let the applicant skip it once step 5 had been
+// reached once — reach step 5 with a complete row, go back to step 3, break
+// the row, then jump straight back to step 5 through the stepper instead of
+// Next. `buildFiling`'s filter used to drop the broken row in silence, so
+// the citizen would file (and sign) with fewer head of livestock than they
+// entered and see nothing about it.
+test('the stepper does not let a half-filled livestock row skip back ahead to step 5', async () => {
+  const precheckBodies: unknown[] = [];
+  const filingBodies: unknown[] = [];
+  server.use(
+    activityHandler('grazing', 'Yaylov', 'head'),
+    livestockTypesHandler([LIVESTOCK_TYPE_A, LIVESTOCK_TYPE_B]),
+    precheckRecorder(precheckBodies),
+    http.post('*/api/v1/applications', async ({ request }) => {
+      filingBodies.push(await request.json());
+      return HttpResponse.json({ id: APPLICATION_ID });
+    }),
+  );
+  renderWizard();
+  await driveToStep3Grazing();
+
+  // Cattle, 5 head — a single complete row.
+  await userEvent.click(screen.getByRole('button', { name: new RegExp(UZ['wizard.step3.addLivestock']) }));
+  await userEvent.selectOptions(screen.getAllByRole('combobox')[0], LIVESTOCK_TYPE_B.id);
+  fireEvent.change(screen.getAllByRole('spinbutton')[0], { target: { value: '5' } });
+  expect(nextButton()).toBeEnabled();
+
+  // Steps 3 → 4 → 5; leaving step 4 fires the pre-check automatically.
+  await userEvent.click(nextButton());
+  await userEvent.click(await screen.findByRole('button', { name: new RegExp(UZ['wizard.nav.next']) }));
+  await waitFor(() => expect(precheckBodies).toHaveLength(1));
+  expect(precheckBodies[0]).toMatchObject({
+    items: [{ livestock_type_id: LIVESTOCK_TYPE_B.id, head_count: 5 }],
+  });
+  expect(await screen.findByText(UZ['wizard.step5.heading'])).toBeInTheDocument();
+
+  // Back to step 3 via the STEPPER (furthest reached is still 5), then
+  // clear the head count — a species with no head count again.
+  await userEvent.click(screen.getAllByLabelText(/^3:/)[0]);
+  expect(await screen.findByText(UZ['wizard.step3.heading'])).toBeInTheDocument();
+  fireEvent.change(screen.getAllByRole('spinbutton')[0], { target: { value: '' } });
+  expect(await screen.findByText(UZ['wizard.step3.headCountRequired'])).toBeInTheDocument();
+  expect(nextButton()).toBeDisabled();
+
+  // The stepper still shows step 5 as reached — clicking it must NOT skip
+  // past step 3 while its own row is broken.
+  await userEvent.click(screen.getAllByLabelText(/^5:/)[0]);
+  expect(screen.getByText(UZ['wizard.step3.heading'])).toBeInTheDocument();
+  expect(screen.queryByText(UZ['wizard.step5.heading'])).not.toBeInTheDocument();
+
+  // No new, thinner filing was ever assembled or sent from the broken state.
+  expect(precheckBodies).toHaveLength(1);
+  expect(filingBodies).toHaveLength(0);
+});
+
 // Fix round 1 (stage 17 QA-01 review, Important): the add-row gate used to
 // read `items.length < (livestockTypesQuery.data?.length ?? 0)` — while the
 // query is loading, erroring, or comes back `[]`, `data?.length ?? 0` is `0`

@@ -2051,6 +2051,7 @@ export const uz_cyrl = {
   'wizard.step5.noPinfl': "ЭРИ орқали имзолаш учун зарур ЖШШИР топилмади. Профилингизни текширинг.",
   'wizard.nav.back': "Орқага",
   'wizard.nav.next': "Кейингиси",
+  'wizard.nav.step3Incomplete': "Давом этишдан олдин 3-қадамдаги тўлдирилмаган ёки нотўғри маълумотни тузатинг.",
   'wizard.checks.gis_validity': "Контур геометрияси тўғрилиги",
   'wizard.checks.gis_within_fund': "Ўрмон фонди чегарасига кириши",
   'wizard.checks.gis_overlap': "Бошқа рухсатнома билан кесишмаслиги",

@@ -2024,6 +2024,7 @@ export const ru = {
   'wizard.step5.noPinfl': 'ПИНФЛ для подписания ЭЦП не найден. Проверьте профиль.',
   'wizard.nav.back': 'Назад',
   'wizard.nav.next': 'Далее',
+  'wizard.nav.step3Incomplete': 'Прежде чем продолжить, исправьте незаполненные или неверные данные на шаге 3.',
   'wizard.checks.gis_validity': 'Корректность геометрии контура',
   'wizard.checks.gis_within_fund': 'Нахождение в границах лесного фонда',
   'wizard.checks.gis_overlap': 'Пересечение с другим разрешением',

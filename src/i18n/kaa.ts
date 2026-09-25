@@ -1829,6 +1829,7 @@ export const kaa = {
   'wizard.step5.noPinfl': 'ERI menen qol qoyıw ushın PINFL tabılmadı. Profildi tekseriń.',
   'wizard.nav.back': 'Izge',
   'wizard.nav.next': 'Keyingisi',
+  'wizard.nav.step3Incomplete': 'Dawam etiwden aldın 3-qádemdegi tolıq emes yamasa qátelik bar maǵlıwmattı dúzetiń.',
   'wizard.checks.gis_validity': 'Kontur geometriyası durıslıǵı',
   'wizard.checks.gis_within_fund': 'Tog\'ay fondı shegarasında ekenligi',
   'wizard.checks.gis_overlap': 'Basqa ruxsatnama menen kesilisiw',
