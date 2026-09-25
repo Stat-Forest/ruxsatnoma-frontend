@@ -2063,6 +2063,7 @@ export const uz_latn = {
   'wizard.step5.noPinfl': "ERI orqali imzolash uchun zarur JSHSHIR topilmadi. Profilingizni tekshiring.",
   'wizard.nav.back': "Orqaga",
   'wizard.nav.next': "Keyingisi",
+  'wizard.nav.step3Incomplete': "Davom etishdan oldin 3-qadamdagi toʻldirilmagan yoki notoʻgʻri maʼlumotni tuzating.",
   'wizard.checks.gis_validity': "Kontur geometriyasi toʻgʻriligi",
   'wizard.checks.gis_within_fund': "Oʻrmon fondi chegarasiga kirishi",
   'wizard.checks.gis_overlap': "Boshqa ruxsatnoma bilan kesishmasligi",

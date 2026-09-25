@@ -1829,6 +1829,7 @@ export const en = {
   'wizard.step5.noPinfl': 'PINFL required for EDS signature not found. Please check your profile.',
   'wizard.nav.back': 'Back',
   'wizard.nav.next': 'Next',
+  'wizard.nav.step3Incomplete': 'Fix the incomplete or invalid data on step 3 before continuing.',
   'wizard.checks.gis_validity': 'Contour geometry validity',
   'wizard.checks.gis_within_fund': 'Within forest fund boundaries',
   'wizard.checks.gis_overlap': 'Overlap with another permit',

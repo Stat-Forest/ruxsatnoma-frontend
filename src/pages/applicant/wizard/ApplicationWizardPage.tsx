@@ -515,9 +515,16 @@ export function ApplicationWizardPage() {
 
   // The stepper's own click handler: only a step already reached is a valid
   // destination — `Stepper` itself also gates this, so the check here is
-  // belt-and-braces, not the only guard.
+  // belt-and-braces, not the only guard. A second guard, `step3Blocked`
+  // (below), refuses a jump PAST step 3 while its own data is unfinished or
+  // out of range — the exact round trip this closes: reach step 5 once,
+  // come back to step 3, break a row, then skip it again through the
+  // stepper instead of step 3's own (already-guarded) Next. Going back to
+  // step 3 or earlier is always allowed, whatever state step 3 is in.
   function goToCompletedStep(stepId: number) {
-    if (stepId <= maxStepReached) setStep(stepId);
+    if (stepId > maxStepReached) return;
+    if (stepId > 3 && step3Blocked) return;
+    setStep(stepId);
   }
 
   // T1's contract: choosing the activity type advances to step 2 BY
@@ -603,6 +610,17 @@ export function ApplicationWizardPage() {
   );
   const grazingHasBlockingRow = grazingRowIssues.some((issue) => issue.typeError || issue.countError);
   const quantityError = useMemo(() => quantityIssue(quantity, t), [quantity, t]);
+
+  // The exact rule step 3's own Next button disables on (below, in the
+  // footer) — pulled out so `goToCompletedStep` above and step 4/5's own
+  // guards can all ask "is step 3's data actually complete" without
+  // repeating (or drifting from) the same four conditions.
+  const step3Blocked =
+    (!isGrazing && (!quantity || !!quantityError)) ||
+    (isGrazing &&
+      (items.filter((i) => i.livestockTypeId && i.headCount).length === 0 || grazingHasBlockingRow)) ||
+    (isDeadwood && (!deadwoodProduct || !removalDeadline)) ||
+    (isRecreation && (!recreationPurpose || !eventAt));
 
   const calculationRequest: CalculationIn | null = useMemo(() => {
     if (!activityTypeId || !contour || !periodFrom || !periodTo) return null;
@@ -1133,6 +1151,11 @@ export function ApplicationWizardPage() {
       {step === 4 && (
         <section className="bg-white border border-[#E4E7EA] rounded-2xl p-6 shadow-xs space-y-4">
           <h2 className="text-sm font-bold text-[#1A1F24] uppercase tracking-wider">{t('wizard.step4.heading')}</h2>
+          {/* Second line of defence, visible: normally unreachable (step 3's
+              own Next and the stepper both already refuse to leave it
+              broken), but named here too rather than just disabling Next
+              with no explanation. */}
+          {step3Blocked && <Alert variant="warning">{t('wizard.nav.step3Incomplete')}</Alert>}
           {(docTypesQuery.data ?? []).length === 0 ? (
             <Alert variant="warning">{t('wizard.step4.notConfigured')}</Alert>
           ) : (
@@ -1181,6 +1204,8 @@ export function ApplicationWizardPage() {
         <section className="space-y-4">
           <div className="bg-white border border-[#E4E7EA] rounded-2xl p-6 shadow-xs space-y-3">
             <h2 className="text-sm font-bold text-[#1A1F24] uppercase tracking-wider">{t('wizard.step5.heading')}</h2>
+            {/* Same second line of defence as step 4's own, above. */}
+            {step3Blocked && <Alert variant="warning">{t('wizard.nav.step3Incomplete')}</Alert>}
             {precheckMutation.isPending && (
               <p className="text-xs text-[#5A646D] flex items-center gap-2">
                 <Loader2 className="w-4 h-4 animate-spin" /> {t('wizard.step5.checking')}
@@ -1315,7 +1340,11 @@ export function ApplicationWizardPage() {
                 hasBlockingCheck ||
                 !precheckResult ||
                 (needsAddress && !addressSaved && !address.trim()) ||
-                !rulesAccepted
+                !rulesAccepted ||
+                // Second line of defence, same reasoning as step 4's Next
+                // above: never sign over a filing whose `buildFiling` would
+                // silently drop a half-filled step 3 row.
+                step3Blocked
               }
               onClick={handleSignAndSubmit}
               className="cursor-pointer font-bold"
@@ -1343,20 +1372,14 @@ export function ApplicationWizardPage() {
               disabled={
                 (step === 1 && !activityTypeId) ||
                 (step === 2 && (!contour || !periodFrom || !periodTo || !!combinedPeriodError)) ||
-                (step === 3 && !isGrazing && (!quantity || !!quantityError)) ||
                 // Fix round 1 (QA-01 review, Important — the QA trigger):
-                // at least one COMPLETE row, and no row half-filled or out
-                // of range — `grazingHasBlockingRow` covers both a species
-                // with no count (or the reverse) and a head count outside
-                // 1..LIVESTOCK_HEAD_COUNT_MAX / not an integer.
-                (step === 3 &&
-                  isGrazing &&
-                  (items.filter((i) => i.livestockTypeId && i.headCount).length === 0 || grazingHasBlockingRow)) ||
-                // Decision #215 R6: the deadwood and recreation lines are
-                // required at pre-check for those activities — held here
-                // so the server's refusal is never how the citizen learns it.
-                (step === 3 && isDeadwood && (!deadwoodProduct || !removalDeadline)) ||
-                (step === 3 && isRecreation && (!recreationPurpose || !eventAt)) ||
+                // `step3Blocked` covers a quantity out of range, a grazing
+                // row that is half-filled or out of range (or no complete
+                // row at all), and the deadwood/recreation lines ruling
+                // #215 R6 requires — one condition, also read by
+                // `goToCompletedStep` above so the stepper cannot skip past
+                // step 3 by a rule this button does not also enforce.
+                (step === 3 && step3Blocked) ||
                 // Ruling #181 and decision #220: the certificate number and
                 // its scan must both be there before the wizard moves on — the
                 // backend's own refusal (`ERR-APP-003`) must never be how the
@@ -1367,7 +1390,14 @@ export function ApplicationWizardPage() {
                 // citizen meant to attach: moving on would drop it without
                 // a word (the hiding direction), so the row is finished or
                 // removed first — the hint under it says which.
-                (step === 4 && docRows.some((r) => r.typeValue !== ''))
+                (step === 4 && docRows.some((r) => r.typeValue !== '')) ||
+                // Second line of defence: step 3's own Next and the
+                // stepper's `goToCompletedStep` both already refuse to leave
+                // step 3 broken, which makes this normally unreachable — but
+                // this project's own defects keep failing by HIDING data
+                // rather than leaking it, so this never trusts a single gate
+                // against a row reaching `buildFiling` half-filled.
+                (step === 4 && step3Blocked)
               }
               // #219: step 4's own pre-check (a benefit claimed) — one press,
               // one request; a second one while the register answers would
