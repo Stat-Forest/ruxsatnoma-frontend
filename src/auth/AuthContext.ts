@@ -37,14 +37,18 @@ export interface AuthContextValue {
   startOneId: (next: string) => Promise<void>;
   /**
    * ERI login: fetch a challenge, sign it, exchange the signed challenge for
-   * a session. `pinfl`/`fullName` are used ONLY in mock mode, to build the
-   * envelope `buildMockSignedChallenge` needs since a mock has no real key
-   * to read an identity from (`src/lib/eimzo/eimzoMock.ts`'s own docstring);
-   * in real mode they are ignored — the signer's identity comes from their
-   * actual certificate, read server-side out of the signed PKCS7 itself, so
-   * `LoginPage`'s real-mode branch calls this with no arguments at all.
+   * a session. `pinfl`/`fullName`/`tin`/`legalName` are used ONLY in mock
+   * mode, to build the envelope `buildMockSignedChallenge` needs since a
+   * mock has no real key to read an identity from
+   * (`src/lib/eimzoMock.ts`'s own docstring); in real mode they are ignored
+   * — the signer's identity comes from their actual certificate, read
+   * server-side out of the signed PKCS7 itself, so `LoginPage`'s real-mode
+   * branch calls this with no arguments at all. `tin` (I3, final review):
+   * a real-shaped organisation certificate carries BOTH the signer's own
+   * PINFL and the org TIN — the mock login form must be able to build the
+   * same shape, or a legal cabinet can never be reached on a mock stand.
    */
-  loginViaEimzo: (pinfl?: string, fullName?: string) => Promise<void>;
+  loginViaEimzo: (pinfl?: string, fullName?: string, tin?: string, legalName?: string) => Promise<void>;
   logout: () => Promise<void>;
   /**
    * Adopts a fresh `MeOut` a screen already holds — `complete-registration`,
@@ -60,13 +64,10 @@ export interface AuthContextValue {
   applyMe: (next: MeOut) => void;
   /**
    * Re-fetches `GET /auth/me` and adopts the result — for a write that does
-   * NOT hand back a fresh `MeOut` the way `applyMe`'s callers do:
-   * `POST /auth/applicants`, `POST /auth/applicants/{id}/representations`
-   * (B4, each returns only the one representation/applicant they touched,
-   * not the caller's whole session). Throws on failure
-   * the same way every other method here does — the caller already holds a
-   * valid session (a mutation on it just succeeded), so a failure here is
-   * a real error, not an ordinary logged-out state to special-case.
+   * NOT hand back a fresh `MeOut` the way `applyMe`'s callers do. Throws on
+   * failure the same way every other method here does — the caller already
+   * holds a valid session (a mutation on it just succeeded), so a failure
+   * here is a real error, not an ordinary logged-out state to special-case.
    */
   refreshMe: () => Promise<void>;
 }

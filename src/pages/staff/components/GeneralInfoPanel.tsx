@@ -3,29 +3,6 @@ import { useLanguage, useT } from '../../../i18n/useT';
 import { useActivityTypes, useBenefitCategories, useContour, useLivestockTypes, type ApplicationCardOut } from '../queries';
 import { formatAmount, formatDate, formatDateTime, localizedName, shortId } from '../format';
 
-const ON_BEHALF_LABELS: Record<string, Record<ApplicationCardOut['on_behalf'], string>> = {
-  uz_latn: {
-    self: "Shaxsan (JSHSHIR)",
-    legal: "Yuridik shaxs vakili sifatida",
-  },
-  uz_cyrl: {
-    self: "Шахсан (ЖШШИР)",
-    legal: "Юридик шахс вакили сифатида",
-  },
-  ru: {
-    self: "Лично (ПИНФЛ)",
-    legal: "От имени организации",
-  },
-  en: {
-    self: "In person (PINFL)",
-    legal: "On behalf of legal entity",
-  },
-  kaa: {
-    self: "Ózi (JSHSHIR)",
-    legal: "Yuridikalıq shaxs wákili retinde",
-  },
-};
-
 const CHANNEL_LABELS: Record<ApplicationCardOut['channel'], string> = {
   portal: 'Portal (ruxsatnoma-urmon.uz)',
   mygov: 'my.gov.uz',
@@ -37,7 +14,6 @@ const GENERAL_INFO_I18N = {
     subtitle: 'Ariza rekvizitlari',
     applicantSection: 'Arizachi',
     applicantId: 'Arizachi (applicant_id):',
-    onBehalf: 'Kim nomidan:',
     channel: 'Yuborish kanali:',
     benefitCategory: 'Imtiyoz toifasi:',
     notSpecified: 'Koʻrsatilmagan',
@@ -67,7 +43,6 @@ const GENERAL_INFO_I18N = {
     subtitle: 'Ариза реквизитлари',
     applicantSection: 'Аризачи',
     applicantId: 'Аризачи (applicant_id):',
-    onBehalf: 'Ким номидан:',
     channel: 'Юбориш канали:',
     benefitCategory: 'Имтиёз тоифаси:',
     notSpecified: 'Кўрсатилмаган',
@@ -95,7 +70,6 @@ const GENERAL_INFO_I18N = {
     subtitle: 'Реквизиты заявления',
     applicantSection: 'Заявитель',
     applicantId: 'Заявитель (applicant_id):',
-    onBehalf: 'От чьего имени:',
     channel: 'Канал подачи:',
     benefitCategory: 'Категория льготы:',
     notSpecified: 'Не указано',
@@ -123,7 +97,6 @@ const GENERAL_INFO_I18N = {
     subtitle: 'Application details',
     applicantSection: 'Applicant',
     applicantId: 'Applicant (applicant_id):',
-    onBehalf: 'On behalf of:',
     channel: 'Submission channel:',
     benefitCategory: 'Benefit category:',
     notSpecified: 'Not specified',
@@ -151,7 +124,6 @@ const GENERAL_INFO_I18N = {
     subtitle: 'Arza rekvizitleri',
     applicantSection: 'Arzashı',
     applicantId: 'Arzashı (applicant_id):',
-    onBehalf: 'Kimniń atınan:',
     channel: 'Jiberiw kanalı:',
     benefitCategory: 'Jeńillik kategoriyası:',
     notSpecified: 'Kórsetilmegen',
@@ -193,7 +165,6 @@ function Fact({ label, value, sub }: { label: string; value: string; sub?: strin
 export function GeneralInfoPanel({ card }: { card: ApplicationCardOut }) {
   const { lang } = useLanguage();
   const tr = GENERAL_INFO_I18N[lang] ?? GENERAL_INFO_I18N.uz_latn;
-  const onBehalfTr = ON_BEHALF_LABELS[lang] ?? ON_BEHALF_LABELS.uz_latn;
   // Task 8: the deadwood/recreation blank lines' CODES (product, purpose)
   // are shown through the wizard's own dictionary keys
   // (`wizard.step3.deadwoodProduct.<code>`) so the wizard and this panel
@@ -227,7 +198,6 @@ export function GeneralInfoPanel({ card }: { card: ApplicationCardOut }) {
           </h3>
           <dl className="grid grid-cols-1 gap-3 text-xs">
             <Fact label={tr.applicantId} value={shortId(card.applicant_id)} />
-            <Fact label={tr.onBehalf} value={onBehalfTr[card.on_behalf] ?? card.on_behalf} />
             <Fact label={tr.channel} value={CHANNEL_LABELS[card.channel] ?? card.channel} />
             <Fact
               label={tr.benefitCategory}

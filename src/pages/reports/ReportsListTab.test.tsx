@@ -93,7 +93,6 @@ function meWith(permissions: string[]): AuthContextValue {
       csrf_token: 'x',
       is_superuser: false,
       applicant: null,
-      representations: [],
       registration_complete: true,
     },
     loading: false,

@@ -25,7 +25,6 @@ const ME = {
   csrf_token: 'tok-1',
   is_superuser: false,
   applicant: null,
-  representations: [],
   registration_complete: true,
 };
 

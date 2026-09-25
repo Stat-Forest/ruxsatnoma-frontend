@@ -19,8 +19,6 @@ function row(over: Partial<ApplicationOut> = {}): ApplicationOut {
     status: 'IN_REVIEW',
     applicant_id: 'ap000000-0000-4000-8000-000000000001',
     submitted_by_user_id: 'u0000000-0000-4000-8000-000000000001',
-    on_behalf: 'self',
-    representation_id: null,
     activity_type_id: null,
     contour_id: null,
     contour_version_id: null,

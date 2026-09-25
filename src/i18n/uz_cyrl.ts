@@ -112,6 +112,11 @@ export const uz_cyrl = {
   'login.eimzoNameLabel': 'Ф.И.Ш.',
   'login.eimzoButton': 'Э-ИМЗО калити билан кириш',
   'login.eimzoBadPinfl': "ЖШШИР 14 та рақамдан иборат бўлиши керак.",
+  'login.eimzoStirLabel': 'Ташкилот СТИР (ихтиёрий)',
+  'login.eimzoStirHelp':
+    '9 хонали СТИР — шахсий кириш учун бўш қолдиринг, ташкилот сифатида кириш учун тўлдиринг.',
+  'login.eimzoOrgNameLabel': 'Ташкилот номи',
+  'login.eimzoBadStir': 'СТИР 9 та рақамдан иборат бўлиши керак.',
   'login.eimzoMockNotice':
     'Синов режими: калит текширилмайди. Ҳақиқий Э-ИМЗО НИЦ дан ВПН калити олингач ёқилади.',
   'login.eimzoUnavailable':
@@ -243,7 +248,7 @@ export const uz_cyrl = {
   'dash.month.12': 'Дек',
 
   // Track F4 (06.5) — cabinet tails: B2 registration, B3 contacts,
-  // B4 legal-entity representation, B5 certificates, C4 notifications.
+  // B5 certificates, C4 notifications.
   'cabinet.otp.sendCode': 'Код юбориш',
   'cabinet.otp.sending': 'Юборилмоқда…',
   'cabinet.otp.resend': 'Қайта юбориш',
@@ -270,7 +275,6 @@ export const uz_cyrl = {
   'cabinet.registration.genericError': "Хатолик юз берди. Қайта уриниб кўринг.",
 
   'cabinet.profile.tabProfile': 'Профиль',
-  'cabinet.profile.tabRepresentation': 'Юридик шахс ваколатлари',
   'cabinet.profile.tabPassword': 'Пароль',
   'cabinet.profile.contactsTitle': 'Алоқа маʼлумотлари',
   'cabinet.profile.phoneLabel': 'Телефон рақами',
@@ -284,51 +288,6 @@ export const uz_cyrl = {
   'cabinet.profile.newPhoneLabel': 'Янги телефон рақами',
   'cabinet.profile.newEmailLabel': 'Янги электрон почта',
 
-  'cabinet.representation.attachTitle': 'Юридик шахсни бириктириш',
-  'cabinet.representation.attachIntro':
-    "СТИР рақами ва ваколат асосини кўрсатинг — E-IMZO орқали, OneID директорлар реестри орқали ёки ишончнома билан.",
-  'cabinet.representation.stirLabel': 'СТИР (9 хонали)',
-  'cabinet.representation.invalidStir': '9 хонали рақам бўлиши керак',
-  'cabinet.representation.basisLabel': 'Ваколат асоси',
-  'cabinet.representation.basisOrgEri': "Ташкилот ЭРИ (Э-ИМЗО)",
-  'cabinet.representation.basisOrgEriHint':
-    "Ташкилотнинг электрон рақамли имзоси билан тасдиқланади.",
-  'cabinet.representation.basisDirector': 'ОнеИД директорлар реестри',
-  'cabinet.representation.basisDirectorHint':
-    "Сиз OneID маълумотларида шу ташкилотнинг раҳбари сифатида қайд этилган бўлишингиз керак.",
-  'cabinet.representation.basisPoa': 'Ишончнома (ПДФ)',
-  'cabinet.representation.basisPoaHint':
-    "Ишончнома файлини юкланг, амал қилиш муддати ва ташкилот номини киритинг.",
-  'cabinet.representation.orgNameLabel': 'Ташкилот номи',
-  'cabinet.representation.poaFileLabel': 'Ишончнома файли (ПДФ)',
-  'cabinet.representation.poaUpload': 'Файлни юклаш',
-  'cabinet.representation.poaUploading': 'Юкланмоқда…',
-  'cabinet.representation.poaUploaded': 'Файл юкланди',
-  'cabinet.representation.validUntilLabel': 'Амал қилиш муддати',
-  'cabinet.representation.signerPinflLabel': 'Сизнинг ЖШШИР (ЖШШИР)',
-  'cabinet.representation.attachSubmit': 'Бириктириш',
-  'cabinet.representation.attachSubmitting': 'Юборилмоқда…',
-  'cabinet.representation.listTitle': 'Ваколатларим',
-  'cabinet.representation.listEmpty': "Ҳозирча ҳеч қандай юридик шахс бириктирилмаган",
-  'cabinet.representation.statusActive': 'Амалда',
-  'cabinet.representation.statusOther': 'Амал қилмайди',
-  'cabinet.representation.validFrom': 'Бошланиши',
-  'cabinet.representation.validUntil': 'Тугаши',
-  'cabinet.representation.validUntilNone': "Муддатсиз",
-  'cabinet.representation.basisShort.org_eri': 'ЭРИ',
-  'cabinet.representation.basisShort.director_registry': 'ОнеИД',
-  'cabinet.representation.basisShort.poa': 'Ишончнома',
-  'cabinet.representation.selectOrgLabel': 'Ташкилотни танланг',
-  'cabinet.representation.addColleagueTitle': "Вакил қўшиш",
-  'cabinet.representation.addColleagueIntro':
-    "Ушбу ташкилот номидан ҳужжат топшириши мумкин бўлган яна бир шахсни қўшинг.",
-  'cabinet.representation.colleaguePinflLabel': 'Вакил ЖШШИР (ЖШШИР, 14 хонали)',
-  'cabinet.representation.invalidPinfl': '14 хонали рақам бўлиши керак',
-  'cabinet.representation.addColleagueSubmit': "Қўшиш",
-  'cabinet.representation.needOrgEriOrDirector':
-    "Вакил қўшиш учун ташкилотни ЭРИ ёки OneID директорлар реестри асосида бириктирган бўлишингиз керак — ишончнома асосидаги ваколат бу ҳуқуқни бермайди.",
-  'cabinet.representation.applicantOnly':
-    "Юридик шахс ваколатлари фақат ариза берувчи ҳисобига тегишли.",
 
 
   'cabinet.notifications.title': 'Билдиришномалар',
@@ -404,6 +363,7 @@ export const uz_cyrl = {
   'cabinet.profile.contactsSubtitle': 'Ҳисобингизга бириктирилган телефон ва электрон почта маълумотлари',
   'cabinet.profile.superuser': 'Суперфойдаланувчи',
   'cabinet.profile.currentLang': 'Ўзбекча',
+  'cabinet.profile.stir': 'СТИР',
   'cabinet.profile.codePlaceholder': '6 хонали код',
   'cabinet.profile.emailPlaceholder': 'почта@мисол.уз',
 
@@ -1914,8 +1874,6 @@ export const uz_cyrl = {
   'wizard.step1.title': "Фаолият тури",
   'wizard.step1.desc': "Фойдаланиш тури",
   'wizard.step1.heading': "1. Фаолият турини танланг",
-  'wizard.step1.onBehalfLabel': "Кимнинг номидан топширилади",
-  'wizard.step1.onBehalfSelf': "Ўзим учун (жисмоний шахс)",
   'wizard.step1.unit': "Бирлик:",
   'wizard.step2.title': "Майдон",
   'wizard.step2.desc': "Контур ва давр",

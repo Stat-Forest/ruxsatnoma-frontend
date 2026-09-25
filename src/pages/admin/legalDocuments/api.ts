@@ -105,8 +105,8 @@ export async function archiveLegalDocument(docId: string): Promise<LegalDocument
   return data;
 }
 
-/** `POST /files` is multipart — the same cast-through-FormData idiom
- *  `admin/profile/representation/api.ts::uploadPoaFile` uses. */
+/** `POST /files` is multipart — the usual cast-through-FormData idiom for
+ *  this endpoint. */
 export async function uploadDocumentFile(file: File): Promise<FileOut> {
   const form = new FormData();
   form.append('file', file);

@@ -14,7 +14,11 @@ beforeAll(() => server.listen({ onUnhandledRequest: 'error' }));
 afterEach(() => server.resetHandlers());
 afterAll(() => server.close());
 
-function renderGate(applyMe: (me: unknown) => void = () => {}, logout: () => Promise<void> = async () => {}) {
+function renderGate(
+  applyMe: (me: unknown) => void = () => {},
+  logout: () => Promise<void> = async () => {},
+  me: unknown = null,
+) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
   const i18n = {
     lang: 'uz_latn' as const,
@@ -23,7 +27,7 @@ function renderGate(applyMe: (me: unknown) => void = () => {}, logout: () => Pro
     setLanguage: async () => {},
   };
   const auth = {
-    me: null,
+    me,
     loading: false,
     authError: null,
     submitPassword: async () => 'mfa-required',
@@ -55,6 +59,35 @@ test('the form carries no consent checkboxes — the login page already names bo
   renderGate();
   expect(screen.queryByTestId('consent-privacy')).not.toBeInTheDocument();
   expect(screen.queryByTestId('consent-offer')).not.toBeInTheDocument();
+});
+
+// Decision #226 I1 (final review): a legal cabinet's own account has no
+// PINFL at all (R1) — this screen must not assume one. `RequireAuth` renders
+// it purely off `me.registration_complete`, with no branch on `applicant.kind`
+// anywhere in this component, so a legal cabinet completes it exactly like an
+// individual's.
+test('a legal cabinet (no PINFL at all) completes registration the same way as an individual', async () => {
+  let sentBody: unknown = null;
+  server.use(
+    http.post('*/auth/otp/request', () => new HttpResponse(null, { status: 204 })),
+    http.post('*/auth/otp/verify', () => HttpResponse.json({ otp_token: 'tok-otp-legal' })),
+    http.post('*/auth/complete-registration', async ({ request }) => {
+      sentBody = await request.json();
+      return HttpResponse.json({ registration_complete: true });
+    }),
+  );
+  const applyMe = vi.fn();
+  renderGate(applyMe, async () => {}, {
+    user: { full_name: '"Chorvador" MChJ', pinfl: null },
+    applicant: { kind: 'legal', pinfl: null, stir: '302345678', name: '"Chorvador" MChJ' },
+    registration_complete: false,
+  });
+
+  await completePhoneOtp();
+  await userEvent.click(screen.getByTestId('submit'));
+
+  await waitFor(() => expect(applyMe).toHaveBeenCalledWith(expect.objectContaining({ registration_complete: true })));
+  expect(sentBody).toMatchObject({ phone: '+998901234567', otp_token: 'tok-otp-legal' });
 });
 
 test('the submit button stays disabled until the phone is verified, and says why', async () => {

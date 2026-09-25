@@ -77,6 +77,10 @@ export const ru = {
   'login.eimzoNameLabel': 'Ф.И.О.',
   'login.eimzoButton': 'Войти с ключом E-IMZO',
   'login.eimzoBadPinfl': 'ПИНФЛ должен состоять из 14 цифр.',
+  'login.eimzoStirLabel': 'ИНН организации (необязательно)',
+  'login.eimzoStirHelp': '9-значный ИНН — оставьте пустым для личного входа, заполните для входа от имени организации.',
+  'login.eimzoOrgNameLabel': 'Название организации',
+  'login.eimzoBadStir': 'ИНН должен состоять из 9 цифр.',
   'login.eimzoMockNotice':
     'Тестовый режим: ключ не проверяется. Настоящий E-IMZO включится, когда НИЦ выдаст VPN-ключ.',
   'login.eimzoRealHint': 'Войдите через подключённый ключ E-IMZO. Пароль ключа спросит само приложение E-IMZO.',
@@ -193,7 +197,7 @@ export const ru = {
   'dash.month.12': 'дек',
 
   // Track F4 (06.5) — cabinet tails: B2 registration, B3 contacts,
-  // B4 legal-entity representation, B5 certificates, C4 notifications.
+  // B5 certificates, C4 notifications.
   'cabinet.otp.sendCode': 'Отправить код',
   'cabinet.otp.sending': 'Отправка…',
   'cabinet.otp.resend': 'Отправить повторно',
@@ -219,7 +223,6 @@ export const ru = {
   'cabinet.registration.genericError': 'Произошла ошибка. Попробуйте ещё раз.',
 
   'cabinet.profile.tabProfile': 'Профиль',
-  'cabinet.profile.tabRepresentation': 'Представительство юрлица',
   'cabinet.profile.tabPassword': 'Пароль',
   'cabinet.profile.contactsTitle': 'Контактные данные',
   'cabinet.profile.phoneLabel': 'Номер телефона',
@@ -233,50 +236,6 @@ export const ru = {
   'cabinet.profile.newPhoneLabel': 'Новый номер телефона',
   'cabinet.profile.newEmailLabel': 'Новая электронная почта',
 
-  'cabinet.representation.attachTitle': 'Привязать юридическое лицо',
-  'cabinet.representation.attachIntro':
-    'Укажите ИНН и основание представительства — через E-IMZO, реестр директоров OneID или доверенность.',
-  'cabinet.representation.stirLabel': 'ИНН (9 цифр)',
-  'cabinet.representation.invalidStir': 'Должно быть 9 цифр',
-  'cabinet.representation.basisLabel': 'Основание представительства',
-  'cabinet.representation.basisOrgEri': 'ЭЦП организации (E-IMZO)',
-  'cabinet.representation.basisOrgEriHint': 'Подтверждается электронной подписью организации.',
-  'cabinet.representation.basisDirector': 'Реестр директоров OneID',
-  'cabinet.representation.basisDirectorHint':
-    'Вы должны быть указаны в данных OneID как руководитель этой организации.',
-  'cabinet.representation.basisPoa': 'Доверенность (PDF)',
-  'cabinet.representation.basisPoaHint':
-    'Загрузите файл доверенности, укажите срок действия и название организации.',
-  'cabinet.representation.orgNameLabel': 'Название организации',
-  'cabinet.representation.poaFileLabel': 'Файл доверенности (PDF)',
-  'cabinet.representation.poaUpload': 'Загрузить файл',
-  'cabinet.representation.poaUploading': 'Загрузка…',
-  'cabinet.representation.poaUploaded': 'Файл загружен',
-  'cabinet.representation.validUntilLabel': 'Срок действия',
-  'cabinet.representation.signerPinflLabel': 'Ваш ПИНФЛ (JSHSHIR)',
-  'cabinet.representation.attachSubmit': 'Привязать',
-  'cabinet.representation.attachSubmitting': 'Отправка…',
-  'cabinet.representation.listTitle': 'Мои представительства',
-  'cabinet.representation.listEmpty': 'Пока нет привязанных юридических лиц',
-  'cabinet.representation.statusActive': 'Действует',
-  'cabinet.representation.statusOther': 'Не действует',
-  'cabinet.representation.validFrom': 'Начало',
-  'cabinet.representation.validUntil': 'Окончание',
-  'cabinet.representation.validUntilNone': 'Бессрочно',
-  'cabinet.representation.basisShort.org_eri': 'ЭЦП',
-  'cabinet.representation.basisShort.director_registry': 'OneID',
-  'cabinet.representation.basisShort.poa': 'Доверенность',
-  'cabinet.representation.selectOrgLabel': 'Выберите организацию',
-  'cabinet.representation.addColleagueTitle': 'Добавить представителя',
-  'cabinet.representation.addColleagueIntro':
-    'Добавьте ещё одного человека, который может подавать документы от имени этой организации.',
-  'cabinet.representation.colleaguePinflLabel': 'ПИНФЛ представителя (JSHSHIR, 14 цифр)',
-  'cabinet.representation.invalidPinfl': 'Должно быть 14 цифр',
-  'cabinet.representation.addColleagueSubmit': 'Добавить',
-  'cabinet.representation.needOrgEriOrDirector':
-    'Чтобы добавить представителя, ваше собственное представительство должно быть оформлено через ЭЦП организации или реестр директоров OneID — доверенность такого права не даёт.',
-  'cabinet.representation.applicantOnly':
-    'Представительство юридических лиц доступно только для аккаунта заявителя.',
 
 
   'cabinet.notifications.title': 'Уведомления',
@@ -352,6 +311,7 @@ export const ru = {
   'cabinet.profile.contactsSubtitle': 'Информация о телефоне и электронной почте, привязанных к вашему аккаунту',
   'cabinet.profile.superuser': 'Суперпользователь',
   'cabinet.profile.currentLang': 'Русский',
+  'cabinet.profile.stir': 'ИНН (СТИР)',
   'cabinet.profile.codePlaceholder': '6-значный код',
   'cabinet.profile.emailPlaceholder': 'pochta@primer.uz',
 
@@ -1888,8 +1848,6 @@ export const ru = {
   'wizard.step1.title': 'Вид деятельности',
   'wizard.step1.desc': 'Вид пользования',
   'wizard.step1.heading': '1. Выберите вид деятельности',
-  'wizard.step1.onBehalfLabel': 'От чьего имени подается',
-  'wizard.step1.onBehalfSelf': 'Для себя (физическое лицо)',
   'wizard.step1.unit': 'Единица:',
   'wizard.step2.title': 'Участок',
   'wizard.step2.desc': 'Контур и период',

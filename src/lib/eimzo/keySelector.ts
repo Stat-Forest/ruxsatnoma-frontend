@@ -5,11 +5,11 @@ import type { EimzoKeyInfo } from './client';
  * UI that asks the signer WHICH certificate to sign with.
  *
  * Why a module-level registry rather than a parameter: `signDocument`/
- * `signAttached` are called from eight places (`PermitSignaturesPanel`,
+ * `signAttached` are called from seven places (`PermitSignaturesPanel`,
  * `PermitLifecyclePanel`, `ActSignCard`, `ApplicationWizardPage`,
- * `SignDecisionModal`, `ReportLifecyclePanel`, `RepresentationSection`,
- * `AuthProvider`), none of which has anything to say about key choice.
- * Threading a picker through all eight — and through
+ * `SignDecisionModal`, `ReportLifecyclePanel`, `AuthProvider`), none of
+ * which has anything to say about key choice. Threading a picker through
+ * all seven — and through
  * `AuthProvider`, which is mounted ABOVE the router and has no dialog of
  * its own — would put a React concern into every signing call site. A
  * single host component registers itself once (`KeyPickerHost`), and

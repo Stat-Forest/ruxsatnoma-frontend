@@ -45,6 +45,13 @@ import {
   signDocument,
 } from '../../../lib/eimzo';
 
+// C1 (final review, stage 18): a real organisation certificate carries the
+// signer's own personal PINFL alongside the org TIN — this mock stand-in has
+// no employee identity to read one from (a legal cabinet's own `users.pinfl`
+// is NULL, R1), so this fixed, obviously-fake value fills that slot; the
+// ownership check never reads it for a legal caller (`tin` alone decides).
+const DEMO_ORG_SIGNER_PINFL = '00000000000000';
+
 const GRAZING_CODE = 'grazing';
 // Decision #215 R6: the two activities whose blanks carry lines of their
 // own — asked on step 3 for that activity alone, required before it lets go.
@@ -270,11 +277,12 @@ function isBenefitClaimRefusal(error: unknown): boolean {
  * state to `POST /applications/precheck` for the checks and the price;
  * pressing «Yuborish» posts the SAME filing to `POST /applications`, which
  * creates the application already SUBMITTED, numbered, priced, signed and
- * assigned, in one request. A legal-entity filing first calls
+ * assigned, in one request. A legal applicant's filing first calls
  * `POST /applications/package` to mint the id and get the bytes to sign,
- * then posts that id and the signature alongside the filing; a citizen
- * filing for themselves (`on_behalf='self'`, ruling #183) skips the package
- * call entirely. There is no DRAFT anywhere in this flow any more — a
+ * then posts that id and the signature alongside the filing (ERI is the
+ * only signing method for a legal applicant, ruling #226); an individual
+ * signing for themselves (ruling #183) skips the package call entirely.
+ * There is no DRAFT anywhere in this flow any more — a
  * `?draft=<id>` in the URL is simply never read, and leaving before the
  * final POST loses everything entered (the leave guard below says so).
  */
@@ -292,8 +300,6 @@ export function ApplicationWizardPage() {
   // still — reaching step 4 then returning to step 2 must not re-lock
   // steps 3 and 4 (`Stepper`'s own `maxStepReached` prop docstring).
   const [maxStepReached, setMaxStepReached] = useState(1);
-  const [onBehalf, setOnBehalf] = useState<'self' | 'legal'>('self');
-  const [representationApplicantId, setRepresentationApplicantId] = useState('');
   const [activityTypeId, setActivityTypeId] = useState('');
   const [contour, setContour] = useState<PickedContour | null>(null);
   const [periodFrom, setPeriodFrom] = useState('');
@@ -361,13 +367,9 @@ export function ApplicationWizardPage() {
   const [rulesAccepted, setRulesAccepted] = useState(false);
 
   // Ruling #113: the address requisite is gated at SUBMIT, not at
-  // registration. It belongs to the applicant the filing is FOR — the
-  // signed-in citizen when filing for themselves, the represented legal
-  // entity when filing on its behalf — because requisite 11 of form
-  // 1-ilova prints the holder's address, and the holder is whoever the
-  // permit will name. Asking about `MeOut.applicant` in both cases would
-  // leave a representative unable to file for an entity that has no
-  // address: the backend refuses the submission and the wizard never asks.
+  // registration — requisite 11 of form 1-ilova prints the holder's
+  // address, and the holder is always the caller's own applicant (stage 18,
+  // decision #226: no more filing "on behalf" of someone else's entity).
   // An applicant that already has one is never asked again.
   const [address, setAddress] = useState('');
   const [addressTouched, setAddressTouched] = useState(false);
@@ -379,12 +381,12 @@ export function ApplicationWizardPage() {
   // never shown. So the first press saves the address and re-runs the
   // pre-check, the price appears, and the second press signs.
   const [addressSaved, setAddressSaved] = useState(false);
-  const filingApplicant =
-    onBehalf === 'legal'
-      ? (me?.representations.find((r) => r.applicant.id === representationApplicantId)?.applicant ??
-        null)
-      : (me?.applicant ?? null);
+  const filingApplicant = me?.applicant ?? null;
   const needsAddress = filingApplicant !== null && !filingApplicant.address;
+  // Ruling #226: an organisation's ERI already proves authority, so a legal
+  // applicant always signs with ERI — there is no plain-button path for it,
+  // the way ruling #183 still gives an individual applicant.
+  const isLegalApplicant = filingApplicant?.kind === 'legal';
 
   const activityTypesQuery = useQuery({ queryKey: ['activity-types'], queryFn: listActivityTypes });
   const livestockTypesQuery = useQuery({ queryKey: ['livestock-types'], queryFn: listLivestockTypes });
@@ -459,8 +461,6 @@ export function ApplicationWizardPage() {
           .map((i) => ({ livestock_type_id: i.livestockTypeId, head_count: Number(i.headCount) }))
       : [];
     return {
-      on_behalf: onBehalf,
-      applicant_id: onBehalf === 'legal' ? representationApplicantId : undefined,
       activity_type_id: activityTypeId || undefined,
       contour_id: contour?.id,
       period_from: periodFrom || undefined,
@@ -479,8 +479,6 @@ export function ApplicationWizardPage() {
       documents: documents.map((d) => ({ doc_type_item_id: d.doc_type_item_id, file_id: d.file_id })),
     };
   }, [
-    onBehalf,
-    representationApplicantId,
     activityTypeId,
     contour,
     periodFrom,
@@ -656,7 +654,7 @@ export function ApplicationWizardPage() {
     setSigning(true);
     try {
       const applicant = me?.applicant;
-      if (!applicant?.pinfl) {
+      if (!isLegalApplicant && !applicant?.pinfl) {
         setSubmitError(t('wizard.step5.noPinfl'));
         return;
       }
@@ -667,9 +665,7 @@ export function ApplicationWizardPage() {
         }
         // Save before signing: requisite 11 of form 1-ilova is printed from
         // `applicants.address`, so the applicant the permit will name must
-        // carry it before the package is fetched and signed. The signature
-        // itself stays the citizen's own (`applicant.pinfl` above) — a legal
-        // entity has a STIR, not a PINFL, and never signs for itself.
+        // carry it before the package is fetched and signed.
         // `refreshMe` adopts the result — this route hands back an
         // `ApplicantOut`, not a whole `MeOut`
         // (`AuthContextValue.refreshMe`'s own docstring).
@@ -684,12 +680,14 @@ export function ApplicationWizardPage() {
         return;
       }
       let created;
-      // Ruling #183: a citizen filing for themselves signs with a plain
-      // button — no envelope, no E-IMZO dialog at all. The applicant session
-      // already identifies them by PINFL (OneID/E-IMZO login, #32), so
-      // there is nothing left for this browser to produce; `file()` mints
-      // the application id itself (plan 12, R2).
-      if (onBehalf === 'self') {
+      // Ruling #183/#226: an individual applicant filing for themselves
+      // signs with a plain button — no envelope, no E-IMZO dialog at all.
+      // The applicant session already identifies them by PINFL (OneID/
+      // E-IMZO login, #32), so there is nothing left for this browser to
+      // produce; `file()` mints the application id itself (plan 12, R2). A
+      // legal applicant has no such plain path — its ERI already proves
+      // authority, so it always signs, ruling #226.
+      if (!isLegalApplicant) {
         created = await fileApplication({ ...buildFiling(), rules_accepted: true });
       } else {
         // Plan 12, R2: the package mints the id the application WILL carry
@@ -700,8 +698,18 @@ export function ApplicationWizardPage() {
         const pkcs7 = isEimzoMock()
           ? await buildMockSignature({
               documentBytes: packageBytes.buffer as ArrayBuffer,
-              pinfl: applicant.pinfl,
-              fullName: applicant.name,
+              // C1 (final review): a real organisation certificate carries
+              // BOTH the signer's own personal PINFL and the org TIN at
+              // once — `pinfl_or_stir` alone (the STIR passed as if it were
+              // a PINFL) never exercised the branch of `_ownership_reason`
+              // a legal cabinet's own key actually hits. This account's own
+              // `users.pinfl` is NULL (R1), so a demo placeholder stands in
+              // for "some employee's PINFL" — the ownership check matches on
+              // `tin` against the applicant's own `stir`, never on this
+              // value.
+              pinfl: DEMO_ORG_SIGNER_PINFL,
+              tin: applicant?.stir ?? null,
+              fullName: applicant?.name,
             })
           : await signDocument(packageBytes);
         created = await fileApplication({
@@ -858,32 +866,6 @@ export function ApplicationWizardPage() {
       {step === 1 && (
         <section className="bg-white border border-[#E4E7EA] rounded-2xl p-6 shadow-xs space-y-4">
           <h2 className="text-sm font-bold text-[#1A1F24] uppercase tracking-wider">{t('wizard.step1.heading')}</h2>
-          {me && me.representations.length > 0 && (
-            <FormField label={t('wizard.step1.onBehalfLabel')}>
-              {/* Frozen once an activity is chosen: ruling #183 makes the
-                  signing path depend on `on_behalf` — flipping it after
-                  later steps were already filled in for one identity would
-                  send a `self` filing to E-IMZO or a `legal` one to the
-                  plain button (stage 10 review, finding 4). */}
-              <Select
-                value={onBehalf === 'legal' ? representationApplicantId : ''}
-                disabled={activityTypeId !== ''}
-                onChange={(e) => {
-                  if (!e.target.value) {
-                    setOnBehalf('self');
-                    setRepresentationApplicantId('');
-                  } else {
-                    setOnBehalf('legal');
-                    setRepresentationApplicantId(e.target.value);
-                  }
-                }}
-                options={[
-                  { value: '', label: t('wizard.step1.onBehalfSelf') },
-                  ...me.representations.map((r) => ({ value: r.applicant.id, label: r.applicant.name })),
-                ]}
-              />
-            </FormField>
-          )}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             {(activityTypesQuery.data ?? []).map((a) => (
               <button
@@ -1288,10 +1270,10 @@ export function ApplicationWizardPage() {
 
           <div className="bg-white border border-[#E4E7EA] rounded-2xl p-6 shadow-xs space-y-3">
             <h2 className="text-sm font-bold text-[#1A1F24] uppercase tracking-wider">
-              {onBehalf === 'self' ? t('wizard.step5.signTitle') : t('wizard.step5.eriTitle')}
+              {isLegalApplicant ? t('wizard.step5.eriTitle') : t('wizard.step5.signTitle')}
             </h2>
             <p className="text-xs text-[#5A646D]">
-              {onBehalf === 'self' ? t('wizard.step5.signDesc') : t('wizard.step5.eriDesc')}
+              {isLegalApplicant ? t('wizard.step5.eriDesc') : t('wizard.step5.signDesc')}
             </p>
 
             {/* Ruling #184: mandatory before ANY signature — self or legal
@@ -1358,9 +1340,9 @@ export function ApplicationWizardPage() {
             >
               {needsAddress && !addressSaved
                 ? t('wizard.step5.saveAddressAndCalc')
-                : onBehalf === 'self'
-                  ? t('wizard.step5.signApplication')
-                  : t('wizard.step5.signAndSubmit')}
+                : isLegalApplicant
+                  ? t('wizard.step5.signAndSubmit')
+                  : t('wizard.step5.signApplication')}
             </Button>
           </div>
         </section>

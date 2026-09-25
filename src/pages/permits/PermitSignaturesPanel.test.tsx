@@ -59,7 +59,6 @@ function authValue(): AuthContextValue {
         address: null,
         verified_at: null,
       },
-      representations: [],
       registration_complete: true,
     },
     loading: false,

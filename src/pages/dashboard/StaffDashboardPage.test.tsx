@@ -37,7 +37,6 @@ function authValue(permissions: string[] = ['dashboard.view'], isSuperuser = fal
       csrf_token: 'tok-2',
       is_superuser: isSuperuser,
       applicant: null,
-      representations: [],
       registration_complete: true,
     },
     loading: false,

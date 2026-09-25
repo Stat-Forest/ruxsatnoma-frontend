@@ -24,8 +24,8 @@
  * envelope; the two files below are what actually enforces identity:
  *   - `app/modules/permits/signers.py` (`PURPOSE_ROLES`, mirrored below)
  *   - `app/modules/signatures/service.py::_ownership_reason` (`pinfl_or_stir`
- *     must equal the signer's own 14-digit PINFL, or a 9-digit STIR the
- *     signer holds an effective representation for)
+ *     must equal the signer's own 14-digit PINFL, or a 9-digit STIR that
+ *     equals the caller's own `kind='legal'` applicant's STIR)
  */
 
 /** `tz/13` requisites 20-23, in print order — mirrors

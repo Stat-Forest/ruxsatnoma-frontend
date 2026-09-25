@@ -47,7 +47,6 @@ function authValue(options: {
       csrf_token: 'tok-cf',
       is_superuser: options.isSuperuser ?? false,
       applicant: null,
-      representations: [],
       registration_complete: true,
     },
     loading: false,

@@ -308,40 +308,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/auth/applicants": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Attach Legal */
-        post: operations["attach_legal_api_v1_auth_applicants_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/auth/applicants/{applicant_id}/representations": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Add Representation */
-        post: operations["add_representation_api_v1_auth_applicants__applicant_id__representations_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/v1/auth/applicants/{applicant_id}/address": {
         parameters: {
             query?: never;
@@ -3460,7 +3426,7 @@ export interface paths {
          *     or `ERR-NORM-001/002/003/006` when a BLOCKING check fails — the difference
          *     from the pre-check, which reports the identical result as data; 422
          *     `ERR-SIGN-001` for an invalid signature, or (ruling #183) `pkcs7` absent on
-         *     a `on_behalf="legal"` filing (`simple_signature_not_allowed`); 409
+         *     a legal applicant's filing (`simple_signature_not_allowed`); 409
          *     `ERR-APP-002` with the existing number when another active application
          *     already covers this plot and period.
          */
@@ -5038,9 +5004,10 @@ export interface paths {
          *     permit is not `active` or its period has already ended (applied for
          *     afresh instead, never extended). 409 `ERR-APP-002`
          *     `extension_already_open` with the existing application's id when one is
-         *     already open against this permit. 422 `ERR-VAL-001`
-         *     `applicant_is_not_the_holder` when the body names another applicant;
-         *     everything `POST /applications` refuses, refused here the same way.
+         *     already open against this permit. There is no more `applicant_id` in the
+         *     body to name another applicant with (decision #226, R5) — the applicant
+         *     is always the holder, resolved server-side; everything else `POST
+         *     /applications` refuses, refused here the same way.
          */
         post: operations["extend_permit_api_v1_permits__permit_id__extend_post"];
         delete?: never;
@@ -7063,22 +7030,6 @@ export interface components {
             /** Status */
             status?: ("active" | "archived") | null;
         };
-        /** AddRepresentationIn */
-        AddRepresentationIn: {
-            /** User Pinfl */
-            user_pinfl: string;
-            /**
-             * Basis
-             * @enum {string}
-             */
-            basis: "org_eri" | "director_registry" | "poa";
-            /** Signed Challenge */
-            signed_challenge?: string | null;
-            /** Poa File Id */
-            poa_file_id?: string | null;
-            /** Valid Until */
-            valid_until?: string | null;
-        };
         /**
          * AllocationOut
          * @description One `allocations` ledger row (`GET /payments/allocations`, 3.10b task
@@ -7543,13 +7494,6 @@ export interface components {
              * Format: uuid
              */
             submitted_by_user_id: string;
-            /**
-             * On Behalf
-             * @enum {string}
-             */
-            on_behalf: "self" | "legal";
-            /** Representation Id */
-            representation_id: string | null;
             /** Activity Type Id */
             activity_type_id: string | null;
             /** Contour Id */
@@ -7721,13 +7665,6 @@ export interface components {
             recreation_purpose?: ("cultural_educational" | "upbringing" | "health" | "recreational" | "aesthetic") | null;
             /** Event At */
             event_at?: string | null;
-            /**
-             * On Behalf
-             * @enum {string}
-             */
-            on_behalf: "self" | "legal";
-            /** Applicant Id */
-            applicant_id?: string | null;
             /** Activity Type Id */
             activity_type_id?: string | null;
             /** Contour Id */
@@ -7854,13 +7791,6 @@ export interface components {
              * Format: uuid
              */
             submitted_by_user_id: string;
-            /**
-             * On Behalf
-             * @enum {string}
-             */
-            on_behalf: "self" | "legal";
-            /** Representation Id */
-            representation_id: string | null;
             /** Activity Type Id */
             activity_type_id: string | null;
             /** Contour Id */
@@ -8008,13 +7938,6 @@ export interface components {
             recreation_purpose?: ("cultural_educational" | "upbringing" | "health" | "recreational" | "aesthetic") | null;
             /** Event At */
             event_at?: string | null;
-            /**
-             * On Behalf
-             * @enum {string}
-             */
-            on_behalf: "self" | "legal";
-            /** Applicant Id */
-            applicant_id?: string | null;
             /** Activity Type Id */
             activity_type_id?: string | null;
             /** Contour Id */
@@ -8055,10 +7978,12 @@ export interface components {
          *     claim and the documents. The body of `POST /applications/precheck` and
          *     `POST /applications/package`, and the base of `ApplicationFileIn`.
          *
-         *     `applicant_id` is meaningful only with `on_behalf="legal"`: for `"self"`
-         *     the applicant is the caller's own `applicants` row and naming somebody
-         *     else's is refused by the service with a domain reason
-         *     (`applicant_is_not_the_caller`), never silently ignored.
+         *     **No `on_behalf`/`applicant_id` since stage 18 (decision #226, R5).** The
+         *     "representation" mechanism is gone: an application is always filed for
+         *     the CALLER's own applicant, resolved server-side
+         *     (`service._resolve_applicant`, `auth.service.get_own_applicant`) — an
+         *     individual's own row or, since an organisation now logs into its own
+         *     cabinet, a legal one just the same. There is nobody else to name.
          *
          *     `documents` carry file ids already uploaded through `POST /files` (plan
          *     12, R9); each must be the caller's own active upload.
@@ -8079,13 +8004,6 @@ export interface components {
             recreation_purpose?: ("cultural_educational" | "upbringing" | "health" | "recreational" | "aesthetic") | null;
             /** Event At */
             event_at?: string | null;
-            /**
-             * On Behalf
-             * @enum {string}
-             */
-            on_behalf: "self" | "legal";
-            /** Applicant Id */
-            applicant_id?: string | null;
             /** Activity Type Id */
             activity_type_id?: string | null;
             /** Contour Id */
@@ -8170,13 +8088,6 @@ export interface components {
              * Format: uuid
              */
             submitted_by_user_id: string;
-            /**
-             * On Behalf
-             * @enum {string}
-             */
-            on_behalf: "self" | "legal";
-            /** Representation Id */
-            representation_id: string | null;
             /** Activity Type Id */
             activity_type_id: string | null;
             /** Contour Id */
@@ -8562,29 +8473,6 @@ export interface components {
             /** Retention Until */
             retention_until?: string | null;
         };
-        /** AttachLegalIn */
-        AttachLegalIn: {
-            /** Stir */
-            stir: string;
-            /**
-             * Basis
-             * @enum {string}
-             */
-            basis: "org_eri" | "director_registry" | "poa";
-            /** Signed Challenge */
-            signed_challenge?: string | null;
-            /** Poa File Id */
-            poa_file_id?: string | null;
-            /** Valid Until */
-            valid_until?: string | null;
-            /** Name */
-            name?: string | null;
-        };
-        /** AttachLegalOut */
-        AttachLegalOut: {
-            applicant: components["schemas"]["ApplicantOut"];
-            representation: components["schemas"]["RepresentationOut"];
-        };
         /**
          * AudienceIn
          * @description Targeting rule for `Announcement.audience` jsonb; `region_ids` are stored as
@@ -8763,13 +8651,6 @@ export interface components {
              * Format: uuid
              */
             submitted_by_user_id: string;
-            /**
-             * On Behalf
-             * @enum {string}
-             */
-            on_behalf: "self" | "legal";
-            /** Representation Id */
-            representation_id: string | null;
             /** Activity Type Id */
             activity_type_id: string | null;
             /** Contour Id */
@@ -10745,11 +10626,6 @@ export interface components {
             is_superuser: boolean;
             applicant?: components["schemas"]["ApplicantOut"] | null;
             /**
-             * Representations
-             * @default []
-             */
-            representations: components["schemas"]["RepresentationOut"][];
-            /**
              * Registration Complete
              * @default true
              */
@@ -12276,10 +12152,10 @@ export interface components {
          *     `pkcs7` is OPTIONAL (ruling #183): a citizen acting for themselves signs
          *     with a button, and posts a body carrying no envelope at all. Absent, it is
          *     NOT automatically a simple signature — `permits.service.add_signature`
-         *     decides who may take that path (the holder purpose, `on_behalf='self'`)
-         *     and refuses everyone else with `ERR-SIGN-001` `simple_signature_not_
-         *     allowed`. WITH `pkcs7` present, nothing about this route changes for
-         *     anyone, whatever the purpose or the application's `on_behalf`.
+         *     decides who may take that path (the holder purpose, an INDIVIDUAL
+         *     applicant) and refuses everyone else with `ERR-SIGN-001` `simple_
+         *     signature_not_allowed`. WITH `pkcs7` present, nothing about this route
+         *     changes for anyone, whatever the purpose or the applicant's kind.
          */
         PermitSignIn: {
             /** Purpose */
@@ -13379,26 +13255,6 @@ export interface components {
         ReportSignIn: {
             /** Pkcs7 */
             pkcs7: string;
-        };
-        /** RepresentationOut */
-        RepresentationOut: {
-            /**
-             * Id
-             * Format: uuid
-             */
-            id: string;
-            applicant: components["schemas"]["ApplicantOut"];
-            /** Basis */
-            basis: string;
-            /**
-             * Valid From
-             * Format: date
-             */
-            valid_from: string;
-            /** Valid Until */
-            valid_until: string | null;
-            /** Status */
-            status: string;
         };
         /** RiskIndicatorOut */
         RiskIndicatorOut: {
@@ -15483,74 +15339,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["MeOut"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    attach_legal_api_v1_auth_applicants_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["AttachLegalIn"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AttachLegalOut"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    add_representation_api_v1_auth_applicants__applicant_id__representations_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                applicant_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["AddRepresentationIn"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RepresentationOut"];
                 };
             };
             /** @description Validation Error */

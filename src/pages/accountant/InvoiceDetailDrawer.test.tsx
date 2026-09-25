@@ -44,7 +44,6 @@ function renderDrawer(permissions: string[] = ['payments.view']) {
     csrf_token: 'tok',
     is_superuser: false,
     applicant: null,
-    representations: [],
     registration_complete: true,
   };
   const authValue = { me, loading: false, authError: null } as unknown as AuthContextValue;

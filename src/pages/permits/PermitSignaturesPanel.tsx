@@ -323,7 +323,11 @@ function SignatureSlot({
       hasApplicant: me.applicant != null,
     });
 
-  const [pinfl, setPinfl] = useState(purpose === RECIPIENT_PURPOSE ? (me?.applicant?.pinfl ?? '') : '');
+  // A legal cabinet's own applicant has no `pinfl` (R1) — its identifier for
+  // this field is its `stir`, the 9-digit form `pinflLabel` already invites.
+  const [pinfl, setPinfl] = useState(
+    purpose === RECIPIENT_PURPOSE ? (me?.applicant?.pinfl ?? me?.applicant?.stir ?? '') : '',
+  );
   const [formError, setFormError] = useState<string | null>(null);
   // Real mode only: fetching the PDF and running the whole E-IMZO flow
   // (`signDocument`) happens BEFORE `mutation.mutate` — `mutation.isPending`
