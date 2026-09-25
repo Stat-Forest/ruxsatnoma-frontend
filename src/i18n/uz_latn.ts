@@ -2124,12 +2124,8 @@ export const uz_latn = {
     "Tavsif: uz_latn (oʻzbekcha lotin) tili boʻsh boʻlishi mumkin emas.",
   'activityTypes.errProcessingDays': "Muddat musbat butun son boʻlishi kerak.",
   'activityTypes.saveError': "Saqlab boʻlmadi.",
-  'activityTypes.archiveTitle': "Xizmatni oʻchirish",
-  'activityTypes.archiveBody':
-    "Bu xizmat bosh sahifada, narx kalkulyatorida va ariza shaklida koʻrinmay qoladi — bu xizmat boʻyicha yangi ariza berish ham yopiladi.",
-  'activityTypes.archiveConfirm': 'Tasdiqlash',
-  'activityTypes.archiveCancel': 'Bekor qilish',
-  'activityTypes.archiveError': "Xizmatni oʻchirib boʻlmadi.",
+  'activityTypes.inactiveHint': "Saytda, narx kalkulyatorida va ariza shaklida koʻrinmaydi.",
+  'activityTypes.toggleError': "Xizmat holatini oʻzgartirib boʻlmadi.",
 
   // Permit rating panel (B10 cabinet, task 8 of 07.7-services-catalog-and-ratings).
   // Option copy for 5-2 is the old landing form's own wording, carried over
