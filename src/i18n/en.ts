@@ -169,6 +169,7 @@ export const en = {
   'dash.deadlines.overdue': 'Overdue',
   'dash.deadlines.paused': 'Paused — awaiting your reply',
   'dash.deadlines.reviewEmpty': 'No applications under review',
+  'dash.deadlines.showAll': 'Show all',
   'dash.month.1': 'Jan',
   'dash.month.2': 'Feb',
   'dash.month.3': 'Mar',

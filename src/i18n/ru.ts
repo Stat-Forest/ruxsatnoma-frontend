@@ -178,6 +178,7 @@ export const ru = {
   'dash.deadlines.overdue': 'Срок истёк',
   'dash.deadlines.paused': 'Приостановлено — ждём вашего ответа',
   'dash.deadlines.reviewEmpty': 'Нет заявок на рассмотрении',
+  'dash.deadlines.showAll': 'Показать все',
   'dash.month.1': 'янв',
   'dash.month.2': 'фев',
   'dash.month.3': 'мар',

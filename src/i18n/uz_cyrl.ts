@@ -228,6 +228,7 @@ export const uz_cyrl = {
   'dash.deadlines.overdue': 'Муддати ўтган',
   'dash.deadlines.paused': 'Тўхтатилган — жавобингиз кутилмоқда',
   'dash.deadlines.reviewEmpty': 'Кўриб чиқилаётган ариза йўқ',
+  'dash.deadlines.showAll': 'Ҳаммасини кўриш',
   'dash.month.1': 'Ян',
   'dash.month.2': 'Фев',
   'dash.month.3': 'Мар',

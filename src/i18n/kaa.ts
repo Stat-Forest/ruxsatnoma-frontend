@@ -112,6 +112,7 @@ export const kaa = {
   'dash.deadlines.overdue': 'Múddeti ótken',
   'dash.deadlines.paused': 'Toqtatılǵan — juwabıńız kútilmekte',
   'dash.deadlines.reviewEmpty': 'Kórip shıǵılıp atırǵan arza joq',
+  'dash.deadlines.showAll': 'Hámmesin kóriw',
   'dash.month.1': 'Yan',
   'dash.month.2': 'Fev',
   'dash.month.3': 'Mar',

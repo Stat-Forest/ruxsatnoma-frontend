@@ -211,13 +211,37 @@ test('the deadlines card counts the working days left on each application under 
 
   const list = await screen.findByTestId('review-deadlines');
   const rows = within(list).getAllByRole('listitem');
-  expect(rows[0]).toHaveTextContent('RX-2026-000007');
-  expect(rows[0]).toHaveTextContent('Chorva molini boqish');
-  expect(rows[0]).toHaveTextContent('5 ish kuni qoldi');
   // A deadline already behind "now" while the office waits on the citizen is
-  // a paused clock, not a late office.
-  expect(rows[1]).toHaveTextContent('RX-2026-000009');
-  expect(rows[1]).toHaveTextContent("To'xtatilgan");
+  // a paused clock, not a late office — and it leads, being the citizen's move.
+  expect(rows[0]).toHaveTextContent('RX-2026-000009');
+  expect(rows[0]).toHaveTextContent("To'xtatilgan");
+  expect(rows[1]).toHaveTextContent('RX-2026-000007');
+  expect(rows[1]).toHaveTextContent('Chorva molini boqish');
+  expect(rows[1]).toHaveTextContent('5 ish kuni qoldi');
+});
+
+test('the deadlines card shows the five most urgent applications and links to the rest', async () => {
+  mockBackend({
+    applications: Array.from({ length: 7 }, (_, index) =>
+      application({
+        number: `RX-2026-00010${index}`,
+        status: 'IN_REVIEW',
+        activity_type_id: ACTIVITY_GRAZING,
+        sla_deadline_at: `2026-09-${String(10 + index).padStart(2, '0')}T10:00:00+05:00`,
+      }),
+    ),
+  });
+
+  renderDashboard();
+
+  const list = await screen.findByTestId('review-deadlines');
+  const rows = within(list).getAllByRole('listitem');
+  expect(rows).toHaveLength(5);
+  expect(rows[0]).toHaveTextContent('RX-2026-000100');
+  expect(within(rows[0]).getByRole('link')).toHaveAttribute('href', expect.stringMatching(/^\/my\/applications\/.+/));
+  const all = screen.getByTestId('review-deadlines-all');
+  expect(all).toHaveAttribute('href', '/my/applications');
+  expect(all).toHaveTextContent('(7)');
 });
 
 test('a citizen with nothing yet is told so, not shown a wall of zeroes', async () => {

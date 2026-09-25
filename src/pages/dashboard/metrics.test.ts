@@ -294,7 +294,7 @@ test('a decided application has no review countdown left to show', () => {
   expect(rows).toEqual([]);
 });
 
-test('the list puts overdue first, then the fewest working days left, then the paused', () => {
+test('the list puts the paused first, then overdue, then the fewest working days left', () => {
   const rows = reviewDeadlines(
     [
       application({ number: 'paused', status: 'PENDING_INFO', sla_deadline_at: '2026-09-25T10:00:00+05:00' }),
@@ -305,5 +305,5 @@ test('the list puts overdue first, then the fewest working days left, then the p
     NOW,
   );
 
-  expect(rows.map((row) => row.number)).toEqual(['late', 'sooner', 'later', 'paused']);
+  expect(rows.map((row) => row.number)).toEqual(['paused', 'late', 'sooner', 'later']);
 });
