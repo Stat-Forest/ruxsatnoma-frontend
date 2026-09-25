@@ -153,12 +153,12 @@ export function AppShell() {
           to="/profile"
           aria-label={t('nav.profile')}
           data-testid="header-profile-link"
-          className="hidden sm:flex flex-col items-end shrink-0 pl-3 border-l border-[#E4E7EA] max-w-[12rem] py-1 px-2 rounded-md hover:bg-[#F8F9FA] transition-colors"
+          className="hidden sm:flex flex-col items-end shrink-0 pl-3 border-l border-[#E4E7EA] max-w-[12rem] xl:max-w-[20rem] py-1 px-2 rounded-md hover:bg-[#F8F9FA] transition-colors"
         >
-          <span className="text-xs font-semibold text-[#1A1F24] hover:text-[#2E7D4F] leading-tight truncate w-full text-right transition-colors">
+          <span className="text-xs font-semibold text-[#1A1F24] hover:text-[#2E7D4F] leading-tight truncate w-full text-right transition-colors" title={translateTerm(me.user.full_name, lang) || me.user.full_name}>
             {translateTerm(me.user.full_name, lang) || me.user.full_name}
           </span>
-          <span className="text-[11px] text-[#5A646D] truncate w-full text-right">{roleName}</span>
+          <span className="text-[11px] text-[#5A646D] truncate w-full text-right" title={roleName}>{roleName}</span>
         </Link>
 
         <button

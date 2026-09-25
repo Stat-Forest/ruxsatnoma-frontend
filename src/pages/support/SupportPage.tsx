@@ -15,18 +15,23 @@ export type TabId = 'faq' | 'faq-admin' | 'tickets' | 'appeals';
  * The support area's whole workplace (FAQ, support tickets, citizens'
  * appeals) — one route (`/support`, no permission on the nav entry itself,
  * see `shell/navigation.ts`), tabs kept in component state the same way
- * `AccountantWorkspace` does it. Tab VISIBILITY is real: `faq` and `tickets`
- * are open to everyone who reaches this page, `faq-admin` needs
- * `help.faq.manage` and `appeals` needs `public.appeals.manage` — each
- * checked with `satisfies()`, the same any-of-these-codes helper
- * `visibleNav` itself uses.
+ * `AccountantWorkspace` does it. Tab VISIBILITY is real: `tickets` is open
+ * to everyone who reaches this page, `appeals` needs `public.appeals.manage`,
+ * and the FAQ shows as exactly ONE tab — `faq-admin` for a caller holding
+ * `help.faq.manage`, the read-only `faq` for everyone else, since the editor
+ * already lists every question and a second reader tab was a duplicate.
+ * Each permission is checked with `satisfies()`, the same any-of-these-codes
+ * helper `visibleNav` itself uses.
  */
 export function SupportPage() {
   const t = useT();
   const { me } = useAuth();
   const canManageFaq = me != null && satisfies('help.faq.manage', me);
   const canManageAppeals = me != null && satisfies('public.appeals.manage', me);
-  const [tab, setTab] = useState<TabId>('faq');
+  // Null until the user picks a tab, so the default follows `me` even when
+  // it resolves after the first render.
+  const [picked, setPicked] = useState<TabId | null>(null);
+  const tab: TabId = picked ?? (canManageFaq ? 'faq-admin' : 'faq');
 
   return (
     <div className="space-y-5 pb-16 font-sans" data-testid="support-page">
@@ -78,13 +83,14 @@ export function SupportPage() {
 
       <Tabs
         tabs={[
-          { id: 'faq', label: t('support.tabs.faq') },
-          ...(canManageFaq ? [{ id: 'faq-admin', label: t('support.tabs.faqAdmin') }] : []),
+          canManageFaq
+            ? { id: 'faq-admin', label: t('support.tabs.faqAdmin') }
+            : { id: 'faq', label: t('support.tabs.faq') },
           { id: 'tickets', label: t('support.tabs.tickets') },
           ...(canManageAppeals ? [{ id: 'appeals', label: t('support.tabs.appeals') }] : []),
         ]}
         activeTabId={tab}
-        onChange={(id) => setTab(id as TabId)}
+        onChange={(id) => setPicked(id as TabId)}
       />
 
       <div>

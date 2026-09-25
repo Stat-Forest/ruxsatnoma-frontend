@@ -43,6 +43,9 @@ export function ChangePasswordForm({ onChanged }: { onChanged: () => void }) {
 
   const failures = passwordPolicyFailures(newPassword);
   const mismatch = confirm.length > 0 && confirm !== newPassword;
+  // Mirrors the server's `not_current` refusal: the same password again would
+  // clear must_change_password while changing nothing.
+  const sameAsOld = newPassword.length > 0 && newPassword === oldPassword;
 
   const mutation = useMutation({
     mutationFn: () => changeOwnPassword(oldPassword, newPassword),
@@ -52,9 +55,9 @@ export function ChangePasswordForm({ onChanged }: { onChanged: () => void }) {
   const submit = (event: React.FormEvent) => {
     event.preventDefault();
     setSubmitted(true);
-    // Both checks are local and both must pass before a request is made — a
+    // Every check is local and all must pass before a request is made — a
     // round trip that can only be refused is a round trip worth not making.
-    if (failures.length > 0 || newPassword !== confirm) return;
+    if (failures.length > 0 || sameAsOld || newPassword !== confirm) return;
     mutation.mutate();
   };
 
@@ -124,6 +127,12 @@ export function ChangePasswordForm({ onChanged }: { onChanged: () => void }) {
           })}
         </ul>
       </div>
+
+      {sameAsOld ? (
+        <p data-testid="same-as-old" className="text-xs text-[#B91C1C]">
+          {t.sameAsOld}
+        </p>
+      ) : null}
 
       {mismatch || (submitted && newPassword !== confirm) ? (
         <p data-testid="mismatch" className="text-xs text-[#B91C1C]">

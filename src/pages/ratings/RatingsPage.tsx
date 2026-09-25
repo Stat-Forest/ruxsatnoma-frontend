@@ -308,7 +308,7 @@ function BreakdownCard({
               key={row.organization_id ?? row.activity_type_id ?? index}
               className="flex items-center justify-between gap-3 text-sm"
             >
-              <span className="min-w-0 truncate text-[#1A1F24]">{pickName(row.name, lang)}</span>
+              <span className="min-w-0 break-words text-[#1A1F24]">{pickName(row.name, lang)}</span>
               <span className="shrink-0 flex items-center gap-1.5">
                 <span className="font-mono font-bold tabular-nums text-[#1A1F24]">
                   {formatAvgScore(row.avg_score)}
