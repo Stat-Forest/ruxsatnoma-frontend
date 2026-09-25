@@ -2,7 +2,6 @@ import type { ReactNode } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { http, HttpResponse } from 'msw';
 import { setupServer } from 'msw/node';
 import { AuthContext } from '../../../auth/AuthContext';
 import type { AuthContextValue } from '../../../auth/AuthContext';
@@ -88,11 +87,9 @@ test('a staff role is not offered the representation tab at all — the backend 
   expect(screen.queryByRole('button', { name: uz_latn['cabinet.profile.tabRepresentation'] })).toBeNull();
 });
 
-test('every role, staff included, sees the certificates tab', async () => {
-  server.use(http.get('*/certificates', () => HttpResponse.json({ items: [], total: 0, page: 1, page_size: 100 })));
-  renderPage('executor_staff');
-  await userEvent.click(screen.getByRole('button', { name: uz_latn['cabinet.profile.tabCertificates'] }));
-  expect(await screen.findByTestId('certificates-empty')).toBeInTheDocument();
+test('no role is offered a certificates tab — a key is bound on its first signature', () => {
+  renderPage('applicant');
+  expect(screen.queryByRole('button', { name: /ERI sertifikat/ })).toBeNull();
 });
 
 test('translates profile hero card across all 5 languages for chief forester', () => {
