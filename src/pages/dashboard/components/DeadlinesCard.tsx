@@ -135,8 +135,8 @@ function Row({
   const body = (
     <>
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-semibold text-[#1A1F24] truncate">{title}</p>
-        <p className="mt-0.5 text-xs text-[#5A646D] tabular-nums truncate">{hint}</p>
+        <p className="text-sm font-semibold text-[#1A1F24] break-words">{title}</p>
+        <p className="mt-0.5 text-xs text-[#5A646D] tabular-nums break-words">{hint}</p>
       </div>
       {/* Capped rather than `shrink-0`: "Paused — awaiting your reply" is the
           longest figure, and unshrinkable it squeezed the title to "As…". */}

@@ -315,7 +315,7 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
           aria-haspopup="listbox"
           aria-expanded={isOpen}
         >
-          <span className="truncate pr-2">{displayLabel}</span>
+          <span className="truncate pr-2" title={displayLabel}>{displayLabel}</span>
           <ChevronDown
             className={`w-4 h-4 shrink-0 transition-transform duration-200 ${
               isOpen ? 'rotate-180 text-[#2E7D4F]' : disabled ? 'text-[#C2C9D0]' : 'text-[#767F87]'
@@ -345,7 +345,7 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
                       : 'text-[#1A1F24] hover:bg-[#F8F9FA]'
                   }`}
                 >
-                  <span className="truncate">{opt.label}</span>
+                  <span className="min-w-0 break-words">{opt.label}</span>
                   {isSelected && <Check className="w-4 h-4 text-[#15803D] shrink-0 ml-2" />}
                 </div>
               );

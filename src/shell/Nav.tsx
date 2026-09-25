@@ -11,8 +11,8 @@ interface NavProps {
 /**
  * The link list shared by the persistent desktop sidebar and the mobile
  * drawer (`AppShell`) — one component, two containers. Touch target height is
- * 44px (`h-11`) everywhere, not just in the drawer, since the same markup
- * renders in both.
+ * at least 44px (`min-h-11`) everywhere, not just in the drawer, since the same markup
+ * renders in both. A long label wraps rather than truncates.
  */
 export function Nav({ me, onNavigate }: NavProps) {
   const t = useT();
@@ -27,13 +27,13 @@ export function Nav({ me, onNavigate }: NavProps) {
             end={item.to === '/'}
             onClick={onNavigate}
             className={({ isActive }) =>
-              `flex items-center gap-3 h-11 px-3 rounded-md text-sm font-semibold transition-colors ${
+              `flex items-center gap-3 min-h-11 py-2 px-3 rounded-md text-sm font-semibold transition-colors ${
                 isActive ? 'bg-[#F0F7F1] text-[#2E7D4F]' : 'text-[#1A1F24] hover:bg-[#F8F9FA]'
               }`
             }
           >
             <item.icon className="w-5 h-5 shrink-0" />
-            <span className="truncate">{t(item.labelKey)}</span>
+            <span className="min-w-0 break-words leading-tight">{t(item.labelKey)}</span>
           </NavLink>
         </li>
       ))}

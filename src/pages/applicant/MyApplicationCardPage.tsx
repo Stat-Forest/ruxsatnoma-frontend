@@ -445,8 +445,8 @@ export function MyApplicationCardPage() {
               >
                 <div className="flex items-center gap-2 min-w-0 flex-1">
                   <FileText className="w-4 h-4 text-[#5A646D] shrink-0" />
-                  <span className="font-semibold text-[#1A1F24] truncate">{docTypeName(doc.doc_type_item_id)}</span>
-                  {doc.note && <span className="text-[#5A646D] truncate">— {doc.note}</span>}
+                  <span className="min-w-0 font-semibold text-[#1A1F24] break-words">{docTypeName(doc.doc_type_item_id)}</span>
+                  {doc.note && <span className="min-w-0 text-[#5A646D] break-words">— {doc.note}</span>}
                 </div>
                 <a
                   href={`${API_BASE}/api/v1/files/${doc.file_id}`}
