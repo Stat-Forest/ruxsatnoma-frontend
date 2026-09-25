@@ -144,6 +144,8 @@ export const en = {
   'dash.expiry.label': 'Time until expiry',
   'dash.expiry.unit': 'days',
   'dash.expiry.none': 'No active permits',
+  'dash.newApp.title': "Need a new permit?",
+  'dash.newApp.hint': "Apply for livestock grazing, haymaking, beekeeping, recreation and other activities.",
   'dash.dynamics.title': 'Dynamics of applications and permits',
   'dash.dynamics.subtitle': 'Flow of submitted applications, issued permits, and payments',
   'dash.dynamics.avgReview': 'Average review time',

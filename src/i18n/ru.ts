@@ -153,6 +153,8 @@ export const ru = {
   'dash.expiry.label': 'До окончания срока',
   'dash.expiry.unit': 'дн.',
   'dash.expiry.none': 'Нет действующих разрешений',
+  'dash.newApp.title': "Нужно новое разрешение?",
+  'dash.newApp.hint': "Подайте заявку на выпас скота, сенокошение, пчеловодство, отдых и другие виды деятельности.",
   'dash.dynamics.title': 'Динамика заявок и разрешений',
   'dash.dynamics.subtitle': 'Поток поданных заявок, выданных разрешений и платежей',
   'dash.dynamics.avgReview': 'Среднее рассмотрение',

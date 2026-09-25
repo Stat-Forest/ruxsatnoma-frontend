@@ -203,6 +203,8 @@ export const uz_cyrl = {
   'dash.expiry.label': 'Муддат тугашига',
   'dash.expiry.unit': 'кун',
   'dash.expiry.none': "Амалдаги рухсатнома йўқ",
+  'dash.newApp.title': "Янги рухсатнома керакми?",
+  'dash.newApp.hint': "Чорва боқиш, пичан тайёрлаш, асаларичилик, дам олиш ва бошқа фаолият турлари учун ариза топширинг.",
   'dash.dynamics.title': 'Аризалар ва рухсатномалар динамикаси',
   'dash.dynamics.subtitle': "Топширилган аризалар, тасдиқланган рухсатномалар ва тўловлар оқими",
   'dash.dynamics.avgReview': "Ўртача кўриб чиқиш",

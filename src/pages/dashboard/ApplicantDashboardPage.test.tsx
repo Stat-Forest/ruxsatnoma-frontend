@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { render, screen, within } from '@testing-library/react';
-import { MemoryRouter } from 'react-router';
+import { fireEvent, render, screen, within } from '@testing-library/react';
+import { MemoryRouter, Route, Routes } from 'react-router';
 import { http, HttpResponse } from 'msw';
 import { setupServer } from 'msw/node';
 import { ApplicantDashboardPage } from './ApplicantDashboardPage';
@@ -88,7 +88,10 @@ function renderDashboard(lang: 'uz_latn' | 'ru' = 'uz_latn') {
     <MemoryRouter>
       <QueryClientProvider client={client}>
         <I18nContext.Provider value={i18n}>
-          <ApplicantDashboardPage />
+          <Routes>
+            <Route path="/" element={<ApplicantDashboardPage />} />
+            <Route path="/my/applications/new" element={<div data-testid="wizard-route" />} />
+          </Routes>
         </I18nContext.Provider>
       </QueryClientProvider>
     </MemoryRouter>,
@@ -116,6 +119,16 @@ test('the tiles carry the figures computed from the citizen own documents', asyn
   expect(screen.getByTestId('tile-applications')).toHaveTextContent('3 ta ariza');
   expect(screen.getByTestId('tile-applications')).toHaveTextContent("1 ta to'lov kutilmoqda");
   expect(screen.getByTestId('tile-payments')).toHaveTextContent('3.68 mln UZS');
+});
+
+test('the banner takes the citizen straight to the application wizard', async () => {
+  mockBackend({});
+  renderDashboard();
+
+  const banner = await screen.findByTestId('new-application-banner');
+  expect(banner).toHaveTextContent('Yangi ruxsatnoma kerakmi?');
+  fireEvent.click(within(banner).getByRole('button', { name: 'Yangi ariza topshirish' }));
+  expect(await screen.findByTestId('wizard-route')).toBeInTheDocument();
 });
 
 test('the invoices come from ONE own-list call, not one call per application', async () => {
