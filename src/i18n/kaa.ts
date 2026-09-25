@@ -87,6 +87,8 @@ export const kaa = {
   'dash.expiry.label': 'Múddet pitkeriliwine',
   'dash.expiry.unit': 'kún',
   'dash.expiry.none': 'Ámeldegi ruqsatnama joq',
+  'dash.newApp.title': "Jańa ruqsatnama kerekpe?",
+  'dash.newApp.hint': "Mal baǵıw, pishen tayarlaw, aradarshılıq, dem alıw hám basqa iskerlik túrleri ushın arza tapsırıń.",
   'dash.dynamics.title': 'Arzalar hám ruqsatnamalar dinamikası',
   'dash.dynamics.subtitle': 'Tapsırılǵan arzalar, tastıyıqlanǵan ruqsatnamalar hám tólemler aǵımı',
   'dash.dynamics.avgReview': 'Ortasha kórip shıǵıw',

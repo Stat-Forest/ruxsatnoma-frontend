@@ -186,6 +186,8 @@ export const uz_latn = {
   'dash.expiry.label': 'Muddat tugashiga',
   'dash.expiry.unit': 'kun',
   'dash.expiry.none': "Amaldagi ruxsatnoma yo'q",
+  'dash.newApp.title': "Yangi ruxsatnoma kerakmi?",
+  'dash.newApp.hint': "Chorva boqish, pichan tayyorlash, asalarichilik, dam olish va boshqa faoliyat turlari uchun ariza topshiring.",
   'dash.dynamics.title': 'Arizalar va ruxsatnomalar dinamikasi',
   'dash.dynamics.subtitle': "Topshirilgan arizalar, tasdiqlangan ruxsatnomalar va to'lovlar oqimi",
   'dash.dynamics.avgReview': "O'rtacha ko'rib chiqish",

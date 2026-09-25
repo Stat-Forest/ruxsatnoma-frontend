@@ -6,6 +6,7 @@ import { pickName } from '../applicant/format';
 import { DeadlinesCard } from './components/DeadlinesCard';
 import { DynamicsCard } from './components/DynamicsCard';
 import { KpiTile, TileCount } from './components/KpiTile';
+import { NewApplicationBanner } from './components/NewApplicationBanner';
 import { formatCompactMoney, formatHectares } from './format';
 import {
   activePermitsSummary,
@@ -165,6 +166,8 @@ export function ApplicantDashboardPage() {
           tone={metrics.expiry !== null && metrics.expiry.daysLeft <= 30 ? 'brand' : 'neutral'}
         />
       </div>
+
+      <NewApplicationBanner t={t} />
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-5">
         <div className="xl:col-span-2">
