@@ -11,17 +11,12 @@
  * processing term), or switch it off. Nothing here can create or remove a
  * row.
  *
- * **`GET /refs/activity-types` returns ACTIVE rows only** (`admin/repo.py`'s
- * `list_activity_types`) — the very same filter that feeds the public
- * landing (`GET /public/refs/activity-types`) and the application wizard
- * (this same route, called with a citizen's session). Archiving a row here
- * does not delete it; it just stops matching that filter, so it vanishes
- * from THIS screen's own list on the next refetch too — never shown here as
- * a greyed-out "archived" row, because the read this screen uses cannot see
- * one. That is why the confirm dialog (`archiveBody` below) says plainly
- * that the service closes everywhere — the landing, the calculator AND new
- * applications — rather than letting the switch read as "hide from the
- * landing only".
+ * **The list shows all six, switched-off ones included** (`GET
+ * /refs/activity-types/all`, see `api.ts`). Switching a service off hides it
+ * from the landing, the calculator AND new applications (ruling #139a) — but
+ * never from this screen: its card stays, greyed, with the switch ready to
+ * turn it back on. No confirmation dialog: the switch is reversible, so a
+ * wrong click costs one more click.
  *
  * **`description` may be `null`** (`deadwood`/`science` — the landing never
  * had copy for them, decision behind ruling #138). Rendered as an explicit
@@ -171,19 +166,16 @@ export function ActivityTypesPage() {
   const errorText = useApiErrorText();
   const queryClient = useQueryClient();
 
-  const [archiving, setArchiving] = useState<ActivityTypeOut | null>(null);
   const [editing, setEditing] = useState<ActivityTypeOut | null>(null);
   const [form, setForm] = useState<EditForm | null>(null);
   const [validationError, setValidationError] = useState<string | null>(null);
 
   const list = useQuery({ queryKey: QUERY_KEY, queryFn: listActivityTypes });
 
-  const archive = useMutation({
-    mutationFn: (id: string) => updateActivityType(id, { status: 'archived' }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: QUERY_KEY });
-      setArchiving(null);
-    },
+  const toggle = useMutation({
+    mutationFn: (vars: { id: string; active: boolean }) =>
+      updateActivityType(vars.id, { status: vars.active ? 'active' : 'archived' }),
+    onSettled: () => queryClient.invalidateQueries({ queryKey: QUERY_KEY }),
   });
 
   const save = useMutation({
@@ -239,6 +231,16 @@ export function ActivityTypesPage() {
         </div>
       )}
 
+      {toggle.error && (
+        <div
+          role="alert"
+          data-testid="activity-toggle-error"
+          className="p-4 bg-[#FEF2F2] border border-[#FCA5A5] rounded-xl text-sm text-[#991B1B]"
+        >
+          {toggle.error instanceof ApiError ? errorText(toggle.error) : t('activityTypes.toggleError')}
+        </div>
+      )}
+
       {list.isLoading ? (
         <p className="py-10 text-center text-sm text-[#5A646D]">{t('activityTypes.loading')}</p>
       ) : (
@@ -246,27 +248,30 @@ export function ActivityTypesPage() {
           {rows.map((row) => {
             const name = pickName(row.name, lang);
             const description = row.description ? pickName(row.description, lang) : '';
+            const active = row.status === 'active';
             return (
               <li
                 key={row.id}
                 {...clickableRowProps(() => openEdit(row))}
                 data-testid={`activity-row-${row.code}`}
-                className={`rounded-2xl border border-[#E4E7EA] bg-white p-4 flex flex-wrap items-start justify-between gap-4 hover:bg-[#F8F9FA] ${CLICKABLE_ROW_CLASS}`}
+                data-status={row.status}
+                className={`rounded-2xl border border-[#E4E7EA] p-4 flex flex-wrap items-start justify-between gap-4 hover:bg-[#F8F9FA] ${active ? 'bg-white' : 'bg-[#F8F9FA]'} ${CLICKABLE_ROW_CLASS}`}
               >
-                <div className="flex items-start gap-3 min-w-[220px]">
+                <div className="flex flex-col gap-1 min-w-[220px]">
                   <Switch
-                    checked
-                    onChange={(checked) => {
-                      // The list only ever contains active rows, so `checked`
-                      // is always true on arrival — the only real transition
-                      // this handler ever sees is a click turning it off.
-                      if (!checked) setArchiving(row);
-                    }}
+                    checked={active}
+                    disabled={toggle.isPending && toggle.variables?.id === row.id}
+                    onChange={(checked) => toggle.mutate({ id: row.id, active: checked })}
                     label={name}
                     data-testid={`activity-switch-${row.code}`}
                   />
+                  {!active && (
+                    <p className="text-xs text-[#B45309]" data-testid={`activity-inactive-${row.code}`}>
+                      {t('activityTypes.inactiveHint')}
+                    </p>
+                  )}
                 </div>
-                <div className="flex-1 min-w-[220px]">
+                <div className={`flex-1 min-w-[220px] ${active ? '' : 'opacity-60'}`}>
                   <p className={`text-sm ${description ? 'text-[#1A1F24]' : 'text-[#9AA3AB] italic'}`}>
                     {description || t('activityTypes.descriptionEmpty')}
                   </p>
@@ -288,40 +293,6 @@ export function ActivityTypesPage() {
             );
           })}
         </ul>
-      )}
-
-      {archiving && (
-        <Modal
-          isOpen
-          onClose={() => setArchiving(null)}
-          title={t('activityTypes.archiveTitle')}
-          subtitle={pickName(archiving.name, lang)}
-          footer={
-            <>
-              <Button variant="secondary" size="sm" onClick={() => setArchiving(null)} data-testid="archive-cancel">
-                {t('activityTypes.archiveCancel')}
-              </Button>
-              <Button
-                variant="danger"
-                size="sm"
-                isLoading={archive.isPending}
-                onClick={() => archive.mutate(archiving.id)}
-                data-testid="archive-confirm"
-              >
-                {t('activityTypes.archiveConfirm')}
-              </Button>
-            </>
-          }
-        >
-          <div className="space-y-3">
-            <p>{t('activityTypes.archiveBody')}</p>
-            {archive.error && (
-              <p role="alert" className="text-xs text-[#B91C1C]" data-testid="archive-error">
-                {archive.error instanceof ApiError ? errorText(archive.error) : t('activityTypes.archiveError')}
-              </p>
-            )}
-          </div>
-        </Modal>
       )}
 
       {editing && form && (

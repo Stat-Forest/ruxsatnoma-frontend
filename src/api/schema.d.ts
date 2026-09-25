@@ -476,6 +476,28 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/refs/activity-types/all": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * All Activity Types
+         * @description The admin catalog: all six, archived ones included, so the on/off switch
+         *     can be flipped back. Gated like the PATCH it serves — citizens never see an
+         *     archived service (ruling #139a).
+         */
+        get: operations["all_activity_types_api_v1_refs_activity_types_all_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/refs/activity-types/{activity_type_id}": {
         parameters: {
             query?: never;
@@ -15733,6 +15755,26 @@ export interface operations {
         };
     };
     activity_types_api_v1_refs_activity_types_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ActivityTypeOut"][];
+                };
+            };
+        };
+    };
+    all_activity_types_api_v1_refs_activity_types_all_get: {
         parameters: {
             query?: never;
             header?: never;

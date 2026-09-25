@@ -2061,12 +2061,8 @@ export const ru = {
     'Описание: язык uz_latn (узбекский, латиница) не может быть пустым.',
   'activityTypes.errProcessingDays': 'Срок должен быть положительным целым числом.',
   'activityTypes.saveError': 'Не удалось сохранить.',
-  'activityTypes.archiveTitle': 'Отключить услугу',
-  'activityTypes.archiveBody':
-    'Эта услуга исчезнет с главной страницы, из калькулятора цены и из формы заявки — новые заявки по ней тоже перестанут приниматься.',
-  'activityTypes.archiveConfirm': 'Подтвердить',
-  'activityTypes.archiveCancel': 'Отмена',
-  'activityTypes.archiveError': 'Не удалось отключить услугу.',
+  'activityTypes.inactiveHint': 'Не видна на сайте, в калькуляторе цены и в форме заявки.',
+  'activityTypes.toggleError': 'Не удалось переключить услугу.',
 
   // Permit rating panel (B10 cabinet, task 8 of 07.7-services-catalog-and-ratings).
   // Option copy for 5-2 is the old landing form's own wording, carried over
