@@ -14,6 +14,7 @@ import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { setupServer } from 'msw/node';
 import { I18nContext } from '../../i18n/context';
+import { SEARCH_MAX_LENGTH } from '../../api/limits';
 import { BeekeepersPage } from './BeekeepersPage';
 import type { BeekeeperOut } from './api';
 
@@ -202,6 +203,15 @@ test('the certificate no. field caps input at the backend bound (CodeStr, 64)', 
 
   expect(screen.getByTestId('beekeeper-form-certificate-no')).toHaveAttribute('maxLength', '64');
   expect(screen.getByTestId('beekeeper-form-full-name')).toHaveAttribute('maxLength', '255');
+});
+
+// Stage 19, A2: `GET /beekeepers?q` caps at SEARCH_MAX_LENGTH (200) — the
+// register's search box must stop there too, instead of a 422 later.
+test('the search filter caps input at the server limit (SEARCH_MAX_LENGTH)', async () => {
+  renderPage();
+
+  await screen.findByText('Asalov Nodir');
+  expect(screen.getByTestId('beekeepers-filter-q')).toHaveAttribute('maxLength', String(SEARCH_MAX_LENGTH));
 });
 
 test('removal posts a mandatory reason to the remove route, never a DELETE', async () => {

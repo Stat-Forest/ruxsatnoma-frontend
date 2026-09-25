@@ -7,6 +7,7 @@ import { Button } from '../../components/ui/button';
 import { FormField, Input, Select } from '../../components/ui/FormControls';
 import { Pagination } from '../../components/ui/Navigation';
 import { ApiError } from '../../api/errors';
+import { SEARCH_MAX_LENGTH } from '../../api/limits';
 import { useApiErrorText } from '../../i18n/useApiErrorText';
 import { ExportXlsxButton } from '../../components/ui/ExportXlsxButton';
 import { useActivityTypes, useApplicationsList, type ApplicationListFilters, type ApplicationOut } from './queries';
@@ -277,6 +278,8 @@ export function ApplicationsListPage() {
               value={filters.q}
               onChange={(e) => setFilters((f) => ({ ...f, q: e.target.value }))}
               placeholder={lt.searchHint}
+              maxLength={SEARCH_MAX_LENGTH}
+              data-testid="applications-filter-q"
             />
           </FormField>
           <FormField label={lt.periodFrom}>

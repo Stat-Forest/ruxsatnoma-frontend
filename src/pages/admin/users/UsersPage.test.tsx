@@ -6,6 +6,7 @@ import { http, HttpResponse } from 'msw';
 import { setupServer } from 'msw/node';
 import { vi } from 'vitest';
 import { I18nContext, type UiLanguage } from '../../../i18n/context';
+import { SEARCH_MAX_LENGTH } from '../../../api/limits';
 import { UsersPage } from './UsersPage';
 import { uz_latn as L, LABELS, labelsFor } from './labels';
 import {
@@ -163,6 +164,17 @@ test('the login and position fields cap input at the backend bounds (CodeStr 64,
 
   expect(form.getByLabelText(L.formLogin)).toHaveAttribute('maxLength', '64');
   expect(form.getByLabelText(L.formPosition)).toHaveAttribute('maxLength', '255');
+});
+
+// Stage 19, A2: `GET /admin/users?q` caps at SEARCH_MAX_LENGTH (200) — the
+// filter box must stop there too, instead of letting a longer value come
+// back as a 422.
+test('the search filter caps input at the server limit (SEARCH_MAX_LENGTH)', async () => {
+  server.use(...referenceHandlers());
+  renderUsers();
+
+  await screen.findByText('Karimov Alisher Baxtiyorovich');
+  expect(screen.getByLabelText(L.filterQuery)).toHaveAttribute('maxLength', String(SEARCH_MAX_LENGTH));
 });
 
 // Stage 17 QA-01 M1 fix round: `UserBlockIn.reason` (`TextStr`) is capped at 2000.

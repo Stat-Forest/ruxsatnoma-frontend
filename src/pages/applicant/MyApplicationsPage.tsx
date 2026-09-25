@@ -8,6 +8,7 @@ import { DataTable, type Column } from '../../components/ui/DataTable';
 import { ExportXlsxButton } from '../../components/ui/ExportXlsxButton';
 import { Pagination } from '../../components/ui/Navigation';
 import { listActivityTypes, listApplications, type ApplicationOut, type ApplicationStatus } from './api';
+import { APPLICATION_NUMBER_MAX_LENGTH } from '../../api/limits';
 import { useListUrlState } from '../../lib/useListUrlState';
 import { useReturnHereState } from '../../lib/returnTo';
 import { formatDate } from './format';
@@ -282,6 +283,7 @@ export function MyApplicationsPage() {
             placeholder="RX-2026-000123"
             value={numberDraft}
             onChange={(e) => setNumberDraft(e.target.value)}
+            maxLength={APPLICATION_NUMBER_MAX_LENGTH}
           />
         </FormField>
         <FormField label={t.filterStatus} htmlFor="filter-status">

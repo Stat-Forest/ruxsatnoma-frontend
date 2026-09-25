@@ -94,3 +94,20 @@ test('the server refusing the old password is shown, not swallowed', async () =>
 
   expect(await screen.findByTestId('server-error')).toBeInTheDocument();
 });
+
+test('a new password equal to the current one is refused before any request is sent', async () => {
+  let called = false;
+  server.use(
+    http.post('*/api/v1/auth/password/change', () => {
+      called = true;
+      return new HttpResponse(null, { status: 204 });
+    }),
+  );
+
+  renderForm();
+  await fill('Yangi#Parol123', 'Yangi#Parol123');
+  await userEvent.click(screen.getByTestId('submit'));
+
+  expect(await screen.findByTestId('same-as-old')).toBeInTheDocument();
+  expect(called).toBe(false);
+});

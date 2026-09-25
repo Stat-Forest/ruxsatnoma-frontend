@@ -8,6 +8,7 @@ import { FormField, Input, Select, Textarea } from '../../../components/ui/FormC
 import { Modal } from '../../../components/ui/Overlay';
 import { Tabs } from '../../../components/ui/Navigation';
 import { ApiError } from '../../../api/errors';
+import { SEARCH_MAX_LENGTH } from '../../../api/limits';
 import { useApiErrorText } from '../../../i18n/useApiErrorText';
 import { useLanguage } from '../../../i18n/useT';
 import { CLICKABLE_ROW_CLASS, clickableRowProps } from '../../../lib/rowClick';
@@ -142,6 +143,7 @@ export function UsersPage() {
               value={draft.q}
               placeholder={L.filterQueryPlaceholder}
               onChange={(e) => setDraft({ ...draft, q: e.target.value })}
+              maxLength={SEARCH_MAX_LENGTH}
             />
           </FormField>
           <FormField label={L.filterRole} htmlFor="users-filter-role">

@@ -6,6 +6,7 @@ import { http, HttpResponse } from 'msw';
 import { setupServer } from 'msw/node';
 import { vi } from 'vitest';
 import { I18nContext } from '../../i18n/context';
+import { APPLICATION_NUMBER_MAX_LENGTH } from '../../api/limits';
 import { MyApplicationsPage } from './MyApplicationsPage';
 import type { ApplicationOut } from './api';
 
@@ -83,6 +84,17 @@ function renderPage() {
     </MemoryRouter>,
   );
 }
+
+// Stage 19, A2: `GET /applications?number` caps at APPLICATION_NUMBER_MAX_LENGTH
+// (64) — the number filter must stop there too, instead of a 422 later.
+test('the application number filter caps input at the server limit (APPLICATION_NUMBER_MAX_LENGTH)', async () => {
+  renderPage();
+  await screen.findAllByText('RX-2026-000001');
+  expect(screen.getByLabelText('Ariza raqami')).toHaveAttribute(
+    'maxLength',
+    String(APPLICATION_NUMBER_MAX_LENGTH),
+  );
+});
 
 test('a click anywhere on a row opens the application, not only "Ochish"', async () => {
   renderPage();

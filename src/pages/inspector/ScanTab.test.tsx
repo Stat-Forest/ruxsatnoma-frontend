@@ -12,6 +12,7 @@ import { http, HttpResponse } from 'msw';
 import { setupServer } from 'msw/node';
 import { MemoryRouter } from 'react-router';
 import { I18nContext } from '../../i18n/context';
+import { PERMIT_QR_MAX_LENGTH } from '../../api/limits';
 import { ScanTab } from './ScanTab';
 
 const server = setupServer();
@@ -32,6 +33,16 @@ function renderScanTab() {
     </QueryClientProvider>,
   );
 }
+
+// Stage 19, A2: `GET /public/permits/check?qr` caps at PERMIT_QR_MAX_LENGTH
+// (128) — the token field must stop there too, instead of a 422 later.
+test('the QR token field caps input at the server limit (PERMIT_QR_MAX_LENGTH)', () => {
+  renderScanTab();
+  expect(screen.getByPlaceholderText('inspector.scan.qrPlaceholder')).toHaveAttribute(
+    'maxLength',
+    String(PERMIT_QR_MAX_LENGTH),
+  );
+});
 
 test('a found permit renders every field the endpoint returns', async () => {
   server.use(
