@@ -324,12 +324,14 @@ function workingDaysBetween(from: string, to: string): number {
   return count;
 }
 
-const STATE_ORDER: Record<ReviewDeadlineState, number> = { overdue: 0, running: 1, paused: 2, unknown: 3 };
+const STATE_ORDER: Record<ReviewDeadlineState, number> = { paused: 0, overdue: 1, running: 2, unknown: 3 };
 
 /** Every application the office has not decided yet, with the working days
  *  left on its review deadline. The deadline is the backend's own
- *  `sla_deadline_at`; only the counting is done here. Overdue first, then the
- *  fewest days left, then the paused ones, which have nothing to count. */
+ *  `sla_deadline_at`; only the counting is done here. The paused ones first —
+ *  they wait on the citizen, the only rows here they can act on, and the card
+ *  shows just the head of this list — then overdue, then the fewest days
+ *  left. */
 export function reviewDeadlines(applications: ApplicationOut[], now: Date): ReviewDeadline[] {
   const today = localDate(now);
   return applications

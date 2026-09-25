@@ -1,6 +1,6 @@
 import { Clock, TrendingUp } from 'lucide-react';
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
-import { CardBadge, DashboardCard, EmptyPanel } from './DashboardCard';
+import { CardBadge, DashboardCard } from './DashboardCard';
 import { formatReviewDays } from '../format';
 import type { MonthPoint, ReviewStats } from '../metrics';
 
@@ -91,26 +91,75 @@ export function DynamicsCard({
           </ul>
         </>
       ) : (
-        <EmptyPanel testId="dynamics-empty">{t('dash.dynamics.noData')}</EmptyPanel>
+        <GhostChart testId="dynamics-empty">{t('dash.dynamics.noData')}</GhostChart>
       )}
 
-      <dl className="mt-5 pt-4 border-t border-[#E4E7EA] grid grid-cols-1 sm:grid-cols-3 gap-4 sm:divide-x sm:divide-[#E4E7EA]">
-        <Figure label={t('dash.dynamics.totalLabel')} tone="neutral">
-          {stats.total}
-          {stats.yearsFrom !== null && stats.yearsTo !== null ? (
-            <span className="ml-1.5 text-xs font-normal text-[#5A646D]">
-              ({stats.yearsFrom === stats.yearsTo ? stats.yearsFrom : `${stats.yearsFrom}–${stats.yearsTo}`})
-            </span>
-          ) : null}
-        </Figure>
-        <Figure label={t('dash.dynamics.slaLabel')} tone="brand" className="sm:pl-4">
-          {stats.slaOnTimePct === null ? '—' : `${stats.slaOnTimePct}% ${t('dash.dynamics.slaValue')}`}
-        </Figure>
-        <Figure label={t('dash.dynamics.successLabel')} tone="info" className="sm:pl-4">
-          {stats.approvedPct === null ? '—' : `${stats.approvedPct}% ${t('dash.dynamics.successValue')}`}
-        </Figure>
-      </dl>
+      {/* A new citizen's "0 / — / —" is three ways of saying nothing, under a
+          panel that already said it once. */}
+      {stats.total === 0 ? null : (
+        <dl className="mt-5 pt-4 border-t border-[#E4E7EA] grid grid-cols-1 sm:grid-cols-3 gap-4 sm:divide-x sm:divide-[#E4E7EA]">
+          <Figure label={t('dash.dynamics.totalLabel')} tone="neutral">
+            {stats.total}
+            {stats.yearsFrom !== null && stats.yearsTo !== null ? (
+              <span className="ml-1.5 text-xs font-normal text-[#5A646D]">
+                ({stats.yearsFrom === stats.yearsTo ? stats.yearsFrom : `${stats.yearsFrom}–${stats.yearsTo}`})
+              </span>
+            ) : null}
+          </Figure>
+          <Figure label={t('dash.dynamics.slaLabel')} tone="brand" className="sm:pl-4">
+            {stats.slaOnTimePct === null ? '—' : `${stats.slaOnTimePct}% ${t('dash.dynamics.slaValue')}`}
+          </Figure>
+          <Figure label={t('dash.dynamics.successLabel')} tone="info" className="sm:pl-4">
+            {stats.approvedPct === null ? '—' : `${stats.approvedPct}% ${t('dash.dynamics.successValue')}`}
+          </Figure>
+        </dl>
+      )}
     </DashboardCard>
+  );
+}
+
+/** Three made-up curves in the series' own colours, faded almost to nothing,
+ *  behind the sentence that says there is no data yet. It shows a new citizen
+ *  what this panel will become without claiming a single figure: no axis, no
+ *  tick, no tooltip — nothing a reader could take for a measurement. */
+function GhostChart({ testId, children }: { testId: string; children: React.ReactNode }) {
+  const curves = [
+    { color: SERIES[0].color, d: 'M0,150 C60,140 110,110 170,115 S280,70 340,80 S450,40 520,50 S600,20 600,20' },
+    { color: SERIES[1].color, d: 'M0,175 C70,170 120,150 190,155 S300,120 360,125 S470,95 540,90 S600,80 600,80' },
+    { color: SERIES[2].color, d: 'M0,190 C80,188 140,178 210,180 S320,160 380,162 S480,140 550,138 S600,132 600,132' },
+  ];
+  return (
+    <div data-testid={testId} className="relative h-[260px] rounded-xl bg-[#F8F9FA] overflow-hidden">
+      <svg
+        aria-hidden="true"
+        viewBox="0 0 600 220"
+        preserveAspectRatio="none"
+        className="absolute inset-0 w-full h-full opacity-40"
+      >
+        {[55, 110, 165].map((y) => (
+          <line key={y} x1="0" x2="600" y1={y} y2={y} stroke="#C9CFD4" strokeDasharray="4 4" />
+        ))}
+        <defs>
+          {curves.map((curve, index) => (
+            <linearGradient key={curve.color} id={`ghost-fill-${index}`} x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stopColor={curve.color} stopOpacity={0.35} />
+              <stop offset="1" stopColor={curve.color} stopOpacity={0} />
+            </linearGradient>
+          ))}
+        </defs>
+        {curves.map((curve, index) => (
+          <g key={curve.color}>
+            <path d={`${curve.d} L600,220 L0,220 Z`} fill={`url(#ghost-fill-${index})`} />
+            <path d={curve.d} fill="none" stroke={curve.color} strokeWidth={2.5} strokeLinecap="round" />
+          </g>
+        ))}
+      </svg>
+      <div className="absolute inset-0 flex items-center justify-center px-6">
+        <p className="rounded-full bg-white/90 border border-[#E4E7EA] px-4 py-2 text-center text-sm font-medium text-[#5A646D] shadow-xs">
+          {children}
+        </p>
+      </div>
+    </div>
   );
 }
 

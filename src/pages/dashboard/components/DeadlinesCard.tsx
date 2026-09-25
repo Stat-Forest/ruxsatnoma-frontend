@@ -1,11 +1,18 @@
 import type { ReactNode } from 'react';
-import { Hourglass } from 'lucide-react';
+import { Link } from 'react-router';
+import { ArrowRight, Hourglass } from 'lucide-react';
 import { DashboardCard } from './DashboardCard';
 import type { ActivityExpiry, ReviewDeadline } from '../metrics';
 
 /** A permit this close to its end is worth the citizen's attention now — the
  *  same threshold the expiry tile above turns green at. */
 const SOON_DAYS = 30;
+
+/** Review rows shown before the rest fold behind a link to the full list.
+ *  A citizen with twenty applications in flight once stretched this card to
+ *  twice the height of the screen; the most urgent five are what the home
+ *  screen owes them, and the list page has the others. */
+const REVIEW_LIMIT = 5;
 
 /**
  * Replaces the "areas in use" donut (2026-09-24): what a citizen
@@ -47,16 +54,29 @@ export function DeadlinesCard({
 
       <Section heading={t('dash.deadlines.reviewHeading')}>
         {review.length ? (
-          <ul data-testid="review-deadlines" className="space-y-2">
-            {review.map((row) => (
-              <Row
-                key={row.applicationId}
-                title={row.activityTypeId ? nameOf(row.activityTypeId) : '—'}
-                hint={row.number ?? '—'}
-                {...reviewFigure(row, t)}
-              />
-            ))}
-          </ul>
+          <>
+            <ul data-testid="review-deadlines" className="space-y-2">
+              {review.slice(0, REVIEW_LIMIT).map((row) => (
+                <Row
+                  key={row.applicationId}
+                  to={`/my/applications/${row.applicationId}`}
+                  title={row.activityTypeId ? nameOf(row.activityTypeId) : '—'}
+                  hint={row.number ?? '—'}
+                  {...reviewFigure(row, t)}
+                />
+              ))}
+            </ul>
+            {review.length > REVIEW_LIMIT ? (
+              <Link
+                to="/my/applications"
+                data-testid="review-deadlines-all"
+                className="mt-3 flex items-center justify-center gap-1.5 rounded-xl px-4 py-2.5 text-sm font-semibold text-[#2E7D4F] hover:bg-[#F0F7F2]"
+              >
+                {t('dash.deadlines.showAll')} ({review.length})
+                <ArrowRight className="w-4 h-4" />
+              </Link>
+            ) : null}
+          </>
         ) : (
           <Empty testId="review-deadlines-empty">{t('dash.deadlines.reviewEmpty')}</Empty>
         )}
@@ -100,36 +120,66 @@ const FIGURE_TONE = {
 } as const;
 
 function Row({
+  to,
   title,
   hint,
   figure,
   tone,
 }: {
+  to?: string;
   title: string;
   hint: string;
   figure: string;
   tone: keyof typeof FIGURE_TONE;
 }) {
-  return (
-    <li className="flex items-center gap-3 bg-[#F8F9FA] border border-[#E4E7EA] rounded-xl px-4 py-3">
+  const body = (
+    <>
       <div className="flex-1 min-w-0">
         <p className="text-sm font-semibold text-[#1A1F24] truncate">{title}</p>
-        <p className="mt-0.5 text-xs text-[#5A646D] font-mono tabular-nums truncate">{hint}</p>
+        <p className="mt-0.5 text-xs text-[#5A646D] tabular-nums truncate">{hint}</p>
       </div>
-      <span className={`shrink-0 text-right text-sm font-semibold tabular-nums ${FIGURE_TONE[tone]}`}>{figure}</span>
+      {/* Capped rather than `shrink-0`: "Paused — awaiting your reply" is the
+          longest figure, and unshrinkable it squeezed the title to "As…". */}
+      <span className={`max-w-[55%] text-right text-sm font-semibold tabular-nums ${FIGURE_TONE[tone]}`}>
+        {figure}
+      </span>
+    </>
+  );
+  const box = 'flex items-center gap-3 bg-[#F8F9FA] border border-[#E4E7EA] rounded-xl px-4 py-3';
+  return (
+    <li>
+      {to ? (
+        <Link to={to} className={`${box} hover:border-[#2E7D4F]/40 hover:bg-white transition-colors`}>
+          {body}
+        </Link>
+      ) : (
+        <div className={box}>{body}</div>
+      )}
     </li>
   );
 }
 
 /** Not `EmptyPanel`: that one is sized to stand in for a whole chart, and
- *  here two short sentences share one card. */
+ *  here two short sentences share one card. Two faded placeholder rows sit
+ *  behind the sentence — the shape of what will appear here, with no text a
+ *  reader could mistake for a deadline. */
 function Empty({ testId, children }: { testId: string; children: ReactNode }) {
   return (
-    <p
-      data-testid={testId}
-      className="text-center text-sm text-[#5A646D] bg-[#F8F9FA] border border-dashed border-[#E4E7EA] rounded-xl px-4 py-5"
-    >
-      {children}
-    </p>
+    <div data-testid={testId} className="relative">
+      <div aria-hidden="true" className="space-y-2 opacity-40">
+        {[0, 1].map((key) => (
+          <div key={key} className="flex items-center gap-3 bg-[#F8F9FA] border border-[#E4E7EA] rounded-xl px-4 py-3">
+            <div className="flex-1 space-y-1.5">
+              <div className="h-2.5 w-2/5 rounded-full bg-[#DDE2E6]" />
+              <div className="h-2 w-1/4 rounded-full bg-[#E8EBEE]" />
+            </div>
+            <div className="h-2.5 w-16 rounded-full bg-[#DDE2E6]" />
+          </div>
+        ))}
+      </div>
+      <p className="absolute inset-0 flex items-center justify-center text-center text-sm font-medium text-[#5A646D] px-4">
+        <span className="rounded-full bg-white/90 border border-[#E4E7EA] px-3 py-1.5 shadow-xs">{children}</span>
+      </p>
+    </div>
   );
 }

@@ -211,6 +211,7 @@ export const uz_latn = {
   'dash.deadlines.overdue': "Muddati o'tgan",
   'dash.deadlines.paused': "To'xtatilgan — javobingiz kutilmoqda",
   'dash.deadlines.reviewEmpty': "Ko'rib chiqilayotgan ariza yo'q",
+  'dash.deadlines.showAll': "Hammasini ko'rish",
   'dash.month.1': 'Yan',
   'dash.month.2': 'Fev',
   'dash.month.3': 'Mar',
