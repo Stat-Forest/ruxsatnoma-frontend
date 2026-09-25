@@ -29,6 +29,7 @@ function card(over: Partial<ApplicationCardOut> = {}): ApplicationCardOut {
     number: 'RX-2026-000123',
     status: 'IN_REVIEW',
     applicant_id: 'ap000000-0000-4000-8000-000000000001',
+    applicant: { kind: 'individual', name: 'Alisher Karimov', stir: null },
     submitted_by_user_id: 'u0000000-0000-4000-8000-000000000001',
     activity_type_id: null,
     contour_id: null,

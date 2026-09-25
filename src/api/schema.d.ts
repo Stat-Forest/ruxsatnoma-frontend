@@ -7382,6 +7382,23 @@ export interface components {
             verified_at: string | null;
         };
         /**
+         * ApplicationApplicantOut
+         * @description Who filed, as the reviewing staff sees it on the card (decision #226):
+         *     an individual or an organisation's own cabinet. `stir` is set for an
+         *     organisation only; an individual's PINFL is deliberately not repeated here.
+         */
+        ApplicationApplicantOut: {
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "individual" | "legal";
+            /** Name */
+            name: string;
+            /** Stir */
+            stir: string | null;
+        };
+        /**
          * ApplicationApproveIn
          * @description `POST /applications/{id}/approve` — the head's detached PKCS#7 over the
          *     bytes `GET /applications/{id}/package` served, and nothing else.
@@ -7580,6 +7597,7 @@ export interface components {
             conclusions: components["schemas"]["ApplicationConclusionOut"][];
             /** Printouts */
             printouts: components["schemas"]["ApplicationPrintoutOut"][];
+            applicant: components["schemas"]["ApplicationApplicantOut"] | null;
         };
         /**
          * ApplicationCheckIn

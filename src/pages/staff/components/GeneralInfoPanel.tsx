@@ -13,7 +13,10 @@ const GENERAL_INFO_I18N = {
     title: 'Umumiy maʼlumotlar',
     subtitle: 'Ariza rekvizitlari',
     applicantSection: 'Arizachi',
-    applicantId: 'Arizachi (applicant_id):',
+    applicant: 'Arizachi:',
+    kindIndividual: 'Jismoniy shaxs',
+    kindLegal: 'Yuridik shaxs',
+    stir: 'STIR',
     channel: 'Yuborish kanali:',
     benefitCategory: 'Imtiyoz toifasi:',
     notSpecified: 'Koʻrsatilmagan',
@@ -42,7 +45,10 @@ const GENERAL_INFO_I18N = {
     title: 'Умумий маълумотлар',
     subtitle: 'Ариза реквизитлари',
     applicantSection: 'Аризачи',
-    applicantId: 'Аризачи (applicant_id):',
+    applicant: 'Аризачи:',
+    kindIndividual: 'Жисмоний шахс',
+    kindLegal: 'Юридик шахс',
+    stir: 'СТИР',
     channel: 'Юбориш канали:',
     benefitCategory: 'Имтиёз тоифаси:',
     notSpecified: 'Кўрсатилмаган',
@@ -69,7 +75,10 @@ const GENERAL_INFO_I18N = {
     title: 'Общие сведения',
     subtitle: 'Реквизиты заявления',
     applicantSection: 'Заявитель',
-    applicantId: 'Заявитель (applicant_id):',
+    applicant: 'Заявитель:',
+    kindIndividual: 'Физическое лицо',
+    kindLegal: 'Юридическое лицо',
+    stir: 'СТИР',
     channel: 'Канал подачи:',
     benefitCategory: 'Категория льготы:',
     notSpecified: 'Не указано',
@@ -96,7 +105,10 @@ const GENERAL_INFO_I18N = {
     title: 'General Information',
     subtitle: 'Application details',
     applicantSection: 'Applicant',
-    applicantId: 'Applicant (applicant_id):',
+    applicant: 'Applicant:',
+    kindIndividual: 'Individual',
+    kindLegal: 'Legal entity',
+    stir: 'STIR',
     channel: 'Submission channel:',
     benefitCategory: 'Benefit category:',
     notSpecified: 'Not specified',
@@ -123,7 +135,10 @@ const GENERAL_INFO_I18N = {
     title: 'Ulıwma maǵlıwmatlar',
     subtitle: 'Arza rekvizitleri',
     applicantSection: 'Arzashı',
-    applicantId: 'Arzashı (applicant_id):',
+    applicant: 'Arzashı:',
+    kindIndividual: 'Fizikalıq shaxs',
+    kindLegal: 'Yuridikalıq shaxs',
+    stir: 'STIR',
     channel: 'Jiberiw kanalı:',
     benefitCategory: 'Jeńillik kategoriyası:',
     notSpecified: 'Kórsetilmegen',
@@ -197,7 +212,20 @@ export function GeneralInfoPanel({ card }: { card: ApplicationCardOut }) {
             <UserCheck className="w-4 h-4 text-[#2E7D4F]" /> {tr.applicantSection}
           </h3>
           <dl className="grid grid-cols-1 gap-3 text-xs">
-            <Fact label={tr.applicantId} value={shortId(card.applicant_id)} />
+            {/* Decision #226: the only place a reviewer sees whether an
+                individual or an organisation filed; the id stays the fallback
+                for the impossible case of a missing applicant row. */}
+            <Fact
+              label={tr.applicant}
+              value={card.applicant?.name ?? shortId(card.applicant_id)}
+              sub={
+                card.applicant
+                  ? card.applicant.kind === 'legal'
+                    ? `${tr.kindLegal}${card.applicant.stir ? ` · ${tr.stir} ${card.applicant.stir}` : ''}`
+                    : tr.kindIndividual
+                  : undefined
+              }
+            />
             <Fact label={tr.channel} value={CHANNEL_LABELS[card.channel] ?? card.channel} />
             <Fact
               label={tr.benefitCategory}

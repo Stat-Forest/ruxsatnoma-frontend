@@ -26,6 +26,7 @@ function card(over: Partial<ApplicationCardOut> = {}): ApplicationCardOut {
     number: 'RX-2026-000123',
     status: 'IN_REVIEW',
     applicant_id: 'ap000000-0000-4000-8000-000000000001',
+    applicant: { kind: 'individual', name: 'Alisher Karimov', stir: null },
     submitted_by_user_id: 'u0000000-0000-4000-8000-000000000001',
     activity_type_id: null,
     contour_id: null,
@@ -123,4 +124,20 @@ test('a haymaking card (all four null) shows none of the four labels', () => {
   expect(screen.queryByText('Olib chiqish muddati:')).not.toBeInTheDocument();
   expect(screen.queryByText('Foydalanish maqsadi:')).not.toBeInTheDocument();
   expect(screen.queryByText('Tadbir sanasi va vaqti:')).not.toBeInTheDocument();
+});
+
+// Decision #226: the card is the reviewer's only way to tell who filed.
+test('an organisation filing shows its name, "Yuridik shaxs" and its STIR', () => {
+  renderPanel({ applicant: { kind: 'legal', name: 'Bog MChJ', stir: '123456789' } });
+
+  expect(screen.getByText('Bog MChJ')).toBeInTheDocument();
+  expect(screen.getByText('Yuridik shaxs · STIR 123456789')).toBeInTheDocument();
+});
+
+test('an individual filing shows the name and "Jismoniy shaxs", no STIR', () => {
+  renderPanel();
+
+  expect(screen.getByText('Alisher Karimov')).toBeInTheDocument();
+  expect(screen.getByText('Jismoniy shaxs')).toBeInTheDocument();
+  expect(screen.queryByText(/STIR/)).not.toBeInTheDocument();
 });
