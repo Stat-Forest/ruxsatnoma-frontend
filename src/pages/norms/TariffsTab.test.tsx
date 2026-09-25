@@ -276,6 +276,15 @@ test('a click anywhere on a draft tariff row opens its form; a published row sta
   expect(await screen.findByTestId('tariff-form')).toBeInTheDocument();
 });
 
+test('an empty list disables the Excel button — there is nothing to export', async () => {
+  mockList([]);
+  renderTab();
+  await findTableLoaded();
+  await screen.findByText('norms.tariffs.emptyTitle');
+
+  expect(screen.getByTestId('export-xlsx')).toBeDisabled();
+});
+
 test('the Excel button asks the server for the export with the applied filters, never paging the list itself', async () => {
   const user = userEvent.setup();
   mockList([tariff()]);

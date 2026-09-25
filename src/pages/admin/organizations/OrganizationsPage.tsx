@@ -136,8 +136,16 @@ export function OrganizationsPage() {
             {/* The tree walks `parent_id` level by level and the search above
                 is client-side only (no server query object to mirror), so the
                 export requests every active organization — the same default
-                `GET /refs/organizations` itself answers with no filter. */}
-            <ExportXlsxButton className="ml-auto" path="/api/v1/refs/organizations" query={{}} />
+                `GET /refs/organizations` itself answers with no filter.
+                Disabled state mirrors the flat, unfiltered tree fetch
+                (`tree.data`), not `shown` — a search that hides every row
+                must not disable a button whose export ignores that search. */}
+            <ExportXlsxButton
+              className="ml-auto"
+              path="/api/v1/refs/organizations"
+              query={{}}
+              disabled={!tree.data?.length}
+            />
           </div>
         </div>
       </div>

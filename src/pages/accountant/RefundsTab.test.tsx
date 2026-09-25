@@ -315,6 +315,15 @@ test('the approve-by-id panel approves a refund purely by its id, with no row ev
   expect(await within(panel).findByText(/qaytarildi\.$/)).toBeInTheDocument();
 });
 
+test('an empty register disables the Excel button — there is nothing to export', async () => {
+  server.use(http.get('*/api/v1/refunds', () => HttpResponse.json({ items: [], total: 0, page: 1, page_size: 100 })));
+  renderTab(['payments.view']);
+
+  await screen.findByText('Arizalar topilmadi.');
+
+  expect(screen.getByTestId('export-xlsx')).toBeDisabled();
+});
+
 test('the Excel button asks the server for the export with the applied status filter, never paging the register itself', async () => {
   const user = userEvent.setup();
   const listCalls: string[] = [];

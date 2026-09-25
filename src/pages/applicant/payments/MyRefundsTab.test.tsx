@@ -103,6 +103,15 @@ test('lists the citizen own refunds with the basis name, the status, the deadlin
   expect(screen.getByText(/10\.09\.2026/)).toBeInTheDocument();
 });
 
+test('an empty list disables the Excel button — there is nothing to export', async () => {
+  mockBackend({});
+  renderTab();
+
+  await screen.findByText('Qaytarish soʻrovlari yoʻq.');
+
+  expect(screen.getByTestId('export-xlsx')).toBeDisabled();
+});
+
 test('the Excel button asks the server for the export, never paging the list itself', async () => {
   const listCalls: string[] = [];
   let exportUrl: URL | null = null;

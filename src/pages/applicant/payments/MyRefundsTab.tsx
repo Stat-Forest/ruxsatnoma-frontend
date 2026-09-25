@@ -127,7 +127,12 @@ export function MyRefundsTab() {
         <Button variant="primary" leftIcon={<Plus className="w-4 h-4" />} onClick={() => setOpen(true)}>
           {t('myPayments.refunds.newRequest')}
         </Button>
-        <ExportXlsxButton className="ml-auto" path="/api/v1/refunds" query={{}} />
+        <ExportXlsxButton
+          className="ml-auto"
+          path="/api/v1/refunds"
+          query={{}}
+          disabled={!refundsQuery.data?.total}
+        />
       </div>
       {refundsQuery.isError ? (
         <Alert variant="danger">{t('myPayments.refunds.loadFailed')}</Alert>

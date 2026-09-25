@@ -106,7 +106,12 @@ export function TicketsTab() {
             />
           </FormField>
         </div>
-        <ExportXlsxButton path="/api/v1/help/tickets" query={filters} className="w-full sm:w-auto sm:ml-auto" />
+        <ExportXlsxButton
+          path="/api/v1/help/tickets"
+          query={filters}
+          className="w-full sm:w-auto sm:ml-auto"
+          disabled={!total}
+        />
       </div>
 
       {list.error && (

@@ -321,7 +321,12 @@ export function TariffsTab({ active }: { active: boolean }) {
           <Button variant="primary" size="sm" onClick={applyFilters}>
             {t('norms.tariffs.filter.apply')}
           </Button>
-          <ExportXlsxButton className="ml-auto" path="/api/v1/tariffs" query={queryFilters} />
+          <ExportXlsxButton
+            className="ml-auto"
+            path="/api/v1/tariffs"
+            query={queryFilters}
+            disabled={!list.data?.total}
+          />
         </div>
       </div>
 

@@ -148,6 +148,63 @@ test('the Excel button on the risk indicators tab downloads the server file', as
   expect(clickSpy).toHaveBeenCalled();
 });
 
+test('an empty list disables the Excel button — there is nothing to export (risk indicators tab)', async () => {
+  server.use(http.get('*/api/v1/oversight/risk-indicators', () => HttpResponse.json(page([]))));
+
+  render(
+    <Providers>
+      <OversightPage />
+    </Providers>,
+  );
+
+  await screen.findByText((DICTIONARIES['uz_latn'] as Record<string, string>)['leadership.oversight.empty']);
+  expect(screen.getByTestId('export-xlsx')).toBeDisabled();
+});
+
+test('an empty list disables the Excel button — there is nothing to export (events tab)', async () => {
+  server.use(
+    http.get('*/api/v1/oversight/risk-indicators', () => HttpResponse.json(page([riskIndicatorFixture()]))),
+    http.get('*/api/v1/oversight/events', () => HttpResponse.json(page([]))),
+  );
+
+  render(
+    <Providers>
+      <OversightPage />
+    </Providers>,
+  );
+  await screen.findByTestId(`risk-row-${RISK_ROW_ID}`);
+
+  const user = userEvent.setup();
+  await user.click(screen.getByText('Voqealar'));
+
+  await screen.findByText((DICTIONARIES['uz_latn'] as Record<string, string>)['leadership.oversight.empty']);
+  expect(screen.getByTestId('export-xlsx')).toBeDisabled();
+});
+
+test('a filter that hides every row the server sent disables the Excel button too — the screen shows nothing to export', async () => {
+  // The server answers with an RI-04 row only; the client-side filter on
+  // RI-01 hides it, so the table is empty although `total` is 1.
+  server.use(
+    http.get('*/api/v1/oversight/risk-indicators', () =>
+      HttpResponse.json(page([riskIndicatorFixture({ id: 'ri000000-0000-4000-8000-000000000004', code: 'RI-04' })])),
+    ),
+  );
+
+  render(
+    <Providers>
+      <OversightPage />
+    </Providers>,
+  );
+  await screen.findByTestId('risk-row-ri000000-0000-4000-8000-000000000004');
+  expect(screen.getByTestId('export-xlsx')).toBeEnabled();
+
+  const user = userEvent.setup();
+  await user.selectOptions(screen.getByLabelText('Kod'), 'RI-01');
+
+  await waitFor(() => expect(screen.queryByTestId('risk-row-ri000000-0000-4000-8000-000000000004')).not.toBeInTheDocument());
+  expect(screen.getByTestId('export-xlsx')).toBeDisabled();
+});
+
 test('applying a filter (code: RI-01) properly filters out items with other codes (e.g. RI-04)', async () => {
   const rowRi01 = riskIndicatorFixture({
     id: 'ri000000-0000-4000-8000-000000000001',

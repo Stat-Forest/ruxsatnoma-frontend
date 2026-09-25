@@ -395,6 +395,14 @@ test('the Excel button asks the server for the export with the applied filters, 
   expect(exportUrl!.searchParams.has('offset')).toBe(false);
 });
 
+test('an empty list disables the Excel button — there is nothing to export', async () => {
+  renderTab(); // default handler answers an empty page
+
+  await screen.findByText('Bu filtr boʻyicha hisob-fakturalar topilmadi.');
+
+  expect(screen.getByTestId('export-xlsx')).toBeDisabled();
+});
+
 test('status translates properly in all 5 languages (uz_latn, uz_cyrl, ru, en, kaa)', async () => {
   server.use(
     http.get('*/api/v1/invoices', () =>

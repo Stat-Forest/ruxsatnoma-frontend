@@ -285,6 +285,30 @@ test('rejecting requires a reason before it can be submitted', async () => {
   expect(await screen.findByText('Rad etildi. Hisob-faktura toʻlanmagan holicha qoladi.')).toBeInTheDocument();
 });
 
+test('an empty reconciliation register disables its Excel button — there is nothing to export', async () => {
+  server.use(
+    http.get('*/api/v1/payments/reconciliations', () => HttpResponse.json({ items: [], total: 0, page: 1, page_size: 100 })),
+  );
+  renderTab(['payments.view']);
+
+  await screen.findByText('Yozuvlar topilmadi.');
+
+  const reconciliationSection = screen.getByText('Nomuvofiqliklar reestri').closest('section')!;
+  expect(within(reconciliationSection).getByTestId('export-xlsx')).toBeDisabled();
+});
+
+test('an empty manual-confirmation worklist disables its Excel button — there is nothing to export', async () => {
+  server.use(
+    http.get('*/api/v1/payments/reconciliations', () => HttpResponse.json({ items: [], total: 0, page: 1, page_size: 100 })),
+  );
+  renderTab(['payments.confirm']);
+
+  const panel = await screen.findByTestId('manual-check-panel');
+  await screen.findByText('Hozircha tasdiqlashingizni kutayotgan qaydlar yoʻq.');
+
+  expect(within(panel).getByTestId('export-xlsx')).toBeDisabled();
+});
+
 test('a caller with only payments.confirm (the checker, no payments.view) never fires GET /payments/reconciliations, which would 403', async () => {
   let listCalled = false;
   server.use(

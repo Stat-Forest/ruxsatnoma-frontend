@@ -111,6 +111,13 @@ test('the empty state renders when there are no acts', async () => {
   expect(await screen.findByText('inspector.acts.empty')).toBeInTheDocument();
 });
 
+test('an empty list disables the Excel button — there is nothing to export', async () => {
+  renderActsTab([]);
+  await screen.findByText('inspector.acts.empty');
+
+  expect(screen.getByTestId('export-xlsx')).toBeDisabled();
+});
+
 test('a populated page renders each act with its own Open button', async () => {
   renderActsTab([act(), act({ id: 'ac000000-0000-4000-8000-000000000002', status: 'signed', result: 'violation' })]);
   expect(await screen.findAllByText('inspector.acts.openButton')).toHaveLength(2);

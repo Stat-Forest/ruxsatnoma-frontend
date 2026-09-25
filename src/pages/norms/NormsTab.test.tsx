@@ -283,6 +283,15 @@ test('a click anywhere on an editable norm row opens the form; a published row s
   expect(await screen.findByTestId('norm-form')).toBeInTheDocument();
 });
 
+test('an empty list disables the Excel button — there is nothing to export', async () => {
+  mockList([]);
+  renderTab();
+  await findTableLoaded();
+  await screen.findByText('norms.norms.emptyTitle');
+
+  expect(screen.getByTestId('export-xlsx')).toBeDisabled();
+});
+
 test('the Excel button asks the server for the export with the applied filters, never paging the list itself', async () => {
   const user = userEvent.setup();
   mockList([norm()]);

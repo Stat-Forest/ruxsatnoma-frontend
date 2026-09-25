@@ -203,6 +203,15 @@ test('the Excel export carries the applied period filter and nothing about pagin
   expect(exportUrl!.searchParams.has('page_size')).toBe(false);
 });
 
+test('an empty list disables the Excel button — there is nothing to export', async () => {
+  // The default handlers already answer with EMPTY_PAGE / EMPTY_SUMMARY.
+  renderWithProviders(<RatingsPage />);
+
+  await screen.findByText('Bu davr uchun fikr-mulohaza yoʻq.');
+
+  expect(screen.getByTestId('export-xlsx')).toBeDisabled();
+});
+
 test('a failed summary fetch shows a visible alert, never a silently blank screen', async () => {
   server.use(
     http.get('*/api/v1/admin/ratings/summary', () =>

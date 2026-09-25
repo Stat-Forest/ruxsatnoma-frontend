@@ -534,9 +534,11 @@ export function ContoursTab({ t }: { t: (key: string) => string }) {
                 set for the organization filter, not this browser's further
                 narrowing by number. */}
             <div className="flex justify-end">
-              <ExportXlsxButton className="ml-auto"
+              <ExportXlsxButton
+                className="ml-auto"
                 path="/api/v1/gis/contours"
                 query={{ organization_id: orgFilter || undefined, region_id: regionFilter || undefined }}
+                disabled={!contoursQuery.data?.total}
               />
             </div>
             <div className="max-h-96 overflow-y-auto divide-y divide-[#E4E7EA] border border-[#E4E7EA] rounded-xl">

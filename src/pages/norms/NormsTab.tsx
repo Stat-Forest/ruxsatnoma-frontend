@@ -244,7 +244,12 @@ export function NormsTab({ active }: { active: boolean }) {
           <Button variant="primary" size="sm" onClick={applyFilters}>
             {t('norms.norms.filter.apply')}
           </Button>
-          <ExportXlsxButton className="ml-auto" path="/api/v1/norms" query={queryFilters} />
+          <ExportXlsxButton
+            className="ml-auto"
+            path="/api/v1/norms"
+            query={queryFilters}
+            disabled={!list.data?.total}
+          />
         </div>
       </div>
 

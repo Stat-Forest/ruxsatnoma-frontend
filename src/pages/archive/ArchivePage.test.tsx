@@ -168,6 +168,18 @@ test('the empty state renders when the register is empty', async () => {
   expect(await screen.findByText('archive.empty')).toBeInTheDocument();
 });
 
+test('an empty list disables the Excel button — there is nothing to export', async () => {
+  server.use(
+    http.get('*/api/v1/archive', () => HttpResponse.json(page([]))),
+    http.get('*/api/v1/refs/organizations', () => HttpResponse.json(page([]))),
+  );
+
+  renderArchivePage(['archive.view']);
+  await screen.findByText('archive.empty');
+
+  expect(screen.getByTestId('export-xlsx')).toBeDisabled();
+});
+
 test('a click anywhere on an archive row opens the item drawer, not the object link', async () => {
   server.use(
     http.get('*/api/v1/archive', () => HttpResponse.json(page([archiveItem()]))),

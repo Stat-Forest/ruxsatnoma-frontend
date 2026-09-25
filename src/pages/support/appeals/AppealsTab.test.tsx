@@ -65,6 +65,14 @@ test('the status filter "all" sends no status param', async () => {
   await waitFor(() => expect(requestedStatuses).toEqual([null, 'answered']));
 });
 
+test('an empty list disables the Excel button — there is nothing to export', async () => {
+  server.use(http.get('*/api/v1/admin/public/appeals', () => HttpResponse.json(page([]))));
+  renderTab();
+  await screen.findByText('Обращений не найдено.');
+
+  expect(screen.getByTestId('export-xlsx')).toBeDisabled();
+});
+
 test('pagination requests page/page_size', async () => {
   const requested: { page: string | null; pageSize: string | null } = { page: null, pageSize: null };
   server.use(

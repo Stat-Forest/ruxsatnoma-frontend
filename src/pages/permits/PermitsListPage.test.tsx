@@ -176,6 +176,17 @@ test("the citizen's own list (/my/permits): the Excel button asks the server for
   expect(exportUrl!.searchParams.has('page_size')).toBe(false);
 });
 
+test.each(['staff', 'applicant'] as const)('%s: an empty list disables the Excel button — there is nothing to export', async (variant) => {
+  server.use(
+    http.get('*/api/v1/permits', () => HttpResponse.json({ items: [], total: 0, page: 1, page_size: 20 })),
+  );
+
+  renderPage(variant);
+  await screen.findByText(variant === 'staff' ? 'Filtr boʻyicha ruxsatnoma topilmadi.' : 'Hozircha ruxsatnomalar yoʻq.');
+
+  expect(screen.getByTestId('export-xlsx')).toBeDisabled();
+});
+
 test('one box for the permit number: «a 155» is sent as the Cyrillic series and the number, never as two fields', async () => {
   const user = userEvent.setup();
   const queries: URLSearchParams[] = [];

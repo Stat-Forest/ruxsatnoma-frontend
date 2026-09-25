@@ -82,9 +82,11 @@ export function AppealsTab() {
             />
           </FormField>
         </div>
-        <ExportXlsxButton className="ml-auto"
+        <ExportXlsxButton
+          className="ml-auto"
           path="/api/v1/admin/public/appeals"
           query={{ status, page, page_size: PAGE_SIZE }}
+          disabled={!total}
         />
       </div>
 

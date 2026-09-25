@@ -94,6 +94,19 @@ test('a click anywhere on a row opens the application, not only "Ochish"', async
   expect(screen.getByTestId('current-location')).toHaveTextContent(`/my/applications/${APPLICATION_ID}`);
 });
 
+test('an empty list disables the Excel button — there is nothing to export', async () => {
+  server.use(
+    http.get('*/api/v1/applications', () => HttpResponse.json({ items: [], total: 0, page: 1, page_size: 20 })),
+  );
+
+  renderPage();
+  // Rendered twice — the mobile card empty state and the desktop DataTable's
+  // own — both mounted at once and toggled by CSS breakpoint, not by JS.
+  await screen.findAllByText('Hozircha arizalar yoʻq');
+
+  expect(screen.getByTestId('export-xlsx')).toBeDisabled();
+});
+
 test('the Excel button asks the server for the export with the applied filter and no paging (stage 13)', async () => {
   let exportUrl: URL | null = null;
   server.use(

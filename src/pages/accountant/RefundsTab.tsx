@@ -102,7 +102,12 @@ function RefundsRegister({ canFile, canApprove }: { canFile: boolean; canApprove
                 {t('accountant.refunds.newRequest')}
               </Button>
             )}
-            <ExportXlsxButton className="ml-auto" path="/api/v1/refunds" query={{ status: status || undefined }} />
+            <ExportXlsxButton
+              className="ml-auto"
+              path="/api/v1/refunds"
+              query={{ status: status || undefined }}
+              disabled={!query.data?.total}
+            />
           </div>
         </div>
 

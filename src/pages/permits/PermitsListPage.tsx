@@ -309,8 +309,14 @@ export function PermitsListPage({ variant }: { variant: 'staff' | 'applicant' })
               caller server-side (the applicant's own permits, or — holding
               `permits.view_any` — their zone's, `permits/service.py::list_permits`),
               so the citizen's own list gets the export with no new backend work
-              (stage 13, Track B). */}
-          <ExportXlsxButton className="ml-auto" path="/api/v1/permits" query={toPermitsQuery(queryFilters)} />
+              (stage 13, Track B). Disabled until the list shows at least one
+              permit: an empty (or still loading) list has nothing to export. */}
+          <ExportXlsxButton
+            className="ml-auto"
+            path="/api/v1/permits"
+            query={toPermitsQuery(queryFilters)}
+            disabled={!list.data?.total}
+          />
         </div>
       </form>
 

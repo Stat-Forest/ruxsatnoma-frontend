@@ -161,9 +161,11 @@ export function RatingsPage() {
           <Button variant="primary" size="sm" onClick={applyFilters} data-testid="ratings-apply">
             {t('ratings.filters.apply')}
           </Button>
-          <ExportXlsxButton className="ml-auto"
+          <ExportXlsxButton
+            className="ml-auto"
             path="/api/v1/admin/ratings"
             query={{ ...applied, page, page_size: PAGE_SIZE }}
+            disabled={!feed.data?.total}
           />
         </div>
       </div>

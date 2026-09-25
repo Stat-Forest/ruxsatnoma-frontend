@@ -126,7 +126,12 @@ export function InvoicesTab() {
                 options={statusOptions}
               />
             </FormField>
-            <ExportXlsxButton className="ml-auto" path="/api/v1/invoices" query={queryFilters} />
+            <ExportXlsxButton
+              className="ml-auto"
+              path="/api/v1/invoices"
+              query={queryFilters}
+              disabled={!listQuery.data?.total}
+            />
           </div>
         </div>
 

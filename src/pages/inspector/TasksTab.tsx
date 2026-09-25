@@ -155,7 +155,12 @@ export function TasksTab({ active }: { active: boolean }) {
             ]}
           />
         </div>
-        <ExportXlsxButton path="/api/v1/inspections/tasks" query={filters} className="w-full sm:w-auto sm:ml-auto" />
+        <ExportXlsxButton
+          path="/api/v1/inspections/tasks"
+          query={filters}
+          className="w-full sm:w-auto sm:ml-auto"
+          disabled={!list.data?.total}
+        />
       </div>
 
       {list.error && (

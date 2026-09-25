@@ -89,7 +89,12 @@ export function MyInvoicesTab() {
             ]}
           />
         </FormField>
-        <ExportXlsxButton className="ml-auto" path="/api/v1/invoices" query={{ status: status || undefined }} />
+        <ExportXlsxButton
+          className="ml-auto"
+          path="/api/v1/invoices"
+          query={{ status: status || undefined }}
+          disabled={!invoicesQuery.data?.total}
+        />
       </div>
       <DataTable
         columns={columns}

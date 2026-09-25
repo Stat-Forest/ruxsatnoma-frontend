@@ -352,7 +352,12 @@ function RiskIndicatorsTab({ t }: { t: (key: string) => string }) {
           <Button type="submit" variant="primary" size="sm" onClick={applyFilters}>
             {t('leadership.dash.filters.apply')}
           </Button>
-          <ExportXlsxButton className="ml-auto" path="/api/v1/oversight/risk-indicators" query={toRiskFilters(applied, 1)} />
+          <ExportXlsxButton
+            className="ml-auto"
+            path="/api/v1/oversight/risk-indicators"
+            query={toRiskFilters(applied, 1)}
+            disabled={!totalRecords}
+          />
         </div>
       </form>
 
@@ -530,7 +535,12 @@ function EventsTab({ t }: { t: (key: string) => string }) {
           <Button type="submit" variant="primary" size="sm" onClick={applyFilters}>
             {t('leadership.dash.filters.apply')}
           </Button>
-          <ExportXlsxButton className="ml-auto" path="/api/v1/oversight/events" query={toEventFilters(applied, 1)} />
+          <ExportXlsxButton
+            className="ml-auto"
+            path="/api/v1/oversight/events"
+            query={toEventFilters(applied, 1)}
+            disabled={!totalRecords}
+          />
         </div>
       </form>
 
