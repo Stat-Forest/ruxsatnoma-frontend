@@ -4,20 +4,18 @@ import { useLanguage, useT } from '../../../i18n/useT';
 import { translateTerm } from '../../../i18n/terms';
 import { pickName } from '../../applicant/format';
 import { ChangePasswordForm } from './ChangePasswordForm';
-import { CertificatesSection } from './certificates/CertificatesSection';
 import { ContactsSection } from './contacts/ContactsSection';
 import { RepresentationSection } from './representation/RepresentationSection';
 import { LABELS } from './labels';
 import {
   User,
   Shield,
-  KeyRound,
   Lock,
   Building2,
   Globe,
 } from 'lucide-react';
 
-type TabId = 'profile' | 'representation' | 'certificates' | 'password';
+type TabId = 'profile' | 'representation' | 'password';
 
 function getInitials(name?: string | null): string {
   if (!name) return 'U';
@@ -95,7 +93,6 @@ export function ProfilePage() {
             ...(isApplicant
               ? [{ id: 'representation' as const, label: t('cabinet.profile.tabRepresentation'), icon: Building2 }]
               : []),
-            { id: 'certificates' as const, label: t('cabinet.profile.tabCertificates'), icon: KeyRound },
             { id: 'password' as const, label: t('cabinet.profile.tabPassword'), icon: Lock },
           ].map((item) => {
             const isActive = tab === item.id;
@@ -122,8 +119,6 @@ export function ProfilePage() {
       {tab === 'profile' && <ContactsSection />}
 
       {tab === 'representation' && isApplicant && <RepresentationSection />}
-
-      {tab === 'certificates' && <CertificatesSection />}
 
       {tab === 'password' && (
         <section className="bg-white border border-[#E4E7EA] rounded-xl sm:rounded-2xl p-4 sm:p-7 shadow-xs">

@@ -220,7 +220,6 @@ export const ru = {
 
   'cabinet.profile.tabProfile': 'Профиль',
   'cabinet.profile.tabRepresentation': 'Представительство юрлица',
-  'cabinet.profile.tabCertificates': 'Сертификаты ЭЦП',
   'cabinet.profile.tabPassword': 'Пароль',
   'cabinet.profile.contactsTitle': 'Контактные данные',
   'cabinet.profile.phoneLabel': 'Номер телефона',
@@ -279,26 +278,6 @@ export const ru = {
   'cabinet.representation.applicantOnly':
     'Представительство юридических лиц доступно только для аккаунта заявителя.',
 
-  'cabinet.certificates.title': 'Мои сертификаты ЭЦП',
-  'cabinet.certificates.intro': 'Список ключей ЭЦП, привязанных для подписания документов.',
-  'cabinet.certificates.realHint':
-    'Привязка выполнится через подключённый ключ E-IMZO. Пароль ключа спросит само приложение E-IMZO.',
-  'cabinet.certificates.pinflLabel': 'ПИНФЛ (JSHSHIR)',
-  'cabinet.certificates.fullNameLabel': 'Имя (субъект сертификата, необязательно)',
-  'cabinet.certificates.bind': 'Привязать сертификат',
-  'cabinet.certificates.binding': 'Привязка…',
-  'cabinet.certificates.listEmpty': 'Нет привязанных сертификатов',
-  'cabinet.certificates.serial': 'Серийный номер',
-  'cabinet.certificates.subject': 'Субъект',
-  'cabinet.certificates.status': 'Статус',
-  'cabinet.certificates.validFrom': 'Начало действия',
-  'cabinet.certificates.validTo': 'Окончание действия',
-  'cabinet.certificates.boundAt': 'Дата привязки',
-  'cabinet.certificates.unbind': 'Отвязать',
-  'cabinet.certificates.unbinding': 'Выполняется…',
-  'cabinet.certificates.statusActive': 'Активен',
-  'cabinet.certificates.statusRevoked': 'Отозван',
-  'cabinet.certificates.statusExpired': 'Истёк',
 
   'cabinet.notifications.title': 'Уведомления',
   'cabinet.notifications.loading': 'Загрузка…',

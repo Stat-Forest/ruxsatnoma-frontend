@@ -271,7 +271,6 @@ export const uz_cyrl = {
 
   'cabinet.profile.tabProfile': 'Профиль',
   'cabinet.profile.tabRepresentation': 'Юридик шахс ваколатлари',
-  'cabinet.profile.tabCertificates': 'ЭРИ сертификатлари',
   'cabinet.profile.tabPassword': 'Пароль',
   'cabinet.profile.contactsTitle': 'Алоқа маʼлумотлари',
   'cabinet.profile.phoneLabel': 'Телефон рақами',
@@ -331,27 +330,6 @@ export const uz_cyrl = {
   'cabinet.representation.applicantOnly':
     "Юридик шахс ваколатлари фақат ариза берувчи ҳисобига тегишли.",
 
-  'cabinet.certificates.title': 'Менинг ЭРИ сертификатларим',
-  'cabinet.certificates.intro':
-    "Бу ерда ҳужжатларни имзолаш учун бириктирилган ЭРИ калитларингиз рўйхати.",
-  'cabinet.certificates.realHint':
-    'Бириктириш уланган E-IMZO калитингиз орқали амалга ошади. Калит паролини E-IMZO дастурининг ўзи сўрайди.',
-  'cabinet.certificates.pinflLabel': 'ЖШШИР (ЖШШИР)',
-  'cabinet.certificates.fullNameLabel': 'Исм (сертификат субекти, ихтиёрий)',
-  'cabinet.certificates.bind': 'Сертификатни бириктириш',
-  'cabinet.certificates.binding': 'Бириктирилмоқда…',
-  'cabinet.certificates.listEmpty': "Бириктирилган сертификат ёқ",
-  'cabinet.certificates.serial': 'Серия рақами',
-  'cabinet.certificates.subject': 'Субект',
-  'cabinet.certificates.status': 'Ҳолати',
-  'cabinet.certificates.validFrom': 'Амал қилиш боши',
-  'cabinet.certificates.validTo': 'Амал қилиш охири',
-  'cabinet.certificates.boundAt': 'Бириктирилган сана',
-  'cabinet.certificates.unbind': 'Рўйхатдан чиқариш',
-  'cabinet.certificates.unbinding': 'Бажарилмоқда…',
-  'cabinet.certificates.statusActive': 'Фаол',
-  'cabinet.certificates.statusRevoked': 'Бекор қилинган',
-  'cabinet.certificates.statusExpired': "Муддати ўтган",
 
   'cabinet.notifications.title': 'Билдиришномалар',
   'cabinet.notifications.loading': 'Юкланмоқда…',

@@ -254,7 +254,6 @@ export const uz_latn = {
 
   'cabinet.profile.tabProfile': 'Profil',
   'cabinet.profile.tabRepresentation': 'Yuridik shaxs vakolatlari',
-  'cabinet.profile.tabCertificates': 'ERI sertifikatlari',
   'cabinet.profile.tabPassword': 'Parol',
   'cabinet.profile.contactsTitle': 'Aloqa maʼlumotlari',
   'cabinet.profile.phoneLabel': 'Telefon raqami',
@@ -314,27 +313,6 @@ export const uz_latn = {
   'cabinet.representation.applicantOnly':
     "Yuridik shaxs vakolatlari faqat ariza beruvchi hisobiga tegishli.",
 
-  'cabinet.certificates.title': 'Mening ERI sertifikatlarim',
-  'cabinet.certificates.intro':
-    "Bu yerda hujjatlarni imzolash uchun biriktirilgan ERI kalitlaringiz roʻyxati.",
-  'cabinet.certificates.realHint':
-    "Biriktirish ulangan E-IMZO kalitingiz orqali amalga oshadi. Kalit parolini E-IMZO dasturining o'zi so'raydi.",
-  'cabinet.certificates.pinflLabel': 'PINFL (JSHSHIR)',
-  'cabinet.certificates.fullNameLabel': 'Ism (sertifikat subyekti, ixtiyoriy)',
-  'cabinet.certificates.bind': 'Sertifikatni biriktirish',
-  'cabinet.certificates.binding': 'Biriktirilmoqda…',
-  'cabinet.certificates.listEmpty': "Biriktirilgan sertifikat yoʻq",
-  'cabinet.certificates.serial': 'Seriya raqami',
-  'cabinet.certificates.subject': 'Subyekt',
-  'cabinet.certificates.status': 'Holati',
-  'cabinet.certificates.validFrom': 'Amal qilish boshi',
-  'cabinet.certificates.validTo': 'Amal qilish oxiri',
-  'cabinet.certificates.boundAt': 'Biriktirilgan sana',
-  'cabinet.certificates.unbind': 'Ro’yxatdan chiqarish',
-  'cabinet.certificates.unbinding': 'Bajarilmoqda…',
-  'cabinet.certificates.statusActive': 'Faol',
-  'cabinet.certificates.statusRevoked': 'Bekor qilingan',
-  'cabinet.certificates.statusExpired': "Muddati o'tgan",
 
   'cabinet.notifications.title': 'Bildirishnomalar',
   'cabinet.notifications.loading': 'Yuklanmoqda…',
