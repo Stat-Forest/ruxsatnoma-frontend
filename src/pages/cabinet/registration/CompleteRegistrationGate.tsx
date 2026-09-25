@@ -192,7 +192,7 @@ export function CompleteRegistrationGate() {
        * other route shut until registration is complete, so this bar is not
        * a bypass of the gate, only a visible, honest way to abandon it. */}
       <header className="flex items-center justify-between gap-3 px-4 py-3 bg-white border-b border-[#E4E7EA]">
-        <span className="text-sm font-bold text-[#1A1F24] truncate">{t('cabinet.registration.title')}</span>
+        <span className="min-w-0 text-sm font-bold text-[#1A1F24] break-words">{t('cabinet.registration.title')}</span>
         <div className="flex items-center gap-3 shrink-0">
           {me && <span className="hidden sm:inline text-xs text-[#5A646D] truncate max-w-[14rem]">{me.user.full_name}</span>}
           <Button
