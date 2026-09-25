@@ -973,7 +973,10 @@ export function ApplicationWizardPage() {
                 {items.map((row, idx) => {
                   const rowIssue = grazingRowIssues[idx] ?? { typeError: null, countError: null };
                   return (
-                    <div key={row.key} className="flex items-end gap-3">
+                    // Top-aligned, not bottom: a field's error line grows its
+                    // column, and `items-end` then pushed that column's label
+                    // and input above the neighbour's.
+                    <div key={row.key} className="flex items-start gap-3">
                       <FormField
                         label={t('wizard.step3.livestockType')}
                         className="flex-1"
@@ -1022,9 +1025,13 @@ export function ApplicationWizardPage() {
                           }}
                         />
                       </FormField>
-                      <Button variant="ghost" size="sm" onClick={() => setItems(items.filter((_, i) => i !== idx))} className="cursor-pointer">
-                        <Trash2 className="w-4 h-4 text-[#B91C1C]" />
-                      </Button>
+                      {/* Skips the label line (16px + the 6px gap) and centres
+                          on the 40px input, whatever the error lines do. */}
+                      <div className="mt-[22px] h-[40px] flex items-center">
+                        <Button variant="ghost" size="sm" onClick={() => setItems(items.filter((_, i) => i !== idx))} className="cursor-pointer">
+                          <Trash2 className="w-4 h-4 text-[#B91C1C]" />
+                        </Button>
+                      </div>
                     </div>
                   );
                 })}
