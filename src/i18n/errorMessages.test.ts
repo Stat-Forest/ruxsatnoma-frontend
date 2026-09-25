@@ -175,6 +175,106 @@ test('ERR-VAL-001 keeps the generic sentence for a reason this map does not reco
   expect(apiErrorMessage(noDetails, 'uz_latn')).toBe("Kiritilgan ma'lumotlarni tekshirishda xatolik.");
 });
 
+// Stage 19, R5 — a pydantic 422 on a query/path parameter (a search box or a
+// permit-number field past its server cap) reached the user as the same
+// generic "validation failed" sentence as any other refusal, with no hint of
+// what to shorten or how far. The FIRST error in `details.errors[]` is now
+// named by its `type`, with the limit pydantic already attaches under `ctx`
+// (`backend/app/main.py`'s `validation_error_handler`).
+test('ERR-VAL-001 names the limit for a 422 on a query/path parameter', () => {
+  const stringTooLong = {
+    code: 'ERR-VAL-001',
+    message: 'x',
+    details: { errors: [{ type: 'string_too_long', ctx: { max_length: 200 } }] },
+  };
+  const tooLong = {
+    code: 'ERR-VAL-001',
+    message: 'x',
+    details: { errors: [{ type: 'too_long', ctx: { max_length: 20 } }] },
+  };
+  const lessThanEqual = {
+    code: 'ERR-VAL-001',
+    message: 'x',
+    details: { errors: [{ type: 'less_than_equal', ctx: { le: 1000000 } }] },
+  };
+  const lessThan = {
+    code: 'ERR-VAL-001',
+    message: 'x',
+    details: { errors: [{ type: 'less_than', ctx: { lt: 5 } }] },
+  };
+  const greaterThanEqual = {
+    code: 'ERR-VAL-001',
+    message: 'x',
+    details: { errors: [{ type: 'greater_than_equal', ctx: { ge: 1 } }] },
+  };
+  const greaterThan = {
+    code: 'ERR-VAL-001',
+    message: 'x',
+    details: { errors: [{ type: 'greater_than', ctx: { gt: 0 } }] },
+  };
+
+  expect(apiErrorMessage(stringTooLong, 'ru')).toBe('Слишком длинный текст: не более 200 символов.');
+  expect(apiErrorMessage(tooLong, 'ru')).toBe('Слишком много элементов: не более 20.');
+  expect(apiErrorMessage(lessThanEqual, 'ru')).toBe('Слишком большое значение: не более 1000000.');
+  expect(apiErrorMessage(lessThan, 'ru')).toBe('Значение должно быть меньше 5.');
+  expect(apiErrorMessage(greaterThanEqual, 'ru')).toBe('Слишком маленькое значение: не менее 1.');
+  expect(apiErrorMessage(greaterThan, 'ru')).toBe('Значение должно быть больше 0.');
+
+  expect(apiErrorMessage(stringTooLong, 'uz_latn')).toBe("Matn juda uzun: ko'pi bilan 200 ta belgi.");
+  expect(apiErrorMessage(tooLong, 'uz_latn')).toBe("Elementlar juda ko'p: ko'pi bilan 20 ta.");
+  expect(apiErrorMessage(lessThanEqual, 'uz_latn')).toBe("Qiymat juda katta: ko'pi bilan 1000000.");
+  expect(apiErrorMessage(lessThan, 'uz_latn')).toBe("Qiymat 5 dan kichik bo'lishi kerak.");
+  expect(apiErrorMessage(greaterThanEqual, 'uz_latn')).toBe('Qiymat juda kichik: kamida 1.');
+  expect(apiErrorMessage(greaterThan, 'uz_latn')).toBe("Qiymat 0 dan katta bo'lishi kerak.");
+});
+
+test('ERR-VAL-001 treats a missing required field the same as a too-short string', () => {
+  const tooShort = {
+    code: 'ERR-VAL-001',
+    message: 'x',
+    details: { errors: [{ type: 'string_too_short', ctx: { min_length: 1 } }] },
+  };
+  const missing = { code: 'ERR-VAL-001', message: 'x', details: { errors: [{ type: 'missing' }] } };
+
+  expect(apiErrorMessage(tooShort, 'ru')).toBe('Не заполнено обязательное поле.');
+  expect(apiErrorMessage(missing, 'ru')).toBe('Не заполнено обязательное поле.');
+  expect(apiErrorMessage(tooShort, 'uz_latn')).toBe("Majburiy maydon to'ldirilmagan.");
+  expect(apiErrorMessage(missing, 'uz_latn')).toBe("Majburiy maydon to'ldirilmagan.");
+});
+
+test('ERR-VAL-001 keeps the generic sentence for an error type this map does not know, or missing ctx', () => {
+  const noCtx = { code: 'ERR-VAL-001', message: 'x', details: { errors: [{ type: 'string_too_long' }] } };
+  const uuidParsing = { code: 'ERR-VAL-001', message: 'x', details: { errors: [{ type: 'uuid_parsing' }] } };
+  const emptyDetails = { code: 'ERR-VAL-001', message: 'x', details: {} };
+  const emptyErrors = { code: 'ERR-VAL-001', message: 'x', details: { errors: [] } };
+  const nullDetails = { code: 'ERR-VAL-001', message: 'x', details: null };
+
+  for (const error of [noCtx, uuidParsing, emptyDetails, emptyErrors, nullDetails]) {
+    expect(apiErrorMessage(error, 'ru')).toBe('Ошибка проверки введённых данных.');
+    expect(apiErrorMessage(error, 'uz_latn')).toBe("Kiritilgan ma'lumotlarni tekshirishda xatolik.");
+  }
+});
+
+test('ERR-VAL-001 still lets a domain reason win over a details.errors[] list', () => {
+  const withReason = {
+    code: 'ERR-VAL-001',
+    message: 'x',
+    details: { reason: 'duplicate_login', errors: [{ type: 'string_too_long', ctx: { max_length: 64 } }] },
+  };
+  expect(apiErrorMessage(withReason, 'ru')).toBe('Пользователь с таким логином уже существует.');
+  expect(apiErrorMessage(withReason, 'uz_latn')).toBe('Bunday login bilan foydalanuvchi allaqachon mavjud.');
+});
+
+test('ERR-VAL-001 gives uz_cyrl and kaa the uz_latn text for a named limit, proving the fallback still resolves', () => {
+  const stringTooLong = {
+    code: 'ERR-VAL-001',
+    message: 'x',
+    details: { errors: [{ type: 'string_too_long', ctx: { max_length: 200 } }] },
+  };
+  expect(apiErrorMessage(stringTooLong, 'uz_cyrl')).toBe("Matn juda uzun: ko'pi bilan 200 ta belgi.");
+  expect(apiErrorMessage(stringTooLong, 'kaa')).toBe("Matn juda uzun: ko'pi bilan 200 ta belgi.");
+});
+
 // `norms.checks.first_blocking_error` wraps the WHOLE check list under
 // `details.checks` — this is the actual shape ERR-NORM-002 is thrown with
 // today (`checks.py`'s `_limit_check` puts the numbers on the failing
