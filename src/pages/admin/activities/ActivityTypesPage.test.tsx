@@ -3,9 +3,10 @@
  *
  * Three things this screen must not get wrong, one test each, plus a rendering
  * smoke test and the "no create route" guard:
- *   1. archiving a service is behind a confirmation that says PLAINLY that
- *      this closes new applications too, not just the landing (#139a) — and
- *      the request it sends is nothing but `{status: 'archived'}`;
+ *   1. the switch flips a service both ways and the card never leaves the
+ *      list: off sends nothing but `{status: 'archived'}` and the card stays,
+ *      greyed, saying it is hidden everywhere (#139a); an archived card
+ *      renders unchecked and switching it on sends `{status: 'active'}`;
  *   2. a description written in only one language without `uz_latn` is
  *      refused BEFORE any request is sent — the backend's own 422 for this
  *      renders as a generic "validation failed" sentence
@@ -133,7 +134,7 @@ afterEach(() => server.resetHandlers());
 afterAll(() => server.close());
 
 function mockList(rows: ActivityTypeOut[] = SIX_ROWS) {
-  server.use(http.get('*/api/v1/refs/activity-types', () => HttpResponse.json(rows)));
+  server.use(http.get('*/api/v1/refs/activity-types/all', () => HttpResponse.json(rows)));
 }
 
 function renderPage(lang: 'uz_latn' | 'ru' = 'uz_latn') {
@@ -167,22 +168,57 @@ test('renders all six rows with their name, description (or a not-filled placeho
   expect(screen.getAllByText(/tavsif kiritilmagan/i).length).toBe(2);
 });
 
-test('switches a service off and warns that this closes it everywhere', async () => {
-  mockList();
+test('switches a service off with one click — no dialog — and its card stays in the list', async () => {
+  let rows = SIX_ROWS;
+  server.use(http.get('*/api/v1/refs/activity-types/all', () => HttpResponse.json(rows)));
   const patched: unknown[] = [];
   server.use(
     http.patch('*/api/v1/refs/activity-types/:id', async ({ request }) => {
       patched.push(await request.json());
-      return HttpResponse.json({ ...SIX_ROWS[0], status: 'archived' });
+      rows = SIX_ROWS.map((row, i) => (i === 0 ? { ...row, status: 'archived' } : row));
+      return HttpResponse.json(rows[0]);
     }),
   );
   const user = userEvent.setup();
   renderPage();
 
   await user.click(await screen.findByRole('switch', { name: /chorva mollarini boqish/i }));
-  expect(await screen.findByText(/ariza berish ham yopiladi/i)).toBeInTheDocument();
-  await user.click(screen.getByRole('button', { name: /tasdiqlash/i }));
   await waitFor(() => expect(patched).toEqual([{ status: 'archived' }]));
+  expect(await screen.findByTestId('activity-inactive-grazing')).toHaveTextContent(/koʻrinmaydi/i);
+  expect(screen.getByRole('switch', { name: /chorva mollarini boqish/i })).not.toBeChecked();
+  expect(screen.getByTestId('activity-row-grazing')).toBeInTheDocument();
+  expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+});
+
+test('an archived service renders switched off and switches back on', async () => {
+  mockList(SIX_ROWS.map((row) => (row.code === 'deadwood' ? { ...row, status: 'archived' } : row)));
+  const patched: unknown[] = [];
+  server.use(
+    http.patch('*/api/v1/refs/activity-types/:id', async ({ request, params }) => {
+      patched.push({ id: params.id, body: await request.json() });
+      return HttpResponse.json({ ...SIX_ROWS[4], status: 'active' });
+    }),
+  );
+  const user = userEvent.setup();
+  renderPage();
+
+  const toggle = await screen.findByRole('switch', { name: /quruq shox-shabba/i });
+  expect(toggle).not.toBeChecked();
+  expect(screen.getByTestId('activity-inactive-deadwood')).toBeInTheDocument();
+  expect(screen.getAllByRole('switch').filter((el) => (el as HTMLInputElement).checked).length).toBe(5);
+
+  await user.click(toggle);
+  await waitFor(() => expect(patched).toEqual([{ id: SIX_ROWS[4].id, body: { status: 'active' } }]));
+});
+
+test('a failed switch says so instead of failing silently', async () => {
+  mockList();
+  server.use(http.patch('*/api/v1/refs/activity-types/:id', () => HttpResponse.error()));
+  const user = userEvent.setup();
+  renderPage();
+
+  await user.click(await screen.findByRole('switch', { name: /chorva mollarini boqish/i }));
+  expect(await screen.findByTestId('activity-toggle-error')).toBeInTheDocument();
 });
 
 test('refuses to save a description with no uz_latn, and sends no request', async () => {
