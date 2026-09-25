@@ -23,6 +23,7 @@ import { AuthContext } from '../../auth/AuthContext';
 import type { AuthContextValue } from '../../auth/AuthContext';
 import { stubAuthActions } from '../../auth/testAuthActions';
 import { I18nContext } from '../../i18n/context';
+import { SEARCH_MAX_LENGTH } from '../../api/limits';
 import { ApplicationsListPage } from './ApplicationsListPage';
 import type { ApplicationOut } from './queries';
 
@@ -162,6 +163,20 @@ test('a prosecutor (applications.view_any, never .review) sees rows but no "Ishg
   renderPage(['applications.view_any']);
   expect(await screen.findByText('RX-2026-000001')).toBeInTheDocument();
   expect(screen.queryByText('Ishga olish')).not.toBeInTheDocument();
+});
+
+// Stage 19, A2: `GET /applications?q` caps at SEARCH_MAX_LENGTH (200) — the
+// search box must stop there too, instead of a 422 later.
+test('the search filter caps input at the server limit (SEARCH_MAX_LENGTH)', async () => {
+  server.use(
+    http.get('*/api/v1/applications', () =>
+      HttpResponse.json({ items: [row({ status: 'SUBMITTED' })], total: 1, page: 1, page_size: 20 }),
+    ),
+  );
+
+  renderPage(['applications.view_any']);
+  await screen.findByText('RX-2026-000001');
+  expect(screen.getByTestId('applications-filter-q')).toHaveAttribute('maxLength', String(SEARCH_MAX_LENGTH));
 });
 
 test('a worklist row shows the new status right after "Ishga olish", with no reload', async () => {

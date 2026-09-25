@@ -16,6 +16,7 @@ import { MemoryRouter } from 'react-router';
 import { http, HttpResponse } from 'msw';
 import { setupServer } from 'msw/node';
 import { I18nContext } from '../../i18n/context';
+import { SEARCH_MAX_LENGTH } from '../../api/limits';
 import { PermitsListPage } from './PermitsListPage';
 import type { PermitOut } from './queries';
 
@@ -85,6 +86,20 @@ function stubDownload() {
   const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
   return { createObjectURL, clickSpy };
 }
+
+// Stage 19, A2: `GET /permits?q` caps at SEARCH_MAX_LENGTH (200) — the
+// search box must stop there too, on both the staff list and /my/permits
+// (same component, `variant`).
+test.each(['staff', 'applicant'] as const)(
+  '%s: the search filter caps input at the server limit (SEARCH_MAX_LENGTH)',
+  async (variant) => {
+    server.use(http.get('*/api/v1/permits', () => HttpResponse.json({ items: [], total: 0, page: 1, page_size: 20 })));
+
+    renderPage(variant);
+    await waitFor(() => expect(screen.getByTestId('permits-filter-q')).toBeInTheDocument());
+    expect(screen.getByTestId('permits-filter-q')).toHaveAttribute('maxLength', String(SEARCH_MAX_LENGTH));
+  },
+);
 
 test('staff: the Excel button asks the server for the export with the applied filters, never paging the list itself', async () => {
   const user = userEvent.setup();

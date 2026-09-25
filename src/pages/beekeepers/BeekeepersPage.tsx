@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Plus } from 'lucide-react';
 import { useT } from '../../i18n/useT';
 import { ApiError } from '../../api/errors';
+import { SEARCH_MAX_LENGTH } from '../../api/limits';
 import { useApiErrorText } from '../../i18n/useApiErrorText';
 import { DataTable, type Column } from '../../components/ui/DataTable';
 import { Button } from '../../components/ui/button';
@@ -177,6 +178,7 @@ export function BeekeepersPage() {
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') applySearch();
                 }}
+                maxLength={SEARCH_MAX_LENGTH}
                 data-testid="beekeepers-filter-q"
               />
             </FormField>
