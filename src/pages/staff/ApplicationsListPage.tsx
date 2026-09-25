@@ -301,7 +301,12 @@ export function ApplicationsListPage() {
           <Button type="submit" variant="primary" size="sm" onClick={applyFilters}>
             {lt.apply}
           </Button>
-          <ExportXlsxButton className="ml-auto" path="/api/v1/applications" query={queryFilters} />
+          <ExportXlsxButton
+            className="ml-auto"
+            path="/api/v1/applications"
+            query={queryFilters}
+            disabled={!list.data?.total}
+          />
         </div>
       </form>
 

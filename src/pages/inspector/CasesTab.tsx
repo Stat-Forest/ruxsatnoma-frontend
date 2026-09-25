@@ -154,7 +154,12 @@ export function CasesTab({ active, applicantId }: { active: boolean; applicantId
             ]}
           />
         </div>
-        <ExportXlsxButton path="/api/v1/inspections/cases" query={filters} className="w-full sm:w-auto sm:ml-auto" />
+        <ExportXlsxButton
+          path="/api/v1/inspections/cases"
+          query={filters}
+          className="w-full sm:w-auto sm:ml-auto"
+          disabled={!list.data?.total}
+        />
       </div>
 
       {list.error && (

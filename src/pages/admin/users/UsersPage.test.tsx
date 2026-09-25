@@ -538,3 +538,12 @@ test('the Excel button asks the server for the export with the applied filters, 
 
   clickSpy.mockRestore();
 });
+
+test('an empty list disables the Excel button — there is nothing to export', async () => {
+  server.use(...referenceHandlers([]));
+  renderUsers();
+
+  await screen.findByText(L.empty);
+
+  expect(screen.getByTestId('export-xlsx')).toBeDisabled();
+});

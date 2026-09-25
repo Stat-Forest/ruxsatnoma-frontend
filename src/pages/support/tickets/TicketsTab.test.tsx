@@ -109,6 +109,14 @@ test('a ticket not owned by the caller still renders — the UI adds no client-s
   expect(screen.getByText('ST-2')).toBeInTheDocument();
 });
 
+test('an empty list disables the Excel button — there is nothing to export', async () => {
+  server.use(http.get('*/api/v1/help/tickets', () => HttpResponse.json(page([]))));
+  renderTab([]);
+  await screen.findByText('Обращений пока нет.');
+
+  expect(screen.getByTestId('export-xlsx')).toBeDisabled();
+});
+
 test('the status filter "all" sends no status param', async () => {
   const requestedStatuses: (string | null)[] = [];
   server.use(

@@ -330,6 +330,17 @@ test('filters and page survive opening a row and coming back', async () => {
   expect(listCalls.at(-1)!.searchParams.get('page')).toBe('2');
 });
 
+test('an empty list disables the Excel button — there is nothing to export', async () => {
+  server.use(
+    http.get('*/api/v1/applications', () => HttpResponse.json({ items: [], total: 0, page: 1, page_size: 20 })),
+  );
+
+  renderPage(['applications.view_any']);
+  await screen.findByText('Filtr boʻyicha ariza topilmadi.');
+
+  expect(screen.getByTestId('export-xlsx')).toBeDisabled();
+});
+
 test('a list opened by a filtered address shows that filter in the form and asks the server for it', async () => {
   const listCalls: URL[] = [];
   server.use(

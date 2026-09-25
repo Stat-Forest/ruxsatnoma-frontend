@@ -636,6 +636,15 @@ test('a click anywhere on an organisation row opens its editor; the expand toggl
   expect(await screen.findByTestId('field-name-uz_latn')).toBeInTheDocument();
 });
 
+test('an empty list disables the Excel button — there is nothing to export', async () => {
+  server.use(...refsHandlers([]), ...adminHandlers());
+  renderPage();
+
+  await screen.findByTestId('org-tree-empty');
+
+  expect(screen.getByTestId('export-xlsx')).toBeDisabled();
+});
+
 test('the Excel button asks the server for the export, never paging the tree itself', async () => {
   const treeCalls: string[] = [];
   let exportUrl: URL | null = null;

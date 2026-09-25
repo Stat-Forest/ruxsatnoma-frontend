@@ -130,6 +130,18 @@ test('the status badge follows the UI language, not a fixed uz_latn label', asyn
   expect(within(table).getByText(INVOICE_STATUS_LABEL_I18N.ru.pending)).toBeInTheDocument();
 });
 
+test('an empty list disables the Excel button — there is nothing to export', async () => {
+  server.use(
+    http.get('*/api/v1/invoices', () => HttpResponse.json(page([]))),
+    http.get('*/api/v1/applications', () => HttpResponse.json(page([]))),
+  );
+  renderTab();
+
+  await screen.findByText('Hali hisob-faktura yoʻq.');
+
+  expect(screen.getByTestId('export-xlsx')).toBeDisabled();
+});
+
 test('the Excel button asks the server for the export with the applied status filter, never paging the list itself', async () => {
   const user = userEvent.setup();
   const listCalls: string[] = [];

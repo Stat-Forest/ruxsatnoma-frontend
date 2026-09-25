@@ -138,6 +138,13 @@ test('the empty state renders when there are no tasks', async () => {
   expect(await screen.findByText('inspector.tasks.empty')).toBeInTheDocument();
 });
 
+test('an empty list disables the Excel button — there is nothing to export', async () => {
+  renderTasksTab([]);
+  await screen.findByText('inspector.tasks.empty');
+
+  expect(screen.getByTestId('export-xlsx')).toBeDisabled();
+});
+
 test('a click anywhere on a task card opens the task, not only its Open button', async () => {
   const user = userEvent.setup();
   renderTasksTab([task()]);

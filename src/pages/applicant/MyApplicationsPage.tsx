@@ -351,7 +351,7 @@ export function MyApplicationsPage() {
           </div>
         </div>
         <div className="sm:col-span-2 lg:col-span-1 flex justify-end items-end">
-          <ExportXlsxButton className="ml-auto" path="/api/v1/applications" query={listQuery} />
+          <ExportXlsxButton className="ml-auto" path="/api/v1/applications" query={listQuery} disabled={!total} />
         </div>
       </div>
 

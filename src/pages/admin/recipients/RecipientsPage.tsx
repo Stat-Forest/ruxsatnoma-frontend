@@ -117,7 +117,12 @@ export function RecipientsPage() {
           >
             {L.create}
           </Button>
-          <ExportXlsxButton className="ml-auto" path="/api/v1/payments/recipients" query={{}} />
+          <ExportXlsxButton
+            className="ml-auto"
+            path="/api/v1/payments/recipients"
+            query={{}}
+            disabled={!list.data?.items.length}
+          />
         </div>
       </div>
 

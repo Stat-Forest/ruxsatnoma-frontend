@@ -136,6 +136,13 @@ test('the empty state renders when there are no cases', async () => {
   expect(await screen.findByText('inspector.cases.empty')).toBeInTheDocument();
 });
 
+test('an empty list disables the Excel button — there is nothing to export', async () => {
+  renderCasesTab([]);
+  await screen.findByText('inspector.cases.empty');
+
+  expect(screen.getByTestId('export-xlsx')).toBeDisabled();
+});
+
 test('a populated page renders each case by its own number, with an Open button', async () => {
   renderCasesTab([caseOut(), caseOut({ id: 'ca000000-0000-4000-8000-000000000002', number: 'CASE-2026-0002', status: 'decided' })]);
   expect(await screen.findByText('CASE-2026-0001')).toBeInTheDocument();

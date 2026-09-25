@@ -202,6 +202,15 @@ test('the empty directory says so instead of an empty table', async () => {
   expect(screen.getByTestId('leshoz-remainder')).toHaveTextContent('100%');
 });
 
+test('an empty list disables the Excel button — there is nothing to export', async () => {
+  mockList([]);
+  renderPage();
+
+  await screen.findByTestId('payment-recipients-empty');
+
+  expect(screen.getByTestId('export-xlsx')).toBeDisabled();
+});
+
 test('creating a receiver posts exactly what the form collected', async () => {
   mockList(TWO_ROWS);
   let body: unknown = null;

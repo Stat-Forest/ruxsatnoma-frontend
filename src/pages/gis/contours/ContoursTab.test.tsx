@@ -680,15 +680,25 @@ test('changing the region or the organization filter drops the selected contour'
   expect(map).toHaveAttribute('data-selected-geometry-type', '');
 });
 
+test('an empty list disables the Excel button — there is nothing to export', async () => {
+  server.use(...referenceHandlers(), http.get('*/api/v1/gis/contours', () => HttpResponse.json({ items: [], total: 0 })));
+  renderTab(['gis.contours.manage']);
+  await screen.findByText('gis.contours.empty');
+
+  expect(screen.getByTestId('export-xlsx')).toBeDisabled();
+});
+
 test('the Excel button asks the server for the export with the applied organization filter, never paging the list itself', async () => {
   let listCalls = 0;
   let exportUrl: URL | null = null;
   let exportCalls = 0;
   server.use(
     ...referenceHandlers(),
+    // Non-empty — the button is disabled while the list has no rows
+    // (see the dedicated test above), so a click here needs at least one.
     http.get('*/api/v1/gis/contours', () => {
       listCalls += 1;
-      return HttpResponse.json({ items: [], total: 0 });
+      return HttpResponse.json({ items: [CONTOUR_ROW], total: 1 });
     }),
     http.get('*/api/v1/gis/contours/export.xlsx', ({ request }) => {
       exportCalls += 1;
@@ -696,8 +706,8 @@ test('the Excel button asks the server for the export with the applied organizat
       return HttpResponse.text('xlsx-bytes', {
         headers: {
           'Content-Disposition': 'attachment; filename="konturlar-2026-09-11.xlsx"',
-          'X-Export-Total': '0',
-          'X-Export-Rows': '0',
+          'X-Export-Total': '1',
+          'X-Export-Rows': '1',
           'X-Export-Truncated': 'false',
         },
       });
@@ -712,7 +722,7 @@ test('the Excel button asks the server for the export with the applied organizat
 
   const ui = userEvent.setup();
   renderTab(['gis.contours.manage']);
-  await screen.findByText('gis.contours.empty');
+  await screen.findByTestId(`contour-row-${CONTOUR_ROW.id}`);
 
   const filter = await screen.findByRole('combobox', { name: 'gis.contours.filterOrganization' });
   await waitFor(() => expect(within(filter).getByText('Burchmulla LX')).toBeInTheDocument());

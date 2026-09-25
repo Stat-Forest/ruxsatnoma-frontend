@@ -67,6 +67,15 @@ test('renders the register and its rows', async () => {
   expect(screen.getByText('Asalov Nodir')).toBeInTheDocument();
 });
 
+test('an empty list disables the Excel button — there is nothing to export', async () => {
+  server.use(http.get('*/api/v1/beekeepers', () => HttpResponse.json(page([]))));
+  renderPage();
+
+  await screen.findByText('beekeepers.empty');
+
+  expect(screen.getByTestId('export-xlsx')).toBeDisabled();
+});
+
 test('search and status filter reach the query as q/status', async () => {
   let seenQuery: URLSearchParams | null = null;
   server.use(
