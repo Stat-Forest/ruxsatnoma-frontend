@@ -101,6 +101,19 @@ test('create flow sends only the filled languages, uz_cyrl included', async () =
   });
 });
 
+// Stage 17 QA-01 M1 fix round: `FaqIn.sort_order` is `ge=0, le=SORT_ORDER_MAX`.
+test('the sort-order field caps input at the backend bounds (0..10000)', async () => {
+  server.use(http.get('*/api/v1/admin/help/faq', () => HttpResponse.json([])));
+  const user = userEvent.setup();
+  renderTab();
+
+  await screen.findByTestId('faq-admin-empty');
+  await user.click(screen.getByRole('button', { name: 'Новый вопрос' }));
+
+  expect(screen.getByTestId('faq-form-sort-order')).toHaveAttribute('min', '0');
+  expect(screen.getByTestId('faq-form-sort-order')).toHaveAttribute('max', '10000');
+});
+
 test('a blank uz_cyrl question blocks submission client-side — no POST fires', async () => {
   server.use(http.get('*/api/v1/admin/help/faq', () => HttpResponse.json([])));
   let postCalled = false;

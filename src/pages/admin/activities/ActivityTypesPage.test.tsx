@@ -198,6 +198,19 @@ test('refuses to save a description with no uz_latn, and sends no request', asyn
   expect(await screen.findByRole('alert')).toHaveTextContent(/uz_latn/i);
 });
 
+// Stage 17 QA-01 M1 fix round: `ActivityTypePatch.processing_days` is
+// `gt=0, le=DAYS_MAX` (3650) — `min={1}` already existed, `max` did not.
+test('the processing-days field caps input at the backend bound (1..3650)', async () => {
+  mockList();
+  const user = userEvent.setup();
+  renderPage();
+
+  const editButtons = await screen.findAllByRole('button', { name: /tahrirlash/i });
+  await user.click(editButtons[0]);
+
+  expect(screen.getByLabelText(/muddat|срок/i)).toHaveAttribute('max', '3650');
+});
+
 test('saves a valid edit as a PATCH carrying only name, description and the term — and still carries uz_cyrl/en, which the dialog never showed', async () => {
   mockList();
   const patched: unknown[] = [];

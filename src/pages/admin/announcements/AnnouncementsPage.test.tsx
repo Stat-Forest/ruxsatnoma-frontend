@@ -188,6 +188,16 @@ test('creating an announcement sends every language that was filled, and no empt
   });
 });
 
+test('the body field caps input at the backend bound (LocalizedName, 10000)', async () => {
+  mockBackend([]);
+  const user = userEvent.setup();
+  renderPage();
+
+  await user.click(await screen.findByRole('button', { name: 'Yangi eʼlon' }));
+
+  expect(screen.getByTestId('field-body-uz_latn')).toHaveAttribute('maxLength', '10000');
+});
+
 test('an announcement bound for the public site is marked as such in the list', async () => {
   mockBackend([
     announcement({ id: PUBLISHED, status: 'published', public_on_landing: true, audience: null }),

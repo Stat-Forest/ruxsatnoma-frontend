@@ -169,6 +169,27 @@ test('resolving requires a non-blank comment and posts it, optionally with an up
   expect(resolvedBody).toMatchObject({ comment: 'Bank bilan telefon orqali kelishildi', resolution_doc_id: null });
 });
 
+// Stage 17 QA-01 M1 fix round: `ReconciliationResolveIn.comment` and
+// `ManualConfirmationRejectIn.reason` are both capped at 2000 chars.
+test('the resolve-comment and reject-reason fields cap input at the backend bound (2000)', async () => {
+  server.use(
+    http.get('*/api/v1/payments/reconciliations', () => HttpResponse.json({ items: [reconciliation()], total: 1, page: 1, page_size: 100 })),
+  );
+  const user = userEvent.setup();
+  renderTab(['payments.view', 'payments.manage', 'payments.confirm']);
+
+  await screen.findByTestId(`reconciliation-row-${RECONCILIATION_ID}`);
+  await user.click(screen.getByRole('button', { name: 'Yopish' }));
+  const dialog = screen.getByRole('dialog');
+  expect(within(dialog).getByLabelText('Izoh')).toHaveAttribute('maxLength', '2000');
+  await user.click(within(dialog).getByRole('button', { name: 'Bekor qilish' }));
+
+  const panel = await screen.findByTestId('manual-check-panel');
+  await user.type(within(panel).getByLabelText('Qayd ID'), CONFIRMATION_ID);
+  await user.click(within(panel).getByRole('button', { name: 'Rad etish' }));
+  expect(within(panel).getByLabelText('Rad etish sababi')).toHaveAttribute('maxLength', '2000');
+});
+
 test('the manual-confirmation checker panel is offered only to a payments.confirm holder', async () => {
   server.use(
     http.get('*/api/v1/payments/reconciliations', () => HttpResponse.json({ items: [], total: 0, page: 1, page_size: 100 })),

@@ -39,6 +39,9 @@ import {
 
 const PAGE_SIZE = 20;
 
+/** `UserBlockIn.reason` (`TextStr`, `app/core/schemas.py`). */
+const USER_BLOCK_REASON_MAX_LENGTH = 2000;
+
 interface Filters {
   q: string;
   role_code: string;
@@ -564,7 +567,13 @@ function BlockDialog({ userId, onDone }: { userId: string; onDone: () => void })
     <div data-testid="block-dialog" className="rounded-xl border border-[#E4E7EA] bg-[#F8F9FA] p-4 space-y-3">
       <p className="text-sm font-bold text-[#1A1F24]">{L.blockTitle}</p>
       <FormField label={L.blockReason} helperText={L.blockReasonHint} required htmlFor="block-reason">
-        <Textarea id="block-reason" rows={2} value={reason} onChange={(e) => setReason(e.target.value)} />
+        <Textarea
+          id="block-reason"
+          rows={2}
+          value={reason}
+          onChange={(e) => setReason(e.target.value)}
+          maxLength={USER_BLOCK_REASON_MAX_LENGTH}
+        />
       </FormField>
       {touched && !reason.trim() ? <p className="text-xs text-[#B91C1C]">{L.blockReasonRequired}</p> : null}
       {block.isError ? <Alert variant="danger">{L.blockFailed}</Alert> : null}

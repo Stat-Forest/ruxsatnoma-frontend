@@ -28,6 +28,11 @@ const PAYMENTS_VIEW = 'payments.view';
 const PAYMENTS_MANAGE = 'payments.manage';
 const PAYMENTS_CONFIRM = 'payments.confirm';
 
+/** `ReconciliationResolveIn.comment`/`ManualConfirmationRejectIn.reason`
+ *  (`TextStr`/`NoteStr`, `app/core/schemas.py`) — the same bound on both
+ *  free-text fields below. */
+const DISCREPANCY_TEXT_MAX_LENGTH = 2000;
+
 /**
  * G4 — the discrepancy register (`GET /payments/reconciliations`, resolved
  * with a comment) plus the manual-PAID CHECKER half of the maker-checker
@@ -196,7 +201,7 @@ function ResolveModal({ row, onClose }: { row: ReconciliationOut; onClose: () =>
     >
       <div className="space-y-3">
         <FormField label={t('accountant.discrepancies.resolveCommentLabel')} required htmlFor="resolve-comment">
-          <Textarea id="resolve-comment" value={comment} onChange={(e) => setComment(e.target.value)} rows={3} />
+          <Textarea id="resolve-comment" value={comment} onChange={(e) => setComment(e.target.value)} rows={3} maxLength={DISCREPANCY_TEXT_MAX_LENGTH} />
         </FormField>
         <FormField label={t('accountant.discrepancies.resolveDocLabel')} htmlFor="resolve-doc">
           <FileInput
@@ -286,7 +291,7 @@ function ManualConfirmationCheckPanel() {
 
       {showReject && (
         <FormField label={t('accountant.discrepancies.manualRejectReasonLabel')} htmlFor="manual-reject-reason" className="mt-3" required>
-          <Textarea id="manual-reject-reason" value={rejectReason} onChange={(e) => setRejectReason(e.target.value)} rows={2} />
+          <Textarea id="manual-reject-reason" value={rejectReason} onChange={(e) => setRejectReason(e.target.value)} rows={2} maxLength={DISCREPANCY_TEXT_MAX_LENGTH} />
         </FormField>
       )}
 

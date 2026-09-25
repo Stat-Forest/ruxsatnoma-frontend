@@ -91,6 +91,15 @@ test('attaching via director_registry needs only a STIR, and refreshes me on suc
   await waitFor(() => expect(refreshed).toBe(true));
 });
 
+// Stage 17 QA-01 M1 fix round: `AttachLegalIn.name` (`NameStr`) is capped at 255.
+test('the poa organization-name field caps input at the backend bound (NameStr, 255)', async () => {
+  renderSection();
+
+  await userEvent.click(screen.getByText(t('cabinet.representation.basisPoa')));
+
+  expect(screen.getByTestId('attach-org-name')).toHaveAttribute('maxLength', '255');
+});
+
 test('attaching via poa requires the file, the term and the organization name before it can submit', async () => {
   let called = false;
   server.use(

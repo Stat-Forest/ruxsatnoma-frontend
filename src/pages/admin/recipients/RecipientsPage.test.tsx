@@ -229,6 +229,18 @@ test('creating a receiver posts exactly what the form collected', async () => {
   });
 });
 
+test('the payme id, note and sort order fields cap input at the backend bounds', async () => {
+  mockList(TWO_ROWS);
+  const { user } = renderPage();
+
+  await screen.findByText('Davlat byudjeti');
+  await user.click(screen.getByRole('button', { name: 'Qabul qiluvchi qoʻshish' }));
+
+  expect(screen.getByTestId('recipient-payme-id')).toHaveAttribute('maxLength', '64');
+  expect(screen.getByTestId('recipient-note')).toHaveAttribute('maxLength', '2000');
+  expect(screen.getByTestId('recipient-sort-order')).toHaveAttribute('max', '10000');
+});
+
 test('refuses to save a percent total above 100%, before any request', async () => {
   mockList(TWO_ROWS); // 50 + 10 already active
   let posted = false;

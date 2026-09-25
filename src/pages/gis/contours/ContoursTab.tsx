@@ -30,6 +30,17 @@ import type { Geometry, LineString, MultiPolygon, Polygon } from 'geojson';
 const CONTOURS_MANAGE = 'gis.contours.manage';
 const CONTOURS_APPROVE = 'gis.contours.approve';
 
+/** `ContourIn.number` (`CodeStr`, `app/core/schemas.py`) — `SplitPanel.tsx`
+ *  carries the same bound for `SplitPieceIn.number`, duplicated rather than
+ *  imported across the two sibling files: a leaf bound like this is stated
+ *  for itself in each screen that needs it, not shared through a module —
+ *  the same convention `norms/tariffs/labels.ts` states for its own leaf
+ *  constants (permission codes there, a `CodeStr` bound here). */
+const CONTOUR_NUMBER_MAX_LENGTH = 64;
+/** `VersionIn.declared_area_ha` — `Decimal`, 12 digits/4 decimals
+ *  (`10**(12-4) - 10**-4`), same shape as the wizard's own `QUANTITY_MAX`. */
+const VERSION_DECLARED_AREA_MAX = 99_999_999.9999;
+
 type WorkMode = 'browse' | 'draw-new' | 'edit-draft' | 'split';
 
 /** The small form for the fields `VersionIn` needs beyond geometry itself —
@@ -97,6 +108,8 @@ function VersionFieldsForm({
           <Input
             type="number"
             step="0.0001"
+            min={0}
+            max={VERSION_DECLARED_AREA_MAX}
             value={declaredAreaHa}
             onChange={(e) => setDeclaredAreaHa(e.target.value)}
             data-testid="version-declared-area-input"
@@ -193,7 +206,12 @@ function NewContourForm({
       </label>
       <label className="block space-y-1 text-xs">
         <span className="text-[#5A646D]">{t('gis.contours.form.number')}</span>
-        <Input value={number} onChange={(e) => setNumber(e.target.value)} placeholder="K-001" />
+        <Input
+          value={number}
+          onChange={(e) => setNumber(e.target.value)}
+          placeholder="K-001"
+          maxLength={CONTOUR_NUMBER_MAX_LENGTH}
+        />
       </label>
       {error != null && <Alert variant="danger">{errorText(error, t('gis.contours.form.createFailed'))}</Alert>}
       <div className="flex gap-2">

@@ -152,6 +152,32 @@ test('creating sends the zone fields exactly as chosen', async () => {
   });
 });
 
+test('the login and position fields cap input at the backend bounds (CodeStr 64, NameStr 255)', async () => {
+  server.use(...referenceHandlers());
+  const ui = userEvent.setup();
+  renderUsers();
+
+  await screen.findByText('Karimov Alisher Baxtiyorovich');
+  await ui.click(screen.getByRole('button', { name: L.create }));
+  const form = within(await screen.findByTestId('user-form'));
+
+  expect(form.getByLabelText(L.formLogin)).toHaveAttribute('maxLength', '64');
+  expect(form.getByLabelText(L.formPosition)).toHaveAttribute('maxLength', '255');
+});
+
+// Stage 17 QA-01 M1 fix round: `UserBlockIn.reason` (`TextStr`) is capped at 2000.
+test('the block-reason field caps input at the backend bound (2000)', async () => {
+  server.use(...referenceHandlers());
+  const ui = userEvent.setup();
+  renderUsers();
+
+  const card = await openCard(ui);
+  await ui.click(card.getByRole('button', { name: L.actionBlock }));
+  const dialog = within(await screen.findByTestId('block-dialog'));
+
+  expect(dialog.getByLabelText(L.blockReason)).toHaveAttribute('maxLength', '2000');
+});
+
 test('the zone warning is next to the zone fields', async () => {
   server.use(...referenceHandlers());
   const ui = userEvent.setup();

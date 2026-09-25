@@ -212,6 +212,14 @@ test('rejecting with a reason posts it to the reject route', async () => {
   await waitFor(() => expect(receivedBody).toEqual({ reason: 'Sertifikat notoʻgʻri koʻrinadi' }));
 });
 
+test('the reject reason field caps input at the backend bound (TextStr, 2000)', async () => {
+  const user = userEvent.setup();
+  renderPanel(card(), ['benefits.verify']);
+
+  await user.click(await screen.findByTestId('open-reject-claim-modal'));
+  expect(screen.getByTestId('reject-claim-reason')).toHaveAttribute('maxLength', '2000');
+});
+
 test('a verified claim with no verifier reads the Union-register sentence, not "decided by nobody"', async () => {
   renderPanel(card({ benefit_verification_status: 'verified', benefit_verified_by: null }), ['benefits.verify']);
 

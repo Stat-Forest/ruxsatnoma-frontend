@@ -152,6 +152,15 @@ test('"new contour" is offered only to a contours.manage holder', async () => {
   expect(screen.queryByRole('button', { name: 'gis.contours.newContour' })).not.toBeInTheDocument();
 });
 
+test('the new-contour number field caps input at the backend bound (CodeStr, 64)', async () => {
+  server.use(...referenceHandlers(), http.get('*/api/v1/gis/contours', () => HttpResponse.json({ items: [], total: 0 })));
+  const ui = userEvent.setup();
+  renderTab(['gis.contours.manage']);
+
+  await ui.click(await screen.findByRole('button', { name: 'gis.contours.newContour' }));
+  expect(screen.getByPlaceholderText('K-001')).toHaveAttribute('maxLength', '64');
+});
+
 test('creating a contour, drawing its first version, and holding it through to a draft VersionPanel', async () => {
   server.use(
     ...referenceHandlers(),
@@ -418,6 +427,10 @@ test('creating a contour for a leshoz with no GIS layer skips the map and saves 
   // until it is filled (the DB's own `geom_or_declared_area` CHECK, caught
   // here instead of round-tripped as a 422).
   expect(saveButton).toBeDisabled();
+  // `VersionIn.declared_area_ha` — `ge=0`, 12 digits/4 decimals (stage 17
+  // QA-01 M1 fix round).
+  expect(screen.getByTestId('version-declared-area-input')).toHaveAttribute('min', '0');
+  expect(screen.getByTestId('version-declared-area-input')).toHaveAttribute('max', '99999999.9999');
   await ui.type(screen.getByTestId('version-declared-area-input'), '3.5');
   expect(saveButton).not.toBeDisabled();
   await ui.click(saveButton);

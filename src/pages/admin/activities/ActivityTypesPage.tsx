@@ -54,6 +54,9 @@ import { CLICKABLE_ROW_CLASS, clickableRowProps } from '../../../lib/rowClick';
 
 const QUERY_KEY = ['admin', 'activity-types'];
 
+/** `ActivityTypePatch.processing_days` — `gt=0, le=DAYS_MAX`. */
+const ACTIVITY_TYPE_PROCESSING_DAYS_MAX = 3650;
+
 interface EditForm {
   nameUz: string;
   nameRu: string;
@@ -374,6 +377,7 @@ export function ActivityTypesPage() {
                 id="activity-days"
                 type="number"
                 min={1}
+                max={ACTIVITY_TYPE_PROCESSING_DAYS_MAX}
                 value={form.processingDays}
                 onChange={(e) => setForm((f) => (f ? { ...f, processingDays: e.target.value } : f))}
               />

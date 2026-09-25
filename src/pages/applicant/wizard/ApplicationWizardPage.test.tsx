@@ -506,6 +506,17 @@ test('an account with no address is asked for it in step 5, and can submit once 
   expect(vi.mocked(buildMockSignature).mock.calls.length).toBe(signaturesBefore);
 });
 
+test('the address field caps input at the backend bound (ApplicantAddressIn, 500)', async () => {
+  const auth = authValueWithAddress(null);
+  renderWizard(auth);
+
+  await driveToStep5();
+  await acceptRules();
+
+  const addressInput = await screen.findByLabelText(/Manzil/);
+  expect(addressInput).toHaveAttribute('maxLength', '500');
+});
+
 // Ruling #113, the representative's case: the address that gets printed is
 // the HOLDER's, and when a representative files on behalf of a legal entity
 // the holder is that entity. A citizen whose own record carries an address
@@ -1531,4 +1542,217 @@ test('does not show the deadwood or recreation lines to a haymaking filing', asy
   // Nothing of the two blanks holds Next for an activity that has no such lines.
   await userEvent.type(screen.getByLabelText(new RegExp(UZ['wizard.step3.quantity'])), '5');
   expect(nextButton()).toBeEnabled();
+});
+
+// Stage 17, QA-01 task A1 — the defect that triggered the whole QA run: an
+// applicant could add livestock rows without limit and pick the same species
+// twice, because neither the row list nor the "add" button ever looked at
+// what the OTHER rows already held. `duplicate_livestock_type` (R6/R7) is
+// the backend's own name for exactly this refusal.
+const LIVESTOCK_TYPE_A = {
+  id: 'aa000000-0000-4000-8000-000000000001',
+  code: 'sheep',
+  name: { uz_latn: 'Sheep' },
+  status: 'active',
+};
+const LIVESTOCK_TYPE_B = {
+  id: 'bb000000-0000-4000-8000-000000000002',
+  code: 'cattle',
+  name: { uz_latn: 'Cattle' },
+  status: 'active',
+};
+
+function livestockTypesHandler(types: unknown[]) {
+  return http.get('*/api/v1/refs/livestock-types', () => HttpResponse.json(types));
+}
+
+// Steps 1-2 for a grazing filing, ending on step 3. Unlike `driveToStep3`,
+// there is no quantity field to wait on here (grazing's step 3 shows the
+// livestock rows instead) — the row list starts empty, so the "add" button
+// is what marks step 3 as reached.
+async function driveToStep3Grazing() {
+  await chooseActivity('Yaylov');
+  await userEvent.click(await screen.findByText('pick-contour'));
+  fireEvent.change(screen.getByLabelText(new RegExp(UZ['wizard.step2.periodFrom'])), { target: { value: '2026-01-01' } });
+  fireEvent.change(screen.getByLabelText(new RegExp(UZ['wizard.step2.periodTo'])), { target: { value: '2026-06-01' } });
+  await userEvent.click(screen.getByRole('button', { name: new RegExp(UZ['wizard.nav.next']) }));
+  await screen.findByRole('button', { name: new RegExp(UZ['wizard.step3.addLivestock']) });
+}
+
+test('a species already picked in one livestock row is not offered again in another, and the add button disappears once every type is used', async () => {
+  server.use(activityHandler('grazing', 'Yaylov', 'head'), livestockTypesHandler([LIVESTOCK_TYPE_A, LIVESTOCK_TYPE_B]));
+  renderWizard();
+  await driveToStep3Grazing();
+
+  const addButton = () => screen.getByRole('button', { name: new RegExp(UZ['wizard.step3.addLivestock']) });
+  await userEvent.click(addButton());
+  await userEvent.selectOptions(screen.getAllByRole('combobox')[0], LIVESTOCK_TYPE_A.id);
+
+  // A second type still exists, so the add button is still there.
+  await userEvent.click(addButton());
+  const row2 = screen.getAllByRole('combobox')[1];
+  expect(within(row2).queryByText('Sheep')).toBeNull();
+  expect(within(row2).getByText('Cattle')).toBeInTheDocument();
+
+  // Two rows, two types — nothing left to add.
+  expect(screen.queryByRole('button', { name: new RegExp(UZ['wizard.step3.addLivestock']) })).toBeNull();
+});
+
+test('the head-count input is capped at LIVESTOCK_HEAD_COUNT_MAX', async () => {
+  server.use(activityHandler('grazing', 'Yaylov', 'head'), livestockTypesHandler([LIVESTOCK_TYPE_A, LIVESTOCK_TYPE_B]));
+  renderWizard();
+  await driveToStep3Grazing();
+  await userEvent.click(screen.getByRole('button', { name: new RegExp(UZ['wizard.step3.addLivestock']) }));
+
+  expect(screen.getAllByRole('spinbutton')[0]).toHaveAttribute('max', '1000000');
+});
+
+// Fix round 1 (stage 17 QA-01 review, Important — the QA trigger itself):
+// `max` on a number input with no surrounding `<form>` does nothing — a
+// browser lets the value through regardless. These three cover the actual
+// BEHAVIOUR: Next must react to the value, not just decorate the input.
+test('a head count above LIVESTOCK_HEAD_COUNT_MAX blocks Next and shows the field error', async () => {
+  server.use(activityHandler('grazing', 'Yaylov', 'head'), livestockTypesHandler([LIVESTOCK_TYPE_A, LIVESTOCK_TYPE_B]));
+  renderWizard();
+  await driveToStep3Grazing();
+  await userEvent.click(screen.getByRole('button', { name: new RegExp(UZ['wizard.step3.addLivestock']) }));
+  await userEvent.selectOptions(screen.getAllByRole('combobox')[0], LIVESTOCK_TYPE_A.id);
+  fireEvent.change(screen.getAllByRole('spinbutton')[0], { target: { value: '2000000' } });
+
+  expect(await screen.findByText(UZ['wizard.step3.headCountInvalid'])).toBeInTheDocument();
+  expect(nextButton()).toBeDisabled();
+});
+
+test('a row with a species but no head count blocks Next and names the missing part', async () => {
+  server.use(activityHandler('grazing', 'Yaylov', 'head'), livestockTypesHandler([LIVESTOCK_TYPE_A, LIVESTOCK_TYPE_B]));
+  renderWizard();
+  await driveToStep3Grazing();
+  await userEvent.click(screen.getByRole('button', { name: new RegExp(UZ['wizard.step3.addLivestock']) }));
+  await userEvent.selectOptions(screen.getAllByRole('combobox')[0], LIVESTOCK_TYPE_A.id);
+  // Head count left empty — a half-filled row, the pre-existing hiding
+  // direction: `buildFiling`/`calculationRequest` used to drop it in
+  // silence rather than holding Next on it.
+
+  expect(await screen.findByText(UZ['wizard.step3.headCountRequired'])).toBeInTheDocument();
+  expect(nextButton()).toBeDisabled();
+});
+
+test('a row with a head count but no species blocks Next and names the missing part', async () => {
+  server.use(activityHandler('grazing', 'Yaylov', 'head'), livestockTypesHandler([LIVESTOCK_TYPE_A, LIVESTOCK_TYPE_B]));
+  renderWizard();
+  await driveToStep3Grazing();
+  await userEvent.click(screen.getByRole('button', { name: new RegExp(UZ['wizard.step3.addLivestock']) }));
+  fireEvent.change(screen.getAllByRole('spinbutton')[0], { target: { value: '10' } });
+
+  expect(await screen.findByText(UZ['wizard.step3.typeRequired'])).toBeInTheDocument();
+  expect(nextButton()).toBeDisabled();
+});
+
+test('a single complete, in-range row enables Next', async () => {
+  server.use(activityHandler('grazing', 'Yaylov', 'head'), livestockTypesHandler([LIVESTOCK_TYPE_A, LIVESTOCK_TYPE_B]));
+  renderWizard();
+  await driveToStep3Grazing();
+  await userEvent.click(screen.getByRole('button', { name: new RegExp(UZ['wizard.step3.addLivestock']) }));
+  await userEvent.selectOptions(screen.getAllByRole('combobox')[0], LIVESTOCK_TYPE_A.id);
+  fireEvent.change(screen.getAllByRole('spinbutton')[0], { target: { value: '10' } });
+
+  expect(screen.queryByText(UZ['wizard.step3.headCountInvalid'])).toBeNull();
+  expect(screen.queryByText(UZ['wizard.step3.typeRequired'])).toBeNull();
+  expect(screen.queryByText(UZ['wizard.step3.headCountRequired'])).toBeNull();
+  expect(nextButton()).toBeEnabled();
+});
+
+// Fix round 1 (stage 17 QA-01 review, Important): the add-row gate used to
+// read `items.length < (livestockTypesQuery.data?.length ?? 0)` — while the
+// query is loading, erroring, or comes back `[]`, `data?.length ?? 0` is `0`
+// and the button silently never renders. A grazing applicant would see no
+// row, no button, and no explanation — exactly the HIDING-direction defect
+// this stage exists to close. The fix keeps the button visible (disabled)
+// on error and shows a danger Alert naming what went wrong.
+test('the livestock-types query failing (500) shows an error Alert, and the add-row button stays visible but not clickable', async () => {
+  server.use(
+    activityHandler('grazing', 'Yaylov', 'head'),
+    http.get('*/api/v1/refs/livestock-types', () =>
+      HttpResponse.json({ error: { code: 'ERR-SYS-001', message: 'boom' } }, { status: 500 }),
+    ),
+  );
+  renderWizard();
+  await driveToStep3Grazing();
+
+  // The wizard's own `errorText`/`useApiErrorText` resolves a known code
+  // (`ERR-SYS-001`) to its normal localized copy — the same text any other
+  // Alert in this file would show for the same code.
+  expect(await screen.findByText("Serverning ichki xatosi. Keyinroq urinib ko'ring.")).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: new RegExp(UZ['wizard.step3.addLivestock']) })).toBeDisabled();
+});
+
+test('an empty livestock-types list shows a "not configured" message instead of a silent nothing', async () => {
+  server.use(activityHandler('grazing', 'Yaylov', 'head'), livestockTypesHandler([]));
+  renderWizard();
+  await chooseActivity('Yaylov');
+  await userEvent.click(await screen.findByText('pick-contour'));
+  fireEvent.change(screen.getByLabelText(new RegExp(UZ['wizard.step2.periodFrom'])), { target: { value: '2026-01-01' } });
+  fireEvent.change(screen.getByLabelText(new RegExp(UZ['wizard.step2.periodTo'])), { target: { value: '2026-06-01' } });
+  await userEvent.click(screen.getByRole('button', { name: new RegExp(UZ['wizard.nav.next']) }));
+
+  expect(await screen.findByText(UZ['wizard.step3.livestockNotConfigured'])).toBeInTheDocument();
+  // Nothing to add — the message IS the explanation, so the button is gone
+  // rather than sitting there disabled with nothing to point at.
+  expect(screen.queryByRole('button', { name: new RegExp(UZ['wizard.step3.addLivestock']) })).toBeNull();
+});
+
+test('the quantity input for a non-livestock activity is capped at QUANTITY_MAX', async () => {
+  renderWizard();
+  await driveToStep3(); // default handler: haymaking
+
+  expect(screen.getByLabelText(new RegExp(UZ['wizard.step3.quantity']))).toHaveAttribute('max', '99999999.9999');
+});
+
+// Fix round 1 (stage 17 QA-01 review, Important): same "max does nothing
+// without a <form>" gap on the non-livestock side — a value above
+// QUANTITY_MAX, or with more than 4 decimal places, must hold Next.
+test('a quantity above QUANTITY_MAX blocks Next and shows the field error', async () => {
+  renderWizard();
+  await driveToStep3(); // default handler: haymaking
+
+  await userEvent.type(screen.getByLabelText(new RegExp(UZ['wizard.step3.quantity'])), '100000000');
+
+  expect(await screen.findByText(UZ['wizard.step3.quantityInvalid'])).toBeInTheDocument();
+  expect(nextButton()).toBeDisabled();
+});
+
+test('a quantity with more than 4 decimal places blocks Next', async () => {
+  renderWizard();
+  await driveToStep3(); // default handler: haymaking
+
+  await userEvent.type(screen.getByLabelText(new RegExp(UZ['wizard.step3.quantity'])), '1.23456');
+
+  expect(await screen.findByText(UZ['wizard.step3.quantityInvalid'])).toBeInTheDocument();
+  expect(nextButton()).toBeDisabled();
+});
+
+test('a valid quantity enables Next', async () => {
+  renderWizard();
+  await driveToStep3(); // default handler: haymaking
+
+  await userEvent.type(screen.getByLabelText(new RegExp(UZ['wizard.step3.quantity'])), '12.5');
+
+  expect(screen.queryByText(UZ['wizard.step3.quantityInvalid'])).toBeNull();
+  expect(nextButton()).toBeEnabled();
+});
+
+test('a duplicate-livestock-type refusal (ERR-VAL-001) at the pre-check renders the specific message, not the generic one', async () => {
+  server.use(
+    http.post('*/api/v1/applications/precheck', () =>
+      HttpResponse.json(
+        { error: { code: 'ERR-VAL-001', message: 'validation failed', details: { reason: 'duplicate_livestock_type' } } },
+        { status: 422 },
+      ),
+    ),
+  );
+  renderWizard();
+
+  await driveToStep5();
+
+  expect(await screen.findByText("Har bir chorva turini faqat bir marta ko'rsatish mumkin.")).toBeInTheDocument();
 });

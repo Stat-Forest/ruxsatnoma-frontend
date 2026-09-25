@@ -20,6 +20,10 @@ const PAYMENTS_VIEW = 'payments.view';
 const PAYMENTS_MANAGE = 'payments.manage';
 const PAYMENTS_CONFIRM = 'payments.confirm';
 
+/** `RefundApproveIn.comment`/`RefundRequestIn.comment` (`NoteStr`,
+ *  `app/core/schemas.py`) — the same bound on both comment fields below. */
+const REFUND_COMMENT_MAX_LENGTH = 2000;
+
 type StatusFilter = '' | 'requested' | 'in_review' | 'returned' | 'rejected';
 
 /**
@@ -208,7 +212,7 @@ function ApproveByIdPanel() {
 
       {!result && (
         <FormField label={t('accountant.refunds.approveCommentLabel')} htmlFor="refund-approve-by-id-comment" className="mt-3">
-          <Textarea id="refund-approve-by-id-comment" value={comment} onChange={(e) => setComment(e.target.value)} rows={2} />
+          <Textarea id="refund-approve-by-id-comment" value={comment} onChange={(e) => setComment(e.target.value)} rows={2} maxLength={REFUND_COMMENT_MAX_LENGTH} />
         </FormField>
       )}
 
@@ -317,7 +321,7 @@ function NewRequestModal({ onClose }: { onClose: () => void }) {
           />
         </FormField>
         <FormField label={t('accountant.refunds.commentLabel')} htmlFor="refund-comment">
-          <Textarea id="refund-comment" value={comment} onChange={(e) => setComment(e.target.value)} rows={2} />
+          <Textarea id="refund-comment" value={comment} onChange={(e) => setComment(e.target.value)} rows={2} maxLength={REFUND_COMMENT_MAX_LENGTH} />
         </FormField>
         {error && <Alert variant="danger">{error}</Alert>}
       </div>
@@ -441,7 +445,7 @@ function DecisionModal({ refund, onClose }: { refund: RefundOut; onClose: () => 
         )}
 
         <FormField label={t('accountant.refunds.decisionCommentLabel')} htmlFor="refund-decision-comment">
-          <Textarea id="refund-decision-comment" value={comment} onChange={(e) => setComment(e.target.value)} rows={2} />
+          <Textarea id="refund-decision-comment" value={comment} onChange={(e) => setComment(e.target.value)} rows={2} maxLength={REFUND_COMMENT_MAX_LENGTH} />
         </FormField>
         {error && <Alert variant="danger">{error}</Alert>}
       </div>
@@ -518,7 +522,7 @@ function ApproveModal({ refund, onClose }: { refund: RefundOut; onClose: () => v
       ) : (
         <div className="space-y-3">
           <FormField label={t('accountant.refunds.approveCommentLabel')} htmlFor="refund-approve-comment">
-            <Textarea id="refund-approve-comment" value={comment} onChange={(e) => setComment(e.target.value)} rows={2} />
+            <Textarea id="refund-approve-comment" value={comment} onChange={(e) => setComment(e.target.value)} rows={2} maxLength={REFUND_COMMENT_MAX_LENGTH} />
           </FormField>
           {error && <Alert variant="danger">{error}</Alert>}
         </div>

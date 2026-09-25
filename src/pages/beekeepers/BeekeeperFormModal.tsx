@@ -12,6 +12,12 @@ import { useCreateBeekeeper, usePatchBeekeeper } from './queries';
 
 const STIR_PATTERN = /^\d{9}$/;
 
+/** `BeekeeperCreateIn`/`BeekeeperPatchIn` — `certificate_no`, `passport_series`,
+ *  `passport_number` (`CodeStr`, `app/core/schemas.py`). */
+const BEEKEEPER_CODE_MAX_LENGTH = 64;
+/** `BeekeeperCreateIn`/`BeekeeperPatchIn` — `full_name`, `farm_name` (`NameStr`). */
+const BEEKEEPER_NAME_MAX_LENGTH = 255;
+
 export interface BeekeeperFormModalProps {
   mode: 'create' | 'edit';
   beekeeper: BeekeeperOut | null;
@@ -175,11 +181,17 @@ export function BeekeeperFormModal({ mode, beekeeper, onClose }: BeekeeperFormMo
             value={form.certificateNo}
             onChange={(e) => set('certificateNo', e.target.value)}
             data-testid="beekeeper-form-certificate-no"
+            maxLength={BEEKEEPER_CODE_MAX_LENGTH}
           />
         </FormField>
 
         <FormField label={t('beekeepers.form.fieldFullName')} required>
-          <Input value={form.fullName} onChange={(e) => set('fullName', e.target.value)} data-testid="beekeeper-form-full-name" />
+          <Input
+            value={form.fullName}
+            onChange={(e) => set('fullName', e.target.value)}
+            data-testid="beekeeper-form-full-name"
+            maxLength={BEEKEEPER_NAME_MAX_LENGTH}
+          />
         </FormField>
 
         <div className="grid grid-cols-2 gap-3">
@@ -188,6 +200,7 @@ export function BeekeeperFormModal({ mode, beekeeper, onClose }: BeekeeperFormMo
               value={form.passportSeries}
               onChange={(e) => set('passportSeries', e.target.value)}
               data-testid="beekeeper-form-passport-series"
+              maxLength={BEEKEEPER_CODE_MAX_LENGTH}
             />
           </FormField>
           <FormField label={t('beekeepers.form.fieldPassportNumber')} required>
@@ -195,6 +208,7 @@ export function BeekeeperFormModal({ mode, beekeeper, onClose }: BeekeeperFormMo
               value={form.passportNumber}
               onChange={(e) => set('passportNumber', e.target.value)}
               data-testid="beekeeper-form-passport-number"
+              maxLength={BEEKEEPER_CODE_MAX_LENGTH}
             />
           </FormField>
         </div>
@@ -209,7 +223,12 @@ export function BeekeeperFormModal({ mode, beekeeper, onClose }: BeekeeperFormMo
         </FormField>
 
         <FormField label={t('beekeepers.form.fieldFarmName')}>
-          <Input value={form.farmName} onChange={(e) => set('farmName', e.target.value)} data-testid="beekeeper-form-farm-name" />
+          <Input
+            value={form.farmName}
+            onChange={(e) => set('farmName', e.target.value)}
+            data-testid="beekeeper-form-farm-name"
+            maxLength={BEEKEEPER_NAME_MAX_LENGTH}
+          />
         </FormField>
 
         <FormField label={t('beekeepers.form.fieldValidTo')} helperText={t('beekeepers.form.validToHint')}>

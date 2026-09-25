@@ -286,6 +286,16 @@ test('creating an organization sends the parent, kind, code and localized name t
   });
 });
 
+test('the code field caps input at the backend bound (CodeStr, 64)', async () => {
+  server.use(...refsHandlers(), ...adminHandlers());
+  const { user } = renderPage();
+
+  await screen.findByTestId(`org-row-${AGENCY}`);
+  await user.click(screen.getByTestId('org-create'));
+
+  expect(screen.getByTestId('field-code')).toHaveAttribute('maxLength', '64');
+});
+
 test('the form refuses to submit without the Cyrillic name the backend makes mandatory', async () => {
   server.use(...refsHandlers(), ...adminHandlers());
   const { user } = renderPage();
