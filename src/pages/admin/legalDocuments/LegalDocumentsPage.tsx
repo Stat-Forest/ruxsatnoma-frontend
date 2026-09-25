@@ -177,7 +177,7 @@ export function LegalDocumentsPage() {
                       <StatusBadge status={meta.badge} label={L[meta.label]} />
                     </span>
                   </div>
-                  <h2 className="text-sm font-semibold text-[#1A1F24] truncate">
+                  <h2 className="text-sm font-semibold text-[#1A1F24] break-words">
                     {pickName(row.title, lang === 'ru' ? 'ru' : 'uz_latn')}
                   </h2>
                   <p

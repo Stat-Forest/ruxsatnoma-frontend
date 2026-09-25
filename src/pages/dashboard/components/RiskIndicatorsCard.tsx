@@ -80,7 +80,7 @@ export function RiskIndicatorsCard({
           <ul data-testid="risk-by-code" className="space-y-1.5 min-w-0">
             {codeRows.map(([code, count]) => (
               <li key={code} className="flex items-center justify-between gap-2 text-sm text-[#1A1F24]">
-                <span className="font-mono text-xs text-[#5A646D] truncate">{code}</span>
+                <span className="min-w-0 font-mono text-xs text-[#5A646D] break-all">{code}</span>
                 <span className="font-mono font-bold tabular-nums shrink-0">{count}</span>
               </li>
             ))}
