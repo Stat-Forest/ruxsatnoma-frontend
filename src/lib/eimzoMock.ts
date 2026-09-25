@@ -54,6 +54,17 @@ function base64UrlEncodeJson(data: Record<string, unknown>): string {
 export interface MockSignatureInput {
   /** The signer's own personal PINFL — 14 digits, `users.pinfl`. */
   pinfl: string;
+  /**
+   * The organisation's TIN — present ONLY for a legal applicant's own
+   * signature (C1, final review): a real-shaped organisation certificate
+   * carries BOTH the signer's personal PINFL and the org TIN at once, and
+   * `signatures.service._ownership_reason` checks the TIN against the
+   * caller's own `kind='legal'` applicant's `stir` — never falling back to
+   * comparing `pinfl` against `users.pinfl`, which is always `NULL` for such
+   * an account (R1). Omitted (the default) for every personal signature,
+   * unchanged.
+   */
+  tin?: string | null;
   /** The exact bytes `GET /applications/{id}/package` served. */
   documentBytes: ArrayBuffer;
   /**
@@ -82,6 +93,7 @@ export interface MockSignatureInput {
  */
 export async function buildMockSignature({
   pinfl,
+  tin = null,
   documentBytes,
   fullName,
 }: MockSignatureInput): Promise<string> {
@@ -93,13 +105,14 @@ export async function buildMockSignature({
   return base64UrlEncodeJson({
     serial_number: serial,
     // A fixed value: nothing on the backend reads it (the certificate's
-    // identity comes from `pinfl_or_stir`, not `issuer`), so there is no
-    // correctness reason to prefer one string over another — this is simply
-    // the one this module now always uses, rather than an accident of which
-    // of the two merged copies happened to win.
+    // identity comes from `pinfl_or_stir`/`tin`, not `issuer`), so there is
+    // no correctness reason to prefer one string over another — this is
+    // simply the one this module now always uses, rather than an accident of
+    // which of the two merged copies happened to win.
     issuer: 'MOCK-CA-DEMO',
     subject: fullName ? `CN=${fullName}` : `PINFL=${pinfl}`,
     pinfl_or_stir: pinfl,
+    tin,
     valid_from: validFrom.toISOString(),
     valid_to: validTo.toISOString(),
     signed_at: now.toISOString(),
@@ -109,6 +122,10 @@ export async function buildMockSignature({
 }
 
 export const PINFL_PATTERN = /^\d{14}$/;
+// A 9-digit organisation TIN (decision #226) — the mock login form's optional
+// second identifier, alongside the always-required personal PINFL a
+// real-shaped organisation certificate also carries (final review C1/I3).
+export const STIR_PATTERN = /^\d{9}$/;
 
 /**
  * The login envelope, which is NOT the document-signing envelope above.
@@ -129,11 +146,12 @@ export interface MockChallengeInput {
   pinfl: string;
   fullName: string;
   /**
-   * The org STIR this certificate speaks for — absent (`null`) for an
-   * ordinary personal login, present when B4's "attach a legal entity"
-   * (`org_eri` basis) or "add a colleague" flow builds this same envelope:
-   * `auth.service._verify_org_challenge` checks `identity.tin != stir`
-   * against exactly this field.
+   * The organisation's TIN — absent (`null`) for an ordinary personal
+   * login, present for a real-shaped organisation certificate (decision
+   * #226): `auth.service.login_via_eimzo` finds or creates the `kind`
+   * `'legal'` applicant by this value (its own `stir`), unless `pinfl`
+   * matches an existing staff (non-applicant) user, in which case that
+   * personal login wins (decision #226's amendment, R2).
    */
   tin?: string | null;
   legalName?: string | null;

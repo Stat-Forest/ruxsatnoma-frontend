@@ -77,6 +77,10 @@ export const ru = {
   'login.eimzoNameLabel': 'Ф.И.О.',
   'login.eimzoButton': 'Войти с ключом E-IMZO',
   'login.eimzoBadPinfl': 'ПИНФЛ должен состоять из 14 цифр.',
+  'login.eimzoStirLabel': 'ИНН организации (необязательно)',
+  'login.eimzoStirHelp': '9-значный ИНН — оставьте пустым для личного входа, заполните для входа от имени организации.',
+  'login.eimzoOrgNameLabel': 'Название организации',
+  'login.eimzoBadStir': 'ИНН должен состоять из 9 цифр.',
   'login.eimzoMockNotice':
     'Тестовый режим: ключ не проверяется. Настоящий E-IMZO включится, когда НИЦ выдаст VPN-ключ.',
   'login.eimzoRealHint': 'Войдите через подключённый ключ E-IMZO. Пароль ключа спросит само приложение E-IMZO.',

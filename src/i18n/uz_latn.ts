@@ -82,6 +82,10 @@ export const uz_latn = {
   'login.eimzoNameLabel': 'F.I.SH.',
   'login.eimzoButton': 'E-IMZO kaliti bilan kirish',
   'login.eimzoBadPinfl': "PINFL 14 ta raqamdan iborat bo'lishi kerak.",
+  'login.eimzoStirLabel': 'Tashkilot STIR (ixtiyoriy)',
+  'login.eimzoStirHelp': "9 xonali STIR — shaxsiy kirish uchun bo'sh qoldiring, tashkilot sifatida kirish uchun to'ldiring.",
+  'login.eimzoOrgNameLabel': 'Tashkilot nomi',
+  'login.eimzoBadStir': "STIR 9 ta raqamdan iborat bo'lishi kerak.",
   'login.eimzoMockNotice':
     'Sinov rejimi: kalit tekshirilmaydi. Haqiqiy E-IMZO NIC dan VPN kaliti olingach yoqiladi.',
   'login.eimzoRealHint':

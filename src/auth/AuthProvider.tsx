@@ -162,29 +162,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // own docstring: `login_via_eimzo`/`verify_signed_challenge` is not
   // `signatures.service.sign()`, so ruling R5's mandatory timestamp does not
   // gate it). Mock mode keeps building the same JSON envelope it always did,
-  // from the pinfl/fullName the caller supplies — see this method's own
-  // doc comment on `AuthContextValue` for why real mode ignores both.
-  const loginViaEimzo = useCallback(async (pinfl?: string, fullName?: string) => {
-    const { data: challengeData, error: challengeError } = await api.POST(
-      '/api/v1/auth/eimzo/challenge',
-      {},
-    );
-    if (challengeError) throw apiError(challengeError);
-    const signed = isEimzoMock()
-      ? await buildMockSignedChallenge({
-          challenge: challengeData.challenge,
-          pinfl: pinfl ?? '',
-          fullName: fullName ?? '',
-        })
-      : await signAttached(new TextEncoder().encode(challengeData.challenge));
-    const { data, error } = await api.POST('/api/v1/auth/eimzo/login', {
-      body: { signed_challenge: signed },
-    });
-    if (error) throw apiError(error);
-    setCsrfToken(data.csrf_token);
-    setMe(data);
-    setAuthError(null);
-  }, []);
+  // from the pinfl/fullName/tin/legalName the caller supplies — see this
+  // method's own doc comment on `AuthContextValue` for why real mode ignores
+  // all four.
+  const loginViaEimzo = useCallback(
+    async (pinfl?: string, fullName?: string, tin?: string, legalName?: string) => {
+      const { data: challengeData, error: challengeError } = await api.POST(
+        '/api/v1/auth/eimzo/challenge',
+        {},
+      );
+      if (challengeError) throw apiError(challengeError);
+      const signed = isEimzoMock()
+        ? await buildMockSignedChallenge({
+            challenge: challengeData.challenge,
+            pinfl: pinfl ?? '',
+            fullName: fullName ?? '',
+            tin: tin ?? null,
+            legalName: legalName ?? null,
+          })
+        : await signAttached(new TextEncoder().encode(challengeData.challenge));
+      const { data, error } = await api.POST('/api/v1/auth/eimzo/login', {
+        body: { signed_challenge: signed },
+      });
+      if (error) throw apiError(error);
+      setCsrfToken(data.csrf_token);
+      setMe(data);
+      setAuthError(null);
+    },
+    [],
+  );
 
   const logout = useCallback(async () => {
     await api.POST('/api/v1/auth/logout', {});

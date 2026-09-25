@@ -45,6 +45,13 @@ import {
   signDocument,
 } from '../../../lib/eimzo';
 
+// C1 (final review, stage 18): a real organisation certificate carries the
+// signer's own personal PINFL alongside the org TIN — this mock stand-in has
+// no employee identity to read one from (a legal cabinet's own `users.pinfl`
+// is NULL, R1), so this fixed, obviously-fake value fills that slot; the
+// ownership check never reads it for a legal caller (`tin` alone decides).
+const DEMO_ORG_SIGNER_PINFL = '00000000000000';
+
 const GRAZING_CODE = 'grazing';
 // Decision #215 R6: the two activities whose blanks carry lines of their
 // own — asked on step 3 for that activity alone, required before it lets go.
@@ -691,9 +698,17 @@ export function ApplicationWizardPage() {
         const pkcs7 = isEimzoMock()
           ? await buildMockSignature({
               documentBytes: packageBytes.buffer as ArrayBuffer,
-              // A legal applicant's certificate carries a STIR, not a
-              // PINFL (`_ownership_reason` matches on the STIR).
-              pinfl: applicant?.stir ?? '',
+              // C1 (final review): a real organisation certificate carries
+              // BOTH the signer's own personal PINFL and the org TIN at
+              // once — `pinfl_or_stir` alone (the STIR passed as if it were
+              // a PINFL) never exercised the branch of `_ownership_reason`
+              // a legal cabinet's own key actually hits. This account's own
+              // `users.pinfl` is NULL (R1), so a demo placeholder stands in
+              // for "some employee's PINFL" — the ownership check matches on
+              // `tin` against the applicant's own `stir`, never on this
+              // value.
+              pinfl: DEMO_ORG_SIGNER_PINFL,
+              tin: applicant?.stir ?? null,
               fullName: applicant?.name,
             })
           : await signDocument(packageBytes);

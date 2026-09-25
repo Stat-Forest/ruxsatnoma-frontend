@@ -112,6 +112,11 @@ export const uz_cyrl = {
   'login.eimzoNameLabel': 'Ф.И.Ш.',
   'login.eimzoButton': 'Э-ИМЗО калити билан кириш',
   'login.eimzoBadPinfl': "ЖШШИР 14 та рақамдан иборат бўлиши керак.",
+  'login.eimzoStirLabel': 'Ташкилот СТИР (ихтиёрий)',
+  'login.eimzoStirHelp':
+    '9 хонали СТИР — шахсий кириш учун бўш қолдиринг, ташкилот сифатида кириш учун тўлдиринг.',
+  'login.eimzoOrgNameLabel': 'Ташкилот номи',
+  'login.eimzoBadStir': 'СТИР 9 та рақамдан иборат бўлиши керак.',
   'login.eimzoMockNotice':
     'Синов режими: калит текширилмайди. Ҳақиқий Э-ИМЗО НИЦ дан ВПН калити олингач ёқилади.',
   'login.eimzoUnavailable':

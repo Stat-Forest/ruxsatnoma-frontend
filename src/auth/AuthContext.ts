@@ -37,14 +37,18 @@ export interface AuthContextValue {
   startOneId: (next: string) => Promise<void>;
   /**
    * ERI login: fetch a challenge, sign it, exchange the signed challenge for
-   * a session. `pinfl`/`fullName` are used ONLY in mock mode, to build the
-   * envelope `buildMockSignedChallenge` needs since a mock has no real key
-   * to read an identity from (`src/lib/eimzo/eimzoMock.ts`'s own docstring);
-   * in real mode they are ignored — the signer's identity comes from their
-   * actual certificate, read server-side out of the signed PKCS7 itself, so
-   * `LoginPage`'s real-mode branch calls this with no arguments at all.
+   * a session. `pinfl`/`fullName`/`tin`/`legalName` are used ONLY in mock
+   * mode, to build the envelope `buildMockSignedChallenge` needs since a
+   * mock has no real key to read an identity from
+   * (`src/lib/eimzoMock.ts`'s own docstring); in real mode they are ignored
+   * — the signer's identity comes from their actual certificate, read
+   * server-side out of the signed PKCS7 itself, so `LoginPage`'s real-mode
+   * branch calls this with no arguments at all. `tin` (I3, final review):
+   * a real-shaped organisation certificate carries BOTH the signer's own
+   * PINFL and the org TIN — the mock login form must be able to build the
+   * same shape, or a legal cabinet can never be reached on a mock stand.
    */
-  loginViaEimzo: (pinfl?: string, fullName?: string) => Promise<void>;
+  loginViaEimzo: (pinfl?: string, fullName?: string, tin?: string, legalName?: string) => Promise<void>;
   logout: () => Promise<void>;
   /**
    * Adopts a fresh `MeOut` a screen already holds — `complete-registration`,

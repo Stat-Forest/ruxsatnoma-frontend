@@ -13,7 +13,7 @@ import { useApiErrorText } from '../i18n/useApiErrorText';
 import { useLanguage, useT } from '../i18n/useT';
 import { LANDING_PATHS, landingUrl } from '../lib/landing';
 import { LanguageMenu } from '../shell/LanguageMenu';
-import { EimzoError, PINFL_PATTERN, eimzoErrorMessageKey, isEimzoCancelled, isEimzoMock, isProviderUnreachable } from '../lib/eimzo';
+import { EimzoError, PINFL_PATTERN, STIR_PATTERN, eimzoErrorMessageKey, isEimzoCancelled, isEimzoMock, isProviderUnreachable } from '../lib/eimzo';
 import { SUPPORT_EXTENSION, SUPPORT_PHONE, SUPPORT_PHONE_HREF } from '../shell/support';
 import { peekStoredNext } from './oneIdReturnCache';
 
@@ -167,6 +167,13 @@ export function LoginPage() {
   const [pinfl, setPinfl] = useState('');
   const [fullName, setFullName] = useState('');
   const [badPinfl, setBadPinfl] = useState(false);
+  // I3 (final review): a real-shaped organisation certificate carries BOTH
+  // the signer's own PINFL and the org TIN — an optional pair on the mock
+  // form so a legal cabinet can be reached on a mock stand at all. Empty
+  // (the default) is an ordinary personal login, unchanged.
+  const [orgStir, setOrgStir] = useState('');
+  const [orgName, setOrgName] = useState('');
+  const [badStir, setBadStir] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   // Real mode only: the message key for one of task 11's five conditions.
   // Kept apart from `errorKind` above — that state carries a FIXED message
@@ -238,10 +245,24 @@ export function LoginPage() {
       setBadPinfl(true);
       return;
     }
+    // The STIR field is optional (an ordinary personal login leaves it
+    // blank) but must be a real 9-digit TIN once anything is typed into it —
+    // the same "blank is fine, wrong shape is not" rule the PINFL field
+    // already follows.
+    if (orgStir.trim() !== '' && !STIR_PATTERN.test(orgStir.trim())) {
+      setBadStir(true);
+      return;
+    }
     setBadPinfl(false);
+    setBadStir(false);
     setSubmitting(true);
     try {
-      await loginViaEimzo(pinfl, fullName);
+      await loginViaEimzo(
+        pinfl,
+        fullName,
+        orgStir.trim() || undefined,
+        orgStir.trim() ? orgName.trim() || undefined : undefined,
+      );
       navigate(next, { replace: true });
     } catch (err) {
       setErrorKind(classify(err));
@@ -584,6 +605,42 @@ export function LoginPage() {
                   onChange={(e) => setFullName(e.target.value)}
                 />
               </FormField>
+              {/* I3 (final review): optional organisation identity — leaving
+                  this blank is an ordinary personal login, unchanged. Filled
+                  in, it builds a real-shaped certificate (PINFL AND TIN
+                  together, decision #226) so a legal cabinet can be reached
+                  on a mock stand at all. */}
+              {badStir && (
+                <p data-testid="eimzo-bad-stir" role="alert" className="text-sm text-[#B91C1C]">
+                  {t('login.eimzoBadStir')}
+                </p>
+              )}
+              <FormField
+                label={t('login.eimzoStirLabel')}
+                htmlFor="org-stir"
+                helperText={t('login.eimzoStirHelp')}
+              >
+                <Input
+                  id="org-stir"
+                  inputMode="numeric"
+                  touchSize
+                  value={orgStir}
+                  onChange={(e) => {
+                    setOrgStir(e.target.value);
+                    setBadStir(false);
+                  }}
+                />
+              </FormField>
+              {orgStir.trim() !== '' && (
+                <FormField label={t('login.eimzoOrgNameLabel')} htmlFor="org-name">
+                  <Input
+                    id="org-name"
+                    touchSize
+                    value={orgName}
+                    onChange={(e) => setOrgName(e.target.value)}
+                  />
+                </FormField>
+              )}
               <Button type="submit" variant="primary" fullWidth size="touch" isLoading={submitting}>
                 {t('login.eimzoButton')}
               </Button>
