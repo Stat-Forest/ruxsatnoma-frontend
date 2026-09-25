@@ -43,8 +43,6 @@ export function application(overrides: Partial<ApplicationOut> = {}): Applicatio
     status: 'SUBMITTED',
     applicant_id: 'applicant-1',
     submitted_by_user_id: 'user-1',
-    on_behalf: 'self',
-    representation_id: null,
     activity_type_id: 'activity-grazing',
     contour_id: 'contour-1',
     contour_version_id: uuid(),

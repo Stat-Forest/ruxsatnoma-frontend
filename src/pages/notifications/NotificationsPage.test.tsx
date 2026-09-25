@@ -37,7 +37,6 @@ function authValue(permissions: string[], is_superuser = false): AuthContextValu
       csrf_token: 'tok-1',
       is_superuser,
       applicant: null,
-      representations: [],
       registration_complete: true,
     },
     loading: false,

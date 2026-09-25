@@ -482,13 +482,12 @@ export async function signDocument(bytes: Uint8Array): Promise<string> {
 
 /**
  * The ATTACHED flow, with NO timestamp step — `login_via_eimzo`
- * (`AuthProvider`) and the org-ERI challenge (`RepresentationSection`) both
- * verify attached PKCS7
- * (`verify_attached`), and neither goes through `signatures.service.
- * sign()`, the one flow ruling R5's mandatory timestamp actually gates
- * (`build_verdict`/`timestamp_missing`). A timestamp on a short-lived login
- * challenge, or on a proof-of-possession nonce with no document of its own,
- * would assert something neither call needs.
+ * (`AuthProvider`), whether by a personal or an organisation certificate
+ * (decision #226), verifies attached PKCS7 (`verify_attached`) and never
+ * goes through `signatures.service.sign()`, the one flow ruling R5's
+ * mandatory timestamp actually gates (`build_verdict`/`timestamp_missing`).
+ * A timestamp on a short-lived login challenge would assert something the
+ * call does not need.
  */
 export async function signAttached(bytes: Uint8Array): Promise<string> {
   return signWithSelectedKey(bytes, { detached: false });

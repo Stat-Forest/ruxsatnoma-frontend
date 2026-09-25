@@ -78,7 +78,6 @@ function authValue(language: string): AuthContextValue {
       address: 'Toshkent sh., Chilonzor tumani, 12-uy',
       verified_at: null,
     },
-    representations: [],
     registration_complete: true,
   },
   loading: false,
@@ -105,45 +104,26 @@ function authValueWithAddress(address: string | null): AuthContextValue {
 
 const LEGAL_ENTITY_ID = 'ap100000-0000-4000-8000-0000000000ff';
 
-// Ruling #183: `on_behalf='legal'` is the ONLY path that still goes through
-// ERI (mock or real) — every test that exercises that machinery now needs a
-// representation to select, not the bare `AUTH_VALUE` fixture (self).
+// Ruling #226: a legal applicant is its OWN cabinet now — no representation,
+// no picker — `me.applicant.kind === 'legal'` is the only thing that routes
+// signing through ERI (mock or real) instead of the plain button.
 function authValueLegal(): AuthContextValue {
   const base = authValue('uz');
-  const entity = {
-    ...base.me!.applicant!,
-    id: LEGAL_ENTITY_ID,
-    kind: 'legal',
-    pinfl: null,
-    stir: '302345678',
-    name: '"Chorvador" MChJ',
-    address: 'Namangan sh., Navoiy 1',
-  };
   return {
     ...base,
     me: {
       ...base.me!,
-      representations: [
-        {
-          id: 'rep00000-0000-4000-8000-000000000001',
-          applicant: entity,
-          basis: 'poa',
-          valid_from: '2026-01-01',
-          valid_until: null,
-          status: 'active',
-        },
-      ],
+      applicant: {
+        ...base.me!.applicant!,
+        id: LEGAL_ENTITY_ID,
+        kind: 'legal',
+        pinfl: null,
+        stir: '302345678',
+        name: '"Chorvador" MChJ',
+        address: 'Namangan sh., Navoiy 1',
+      },
     },
   };
-}
-
-// Step 1's on-behalf picker is the only `combobox` there (`FormField`
-// renders its label as plain text, not an `htmlFor` binding) — must run
-// BEFORE `chooseActivity`/`driveToStep5`, the same order the existing
-// address-less-entity test already established.
-async function selectLegalEntity() {
-  await screen.findByText('Pichanchilik');
-  await userEvent.selectOptions(screen.getByRole('combobox'), LEGAL_ENTITY_ID);
 }
 
 // Plan 12: `POST /applications/precheck` and `POST /applications/package`
@@ -280,8 +260,8 @@ async function acceptRules() {
 // (`docs/plans/07.3-findings.md`): `ApplicationWizardPage.tsx`'s
 // `handleSignAndSubmit` used to render the server's own Russian string
 // verbatim as `${code}: ${message}`, regardless of the applicant's own
-// interface language. Self-filing only (the default `AUTH_VALUE` fixture
-// carries no representations) — ruling #183's own button label.
+// interface language. An individual applicant only (the default `AUTH_VALUE`
+// fixture is `kind: 'individual'`) — ruling #183's own button label.
 async function driveToSubmitFailure(lang: UiLanguage = 'uz_latn') {
   await driveToStep5(lang);
   const dict = DICTIONARIES[lang] ?? DICTIONARIES.uz_latn;
@@ -322,20 +302,19 @@ test.each([
 // This test drives the wizard end to end only far enough to prove the wiring,
 // not to exercise every step's own behaviour.
 //
-// Ruling #183: the mock/real ERI machinery below is exercised ONLY for a
-// `legal` filing now — a `self` filing never builds an envelope at all
-// (covered separately below). `applicant.name` signed here is still the
-// SIGNED-IN citizen's own name (`me.applicant`, the representative), never
-// the entity's — unaffected by which one is being filed for.
+// Ruling #226: the mock/real ERI machinery below is exercised ONLY for a
+// `kind: 'legal'` cabinet now — an individual applicant's filing never builds
+// an envelope at all (covered separately below). `applicant.name` signed
+// here is the legal applicant's own name (`me.applicant`, its own cabinet
+// since stage 18 — there is no separate representative identity any more).
 //
 // Plan 12, R2: a legal filing first calls `POST /applications/package` (the
 // default handler above mints `APPLICATION_ID` and a base64 `package`), then
 // signs those bytes, then posts `POST /applications` with `application_id` +
 // `pkcs7` alongside the filing — never a per-id route.
-test('signing and submitting passes the signed-in applicant’s own name into the mock signature', async () => {
+test('signing and submitting passes the legal applicant’s own name into the mock signature', async () => {
   const auth = authValueLegal();
   renderWizard(auth);
-  await selectLegalEntity();
 
   await driveToStep5();
   await acceptRules();
@@ -346,7 +325,9 @@ test('signing and submitting passes the signed-in applicant’s own name into th
   await userEvent.click(signButton);
 
   await waitFor(() =>
-    expect(buildMockSignature).toHaveBeenCalledWith(expect.objectContaining({ fullName: APPLICANT_NAME })),
+    expect(buildMockSignature).toHaveBeenCalledWith(
+      expect.objectContaining({ fullName: auth.me!.applicant!.name }),
+    ),
   );
 });
 
@@ -366,7 +347,6 @@ test('real mode: sign calls signDocument over the exact package bytes (DETACHED)
   );
   const auth = authValueLegal();
   renderWizard(auth);
-  await selectLegalEntity();
 
   await driveToStep5();
   await acceptRules();
@@ -394,7 +374,6 @@ test('a real-mode signing failure shows a distinct message and never reaches the
   );
   const auth = authValueLegal();
   renderWizard(auth);
-  await selectLegalEntity();
 
   await driveToStep5();
   await acceptRules();
@@ -491,8 +470,8 @@ test('an account with no address is asked for it in step 5, and can submit once 
   await userEvent.click(saveButton);
 
   await waitFor(() => expect(seenAddressBody).toEqual({ address: "Farg'ona sh., Mustaqillik ko'chasi 5" }));
-  // Nothing is signed by that first press, and this is a `self` filing (the
-  // default fixture carries no representations) — no envelope is EVER built.
+  // Nothing is signed by that first press, and this is an individual
+  // applicant's filing (`kind: 'individual'`) — no envelope is EVER built.
   expect(vi.mocked(buildMockSignature).mock.calls.length).toBe(signaturesBefore);
 
   // Now it signs — ruling #183's plain button, not the ERI one.
@@ -517,56 +496,24 @@ test('the address field caps input at the backend bound (ApplicantAddressIn, 500
   expect(addressInput).toHaveAttribute('maxLength', '500');
 });
 
-// Ruling #113, the representative's case: the address that gets printed is
-// the HOLDER's, and when a representative files on behalf of a legal entity
-// the holder is that entity. A citizen whose own record carries an address
-// can still be filing for an entity that has none — checking `me.applicant`
-// alone would leave the backend refusing a submission the wizard never asked
-// about.
-test('a representative filing for an address-less legal entity is asked for the ENTITY address', async () => {
+// Ruling #113/#226: the address requisite belongs to the applicant the
+// filing is FOR, which since stage 18 is always the caller's own
+// `me.applicant` — a legal cabinet with no address on file is asked for its
+// OWN address, exactly like an individual applicant.
+test('a legal applicant with no address is asked for it, and it is patched by its own id', async () => {
   let seenPath: string | null = null;
   let seenAddressBody: unknown = null;
-  const base = authValue('uz');
-  const entity = {
-    ...base.me!.applicant!,
-    id: 'ap100000-0000-4000-8000-0000000000ff',
-    kind: 'legal',
-    pinfl: null,
-    stir: '302345678',
-    name: '"Chorvador" MChJ',
-    address: null,
-  };
-  const auth: AuthContextValue = {
-    ...base,
-    me: {
-      ...base.me!,
-      representations: [
-        {
-          id: 'rep00000-0000-4000-8000-000000000001',
-          applicant: entity,
-          basis: 'poa',
-          valid_from: '2026-01-01',
-          valid_until: null,
-          status: 'active',
-        },
-      ],
-    },
-  };
+  const auth = authValueLegal();
+  auth.me!.applicant = { ...auth.me!.applicant!, address: null };
   server.use(
     http.patch('*/api/v1/auth/applicants/:applicantId/address', async ({ request, params }) => {
       seenPath = String(params.applicantId);
       seenAddressBody = await request.json();
-      return HttpResponse.json({ ...entity, address: 'Namangan sh., Navoiy 1' });
+      return HttpResponse.json({ ...auth.me!.applicant, address: 'Namangan sh., Navoiy 1' });
     }),
   );
   renderWizard(auth);
 
-  // Step 1 offers the on-behalf-of picker only when representations exist,
-  // and it is the only select on that step. `FormField` renders its label as
-  // plain text, not an `htmlFor` binding, so the role is the handle here —
-  // the same reason `ActFormPage.test.tsx` reaches its selects by value.
-  await screen.findByText('Pichanchilik');
-  await userEvent.selectOptions(screen.getByRole('combobox'), entity.id);
   await driveToStep5();
   await acceptRules();
 
@@ -577,8 +524,8 @@ test('a representative filing for an address-less legal entity is asked for the 
   await waitFor(() => expect(saveButton).toBeEnabled());
   await userEvent.click(saveButton);
 
-  // The entity's id, not the signed-in citizen's.
-  await waitFor(() => expect(seenPath).toBe(entity.id));
+  // The legal applicant's own id.
+  await waitFor(() => expect(seenPath).toBe(LEGAL_ENTITY_ID));
   expect(seenAddressBody).toEqual({ address: 'Namangan sh., Navoiy 1' });
 });
 
@@ -668,7 +615,6 @@ test('reaching step 5 posts the filing assembled from steps 1-4 to /applications
 
   await waitFor(() =>
     expect(precheckBody).toMatchObject({
-      on_behalf: 'self',
       activity_type_id: ACTIVITY_ID,
       contour_id: 'contour-1',
       period_from: '2026-01-01',

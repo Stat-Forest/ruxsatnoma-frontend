@@ -60,13 +60,10 @@ export interface AuthContextValue {
   applyMe: (next: MeOut) => void;
   /**
    * Re-fetches `GET /auth/me` and adopts the result — for a write that does
-   * NOT hand back a fresh `MeOut` the way `applyMe`'s callers do:
-   * `POST /auth/applicants`, `POST /auth/applicants/{id}/representations`
-   * (B4, each returns only the one representation/applicant they touched,
-   * not the caller's whole session). Throws on failure
-   * the same way every other method here does — the caller already holds a
-   * valid session (a mutation on it just succeeded), so a failure here is
-   * a real error, not an ordinary logged-out state to special-case.
+   * NOT hand back a fresh `MeOut` the way `applyMe`'s callers do. Throws on
+   * failure the same way every other method here does — the caller already
+   * holds a valid session (a mutation on it just succeeded), so a failure
+   * here is a real error, not an ordinary logged-out state to special-case.
    */
   refreshMe: () => Promise<void>;
 }

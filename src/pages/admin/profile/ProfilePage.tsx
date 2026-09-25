@@ -5,17 +5,16 @@ import { translateTerm } from '../../../i18n/terms';
 import { pickName } from '../../applicant/format';
 import { ChangePasswordForm } from './ChangePasswordForm';
 import { ContactsSection } from './contacts/ContactsSection';
-import { RepresentationSection } from './representation/RepresentationSection';
 import { LABELS } from './labels';
 import {
   User,
   Shield,
   Lock,
-  Building2,
   Globe,
+  Building2,
 } from 'lucide-react';
 
-type TabId = 'profile' | 'representation' | 'password';
+type TabId = 'profile' | 'password';
 
 function getInitials(name?: string | null): string {
   if (!name) return 'U';
@@ -30,11 +29,11 @@ export function ProfilePage() {
   const t = useT();
   const passwordLabels = LABELS[lang] ?? LABELS.uz_latn;
   const [tab, setTab] = useState<TabId>('profile');
-  const isApplicant = me?.role.code === 'applicant';
   const displayName = me ? translateTerm(me.user.full_name, lang) : '';
   const roleName = me
     ? (pickName(me.role.name, lang) || (me.role.code ? translateTerm(me.role.code, lang) : '—'))
     : '—';
+  const isLegalApplicant = me?.applicant?.kind === 'legal';
 
   return (
     <div data-testid="profile-page" className="max-w-4xl mx-auto space-y-4 sm:space-y-6 pb-8 sm:pb-12">
@@ -68,7 +67,7 @@ export function ProfilePage() {
             </div>
 
             <h1 className="text-lg sm:text-2xl font-bold text-white tracking-tight leading-tight mb-2 sm:mb-3 break-words">
-              {displayName || me?.user.full_name}
+              {isLegalApplicant ? (me.applicant?.name ?? displayName) : (displayName || me?.user.full_name)}
             </h1>
 
             <div className="flex flex-wrap items-center gap-y-1.5 sm:gap-y-2 gap-x-2.5 sm:gap-x-4 text-[11px] sm:text-xs text-emerald-100/90">
@@ -76,6 +75,12 @@ export function ProfilePage() {
                 <span className="text-emerald-300 font-mono">@</span>
                 <span className="font-mono text-white truncate max-w-[120px] sm:max-w-none">{me?.user.login ?? '—'}</span>
               </div>
+              {isLegalApplicant && me?.applicant?.stir && (
+                <div className="flex items-center gap-1 sm:gap-1.5 bg-black/20 backdrop-blur-xs px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-lg border border-white/10" title={t('cabinet.profile.stir')}>
+                  <Building2 className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-emerald-300 shrink-0" />
+                  <span className="font-mono text-white">{me.applicant.stir}</span>
+                </div>
+              )}
               <div className="flex items-center gap-1 sm:gap-1.5 bg-black/20 backdrop-blur-xs px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-lg border border-white/10" title={t('shell.language')}>
                 <Globe className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-emerald-300 shrink-0" />
                 <span>{t('cabinet.profile.currentLang')}</span>
@@ -90,9 +95,6 @@ export function ProfilePage() {
         <nav className="flex gap-1 sm:gap-1.5 min-w-max" aria-label="Tabs">
           {[
             { id: 'profile' as const, label: t('cabinet.profile.tabProfile'), icon: User },
-            ...(isApplicant
-              ? [{ id: 'representation' as const, label: t('cabinet.profile.tabRepresentation'), icon: Building2 }]
-              : []),
             { id: 'password' as const, label: t('cabinet.profile.tabPassword'), icon: Lock },
           ].map((item) => {
             const isActive = tab === item.id;
@@ -117,8 +119,6 @@ export function ProfilePage() {
       </div>
 
       {tab === 'profile' && <ContactsSection />}
-
-      {tab === 'representation' && isApplicant && <RepresentationSection />}
 
       {tab === 'password' && (
         <section className="bg-white border border-[#E4E7EA] rounded-xl sm:rounded-2xl p-4 sm:p-7 shadow-xs">

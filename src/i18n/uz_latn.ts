@@ -226,7 +226,7 @@ export const uz_latn = {
   'dash.month.12': 'Dek',
 
   // Track F4 (06.5) — cabinet tails: B2 registration, B3 contacts,
-  // B4 legal-entity representation, B5 certificates, C4 notifications.
+  // B5 certificates, C4 notifications.
   'cabinet.otp.sendCode': 'Kod yuborish',
   'cabinet.otp.sending': 'Yuborilmoqda…',
   'cabinet.otp.resend': 'Qayta yuborish',
@@ -253,7 +253,6 @@ export const uz_latn = {
   'cabinet.registration.genericError': "Xatolik yuz berdi. Qayta urinib ko'ring.",
 
   'cabinet.profile.tabProfile': 'Profil',
-  'cabinet.profile.tabRepresentation': 'Yuridik shaxs vakolatlari',
   'cabinet.profile.tabPassword': 'Parol',
   'cabinet.profile.contactsTitle': 'Aloqa maʼlumotlari',
   'cabinet.profile.phoneLabel': 'Telefon raqami',
@@ -267,51 +266,6 @@ export const uz_latn = {
   'cabinet.profile.newPhoneLabel': 'Yangi telefon raqami',
   'cabinet.profile.newEmailLabel': 'Yangi elektron pochta',
 
-  'cabinet.representation.attachTitle': 'Yuridik shaxsni biriktirish',
-  'cabinet.representation.attachIntro':
-    "STIR raqami va vakolat asosini ko'rsating — E-IMZO orqali, OneID direktorlar reestri orqali yoki ishonchnoma bilan.",
-  'cabinet.representation.stirLabel': 'STIR (9 xonali)',
-  'cabinet.representation.invalidStir': '9 xonali raqam boʻlishi kerak',
-  'cabinet.representation.basisLabel': 'Vakolat asosi',
-  'cabinet.representation.basisOrgEri': "Tashkilot ERI (E-IMZO)",
-  'cabinet.representation.basisOrgEriHint':
-    "Tashkilotning elektron raqamli imzosi bilan tasdiqlanadi.",
-  'cabinet.representation.basisDirector': 'OneID direktorlar reestri',
-  'cabinet.representation.basisDirectorHint':
-    "Siz OneID maʼlumotlarida shu tashkilotning rahbari sifatida qayd etilgan boʻlishingiz kerak.",
-  'cabinet.representation.basisPoa': 'Ishonchnoma (PDF)',
-  'cabinet.representation.basisPoaHint':
-    "Ishonchnoma faylini yuklang, amal qilish muddati va tashkilot nomini kiriting.",
-  'cabinet.representation.orgNameLabel': 'Tashkilot nomi',
-  'cabinet.representation.poaFileLabel': 'Ishonchnoma fayli (PDF)',
-  'cabinet.representation.poaUpload': 'Faylni yuklash',
-  'cabinet.representation.poaUploading': 'Yuklanmoqda…',
-  'cabinet.representation.poaUploaded': 'Fayl yuklandi',
-  'cabinet.representation.validUntilLabel': 'Amal qilish muddati',
-  'cabinet.representation.signerPinflLabel': 'Sizning PINFL (JSHSHIR)',
-  'cabinet.representation.attachSubmit': 'Biriktirish',
-  'cabinet.representation.attachSubmitting': 'Yuborilmoqda…',
-  'cabinet.representation.listTitle': 'Vakolatlarim',
-  'cabinet.representation.listEmpty': "Hozircha hech qanday yuridik shaxs biriktirilmagan",
-  'cabinet.representation.statusActive': 'Amalda',
-  'cabinet.representation.statusOther': 'Amal qilmaydi',
-  'cabinet.representation.validFrom': 'Boshlanishi',
-  'cabinet.representation.validUntil': 'Tugashi',
-  'cabinet.representation.validUntilNone': "Muddatsiz",
-  'cabinet.representation.basisShort.org_eri': 'ERI',
-  'cabinet.representation.basisShort.director_registry': 'OneID',
-  'cabinet.representation.basisShort.poa': 'Ishonchnoma',
-  'cabinet.representation.selectOrgLabel': 'Tashkilotni tanlang',
-  'cabinet.representation.addColleagueTitle': "Vakil qo'shish",
-  'cabinet.representation.addColleagueIntro':
-    "Ushbu tashkilot nomidan hujjat topshirishi mumkin bo'lgan yana bir shaxsni qo'shing.",
-  'cabinet.representation.colleaguePinflLabel': 'Vakil PINFL (JSHSHIR, 14 xonali)',
-  'cabinet.representation.invalidPinfl': '14 xonali raqam boʻlishi kerak',
-  'cabinet.representation.addColleagueSubmit': "Qo'shish",
-  'cabinet.representation.needOrgEriOrDirector':
-    "Vakil qo'shish uchun tashkilotni ERI yoki OneID direktorlar reestri asosida biriktirgan bo'lishingiz kerak — ishonchnoma asosidagi vakolat bu huquqni bermaydi.",
-  'cabinet.representation.applicantOnly':
-    "Yuridik shaxs vakolatlari faqat ariza beruvchi hisobiga tegishli.",
 
 
   'cabinet.notifications.title': 'Bildirishnomalar',
@@ -387,6 +341,7 @@ export const uz_latn = {
   'cabinet.profile.contactsSubtitle': 'Hisobingizga biriktirilgan telefon va elektron pochta maʼlumotlari',
   'cabinet.profile.superuser': 'Superfoydalanuvchi',
   'cabinet.profile.currentLang': 'Oʻzbekcha',
+  'cabinet.profile.stir': 'STIR',
   'cabinet.profile.codePlaceholder': '6 xonali kod',
   'cabinet.profile.emailPlaceholder': 'pochta@misol.uz',
 
@@ -1926,8 +1881,6 @@ export const uz_latn = {
   'wizard.step1.title': "Faoliyat turi",
   'wizard.step1.desc': "Foydalanish turi",
   'wizard.step1.heading': "1. Faoliyat turini tanlang",
-  'wizard.step1.onBehalfLabel': "Kimning nomidan topshiriladi",
-  'wizard.step1.onBehalfSelf': "Oʻzim uchun (jismoniy shaxs)",
   'wizard.step1.unit': "Birlik:",
   'wizard.step2.title': "Maydon",
   'wizard.step2.desc': "Kontur va davr",

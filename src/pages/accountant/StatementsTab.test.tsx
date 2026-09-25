@@ -36,7 +36,6 @@ function renderTab(permissions: string[] = ['payments.view', 'payments.manage'])
     csrf_token: 'tok',
     is_superuser: false,
     applicant: null,
-    representations: [],
     registration_complete: true,
   };
   const authValue = { me, loading: false, authError: null } as unknown as AuthContextValue;

@@ -42,8 +42,6 @@ function applicationCard(over: Partial<ApplicationCardOut> = {}): ApplicationCar
     status: 'PAID',
     applicant_id: 'ap000000-0000-4000-8000-000000000001',
     submitted_by_user_id: 'u1',
-    on_behalf: 'self',
-    representation_id: null,
     activity_type_id: 'act00000-0000-4000-8000-000000000001',
     contour_id: 'c0000000-0000-4000-8000-000000000001',
     contour_version_id: 'cv000000-0000-4000-8000-000000000001',

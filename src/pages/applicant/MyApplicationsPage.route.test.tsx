@@ -54,7 +54,6 @@ const STAFF_ME = {
   csrf_token: 'tok-1',
   is_superuser: false,
   applicant: null,
-  representations: [],
   registration_complete: true,
 };
 
@@ -74,7 +73,6 @@ const APPLICANT_ME = {
   csrf_token: 'tok-2',
   is_superuser: false,
   applicant: null,
-  representations: [],
   registration_complete: true,
 };
 
