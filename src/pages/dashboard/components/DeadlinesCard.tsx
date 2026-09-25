@@ -160,14 +160,26 @@ function Row({
 }
 
 /** Not `EmptyPanel`: that one is sized to stand in for a whole chart, and
- *  here two short sentences share one card. */
+ *  here two short sentences share one card. Two faded placeholder rows sit
+ *  behind the sentence — the shape of what will appear here, with no text a
+ *  reader could mistake for a deadline. */
 function Empty({ testId, children }: { testId: string; children: ReactNode }) {
   return (
-    <p
-      data-testid={testId}
-      className="text-center text-sm text-[#5A646D] bg-[#F8F9FA] border border-dashed border-[#E4E7EA] rounded-xl px-4 py-5"
-    >
-      {children}
-    </p>
+    <div data-testid={testId} className="relative">
+      <div aria-hidden="true" className="space-y-2 opacity-40">
+        {[0, 1].map((key) => (
+          <div key={key} className="flex items-center gap-3 bg-[#F8F9FA] border border-[#E4E7EA] rounded-xl px-4 py-3">
+            <div className="flex-1 space-y-1.5">
+              <div className="h-2.5 w-2/5 rounded-full bg-[#DDE2E6]" />
+              <div className="h-2 w-1/4 rounded-full bg-[#E8EBEE]" />
+            </div>
+            <div className="h-2.5 w-16 rounded-full bg-[#DDE2E6]" />
+          </div>
+        ))}
+      </div>
+      <p className="absolute inset-0 flex items-center justify-center text-center text-sm font-medium text-[#5A646D] px-4">
+        <span className="rounded-full bg-white/90 border border-[#E4E7EA] px-3 py-1.5 shadow-xs">{children}</span>
+      </p>
+    </div>
   );
 }
