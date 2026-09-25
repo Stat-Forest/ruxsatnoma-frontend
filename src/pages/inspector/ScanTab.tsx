@@ -5,6 +5,7 @@ import { useLanguage, useT } from '../../i18n/useT';
 import { Button } from '../../components/ui/button';
 import { FormField, Input } from '../../components/ui/FormControls';
 import { ApiError } from '../../api/errors';
+import { PERMIT_QR_MAX_LENGTH } from '../../api/limits';
 import { useApiErrorText } from '../../i18n/useApiErrorText';
 import { formatDate, formatDecimal, formatPermitNumber, shortId } from './format';
 import { PERMIT_STATUS_STYLE, getPermitStatusLabel } from '../permits/statusMeta';
@@ -96,6 +97,7 @@ export function ScanTab() {
               onChange={(e) => setTokenInput(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && submitToken()}
               placeholder={t('inspector.scan.qrPlaceholder')}
+              maxLength={PERMIT_QR_MAX_LENGTH}
               className="flex-1"
             />
             <Button size="touch" onClick={submitToken} leftIcon={<Search className="w-4 h-4" />}>

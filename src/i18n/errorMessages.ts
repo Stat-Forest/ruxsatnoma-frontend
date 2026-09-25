@@ -108,6 +108,51 @@ function missingFieldLabels(lang: 'ru' | 'uz_latn', missing: string[]): string {
   return missing.map((field) => FIELD_LABELS[lang][field] ?? field).join(', ');
 }
 
+/** Stage 19, R5: a pydantic 422 carries `details.errors[]` with `type` and
+ *  `ctx` (`backend/app/main.py`'s `validation_error_handler`). The FIRST
+ *  error is named with its limit; anything this table does not know stays
+ *  the generic sentence. A `details.reason` is checked before this, so a
+ *  domain refusal always wins. */
+const VALIDATION_TEXT: Record<'ru' | 'uz_latn', Record<string, [string, (n: string) => string]>> = {
+  ru: {
+    string_too_long: ['max_length', (n) => `Слишком длинный текст: не более ${n} символов.`],
+    too_long: ['max_length', (n) => `Слишком много элементов: не более ${n}.`],
+    less_than_equal: ['le', (n) => `Слишком большое значение: не более ${n}.`],
+    less_than: ['lt', (n) => `Значение должно быть меньше ${n}.`],
+    greater_than_equal: ['ge', (n) => `Слишком маленькое значение: не менее ${n}.`],
+    greater_than: ['gt', (n) => `Значение должно быть больше ${n}.`],
+  },
+  uz_latn: {
+    string_too_long: ['max_length', (n) => `Matn juda uzun: ko'pi bilan ${n} ta belgi.`],
+    too_long: ['max_length', (n) => `Elementlar juda ko'p: ko'pi bilan ${n} ta.`],
+    less_than_equal: ['le', (n) => `Qiymat juda katta: ko'pi bilan ${n}.`],
+    less_than: ['lt', (n) => `Qiymat ${n} dan kichik bo'lishi kerak.`],
+    greater_than_equal: ['ge', (n) => `Qiymat juda kichik: kamida ${n}.`],
+    greater_than: ['gt', (n) => `Qiymat ${n} dan katta bo'lishi kerak.`],
+  },
+};
+
+const REQUIRED_TEXT: Record<'ru' | 'uz_latn', string> = {
+  ru: 'Не заполнено обязательное поле.',
+  uz_latn: "Majburiy maydon to'ldirilmagan.",
+};
+
+/** Names the FIRST error in a pydantic 422's `details.errors[]` — `null`
+ *  means "no specific text, use the generic sentence" (an unknown `type`, a
+ *  missing/non-numeric `ctx` value, or no `errors` array at all). Called
+ *  from `'ERR-VAL-001'`'s `default:` branch, after `details.reason` has
+ *  already had its chance to win. */
+export function validationErrorText(details: ErrorDetails, lang: 'ru' | 'uz_latn'): string | null {
+  const errors = (details as { errors?: unknown } | null | undefined)?.errors;
+  if (!Array.isArray(errors) || errors.length === 0) return null;
+  const first = errors[0] as { type?: unknown; ctx?: Record<string, unknown> };
+  if (first.type === 'string_too_short' || first.type === 'missing') return REQUIRED_TEXT[lang];
+  const entry = typeof first.type === 'string' ? VALIDATION_TEXT[lang][first.type] : undefined;
+  const limit = entry ? first.ctx?.[entry[0]] : undefined;
+  if (!entry || (typeof limit !== 'number' && typeof limit !== 'string')) return null;
+  return entry[1](String(limit));
+}
+
 const ru: Record<string, ErrorCopy> = {
   'ERR-AUTH-001': 'Неверный логин или пароль.',
   'ERR-AUTH-002': 'Сессия истекла. Войдите снова.',
@@ -280,7 +325,7 @@ const ru: Record<string, ErrorCopy> = {
       case 'duplicate_livestock_type':
         return 'Каждый вид скота можно указать только один раз.';
       default:
-        return 'Ошибка проверки введённых данных.';
+        return validationErrorText(details, 'ru') ?? 'Ошибка проверки введённых данных.';
     }
   },
   'ERR-PUB-001': 'Недопустимый переход статуса обращения. Обновите страницу.',
@@ -455,7 +500,7 @@ const uz_latn: Record<string, ErrorCopy> = {
       case 'duplicate_livestock_type':
         return "Har bir chorva turini faqat bir marta ko'rsatish mumkin.";
       default:
-        return "Kiritilgan ma'lumotlarni tekshirishda xatolik.";
+        return validationErrorText(details, 'uz_latn') ?? "Kiritilgan ma'lumotlarni tekshirishda xatolik.";
     }
   },
   'ERR-PUB-001': "Murojaat holatini bunday o'zgartirib bo'lmaydi. Sahifani yangilang.",
