@@ -103,7 +103,7 @@ export const en = {
   'login.termsNotice': 'By signing in you accept the {privacy} and the {offer}.',
   'login.termsPrivacy': 'Privacy Policy',
   'login.termsOffer': 'Public Offer terms',
-  'login.footerCopyright': '© 2026 Agency for Forestry and Greenery Development, Combating Desertification. All rights reserved.',
+  'login.footerCopyright': '© 2026 “Forestry Digitalization Center”. All rights reserved.',
   'login.footerHelp': 'Help',
   'login.footerContacts': 'Contacts',
   'login.footerDocuments': 'Documents',

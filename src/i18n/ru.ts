@@ -108,7 +108,7 @@ export const ru = {
   'login.termsNotice': 'Входя в систему, вы принимаете {privacy} и {offer}.',
   'login.termsPrivacy': 'политику конфиденциальности',
   'login.termsOffer': 'условия публичной оферты',
-  'login.footerCopyright': '© 2026 Агентство по увеличению лесных и зелёных зон, борьбе с опустыниванием. Все права защищены.',
+  'login.footerCopyright': '© 2026 «Центр цифровизации лесного хозяйства». Все права защищены.',
   'login.footerHelp': 'Помощь',
   'login.footerContacts': 'Контакты',
   'login.footerDocuments': 'Документы',
