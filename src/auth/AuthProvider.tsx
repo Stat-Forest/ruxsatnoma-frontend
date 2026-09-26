@@ -58,7 +58,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           // is NOT the same as logged-out and must stay visibly distinct, or a
           // still-logged-in user gets silently bounced with no explanation.
           setMe(null);
-          setAuthError(err.code === SESSION_GONE || response.status === 401 || isPlainUnauthorized(error) ? null : err);
+          setAuthError(err.code === SESSION_GONE || (response as Response).status === 401 || isPlainUnauthorized(error) ? null : err);
         } else {
           setCsrfToken(data.csrf_token);
           setMe(data);
