@@ -122,6 +122,30 @@ test('no session is not an error state, it is the logged-out state', async () =>
   expect(await screen.findByTestId('anonymous')).toBeInTheDocument();
 });
 
+test('a plain 401 from /auth/me is also the logged-out state', async () => {
+  server.use(
+    http.get('*/auth/me', () => HttpResponse.json({ detail: 'Unauthorized' }, { status: 401 })),
+  );
+  render(
+    <AuthProvider>
+      <Probe />
+    </AuthProvider>,
+  );
+  expect(await screen.findByTestId('anonymous')).toBeInTheDocument();
+});
+
+test('a bare unauthorized body from /auth/me is also the logged-out state', async () => {
+  server.use(
+    http.get('*/auth/me', () => HttpResponse.json({ detail: 'Not authenticated' }, { status: 403 })),
+  );
+  render(
+    <AuthProvider>
+      <Probe />
+    </AuthProvider>,
+  );
+  expect(await screen.findByTestId('anonymous')).toBeInTheDocument();
+});
+
 test('a /auth/me failure other than ERR-AUTH-002 is not silently treated as logged out', async () => {
   server.use(
     http.get('*/auth/me', () =>

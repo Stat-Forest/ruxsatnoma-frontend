@@ -145,7 +145,7 @@ export const uz_cyrl = {
   'login.termsNotice': 'Тизимга кириш орқали сиз {privacy} ва {offer} шартларини қабул қилган ҳисобланасиз.',
   'login.termsPrivacy': 'Махфийлик сиёсати',
   'login.termsOffer': 'Оммавий оферта',
-  'login.footerCopyright': '© 2026 Ўрмон ва яшил ҳудудларни кўпайтириш, чўлланишга қарши курашиш агентлиги. Барча ҳуқуқлар ҳимояланган.',
+  'login.footerCopyright': '© 2026 “Ўрмон хўжалигини рақамлаштириш маркази”. Барча ҳуқуқлар ҳимояланган.',
   'login.footerHelp': 'Ёрдам',
   'login.footerContacts': 'Алоқа',
   'login.footerDocuments': 'Ҳужжатлар',

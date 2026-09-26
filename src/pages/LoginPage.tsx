@@ -396,7 +396,7 @@ export function LoginPage() {
     <div
       data-testid="login-page"
       data-next={next}
-      className="h-[100dvh] flex flex-col bg-[#F8F9FA] text-[#1A1F24] overflow-hidden"
+      className="min-h-[100dvh] flex flex-col bg-[#F8F9FA] text-[#1A1F24]"
     >
       {/* The landing's header (`PublicLayout.tsx` there), reduced to what an
           anonymous visitor needs here: the brand as a way home, an explicit
@@ -439,7 +439,7 @@ export function LoginPage() {
       {/* Anchored to the top, never centred: each sign-in tab has a form of
           its own height, and a centred card moved every time a tab was
           clicked — the tabs themselves jumped out from under the pointer. */}
-      <main className="flex-1 flex flex-col min-h-0">
+      <main className="flex-1 flex flex-col">
         <div className="max-w-7xl w-full mx-auto px-4 sm:px-6 pt-4 pb-2 lg:pt-10 lg:pb-4 grid gap-4 lg:grid-cols-[minmax(0,1fr)_400px] lg:gap-8 items-start">
           <section className="flex flex-col gap-2 lg:gap-4 max-w-[600px]">
             <span className="text-[10px] sm:text-xs font-bold uppercase tracking-[0.08em] text-[#2E7D4F]">
@@ -902,9 +902,9 @@ export function LoginPage() {
       </main>
 
       <footer className="border-t border-[#E4E7EA] bg-white shrink-0 z-10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-[#767F87]">
-          <span className="text-center sm:text-left">{t('login.footerCopyright')}</span>
-          <nav className="flex items-center gap-6 font-semibold text-[#5A646D]">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex flex-col lg:flex-row items-center justify-between gap-3 text-xs text-[#767F87]">
+          <span className="text-center lg:text-left leading-5">{t('login.footerCopyright')}</span>
+          <nav className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2 font-semibold text-[#5A646D]">
             <a href={landingUrl(LANDING_PATHS.about)} className="hover:text-[#1A1F24]">
               {t('login.footerHelp')}
             </a>
@@ -914,7 +914,7 @@ export function LoginPage() {
             <a href={landingUrl(LANDING_PATHS.documents)} className="hover:text-[#1A1F24]">
               {t('login.footerDocuments')}
             </a>
-            <a href="https://t.me/ruxsatnoma_support" target="_blank" rel="noreferrer" className="flex items-center gap-1.5 text-[#0284C7] hover:text-[#0369A1] transition-colors ml-2">
+            <a href="https://t.me/ruxsatnoma_support" target="_blank" rel="noreferrer" className="flex items-center gap-1.5 text-[#0284C7] hover:text-[#0369A1] transition-colors whitespace-nowrap">
               <Send className="w-3.5 h-3.5" />
               <span>Telegram Bot</span>
             </a>

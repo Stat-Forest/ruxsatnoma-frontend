@@ -100,7 +100,7 @@ const sessionMiddleware: Middleware = {
     if (response.ok) return response;
     const code = await readErrorCode(response);
 
-    if (code === SESSION_GONE) {
+    if (response.status === 401 || code === SESSION_GONE) {
       onSessionGone?.();
       return response;
     }

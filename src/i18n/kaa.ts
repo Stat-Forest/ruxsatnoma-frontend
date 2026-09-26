@@ -1493,7 +1493,7 @@ export const kaa = {
   'login.termsNotice': 'Sistemaǵa kirip, siz {privacy} hám {offer} menen kelisesiz.',
   'login.termsPrivacy': 'Kopiyalıq siyasatı',
   'login.termsOffer': 'Ǵalaba oferta shártleri',
-  'login.footerCopyright': '© 2026 Orman hám jasıl aymaqlardı kóbeytiw, shólistanıwǵa qarsı gúresiw agentligi. Barlıq huqıqlar qorǵalǵan.',
+  'login.footerCopyright': '© 2026 “Orman xojalıǵın cifrlastırıw orayı”. Barlıq huqıqlar qorǵalǵan.',
   'login.footerHelp': 'Járdem',
   'login.footerContacts': 'Baylanıs',
   'login.footerDocuments': 'Hújjetler',

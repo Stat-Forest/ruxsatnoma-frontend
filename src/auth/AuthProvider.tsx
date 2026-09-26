@@ -13,6 +13,11 @@ type MeOut = components['schemas']['MeOut'];
 /** Shared with `OneIdReturnPage`, which consumes what `startOneId` stores. */
 export const ONEID_NEXT_KEY = 'ruxsatnoma.oneid.next';
 
+function isPlainUnauthorized(body: unknown): boolean {
+  const detail = (body as { detail?: unknown })?.detail;
+  return typeof detail === 'string' && /unauthorized|not authenticated/i.test(detail);
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [me, setMe] = useState<MeOut | null>(null);
   const [loading, setLoading] = useState(true);
@@ -43,7 +48,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     let cancelled = false;
     void (async () => {
       try {
-        const { data, error } = await api.GET('/api/v1/auth/me', {});
+        const { data, error, response } = await api.GET('/api/v1/auth/me', {});
         if (cancelled) return;
         if (error) {
           const err = apiError(error);
@@ -53,7 +58,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           // is NOT the same as logged-out and must stay visibly distinct, or a
           // still-logged-in user gets silently bounced with no explanation.
           setMe(null);
-          setAuthError(err.code === SESSION_GONE ? null : err);
+          setAuthError(err.code === SESSION_GONE || (response as Response).status === 401 || isPlainUnauthorized(error) ? null : err);
         } else {
           setCsrfToken(data.csrf_token);
           setMe(data);

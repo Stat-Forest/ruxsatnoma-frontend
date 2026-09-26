@@ -124,7 +124,7 @@ export const uz_latn = {
   'login.termsNotice': 'Tizimga kirish orqali siz {privacy} va {offer} shartlarini qabul qilgan hisoblanasiz.',
   'login.termsPrivacy': 'Maxfiylik siyosati',
   'login.termsOffer': 'Ommaviy oferta',
-  'login.footerCopyright': '© 2026 Oʻrmon va yashil hududlarni koʻpaytirish, choʻllanishga qarshi kurashish agentligi. Barcha huquqlar himoyalangan.',
+  'login.footerCopyright': '© 2026 “Oʻrmon xoʻjaligini raqamlashtirish markazi”. Barcha huquqlar himoyalangan.',
   'login.footerHelp': 'Yordam',
   'login.footerContacts': 'Aloqa',
   'login.footerDocuments': 'Hujjatlar',
