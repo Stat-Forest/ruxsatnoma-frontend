@@ -1638,6 +1638,7 @@ export const uz_latn = {
 
   // --- J1 (stage 6.7): task detail page -----------------------------------
   'inspector.taskDetail.title': "Topshiriq",
+  'inspector.taskDetail.backButton': "Ortga qaytish",
   'inspector.taskDetail.loading': "Yuklanmoqda...",
   'inspector.taskDetail.notFound': "Topshiriq topilmadi.",
   'inspector.taskDetail.kindLabel': "Turi:",

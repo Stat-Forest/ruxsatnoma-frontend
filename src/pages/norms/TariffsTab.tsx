@@ -276,7 +276,7 @@ export function TariffsTab({ active }: { active: boolean }) {
   return (
     <div data-testid="norms-tab-tariffs" className="space-y-4">
       <div className="space-y-3 rounded-2xl border border-[#E4E7EA] bg-white p-6 shadow-xs">
-        <div className="grid grid-cols-1 items-end gap-3 sm:grid-cols-3">
+        <div className="grid grid-cols-1 items-start gap-3 sm:grid-cols-2 lg:grid-cols-3">
           <FormField label={t('norms.tariffs.filter.activityType')}>
             <Select
               data-testid="tariffs-filter-activity-type"

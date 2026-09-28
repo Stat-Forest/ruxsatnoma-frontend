@@ -1601,6 +1601,7 @@ export const ru = {
 
   // --- J1 (stage 6.7): task detail page -----------------------------------
   'inspector.taskDetail.title': 'Задание',
+  'inspector.taskDetail.backButton': "Вернуться назад",
   'inspector.taskDetail.loading': 'Загрузка...',
   'inspector.taskDetail.notFound': 'Задание не найдено.',
   'inspector.taskDetail.kindLabel': 'Тип:',

@@ -1637,6 +1637,7 @@ export const uz_cyrl = {
 
   // --- J1 (stage 6.7): task detail page -----------------------------------
   'inspector.taskDetail.title': "Топшириқ",
+  'inspector.taskDetail.backButton': "Ортга қайтиш",
   'inspector.taskDetail.loading': "Юкланмоқда...",
   'inspector.taskDetail.notFound': "Топшириқ топилмади.",
   'inspector.taskDetail.kindLabel': "Тури:",

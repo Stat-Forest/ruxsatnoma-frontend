@@ -1435,6 +1435,7 @@ export const en = {
   'inspector.tasks.openButton': 'Open',
   'inspector.tasks.startButton': 'Start',
   'inspector.taskDetail.title': 'Task',
+  'inspector.taskDetail.backButton': "Go back",
   'inspector.taskDetail.loading': 'Loading...',
   'inspector.taskDetail.notFound': 'Task not found.',
   'inspector.taskDetail.kindLabel': 'Type:',
