@@ -15,13 +15,13 @@ export function NewApplicationBanner({ t }: { t: ReturnType<typeof useT> }) {
   return (
     <section
       data-testid="new-application-banner"
-      className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-[#F0F7F1] border border-[#D9EBDC] rounded-2xl p-4 sm:px-6"
+      className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-[#F0F7F1] border border-[#D9EBDC] rounded-2xl p-4 lg:px-6"
     >
       <div className="flex items-start gap-3 min-w-0">
         <FilePlus2 className="w-6 h-6 text-[#2E7D4F] shrink-0 mt-0.5" />
         <div className="min-w-0">
           <h2 className="text-base font-bold text-[#23653F] leading-snug">{t('dash.newApp.title')}</h2>
-          <p className="text-xs sm:text-sm text-[#3E6B4E] mt-1 leading-relaxed">{t('dash.newApp.hint')}</p>
+          <p className="text-xs lg:text-sm text-[#3E6B4E] mt-1 leading-relaxed">{t('dash.newApp.hint')}</p>
         </div>
       </div>
       <Button
@@ -29,7 +29,7 @@ export function NewApplicationBanner({ t }: { t: ReturnType<typeof useT> }) {
         size="md"
         rightIcon={<ArrowRight className="w-4 h-4 shrink-0" />}
         onClick={() => navigate('/my/applications/new')}
-        className="font-bold cursor-pointer w-full sm:w-auto shrink-0 justify-center"
+        className="font-bold cursor-pointer w-full lg:w-auto shrink-0 justify-center"
       >
         {t('cabinet.applications.newApp')}
       </Button>

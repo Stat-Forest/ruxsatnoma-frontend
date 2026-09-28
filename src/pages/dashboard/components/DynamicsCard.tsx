@@ -97,7 +97,7 @@ export function DynamicsCard({
       {/* A new citizen's "0 / — / —" is three ways of saying nothing, under a
           panel that already said it once. */}
       {stats.total === 0 ? null : (
-        <dl className="mt-5 pt-4 border-t border-[#E4E7EA] grid grid-cols-1 sm:grid-cols-3 gap-4 sm:divide-x sm:divide-[#E4E7EA]">
+        <dl className="mt-5 pt-4 border-t border-[#E4E7EA] grid grid-cols-1 lg:grid-cols-3 gap-4 lg:divide-x lg:divide-[#E4E7EA]">
           <Figure label={t('dash.dynamics.totalLabel')} tone="neutral">
             {stats.total}
             {stats.yearsFrom !== null && stats.yearsTo !== null ? (
@@ -106,10 +106,10 @@ export function DynamicsCard({
               </span>
             ) : null}
           </Figure>
-          <Figure label={t('dash.dynamics.slaLabel')} tone="brand" className="sm:pl-4">
+          <Figure label={t('dash.dynamics.slaLabel')} tone="brand" className="lg:pl-4">
             {stats.slaOnTimePct === null ? '—' : `${stats.slaOnTimePct}% ${t('dash.dynamics.slaValue')}`}
           </Figure>
-          <Figure label={t('dash.dynamics.successLabel')} tone="info" className="sm:pl-4">
+          <Figure label={t('dash.dynamics.successLabel')} tone="info" className="lg:pl-4">
             {stats.approvedPct === null ? '—' : `${stats.approvedPct}% ${t('dash.dynamics.successValue')}`}
           </Figure>
         </dl>

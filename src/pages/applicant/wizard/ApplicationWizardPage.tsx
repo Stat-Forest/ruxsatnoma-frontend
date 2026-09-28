@@ -958,10 +958,10 @@ export function ApplicationWizardPage() {
                     // Top-aligned, not bottom: a field's error line grows its
                     // column, and `items-end` then pushed that column's label
                     // and input above the neighbour's.
-                    <div key={row.key} className="flex items-start gap-3">
+                    <div key={row.key} className="flex flex-col sm:flex-row sm:items-start gap-3">
                       <FormField
                         label={t('wizard.step3.livestockType')}
-                        className="flex-1"
+                        className="flex-1 min-w-0"
                         error={rowIssue.typeError ?? undefined}
                       >
                         <Select
@@ -989,30 +989,30 @@ export function ApplicationWizardPage() {
                           ]}
                         />
                       </FormField>
-                      <FormField
-                        label={t('wizard.step3.headCount')}
-                        className="w-32"
-                        error={rowIssue.countError ?? undefined}
-                      >
-                        <Input
-                          type="number"
-                          min={1}
-                          max={LIVESTOCK_HEAD_COUNT_MAX}
-                          error={!!rowIssue.countError}
-                          value={row.headCount}
-                          onChange={(e) => {
-                            const next = [...items];
-                            next[idx] = { ...row, headCount: e.target.value };
-                            setItems(next);
-                          }}
-                        />
-                      </FormField>
-                      {/* Skips the label line (16px + the 6px gap) and centres
-                          on the 40px input, whatever the error lines do. */}
-                      <div className="mt-[22px] h-[40px] flex items-center">
-                        <Button variant="ghost" size="sm" onClick={() => setItems(items.filter((_, i) => i !== idx))} className="cursor-pointer">
-                          <Trash2 className="w-4 h-4 text-[#B91C1C]" />
-                        </Button>
+                      <div className="flex items-start gap-3">
+                        <FormField
+                          label={t('wizard.step3.headCount')}
+                          className="w-32"
+                          error={rowIssue.countError ?? undefined}
+                        >
+                          <Input
+                            type="number"
+                            min={1}
+                            max={LIVESTOCK_HEAD_COUNT_MAX}
+                            error={!!rowIssue.countError}
+                            value={row.headCount}
+                            onChange={(e) => {
+                              const next = [...items];
+                              next[idx] = { ...row, headCount: e.target.value };
+                              setItems(next);
+                            }}
+                          />
+                        </FormField>
+                        <div className="mt-[22px] h-[40px] flex items-center">
+                          <Button variant="ghost" size="sm" onClick={() => setItems(items.filter((_, i) => i !== idx))} className="cursor-pointer">
+                            <Trash2 className="w-4 h-4 text-[#B91C1C]" />
+                          </Button>
+                        </div>
                       </div>
                     </div>
                   );
@@ -1582,7 +1582,7 @@ function DocumentsStep({
 
       {benefitClaimed && (
         <div className="border border-[#E4E7EA] rounded-xl p-3 space-y-3">
-          <div className="flex flex-wrap items-end gap-3">
+          <div className="flex flex-wrap items-start gap-3">
             <FormField label={t('wizard.step4.docType')} htmlFor="benefit" className="flex-1 min-w-[220px]">
               <Select
                 id="benefit"
@@ -1613,11 +1613,15 @@ function DocumentsStep({
               />
             </FormField>
             {proofDocuments.length === 0 && benefitProofDocTypeId && (
-              <FileButton onFile={(file) => onUpload(file, benefitProofDocTypeId)} />
+              <div className="mt-[22px]">
+                <FileButton onFile={(file) => onUpload(file, benefitProofDocTypeId)} />
+              </div>
             )}
-            <Button variant="ghost" size="sm" onClick={() => handleTypeChange(null, '')} className="cursor-pointer" aria-label={t('wizard.step4.deleteDoc')}>
-              <Trash2 className="w-4 h-4 text-[#B91C1C]" />
-            </Button>
+            <div className="mt-[22px] h-[40px] flex items-center">
+              <Button variant="ghost" size="sm" onClick={() => handleTypeChange(null, '')} className="cursor-pointer" aria-label={t('wizard.step4.deleteDoc')}>
+                <Trash2 className="w-4 h-4 text-[#B91C1C]" />
+              </Button>
+            </div>
           </div>
           {/* Decision #220: the scan is mandatory exactly like the number —
               said so under the row until it is attached, then listed with
@@ -1641,7 +1645,7 @@ function DocumentsStep({
 
       {rows.map((row) => (
         <div key={row.key} className="space-y-1">
-          <div className="flex flex-wrap items-end gap-3">
+          <div className="flex flex-wrap items-start gap-3">
             <FormField label={t('wizard.step4.docType')} className="flex-1 min-w-[220px]">
               <Select
                 value={row.typeValue}
@@ -1653,18 +1657,22 @@ function DocumentsStep({
                 ]}
               />
             </FormField>
-            <FileButton
-              disabled={!row.typeValue}
-              onFile={async (file) => {
-                await onUpload(file, row.typeValue);
-                removeRow(row.key);
-              }}
-            />
-            <Button variant="ghost" size="sm" onClick={() => removeRow(row.key)} className="cursor-pointer" aria-label={t('wizard.step4.deleteDoc')}>
-              <Trash2 className="w-4 h-4 text-[#B91C1C]" />
-            </Button>
+            <div className="mt-[22px]">
+              <FileButton
+                disabled={!row.typeValue}
+                onFile={async (file) => {
+                  await onUpload(file, row.typeValue);
+                  removeRow(row.key);
+                }}
+              />
+            </div>
+            <div className="mt-[22px] h-[40px] flex items-center">
+              <Button variant="ghost" size="sm" onClick={() => removeRow(row.key)} className="cursor-pointer" aria-label={t('wizard.step4.deleteDoc')}>
+                <Trash2 className="w-4 h-4 text-[#B91C1C]" />
+              </Button>
+            </div>
           </div>
-          {row.typeValue && <p className="text-[11px] text-[#5A646D]">{t('wizard.step4.pendingRowHint')}</p>}
+          {row.typeValue && <p className="text-[11px] text-[#5A646D] mt-1">{t('wizard.step4.pendingRowHint')}</p>}
         </div>
       ))}
 
@@ -1684,6 +1692,7 @@ function DocumentsStep({
 /** "Choose file" with its hidden `<input type="file">`, one upload at a time. */
 function FileButton({ onFile, disabled }: { onFile: (file: File) => Promise<void>; disabled?: boolean }) {
   const t = useT();
+  const errorText = useApiErrorText();
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -1694,7 +1703,7 @@ function FileButton({ onFile, disabled }: { onFile: (file: File) => Promise<void
     try {
       await onFile(file);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : t('wizard.step4.uploadError'));
+      setError(errorText(err, t('wizard.step4.uploadError')));
     } finally {
       setUploading(false);
       if (inputRef.current) inputRef.current.value = '';
