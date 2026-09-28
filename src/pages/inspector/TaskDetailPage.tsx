@@ -165,7 +165,7 @@ export function TaskDetailPage() {
   return (
     <div className="space-y-6 font-sans pb-16" data-testid="task-detail-page">
       <div className="border-b border-[#E4E7EA] pb-4 flex items-center gap-3">
-        <Button variant="outline" size="icon" onClick={() => navigate(-1)} aria-label={t('inspector.taskDetail.backButton')} title={t('inspector.taskDetail.backButton')}>
+        <Button variant="outline" size="sm" className="!px-2.5" onClick={() => navigate(-1)} aria-label={t('inspector.taskDetail.backButton')} title={t('inspector.taskDetail.backButton')}>
           <ArrowLeft className="w-4 h-4" />
         </Button>
         <h1 className="text-lg md:text-xl font-bold text-[#1A1F24] tracking-tight">{t('inspector.taskDetail.title')}</h1>
