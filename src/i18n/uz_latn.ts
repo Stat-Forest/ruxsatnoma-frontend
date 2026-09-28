@@ -36,6 +36,8 @@ export const uz_latn = {
   'shell.language': 'Til',
   'shell.openMenu': 'Menyu',
   'shell.closeMenu': 'Yopish',
+  'shell.expandSidebar': 'Sidebarni ochish',
+  'shell.collapseSidebar': 'Sidebarni yig‘ish',
   'shell.logout': 'Chiqish',
   'shell.techSupport': 'Texnik murojaatlar uchun',
   'shell.extension': 'ichki raqami',

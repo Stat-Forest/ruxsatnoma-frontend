@@ -29,6 +29,8 @@ export const en = {
   'shell.language': 'Language',
   'shell.openMenu': 'Menu',
   'shell.closeMenu': 'Close',
+  'shell.expandSidebar': 'Expand sidebar',
+  'shell.collapseSidebar': 'Collapse sidebar',
   'shell.logout': 'Log out',
   'shell.techSupport': 'Technical support',
   'shell.extension': 'ext.',

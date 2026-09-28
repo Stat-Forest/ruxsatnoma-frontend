@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, Outlet } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
-import { Bell, LogOut, Menu, Video, X } from 'lucide-react';
+import { Bell, LogOut, Menu, PanelLeftClose, PanelLeftOpen, Video, X } from 'lucide-react';
 import ormonLogo from '../assets/img/ormonlogo.png';
 import { api } from '../api/client';
 import { apiError } from '../api/errors';
@@ -47,6 +47,7 @@ export function AppShell() {
   const t = useT();
   const { lang, backendLang, setLanguage } = useLanguage();
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   // Ruling 10's global rule ("any ERR-AUTH-002 clears the session") is wired
   // once, in `sessionMiddleware` (`src/api/client.ts`) — this query just
@@ -173,9 +174,26 @@ export function AppShell() {
 
       <div className="flex flex-1 min-w-0">
         {/* Persistent sidebar — pure CSS (`hidden md:flex`), unaffected by `drawerOpen`. */}
-        <aside className="hidden md:flex md:flex-col w-[260px] shrink-0 bg-white border-r border-[#E4E7EA] sticky top-16 h-[calc(100vh-4rem)] overflow-y-auto">
-          <Nav me={me} />
-          <SupportFooter className="mt-auto lg:hidden" />
+        <aside
+          className={`hidden md:flex md:flex-col shrink-0 bg-white border-r border-[#E4E7EA] sticky top-16 h-[calc(100vh-4rem)] overflow-y-auto transition-[width] duration-200 ${
+            sidebarCollapsed ? 'w-[72px]' : 'w-[260px]'
+          }`}
+        >
+          <Nav me={me} collapsed={sidebarCollapsed} />
+          <div className="mt-auto flex flex-col w-full">
+            {!sidebarCollapsed && <SupportFooter className="lg:hidden" />}
+            <div className={`flex h-14 shrink-0 items-center border-t border-[#E4E7EA] px-3 ${sidebarCollapsed ? 'justify-center' : 'justify-end'}`}>
+              <button
+                type="button"
+                onClick={() => setSidebarCollapsed((collapsed) => !collapsed)}
+                aria-label={sidebarCollapsed ? t('shell.expandSidebar') : t('shell.collapseSidebar')}
+                title={sidebarCollapsed ? t('shell.expandSidebar') : t('shell.collapseSidebar')}
+                className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#E4E7EA] text-[#5A646D] transition-colors hover:border-[#7FB98A] hover:bg-[#F0F7F1] hover:text-[#23653F]"
+              >
+                {sidebarCollapsed ? <PanelLeftOpen className="h-5 w-5" /> : <PanelLeftClose className="h-5 w-5" />}
+              </button>
+            </div>
+          </div>
         </aside>
 
         {/* Mobile drawer — always in the DOM; the `hidden` attribute is the sole

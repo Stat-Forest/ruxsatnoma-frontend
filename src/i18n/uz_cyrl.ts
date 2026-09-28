@@ -67,6 +67,8 @@ export const uz_cyrl = {
   'shell.language': 'Тил',
   'shell.openMenu': 'Меню',
   'shell.closeMenu': 'Ёпиш',
+  'shell.expandSidebar': 'Сайдбарни очиш',
+  'shell.collapseSidebar': 'Сайдбарни йиғиш',
   'shell.logout': 'Чиқиш',
   'shell.techSupport': 'Техник мурожаатлар учун',
   'shell.extension': 'ички рақами',

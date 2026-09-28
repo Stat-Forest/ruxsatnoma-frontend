@@ -54,7 +54,7 @@ export function ExportXlsxButton({ path, query, disabled = false, className }: E
     <div className={className}>
       <Button
         variant="outline"
-        size="sm"
+        size="md"
         isLoading={pending}
         disabled={disabled}
         leftIcon={<FileSpreadsheet className="w-3.5 h-3.5" />}

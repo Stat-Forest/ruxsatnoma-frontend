@@ -23,7 +23,7 @@ export function ContactsSection() {
         </div>
       </div>
 
-      <dl className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <dl className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <ContactField kind="phone" currentValue={me.user.phone} onSaved={applyMe} />
         <ContactField kind="email" currentValue={me.user.email} onSaved={applyMe} />
       </dl>

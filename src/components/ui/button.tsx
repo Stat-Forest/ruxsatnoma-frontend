@@ -32,7 +32,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   ) => {
     // Base classes adhering to WCAG and design system metrics
     const baseStyles =
-      'inline-flex items-center justify-center font-medium rounded-md transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed select-none whitespace-nowrap';
+      'inline-flex items-center justify-center border font-medium rounded-xl transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed select-none whitespace-nowrap';
 
     // Size variants
     const sizeStyles: Record<ButtonSize, string> = {
@@ -48,15 +48,15 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     // showed no change at all.
     const variantStyles: Record<ButtonVariant, string> = {
       primary:
-        'bg-[#2E7D4F] hover:bg-[#23653F] active:bg-[#23653F] text-white focus:ring-[#2E7D4F] shadow-sm',
+        'bg-[#2E7D4F] border-[#2E7D4F] hover:bg-[#23653F] hover:border-[#23653F] active:bg-[#23653F] text-white focus:ring-[#2E7D4F] shadow-sm',
       secondary:
         'bg-white border border-[#767F87] text-[#1A1F24] hover:bg-[#F0F7F1] hover:border-[#2E7D4F] hover:text-[#23653F] focus:ring-[#2E7D4F]',
       ghost:
-        'bg-transparent text-[#2E7D4F] hover:bg-[#F0F7F1] focus:ring-[#2E7D4F]',
+        'bg-transparent border-transparent text-[#2E7D4F] hover:bg-[#F0F7F1] focus:ring-[#2E7D4F]',
       danger:
-        'bg-[#B91C1C] hover:bg-[#991B1B] active:bg-[#991B1B] text-white focus:ring-[#B91C1C] shadow-sm',
+        'bg-[#B91C1C] border-[#B91C1C] hover:bg-[#991B1B] hover:border-[#991B1B] active:bg-[#991B1B] text-white focus:ring-[#B91C1C] shadow-sm',
       success:
-        'bg-[#15803D] hover:bg-[#166534] active:bg-[#166534] text-white focus:ring-[#15803D] shadow-sm',
+        'bg-[#15803D] border-[#15803D] hover:bg-[#166534] hover:border-[#166534] active:bg-[#166534] text-white focus:ring-[#15803D] shadow-sm',
       outline:
         'bg-transparent border border-[#E4E7EA] text-[#1A1F24] hover:bg-[#F0F7F1] hover:border-[#7FB98A] hover:text-[#23653F] focus:ring-[#2E7D4F]',
     };

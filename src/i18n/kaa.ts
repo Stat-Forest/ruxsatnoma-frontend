@@ -29,6 +29,8 @@ export const kaa = {
   'shell.language': 'Til',
   'shell.openMenu': 'Menyu',
   'shell.closeMenu': 'Jabıw',
+  'shell.expandSidebar': 'Sidebarǵa ashıw',
+  'shell.collapseSidebar': 'Sidebarǵa jıynaw',
   'shell.logout': 'Shıǵıw',
   'shell.techSupport': 'Texnikalıq járdem',
   'shell.extension': 'ishki nomeri',
