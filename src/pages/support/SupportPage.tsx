@@ -40,7 +40,7 @@ export function SupportPage() {
         <p className="mt-1 text-xs text-[#5A646D] md:text-sm">{t('support.page.subtitle')}</p>
       </header>
 
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3" data-testid="support-contact-cards">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3" data-testid="support-contact-cards">
         <div className="flex items-start gap-3 rounded-xl border border-[#E4E7EA] bg-white p-4">
           <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#F0FDF4] text-[#2E7D4F]">
             <Phone className="h-5 w-5" />

@@ -77,13 +77,13 @@ function ReconciliationRegister({ canResolve }: { canResolve: boolean }) {
 
   return (
     <section className="rounded-2xl border border-[#E4E7EA] bg-white shadow-xs">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#E4E7EA] p-4">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-[#E4E7EA] p-4">
         <h2 className="text-sm font-bold text-[#1A1F24]">{t('accountant.discrepancies.title')}</h2>
-        <div className="flex flex-wrap items-center gap-1.5 w-full sm:w-auto">
-          <Button size="sm" className="flex-1 sm:flex-initial" variant={status === 'open' ? 'primary' : 'outline'} onClick={() => setStatus('open')}>
+        <div className="flex flex-wrap items-center gap-1.5 w-full lg:w-auto">
+          <Button size="md" className="flex-1 sm:flex-initial" variant={status === 'open' ? 'primary' : 'outline'} onClick={() => setStatus('open')}>
             {t('accountant.discrepancies.filterOpen')}
           </Button>
-          <Button size="sm" className="flex-1 sm:flex-initial" variant={status === 'resolved' ? 'primary' : 'outline'} onClick={() => setStatus('resolved')}>
+          <Button size="md" className="flex-1 sm:flex-initial" variant={status === 'resolved' ? 'primary' : 'outline'} onClick={() => setStatus('resolved')}>
             {t('accountant.discrepancies.filterResolved')}
           </Button>
           <ExportXlsxButton
@@ -267,7 +267,7 @@ function ManualConfirmationCheckPanel() {
 
   return (
     <section className="rounded-2xl border border-[#E4E7EA] bg-white p-4 shadow-xs" data-testid="manual-check-panel">
-      <div className="mb-1 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+      <div className="mb-1 flex flex-col lg:flex-row lg:items-center justify-between gap-2">
         <h2 className="text-sm font-bold text-[#1A1F24]">{t('accountant.discrepancies.manualCheckTitle')}</h2>
         <ExportXlsxButton
           className="ml-auto"

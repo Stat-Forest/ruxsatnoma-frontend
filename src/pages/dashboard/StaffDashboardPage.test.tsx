@@ -227,8 +227,8 @@ test('the filter bar and action buttons have mobile-friendly responsive layout c
   const filterGrid = filters.querySelector('.grid');
   expect(filterGrid).toHaveClass('grid-cols-1');
   expect(filterGrid).toHaveClass('sm:grid-cols-2');
-  expect(filterGrid).toHaveClass('lg:grid-cols-4');
-  expect(filterGrid).toHaveClass('xl:grid-cols-7');
+  expect(filterGrid).toHaveClass('lg:grid-cols-3');
+  expect(filterGrid).toHaveClass('2xl:grid-cols-[repeat(6,minmax(0,1fr))_minmax(155px,0.9fr)]');
 
   // Action buttons container has responsive flex direction and full width touch targets on mobile
   const applyBtn = screen.getByRole('button', { name: /Qoʻllash/ });

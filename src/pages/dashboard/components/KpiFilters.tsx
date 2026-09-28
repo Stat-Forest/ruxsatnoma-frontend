@@ -96,8 +96,8 @@ export function KpiFilters({
   }
 
   return (
-    <div className="bg-white border border-[#E4E7EA] rounded-2xl p-4 sm:p-5 shadow-xs space-y-3" data-testid="kpi-filters">
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7 gap-3 items-end">
+    <div className="w-full min-w-0 bg-white border border-[#E4E7EA] rounded-2xl p-4 sm:p-5 shadow-xs" data-testid="kpi-filters">
+      <div className="grid min-w-0 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-[repeat(6,minmax(0,1fr))_minmax(155px,0.9fr)] gap-3 items-end">
         <FormField label={t('leadership.dash.filters.periodFrom')}>
           <Input
             type="date"
@@ -163,7 +163,7 @@ export function KpiFilters({
             ]}
           />
         </FormField>
-        <div className="flex items-center min-h-[40px] sm:col-span-2 lg:col-span-4 xl:col-span-1 py-1 sm:py-0">
+        <div className="flex min-w-0 items-center min-h-[40px] sm:col-span-2 lg:col-span-1 2xl:col-span-1 py-1 sm:py-0">
           <Checkbox
             label={t('leadership.dash.filters.comparePrevious')}
             checked={draft.compare_previous}
@@ -171,11 +171,11 @@ export function KpiFilters({
           />
         </div>
       </div>
-      <div className="flex flex-col sm:flex-row justify-end gap-2 pt-1 sm:pt-0">
+      <div className="mt-3 flex flex-col sm:flex-row justify-end gap-2">
         <Button
           variant="outline"
           size="sm"
-          className="w-full sm:w-auto h-9 sm:h-8 justify-center"
+          className="w-full sm:w-auto h-10 sm:h-9 justify-center"
           leftIcon={<RotateCcw className="w-3.5 h-3.5" />}
           onClick={resetFilters}
         >
@@ -184,7 +184,7 @@ export function KpiFilters({
         <Button
           variant="primary"
           size="sm"
-          className="w-full sm:w-auto h-9 sm:h-8 justify-center"
+          className="w-full sm:w-auto h-10 sm:h-9 justify-center"
           onClick={applyFilters}
         >
           {t('leadership.dash.filters.apply')}

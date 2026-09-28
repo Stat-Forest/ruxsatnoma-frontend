@@ -32,6 +32,8 @@ export const ru = {
   'shell.language': 'Язык',
   'shell.openMenu': 'Меню',
   'shell.closeMenu': 'Закрыть',
+  'shell.expandSidebar': 'Развернуть боковую панель',
+  'shell.collapseSidebar': 'Свернуть боковую панель',
   'shell.logout': 'Выйти',
   'shell.techSupport': 'Техническая поддержка',
   'shell.extension': 'внутренний',
