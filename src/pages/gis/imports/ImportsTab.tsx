@@ -460,7 +460,6 @@ export function ImportsTab({ t }: { t: (key: string) => string }) {
               <Input value={openId} onChange={(e) => setOpenId(e.target.value)} placeholder="import id" />
               <Button
                 variant="outline"
-                size="sm"
                 className="cursor-pointer"
                 onClick={() => {
                   if (openId.trim()) openImport(openId.trim());

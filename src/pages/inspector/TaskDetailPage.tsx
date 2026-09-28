@@ -5,7 +5,7 @@
  * button renders for a transition not in that table (house rule).
  */
 import { useState } from 'react';
-import { Loader2 } from 'lucide-react';
+import { Loader2, ArrowLeft } from 'lucide-react';
 import { Link, useNavigate, useParams } from 'react-router';
 import { useAuth } from '../../auth/useAuth';
 import { useT } from '../../i18n/useT';
@@ -164,7 +164,10 @@ export function TaskDetailPage() {
 
   return (
     <div className="space-y-6 font-sans pb-16" data-testid="task-detail-page">
-      <div className="border-b border-[#E4E7EA] pb-4">
+      <div className="border-b border-[#E4E7EA] pb-4 flex items-center gap-3">
+        <Button variant="outline" size="icon" onClick={() => navigate(-1)} aria-label={t('inspector.taskDetail.backButton')} title={t('inspector.taskDetail.backButton')}>
+          <ArrowLeft className="w-4 h-4" />
+        </Button>
         <h1 className="text-lg md:text-xl font-bold text-[#1A1F24] tracking-tight">{t('inspector.taskDetail.title')}</h1>
       </div>
 

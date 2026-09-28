@@ -213,7 +213,7 @@ export function NormsTab({ active }: { active: boolean }) {
   return (
     <div data-testid="norms-tab-norms" className="space-y-4">
       <div className="space-y-3 rounded-2xl border border-[#E4E7EA] bg-white p-6 shadow-xs">
-        <div className="grid grid-cols-1 items-end gap-3 sm:grid-cols-2">
+        <div className="grid grid-cols-1 items-start gap-3 sm:grid-cols-2">
           <FormField label={t('norms.norms.filter.activityType')}>
             <Select
               data-testid="norms-filter-activity-type"

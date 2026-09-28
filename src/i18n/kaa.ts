@@ -1324,6 +1324,7 @@ export const kaa = {
   'inspector.tasks.openButton': 'Ashıw',
   'inspector.tasks.startButton': 'Baslaw',
   'inspector.taskDetail.title': 'Tapsırma',
+  'inspector.taskDetail.backButton': "Artqa qaytıw",
   'inspector.taskDetail.loading': 'Júklenbekte...',
   'inspector.taskDetail.notFound': 'Tapsırma tabılmadı.',
   'inspector.taskDetail.kindLabel': 'Túri:',
