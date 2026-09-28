@@ -392,9 +392,9 @@ export function MyApplicationsPage() {
               </div>
 
               <div className="pt-2 border-t border-[#F1F3F5] grid grid-cols-1 gap-1 text-xs text-[#5A646D]">
-                <div className="flex items-center justify-between gap-2">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 sm:gap-2">
                   <span>{t.colPeriod}:</span>
-                  <span className="font-medium text-[#1A1F24] text-right">
+                  <span className="font-medium text-[#1A1F24] sm:text-right whitespace-nowrap">
                     {row.period_from && row.period_to ? `${formatDate(row.period_from)} — ${formatDate(row.period_to)}` : '—'}
                   </span>
                 </div>

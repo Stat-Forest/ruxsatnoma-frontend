@@ -68,9 +68,9 @@ export function PermitCard({ permit }: { permit: PermitOut }) {
           <p className="text-xs text-[#5A646D] break-words">{organizationName ?? '—'}</p>
         </div>
 
-        <div className="p-2.5 sm:p-3 bg-[#F8F9FA] rounded-xl border border-[#E4E7EA] flex flex-col sm:flex-row sm:items-center justify-between gap-1 sm:gap-2 text-xs font-mono">
-          <span className="text-[#5A646D] font-sans sm:font-mono">{t.validityPeriod}</span>
-          <b className="text-[#1A1F24] break-all sm:break-normal">
+        <div className="p-2.5 sm:p-3 bg-[#F8F9FA] rounded-xl border border-[#E4E7EA] flex flex-col lg:flex-row lg:items-center justify-between gap-1 lg:gap-2 text-xs font-mono">
+          <span className="text-[#5A646D] font-sans lg:font-mono">{t.validityPeriod}</span>
+          <b className="text-[#1A1F24] text-left lg:text-right whitespace-nowrap">
             {formatDate(permit.period_from)} — {formatDate(permit.period_to)}
           </b>
         </div>

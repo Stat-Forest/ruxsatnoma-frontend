@@ -378,7 +378,7 @@ export function PermitsListPage({ variant }: { variant: 'staff' | 'applicant' })
         <div className="py-16 text-center text-sm text-[#5A646D]">{lt.noPermitsApplicant}</div>
       ) : (
         <>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
             {list.data!.items.map((permit) => (
               <PermitCard key={permit.id} permit={permit} />
             ))}
