@@ -244,9 +244,9 @@ export function ChiefForesterDashboardPage() {
 
       {/* Date Filters Card */}
       <div className="bg-white border border-[#E4E7EA] rounded-2xl p-4 sm:p-5 shadow-xs" data-testid="chief-forester-filters">
-        <form onSubmit={handleApplyFilters} className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-end gap-3 sm:gap-4 flex-1">
-            <div className="w-full sm:w-48">
+        <form onSubmit={handleApplyFilters} className="flex flex-col sm:flex-row sm:items-end gap-3 sm:gap-4">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-end gap-3 sm:gap-4 flex-1 min-w-0">
+            <div className="w-full sm:flex-1 sm:min-w-0">
               <label className="block text-xs font-semibold text-[#5A646D] mb-1.5">
                 {t('chiefForester.dash.filters.periodFrom')}
               </label>
@@ -258,7 +258,7 @@ export function ChiefForesterDashboardPage() {
                 className="w-full text-xs sm:text-sm h-10"
               />
             </div>
-            <div className="w-full sm:w-48">
+            <div className="w-full sm:flex-1 sm:min-w-0">
               <label className="block text-xs font-semibold text-[#5A646D] mb-1.5">
                 {t('chiefForester.dash.filters.periodTo')}
               </label>
@@ -272,7 +272,7 @@ export function ChiefForesterDashboardPage() {
             </div>
           </div>
 
-          <div className="flex items-center gap-2.5 shrink-0 pt-1 sm:pt-0">
+          <div className="flex items-center gap-2.5 shrink-0">
             <Button
               type="submit"
               variant="primary"

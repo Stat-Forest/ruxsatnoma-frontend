@@ -154,7 +154,7 @@ export function AppShell() {
           to="/profile"
           aria-label={t('nav.profile')}
           data-testid="header-profile-link"
-          className="hidden sm:flex flex-col items-end shrink-0 pl-3 border-l border-[#E4E7EA] max-w-[12rem] xl:max-w-[20rem] py-1 px-2 rounded-md hover:bg-[#F8F9FA] transition-colors"
+          className="hidden md:flex flex-col items-end shrink-0 pl-3 border-l border-[#E4E7EA] max-w-[12rem] xl:max-w-[20rem] py-1 px-2 rounded-md hover:bg-[#F8F9FA] transition-colors"
         >
           <span className="text-xs font-semibold text-[#1A1F24] hover:text-[#2E7D4F] leading-tight truncate w-full text-right transition-colors" title={translateTerm(me.user.full_name, lang) || me.user.full_name}>
             {translateTerm(me.user.full_name, lang) || me.user.full_name}
@@ -175,14 +175,16 @@ export function AppShell() {
       <div className="flex flex-1 min-w-0">
         {/* Persistent sidebar — pure CSS (`hidden md:flex`), unaffected by `drawerOpen`. */}
         <aside
-          className={`hidden md:flex md:flex-col shrink-0 bg-white border-r border-[#E4E7EA] sticky top-16 h-[calc(100vh-4rem)] overflow-y-auto transition-[width] duration-200 ${
+          className={`hidden md:flex md:flex-col shrink-0 bg-white border-r border-[#E4E7EA] sticky top-16 h-[calc(100vh-4rem)] overflow-hidden transition-[width] duration-200 ${
             sidebarCollapsed ? 'w-[72px]' : 'w-[260px]'
           }`}
         >
-          <Nav me={me} collapsed={sidebarCollapsed} />
-          <div className="mt-auto flex flex-col w-full">
+          <div className="flex-1 overflow-y-auto">
+            <Nav me={me} collapsed={sidebarCollapsed} />
+          </div>
+          <div className="flex flex-col w-full shrink-0">
             {!sidebarCollapsed && <SupportFooter className="lg:hidden" />}
-            <div className={`flex h-14 shrink-0 items-center border-t border-[#E4E7EA] px-3 ${sidebarCollapsed ? 'justify-center' : 'justify-end'}`}>
+            <div className={`flex h-14 items-center border-t border-[#E4E7EA] px-3 ${sidebarCollapsed ? 'justify-center' : 'justify-end'}`}>
               <button
                 type="button"
                 onClick={() => setSidebarCollapsed((collapsed) => !collapsed)}
