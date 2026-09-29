@@ -1,6 +1,7 @@
 /** Russian UI copy (ruling R14). Key set must mirror `uz_latn.ts` exactly — enforced
  *  at compile time in `src/i18n/index.tsx` via `Record<keyof typeof uz_latn, string>`. */
 export const ru = {
+  'common.back': 'Назад',
   'nav.dashboard': 'Главная',
   'nav.myApplications': 'Мои заявки',
   'nav.myPermits': 'Мои разрешения',

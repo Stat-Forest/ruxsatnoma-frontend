@@ -40,6 +40,7 @@ export const uz_cyrl_eimzo_errors: Record<string, string> = {
  * `DICTIONARIES` and `TranslationKey`.
  */
 export const uz_cyrl = {
+  'common.back': 'Орқага',
   'nav.dashboard': 'Бош саҳифа',
   'nav.myApplications': 'Менинг аризаларим',
   'nav.myPermits': 'Менинг рухсатномаларим',

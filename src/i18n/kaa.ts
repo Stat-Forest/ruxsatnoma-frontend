@@ -2,6 +2,7 @@
  * Karakalpak UI copy (Latin script).
  */
 export const kaa = {
+  'common.back': 'Artqa',
   'nav.dashboard': 'Bas bet',
   'nav.myApplications': 'Meniń arizalarım',
   'nav.myPermits': 'Meniń ruqsatnamalarım',
