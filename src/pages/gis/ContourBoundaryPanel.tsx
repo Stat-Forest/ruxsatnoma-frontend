@@ -138,10 +138,10 @@ export function ContourBoundaryPanel({ contourId }: { contourId: string | null |
               variant="outline"
               size="sm"
               onClick={() => void download()}
-              disabled={downloading}
+              isLoading={downloading}
+              leftIcon={<Download className="w-4 h-4" />}
               data-testid="contour-kmz-download"
             >
-              {downloading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
               {tr.download}
             </Button>
             <span className="text-[11px] text-[#5A646D]">{tr.downloadHint}</span>

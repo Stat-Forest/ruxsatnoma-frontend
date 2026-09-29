@@ -103,12 +103,12 @@ export function RecipientsPage() {
 
   return (
     <div className="space-y-6 font-sans pb-16" data-testid="payment-recipients-page">
-      <div className="border-b border-[#E4E7EA] pb-4 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
-        <div>
+      <div className="border-b border-[#E4E7EA] pb-4 flex flex-col gap-4">
+        <div className="min-w-0 flex-1">
           <h1 className="text-lg md:text-xl font-bold text-[#1A1F24] tracking-tight">{L.pageTitle}</h1>
           <p className="text-xs md:text-sm text-[#5A646D] mt-1 max-w-2xl">{L.pageSubtitle}</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 shrink-0">
           <Button
             variant="primary"
             size="sm"
@@ -118,7 +118,6 @@ export function RecipientsPage() {
             {L.create}
           </Button>
           <ExportXlsxButton
-            className="ml-auto"
             path="/api/v1/payments/recipients"
             query={{}}
             disabled={!list.data?.items.length}
@@ -161,12 +160,12 @@ export function RecipientsPage() {
           <table className="w-full text-sm">
             <thead className="bg-[#F8F9FA] text-left text-xs font-bold uppercase tracking-wide text-[#5A646D]">
               <tr>
-                <th className="px-4 py-3">{L.colName}</th>
-                <th className="px-4 py-3">{L.colRule}</th>
-                <th className="px-4 py-3">{L.colPaymeId}</th>
-                <th className="px-4 py-3">{L.colStatus}</th>
-                <th className="px-4 py-3 text-right">{L.colSortOrder}</th>
-                <th className="px-4 py-3 text-right">{L.colActions}</th>
+                <th className="px-4 py-3 min-w-[200px]">{L.colName}</th>
+                <th className="px-4 py-3 min-w-[280px]">{L.colRule}</th>
+                <th className="px-4 py-3 min-w-[150px]">{L.colPaymeId}</th>
+                <th className="px-4 py-3 min-w-[120px]">{L.colStatus}</th>
+                <th className="px-4 py-3 text-right whitespace-nowrap">{L.colSortOrder}</th>
+                <th className="px-4 py-3 text-right min-w-[100px]">{L.colActions}</th>
               </tr>
             </thead>
             <tbody>
