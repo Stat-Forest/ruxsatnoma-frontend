@@ -103,7 +103,7 @@ function UploadForm({ t, onCreated }: { t: (key: string) => string; onCreated: (
         />
       </label>
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+      <div className="grid grid-cols-1 gap-2">
         <label className="block space-y-1 text-xs">
           <span className="text-[#5A646D]">{t('gis.imports.form.numberField')}</span>
           <Input value={numberField} onChange={(e) => setNumberField(e.target.value)} />
@@ -195,7 +195,7 @@ function ImportDetail({ importId, t }: { importId: string; t: (key: string) => s
   const stats = (row.stats ?? {}) as { created?: number; warnings?: unknown[]; published?: number; blocked?: number };
 
   return (
-    <div className="bg-white border border-[#E4E7EA] rounded-2xl p-4 shadow-xs space-y-3" data-testid="import-detail">
+    <div className="bg-white border border-[#E4E7EA] rounded-2xl p-4 shadow-xs flex flex-col gap-3" data-testid="import-detail">
       <div className="flex items-center justify-between">
         <span className="font-mono text-xs text-[#5A646D]">{row.id}</span>
         <span className="rounded-full border border-[#E4E7EA] bg-[#F8F9FA] px-2.5 py-1 text-xs font-semibold text-[#1A1F24]">
@@ -265,7 +265,7 @@ function ImportDetail({ importId, t }: { importId: string; t: (key: string) => s
         </div>
       )}
 
-      <div className="flex flex-wrap gap-2 border-t border-[#E4E7EA] pt-3">
+      <div className="flex flex-wrap gap-2 border-t border-[#E4E7EA] pt-3 mt-auto">
         {row.status === 'review' && canManage && !reviewSubmitted && (
           <Button
             variant="primary"
@@ -450,17 +450,17 @@ export function ImportsTab({ t }: { t: (key: string) => string }) {
     <div className="space-y-4">
       <ImportsListPanel t={t} onOpen={openImport} />
 
-      <div className="grid grid-cols-1 lg:grid-cols-[360px_1fr] gap-4 items-start">
+      <div className="grid grid-cols-1 md:grid-cols-[320px_1fr] gap-4 items-start">
         <div className="space-y-3">
           {canManage && <UploadForm t={t} onCreated={setActiveId} />}
 
           <div className="bg-white border border-[#E4E7EA] rounded-2xl p-4 shadow-xs space-y-2">
             <h3 className="text-xs font-bold uppercase tracking-wider text-[#5A646D]">{t('gis.imports.openById')}</h3>
-            <div className="flex gap-2">
-              <Input value={openId} onChange={(e) => setOpenId(e.target.value)} placeholder="import id" />
+            <div className="flex flex-col gap-2">
+              <Input value={openId} onChange={(e) => setOpenId(e.target.value)} placeholder="import id" className="w-full" />
               <Button
                 variant="outline"
-                className="cursor-pointer"
+                className="cursor-pointer w-full"
                 onClick={() => {
                   if (openId.trim()) openImport(openId.trim());
                 }}
@@ -488,7 +488,7 @@ export function ImportsTab({ t }: { t: (key: string) => string }) {
           )}
         </div>
 
-        <div>
+        <div className="flex flex-col">
           {activeId ? (
             <ImportDetail importId={activeId} t={t} />
           ) : (
