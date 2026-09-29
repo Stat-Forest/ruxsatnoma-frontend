@@ -5,6 +5,7 @@
  * `resolveLanguage` (src/i18n/index.tsx) — nothing else changes shape.
  */
 export const uz_latn = {
+  'common.back': 'Orqaga',
   'nav.dashboard': 'Bosh sahifa',
   'nav.myApplications': 'Mening arizalarim',
   'nav.myPermits': 'Mening ruxsatnomalarim',

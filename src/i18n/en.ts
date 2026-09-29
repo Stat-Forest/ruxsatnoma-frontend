@@ -2,6 +2,7 @@
  * English UI copy (full translations matching all system keys).
  */
 export const en = {
+  'common.back': 'Back',
   'nav.dashboard': 'Dashboard',
   'nav.myApplications': 'My applications',
   'nav.myPermits': 'My permits',
