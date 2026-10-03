@@ -334,15 +334,18 @@ function SummaryCard({
 
 type BreakdownView = 'organization' | 'activity';
 
-/** The summary's two breakdowns, one at a time behind a toggle — two cards
- *  side by side left one of them mostly blank whenever a leshoz (which has
- *  exactly one organization row) opened the screen. Each row's bar is its
- *  average out of 5. `RatingsBreakdownRow.avg_score` is never `null` on the
- *  wire (a group with zero ratings has nothing to group), but
- *  `formatAvgScore` still guards it. */
+/** The summary's two breakdowns, one at a time behind a toggle. With a
+ *  single organization in scope — always so for a leshoz head, whose zone is
+ *  its own leshoz — the organization view is one row repeating the overall
+ *  average, so it is dropped: the card shows the service breakdown alone,
+ *  under a plain heading. Each row's bar is its average out of 5.
+ *  `RatingsBreakdownRow.avg_score` is never `null` on the wire (a group with
+ *  zero ratings has nothing to group), but `formatAvgScore` still guards it. */
 function BreakdownCard({ summary, lang }: { summary: RatingsSummaryOut | undefined; lang: string }) {
   const t = useT();
-  const [view, setView] = useState<BreakdownView>('organization');
+  const [chosen, setChosen] = useState<BreakdownView>('organization');
+  const severalOrganizations = (summary?.by_organization.length ?? 0) > 1;
+  const view: BreakdownView = severalOrganizations ? chosen : 'activity';
   const rows: RatingsBreakdownRow[] =
     (view === 'organization' ? summary?.by_organization : summary?.by_activity_type) ?? [];
 
@@ -356,23 +359,29 @@ function BreakdownCard({ summary, lang }: { summary: RatingsSummaryOut | undefin
       data-testid="ratings-breakdown"
       className="lg:col-span-2 rounded-2xl border border-[#E4E7EA] bg-white p-5 shadow-xs"
     >
-      <div role="tablist" className="inline-flex rounded-xl border border-[#E4E7EA] p-0.5 bg-[#F8F9FA] mb-4">
-        {tabs.map((tab) => (
-          <button
-            key={tab.key}
-            type="button"
-            role="tab"
-            aria-selected={view === tab.key}
-            data-testid={tab.testId}
-            onClick={() => setView(tab.key)}
-            className={`px-3 py-1.5 text-xs font-semibold rounded-[10px] transition-colors ${
-              view === tab.key ? 'bg-white text-[#1A1F24] shadow-xs' : 'text-[#5A646D] hover:text-[#1A1F24]'
-            }`}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </div>
+      {severalOrganizations ? (
+        <div role="tablist" className="inline-flex rounded-xl border border-[#E4E7EA] p-0.5 bg-[#F8F9FA] mb-4">
+          {tabs.map((tab) => (
+            <button
+              key={tab.key}
+              type="button"
+              role="tab"
+              aria-selected={view === tab.key}
+              data-testid={tab.testId}
+              onClick={() => setChosen(tab.key)}
+              className={`px-3 py-1.5 text-xs font-semibold rounded-[10px] transition-colors ${
+                view === tab.key ? 'bg-white text-[#1A1F24] shadow-xs' : 'text-[#5A646D] hover:text-[#1A1F24]'
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+      ) : (
+        <h3 className="text-[11px] font-bold uppercase tracking-wide text-[#5A646D] mb-3">
+          {t('ratings.byActivityType.title')}
+        </h3>
+      )}
       <ul className="divide-y divide-[#EEF0F2]">
         {rows.map((row, index) => {
           const avg = row.avg_score === null ? null : Number(row.avg_score);
