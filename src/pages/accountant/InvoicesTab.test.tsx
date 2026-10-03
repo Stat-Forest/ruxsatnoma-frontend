@@ -58,8 +58,16 @@ beforeAll(() => server.listen({ onUnhandledRequest: 'error' }));
 afterEach(() => server.resetHandlers());
 afterAll(() => server.close());
 
-function renderTab(permissions: string[] = ['payments.view', 'payments.manage'], lang: keyof typeof DICTIONARIES = 'uz_latn') {
-  const client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
+function renderTab(
+  permissions: string[] = ['payments.view', 'payments.manage'],
+  lang: keyof typeof DICTIONARIES = 'uz_latn',
+  { appRetry = false }: { appRetry?: boolean } = {},
+) {
+  // `appRetry` keeps React Query's own default retry, the one `App.tsx`'s
+  // client runs with, for a test about what a hook does on a failure.
+  const client = new QueryClient({
+    defaultOptions: { queries: appRetry ? {} : { retry: false }, mutations: { retry: false } },
+  });
   const me = {
     user: { id: 'u-1', full_name: 'Accountant', login: 'acc', language: lang },
     role: { code: 'accountant', name: {} },
@@ -303,6 +311,28 @@ test('an unknown application number shows the not-found message, not a raw 422',
   await userEvent.type(screen.getByLabelText(/Ariza raqami/i), 'RX-2026-99999');
   await userEvent.click(within(applicationSearchSection()).getByRole('button', { name: /Qidirish/i }));
   expect(await screen.findByText(/Bunday ariza topilmadi/i)).toBeInTheDocument();
+});
+
+test('an unknown number is a final answer: asked once, and the unfiltered rows never sit under the filter banner', async () => {
+  let numberCalls = 0;
+  server.use(
+    http.get('*/api/v1/invoices', ({ request }) => {
+      if (!new URL(request.url).searchParams.has('application_number')) {
+        return HttpResponse.json({ items: [invoice()], total: 1, page: 1, page_size: 20 });
+      }
+      numberCalls += 1;
+      return HttpResponse.json({ error: { code: 'ERR-SYS-003', message: 'x', details: {}, correlation_id: 'c' } }, { status: 404 });
+    }),
+  );
+  renderTab(undefined, undefined, { appRetry: true });
+  await screen.findByText('INV-2026-000123');
+
+  await userEvent.type(screen.getByLabelText(/Ariza raqami/i), 'RX-2026-99999');
+  await userEvent.click(within(applicationSearchSection()).getByRole('button', { name: /Qidirish/i }));
+
+  expect(await screen.findByText(/Bunday ariza topilmadi/i)).toBeInTheDocument();
+  expect(screen.queryByText('INV-2026-000123')).not.toBeInTheDocument();
+  expect(numberCalls).toBe(1);
 });
 
 test('there is no "open by id" form any more', () => {

@@ -6,6 +6,7 @@
  */
 import { useEffect, useRef } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { ApiError } from '../../api/errors';
 import {
   approveRefund,
   confirmManualConfirmation,
@@ -67,11 +68,20 @@ export function useInvoice(invoiceId: string | null) {
  *  `placeholderData` keeps the table from blanking between a status change
  *  or a page turn, the same convention every other paged list in this file
  *  already follows. */
+/** A typed number that names nothing answers 404 `ERR-SYS-003` — a final
+ *  answer, so it is not retried. Retried with React Query's default backoff,
+ *  the previous, unfiltered rows stayed on screen under the filter banner for
+ *  several seconds (`placeholderData`) before the not-found message came. */
+function retryUnlessNotFound(failureCount: number, error: unknown): boolean {
+  return !(error instanceof ApiError && error.code === 'ERR-SYS-003') && failureCount < 3;
+}
+
 export function useInvoicesList(params: ListInvoicesParams) {
   return useQuery({
     queryKey: [...INVOICES_LIST_KEY, params],
     queryFn: () => listInvoices(params),
     placeholderData: (previous) => previous,
+    retry: retryUnlessNotFound,
   });
 }
 
