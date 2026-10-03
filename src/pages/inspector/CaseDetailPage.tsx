@@ -26,8 +26,8 @@
  * much stricter, and an invented ladder is worse than the facts alone).
  */
 import { useRef, useState } from 'react';
-import { Link, useParams } from 'react-router';
-import { Loader2 } from 'lucide-react';
+import { Link, useNavigate, useParams } from 'react-router';
+import { ChevronLeft, Loader2 } from 'lucide-react';
 import { useAuth } from '../../auth/useAuth';
 import { useApiErrorText } from '../../i18n/useApiErrorText';
 import { useLanguage, useT } from '../../i18n/useT';
@@ -318,6 +318,7 @@ export function CaseDetailPage() {
   const t = useT();
   const { lang } = useLanguage();
   const errorText = useApiErrorText();
+  const navigate = useNavigate();
 
   const caseQuery = useCase(id);
   const violationTypesQuery = useViolationTypes();
@@ -359,14 +360,24 @@ export function CaseDetailPage() {
 
   return (
     <div className="space-y-6 font-sans pb-16" data-testid="case-detail-page">
-      <div className="border-b border-[#E4E7EA] pb-4 flex items-center justify-between gap-2">
-        <h1 className="text-lg md:text-xl font-bold text-[#1A1F24] tracking-tight">{t('inspector.caseDetail.title')}</h1>
-        <StatusBadge
-          status={CASE_STATUS_BADGE[item.status] ?? 'info'}
-          label={labelOr(CASE_STATUS_LABEL_KEY, item.status, t)}
-          size="sm"
-          showIcon={false}
-        />
+      <div className="border-b border-[#E4E7EA] pb-4">
+        <button
+          type="button"
+          onClick={() => navigate(-1)}
+          className="flex items-center gap-1 text-sm text-[#5A646D] hover:text-[#2E7D4F] transition-colors mb-3 cursor-pointer"
+        >
+          <ChevronLeft className="w-4 h-4" />
+          {t('common.back')}
+        </button>
+        <div className="flex items-center justify-between gap-2">
+          <h1 className="text-lg md:text-xl font-bold text-[#1A1F24] tracking-tight">{t('inspector.caseDetail.title')}</h1>
+          <StatusBadge
+            status={CASE_STATUS_BADGE[item.status] ?? 'info'}
+            label={labelOr(CASE_STATUS_LABEL_KEY, item.status, t)}
+            size="sm"
+            showIcon={false}
+          />
+        </div>
       </div>
 
       <div className="bg-white border border-[#E4E7EA] rounded-2xl p-4 shadow-xs">

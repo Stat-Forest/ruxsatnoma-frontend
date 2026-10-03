@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react';
 import { Link, useParams } from 'react-router';
+import { useBackToList } from '../lib/returnTo';
 import { useQuery } from '@tanstack/react-query';
 import { AlertTriangle, ArrowLeft, CreditCard, ExternalLink, Gift, RefreshCw } from 'lucide-react';
 import { api } from '../api/client';
@@ -67,6 +68,7 @@ const BENEFIT_SETTLED_I18N: Record<UiLanguage, { title: string; withCategory: st
  * never optimistically in the UI."
  */
 export function MyInvoicePage() {
+  const backToList = useBackToList('/my/payments');
   const { lang } = useLanguage();
   // Stage 11 — only the back link is translated (`myPayments.backToPayments`);
   // the rest of this page stays hard-coded uz_latn, as it already was.
@@ -162,7 +164,7 @@ export function MyInvoicePage() {
     <div className="max-w-3xl mx-auto space-y-6 font-sans pb-16">
       <div className="border-b border-[#E4E7EA] pb-4">
         <Link
-          to="/my/payments"
+          to={backToList}
           className="text-xs text-[#5A646D] hover:underline hover:text-[#2E7D4F] flex items-center gap-1 mb-1 font-medium"
         >
           <ArrowLeft className="w-3.5 h-3.5" /> {t('myPayments.backToPayments')}

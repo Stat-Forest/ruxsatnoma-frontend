@@ -10,6 +10,8 @@ import { Plus } from 'lucide-react';
 import { ApiError } from '../../api/errors';
 import { useAuth } from '../../auth/useAuth';
 import { useLanguage, useT } from '../../i18n/useT';
+import { useListUrlState } from '../../lib/useListUrlState';
+import { useReturnHereState } from '../../lib/returnTo';
 import { Alert } from '../../components/ui/Feedback';
 import { Button } from '../../components/ui/button';
 import { DataTable, type Column } from '../../components/ui/DataTable';
@@ -55,10 +57,13 @@ export function ReportsListTab({ active }: { active: boolean }) {
   // form has since been archived (task brief's own instruction).
   const allForms = useReportFormsList({ page: 1, page_size: 100 });
 
-  const [filters, setFilters] = useState<FilterState>(EMPTY_FILTERS);
-  const [applied, setApplied] = useState<FilterState>(EMPTY_FILTERS);
-  const [page, setPage] = useState(1);
+  // Applied filters and page live in the URL, so a report's "back to list"
+  // (and browser Back) return to the same filtered page; `filters` is the
+  // form's draft until "Apply".
+  const { filters: applied, page, setFilters: applyPatch, setPage, reset } = useListUrlState(EMPTY_FILTERS);
+  const [filters, setFilters] = useState<FilterState>(applied);
   const [createOpen, setCreateOpen] = useState(false);
+  const returnHere = useReturnHereState();
 
   const canCreate = !!me && (me.is_superuser || me.permissions.includes(REPORTS_MANAGE));
 
@@ -71,13 +76,11 @@ export function ReportsListTab({ active }: { active: boolean }) {
   });
 
   function applyFilters() {
-    setApplied(filters);
-    setPage(1);
+    applyPatch(filters);
   }
   function resetFilters() {
     setFilters(EMPTY_FILTERS);
-    setApplied(EMPTY_FILTERS);
-    setPage(1);
+    reset();
   }
 
   function organizationName(id: string): string {
@@ -134,7 +137,7 @@ export function ReportsListTab({ active }: { active: boolean }) {
       key: 'open',
       header: '',
       accessor: (row) => (
-        <Link to={`/reports/${row.id}`} className="text-xs font-bold text-[#2E7D4F] hover:underline">
+        <Link to={`/reports/${row.id}`} state={returnHere} className="text-xs font-bold text-[#2E7D4F] hover:underline">
           {t('reports.list.actions.open')} →
         </Link>
       ),
@@ -226,7 +229,7 @@ export function ReportsListTab({ active }: { active: boolean }) {
           emptyTitle={t('reports.list.emptyTitle')}
           emptyDescription={t('reports.list.emptyDescription')}
           pagination={{ currentPage: page, totalPages, onPageChange: setPage, totalRecords: list.data?.total }}
-          onRowClick={(row) => navigate(`/reports/${row.id}`)}
+          onRowClick={(row) => navigate(`/reports/${row.id}`, { state: returnHere })}
         />
       </div>
 

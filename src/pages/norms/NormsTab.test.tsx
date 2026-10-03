@@ -108,7 +108,6 @@ function renderTab(permissions: string[] = [MANAGE, APPROVE, PUBLISH]) {
     csrf_token: 'tok',
     is_superuser: false,
     applicant: null,
-    representations: [],
     registration_complete: true,
   };
   const authValue = { me, loading: false, authError: null } as unknown as AuthContextValue;
@@ -281,4 +280,54 @@ test('a click anywhere on an editable norm row opens the form; a published row s
 
   await user.click(within(draft).getAllByRole('cell')[0]);
   expect(await screen.findByTestId('norm-form')).toBeInTheDocument();
+});
+
+test('an empty list disables the Excel button — there is nothing to export', async () => {
+  mockList([]);
+  renderTab();
+  await findTableLoaded();
+  await screen.findByText('norms.norms.emptyTitle');
+
+  expect(screen.getByTestId('export-xlsx')).toBeDisabled();
+});
+
+test('the Excel button asks the server for the export with the applied filters, never paging the list itself', async () => {
+  const user = userEvent.setup();
+  mockList([norm()]);
+  let exportUrl: URL | null = null;
+  let exportCalls = 0;
+  server.use(
+    http.get('*/api/v1/norms/export.xlsx', ({ request }) => {
+      exportCalls += 1;
+      exportUrl = new URL(request.url);
+      return HttpResponse.text('xlsx-bytes', {
+        headers: {
+          'Content-Disposition': 'attachment; filename="normalar-2026-09-11.xlsx"',
+          'X-Export-Total': '1',
+          'X-Export-Rows': '1',
+          'X-Export-Truncated': 'false',
+        },
+      });
+    }),
+  );
+
+  const createObjectURL = vi.fn().mockReturnValue('blob:mock');
+  const revokeObjectURL = vi.fn();
+  URL.createObjectURL = createObjectURL;
+  URL.revokeObjectURL = revokeObjectURL;
+  const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+
+  renderTab();
+  await findTableLoaded();
+
+  await user.click(screen.getByTestId('export-xlsx'));
+
+  await waitFor(() => expect(createObjectURL).toHaveBeenCalled());
+  expect(clickSpy).toHaveBeenCalled();
+  expect(exportCalls).toBe(1);
+  expect(exportUrl!.searchParams.get('lang')).toBe('ru');
+  expect(exportUrl!.searchParams.has('page')).toBe(false);
+  expect(exportUrl!.searchParams.has('page_size')).toBe(false);
+  expect(exportUrl!.searchParams.has('limit')).toBe(false);
+  expect(exportUrl!.searchParams.has('offset')).toBe(false);
 });

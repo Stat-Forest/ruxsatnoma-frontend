@@ -34,6 +34,7 @@ import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { RotateCcw } from 'lucide-react';
 import { Button } from '../../components/ui/button';
+import { ExportXlsxButton } from '../../components/ui/ExportXlsxButton';
 import { FormField, Input } from '../../components/ui/FormControls';
 import { Pagination } from '../../components/ui/Navigation';
 import { useApiErrorText } from '../../i18n/useApiErrorText';
@@ -160,6 +161,12 @@ export function RatingsPage() {
           <Button variant="primary" size="sm" onClick={applyFilters} data-testid="ratings-apply">
             {t('ratings.filters.apply')}
           </Button>
+          <ExportXlsxButton
+            className="ml-auto"
+            path="/api/v1/admin/ratings"
+            query={{ ...applied, page, page_size: PAGE_SIZE }}
+            disabled={!feed.data?.total}
+          />
         </div>
       </div>
 
@@ -301,7 +308,7 @@ function BreakdownCard({
               key={row.organization_id ?? row.activity_type_id ?? index}
               className="flex items-center justify-between gap-3 text-sm"
             >
-              <span className="min-w-0 truncate text-[#1A1F24]">{pickName(row.name, lang)}</span>
+              <span className="min-w-0 break-words text-[#1A1F24]">{pickName(row.name, lang)}</span>
               <span className="shrink-0 flex items-center gap-1.5">
                 <span className="font-mono font-bold tabular-nums text-[#1A1F24]">
                   {formatAvgScore(row.avg_score)}

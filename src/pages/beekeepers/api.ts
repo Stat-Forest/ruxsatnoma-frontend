@@ -18,6 +18,9 @@ export type BeekeeperCreateIn = components['schemas']['BeekeeperCreateIn'];
 export type BeekeeperPatchIn = components['schemas']['BeekeeperPatchIn'];
 export type BeekeeperLookupOut = components['schemas']['BeekeeperLookupOut'];
 export type Page_BeekeeperOut_ = components['schemas']['Page_BeekeeperOut_'];
+export type BenefitClaimMonitorOut = components['schemas']['BenefitClaimMonitorOut'];
+export type Page_BenefitClaimMonitorOut_ = components['schemas']['Page_BenefitClaimMonitorOut_'];
+export type BeekeepingClaimStatus = NonNullable<BenefitClaimMonitorOut['status']>;
 
 export interface BeekeeperListParams {
   q?: string;
@@ -87,5 +90,26 @@ export async function lookupBeekeeper(pinfl: string): Promise<BeekeeperLookupOut
     if (response.status === 404) return null;
     throw apiError(error);
   }
+  return data;
+}
+
+export interface BeekeepingClaimsParams {
+  status?: BeekeepingClaimStatus;
+  page: number;
+  page_size: number;
+}
+
+/**
+ * `GET /applications/beekeeping` (ruling #217) — the registrar's monitoring
+ * list: every application in the country claiming
+ * `beekeeping_union_member`, and nothing else. Gated on `beekeepers.manage`
+ * like the register itself, so the same role sees both tabs; the shape is
+ * the narrow `BenefitClaimMonitorOut`, never an application card.
+ */
+export async function listBeekeepingClaims(params: BeekeepingClaimsParams): Promise<Page_BenefitClaimMonitorOut_> {
+  const { data, error } = await api.GET('/api/v1/applications/beekeeping', {
+    params: { query: { status: params.status, page: params.page, page_size: params.page_size } },
+  });
+  if (error) throw apiError(error);
   return data;
 }

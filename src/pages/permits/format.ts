@@ -52,21 +52,6 @@ export function formatPermitNumber(series: string, number: number): string {
   return `${series} № ${String(number).padStart(6, '0')}`;
 }
 
-/**
- * A permit's series as a person types it, normalised for lookup: trimmed,
- * then Latin `A`/`a` (A/a) and lowercase Cyrillic `а` (а)
- * mapped to the seeded/generated Cyrillic `А` (А) — every permit's
- * series (`permit_series` setting) — anything else is left exactly as
- * typed. Both keyboards produce a value that READS identically but
- * compares byte-different (`permits/repo.py::list_permits` matches the
- * series byte-exact), so every caller that filters or looks up by series
- * must go through this, not re-derive its own copy of the mapping.
- */
-export function normalizePermitSeries(value: string): string {
-  const trimmed = value.trim();
-  return trimmed === 'A' || trimmed === 'a' || trimmed === 'а' ? 'А' : trimmed;
-}
-
 const LANG_FALLBACKS = ['uz_latn', 'uz_cyrl', 'ru', 'en', 'kaa'];
 
 /** A `LocalizedName`-shaped map (`{uz_latn, uz_cyrl, ru, ...}`) picked for

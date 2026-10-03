@@ -108,6 +108,51 @@ function missingFieldLabels(lang: 'ru' | 'uz_latn', missing: string[]): string {
   return missing.map((field) => FIELD_LABELS[lang][field] ?? field).join(', ');
 }
 
+/** Stage 19, R5: a pydantic 422 carries `details.errors[]` with `type` and
+ *  `ctx` (`backend/app/main.py`'s `validation_error_handler`). The FIRST
+ *  error is named with its limit; anything this table does not know stays
+ *  the generic sentence. A `details.reason` is checked before this, so a
+ *  domain refusal always wins. */
+const VALIDATION_TEXT: Record<'ru' | 'uz_latn', Record<string, [string, (n: string) => string]>> = {
+  ru: {
+    string_too_long: ['max_length', (n) => `Слишком длинный текст: не более ${n} символов.`],
+    too_long: ['max_length', (n) => `Слишком много элементов: не более ${n}.`],
+    less_than_equal: ['le', (n) => `Слишком большое значение: не более ${n}.`],
+    less_than: ['lt', (n) => `Значение должно быть меньше ${n}.`],
+    greater_than_equal: ['ge', (n) => `Слишком маленькое значение: не менее ${n}.`],
+    greater_than: ['gt', (n) => `Значение должно быть больше ${n}.`],
+  },
+  uz_latn: {
+    string_too_long: ['max_length', (n) => `Matn juda uzun: ko'pi bilan ${n} ta belgi.`],
+    too_long: ['max_length', (n) => `Elementlar juda ko'p: ko'pi bilan ${n} ta.`],
+    less_than_equal: ['le', (n) => `Qiymat juda katta: ko'pi bilan ${n}.`],
+    less_than: ['lt', (n) => `Qiymat ${n} dan kichik bo'lishi kerak.`],
+    greater_than_equal: ['ge', (n) => `Qiymat juda kichik: kamida ${n}.`],
+    greater_than: ['gt', (n) => `Qiymat ${n} dan katta bo'lishi kerak.`],
+  },
+};
+
+const REQUIRED_TEXT: Record<'ru' | 'uz_latn', string> = {
+  ru: 'Не заполнено обязательное поле.',
+  uz_latn: "Majburiy maydon to'ldirilmagan.",
+};
+
+/** Names the FIRST error in a pydantic 422's `details.errors[]` — `null`
+ *  means "no specific text, use the generic sentence" (an unknown `type`, a
+ *  missing/non-numeric `ctx` value, or no `errors` array at all). Called
+ *  from `'ERR-VAL-001'`'s `default:` branch, after `details.reason` has
+ *  already had its chance to win. */
+export function validationErrorText(details: ErrorDetails, lang: 'ru' | 'uz_latn'): string | null {
+  const errors = (details as { errors?: unknown } | null | undefined)?.errors;
+  if (!Array.isArray(errors) || errors.length === 0) return null;
+  const first = errors[0] as { type?: unknown; ctx?: Record<string, unknown> };
+  if (first.type === 'string_too_short' || first.type === 'missing') return REQUIRED_TEXT[lang];
+  const entry = typeof first.type === 'string' ? VALIDATION_TEXT[lang][first.type] : undefined;
+  const limit = entry ? first.ctx?.[entry[0]] : undefined;
+  if (!entry || (typeof limit !== 'number' && typeof limit !== 'string')) return null;
+  return entry[1](String(limit));
+}
+
 const ru: Record<string, ErrorCopy> = {
   'ERR-AUTH-001': 'Неверный логин или пароль.',
   'ERR-AUTH-002': 'Сессия истекла. Войдите снова.',
@@ -136,19 +181,22 @@ const ru: Record<string, ErrorCopy> = {
       ? `Активная заявка №${number} на пересекающийся период уже существует.`
       : 'Активная заявка на пересекающийся период уже существует.';
   },
-  // Ruling #181: the certificate number is now mandatory for EVERY benefit
-  // category, and checked against the Beekeeping Union's own register at
-  // filing — `required`/`unknown`/`not_yours` are the three ways that check
-  // can refuse a claim; anything else (e.g. a missing supporting document)
-  // keeps the generic sentence, unchanged from before this stage.
+  // Ruling #181 and decision #220: the certificate number AND its scan are
+  // mandatory for EVERY benefit category (`required`, `needs_a_document`).
+  // Decision #219 checks the Beekeeping Union member's number against the
+  // Union's register at the pre-check and at filing —
+  // `unknown`/`not_yours`/`expired` are the three ways it can refuse.
+  // Anything else keeps the generic sentence.
   'ERR-APP-003': (details) => {
     switch (str(details, 'reason')) {
       case 'benefit_certificate_required':
         return 'Не указан номер справки/свидетельства для выбранной льготной категории.';
       case 'benefit_certificate_unknown':
-        return 'Такой номер справки/свидетельства не найден в реестре.';
+        return 'Этот номер удостоверения не найден в реестре Союза пчеловодов.';
       case 'benefit_certificate_not_yours':
-        return 'Этот номер справки/свидетельства зарегистрирован на другое лицо.';
+        return 'Это удостоверение записано в реестре Союза пчеловодов на другое лицо.';
+      case 'benefit_certificate_expired':
+        return 'Срок действия этого удостоверения истёк.';
       case 'benefit_claim_needs_a_document':
         return 'К заявке на льготу не приложен подтверждающий документ.';
       case 'benefit_doc_type_not_configured':
@@ -266,8 +314,18 @@ const ru: Record<string, ErrorCopy> = {
         return 'Запрошенный период превышает допустимый максимум (5 лет).';
       case 'quantity_required':
         return 'Не указано количество (объём) для выбранного вида деятельности.';
+      // `admin/users_service.py` — the staff-user form's own two refusals.
+      case 'duplicate_pinfl':
+        return 'Пользователь с таким ПИНФЛ уже существует.';
+      case 'duplicate_login':
+        return 'Пользователь с таким логином уже существует.';
+      // Stage 17 QA-01, R6/R7: the wizard's own step 3 already hides a
+      // species once another row has it, but the server is the final say
+      // (`norms.service`, the same reason code the calculator uses).
+      case 'duplicate_livestock_type':
+        return 'Каждый вид скота можно указать только один раз.';
       default:
-        return 'Ошибка проверки введённых данных.';
+        return validationErrorText(details, 'ru') ?? 'Ошибка проверки введённых данных.';
     }
   },
   'ERR-PUB-001': 'Недопустимый переход статуса обращения. Обновите страницу.',
@@ -306,19 +364,22 @@ const uz_latn: Record<string, ErrorCopy> = {
       ? `${number}-sonli faol ariza kesishuvchi davr uchun allaqachon mavjud.`
       : 'Kesishuvchi davr uchun faol ariza allaqachon mavjud.';
   },
-  // Ruling #181: the certificate number is now mandatory for EVERY benefit
-  // category, and checked against the Beekeeping Union's own register at
-  // filing — `required`/`unknown`/`not_yours` are the three ways that check
-  // can refuse a claim; anything else (e.g. a missing supporting document)
-  // keeps the generic sentence, unchanged from before this stage.
+  // Ruling #181 and decision #220: the certificate number AND its scan are
+  // mandatory for EVERY benefit category (`required`, `needs_a_document`).
+  // Decision #219 checks the Beekeeping Union member's number against the
+  // Union's register at the pre-check and at filing —
+  // `unknown`/`not_yours`/`expired` are the three ways it can refuse.
+  // Anything else keeps the generic sentence.
   'ERR-APP-003': (details) => {
     switch (str(details, 'reason')) {
       case 'benefit_certificate_required':
         return "Tanlangan imtiyoz toifasi uchun guvohnoma/ma'lumotnoma raqami ko'rsatilmagan.";
       case 'benefit_certificate_unknown':
-        return "Bunday guvohnoma/ma'lumotnoma raqami reyestrda topilmadi.";
+        return 'Bu guvohnoma raqami Asalarichilar uyushmasi reyestrida topilmadi.';
       case 'benefit_certificate_not_yours':
-        return "Bu guvohnoma/ma'lumotnoma raqami boshqa shaxsga ro'yxatga olingan.";
+        return 'Bu guvohnoma Asalarichilar uyushmasi reyestrida boshqa shaxs nomiga yozilgan.';
+      case 'benefit_certificate_expired':
+        return 'Bu guvohnomaning amal qilish muddati tugagan.';
       case 'benefit_claim_needs_a_document':
         return "Imtiyoz da'vosiga tasdiqlovchi hujjat biriktirilmagan.";
       case 'benefit_doc_type_not_configured':
@@ -432,8 +493,14 @@ const uz_latn: Record<string, ErrorCopy> = {
         return "So'ralgan davr ruxsat etilgan maksimal muddatdan (5 yil) oshib ketdi.";
       case 'quantity_required':
         return "Tanlangan faoliyat turi uchun miqdor (hajm) ko'rsatilmagan.";
+      case 'duplicate_pinfl':
+        return 'Bunday JShShIR bilan foydalanuvchi allaqachon mavjud.';
+      case 'duplicate_login':
+        return 'Bunday login bilan foydalanuvchi allaqachon mavjud.';
+      case 'duplicate_livestock_type':
+        return "Har bir chorva turini faqat bir marta ko'rsatish mumkin.";
       default:
-        return "Kiritilgan ma'lumotlarni tekshirishda xatolik.";
+        return validationErrorText(details, 'uz_latn') ?? "Kiritilgan ma'lumotlarni tekshirishda xatolik.";
     }
   },
   'ERR-PUB-001': "Murojaat holatini bunday o'zgartirib bo'lmaydi. Sahifani yangilang.",

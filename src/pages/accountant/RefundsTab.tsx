@@ -4,8 +4,10 @@ import { Button } from '../../components/ui/button';
 import { FormField, Input, Select, Textarea } from '../../components/ui/FormControls';
 import { Modal } from '../../components/ui/Overlay';
 import { Alert } from '../../components/ui/Feedback';
+import { ExportXlsxButton } from '../../components/ui/ExportXlsxButton';
 import { useAuth } from '../../auth/useAuth';
 import { ApiError } from '../../api/errors';
+import { PUBLIC_NUMBER_MAX_LENGTH } from '../../api/limits';
 import { useApiErrorText } from '../../i18n/useApiErrorText';
 import { useLanguage, useT } from '../../i18n/useT';
 import { formatDate, formatDateTime, formatMoney, shortId } from '../permits/format';
@@ -18,6 +20,10 @@ import { useRefundReasons } from '../applicant/payments/queries';
 const PAYMENTS_VIEW = 'payments.view';
 const PAYMENTS_MANAGE = 'payments.manage';
 const PAYMENTS_CONFIRM = 'payments.confirm';
+
+/** `RefundApproveIn.comment`/`RefundRequestIn.comment` (`NoteStr`,
+ *  `app/core/schemas.py`) — the same bound on both comment fields below. */
+const REFUND_COMMENT_MAX_LENGTH = 2000;
 
 type StatusFilter = '' | 'requested' | 'in_review' | 'returned' | 'rejected';
 
@@ -91,10 +97,16 @@ function RefundsRegister({ canFile, canApprove }: { canFile: boolean; canApprove
               ]}
             />
             {canFile && (
-              <Button size="sm" className="w-full sm:w-auto" leftIcon={<Plus className="h-4 w-4" />} onClick={() => setNewRequestOpen(true)}>
+              <Button size="md" className="w-full sm:w-auto" leftIcon={<Plus className="h-4 w-4" />} onClick={() => setNewRequestOpen(true)}>
                 {t('accountant.refunds.newRequest')}
               </Button>
             )}
+            <ExportXlsxButton
+              className="ml-auto"
+              path="/api/v1/refunds"
+              query={{ status: status || undefined }}
+              disabled={!query.data?.total}
+            />
           </div>
         </div>
 
@@ -227,6 +239,7 @@ function NewRequestModal({ onClose }: { onClose: () => void }) {
             value={applicationNumber}
             onChange={(e) => setApplicationNumber(e.target.value)}
             placeholder={t('accountant.refunds.applicationNumberPlaceholder')}
+            maxLength={PUBLIC_NUMBER_MAX_LENGTH}
           />
         </FormField>
         {reasonsQuery.isError && <Alert variant="danger">{t('accountant.refunds.loadFailed')}</Alert>}
@@ -239,7 +252,7 @@ function NewRequestModal({ onClose }: { onClose: () => void }) {
           />
         </FormField>
         <FormField label={t('accountant.refunds.commentLabel')} htmlFor="refund-comment">
-          <Textarea id="refund-comment" value={comment} onChange={(e) => setComment(e.target.value)} rows={2} />
+          <Textarea id="refund-comment" value={comment} onChange={(e) => setComment(e.target.value)} rows={2} maxLength={REFUND_COMMENT_MAX_LENGTH} />
         </FormField>
         {error && <Alert variant="danger">{error}</Alert>}
       </div>
@@ -363,7 +376,7 @@ function DecisionModal({ refund, onClose }: { refund: RefundOut; onClose: () => 
         )}
 
         <FormField label={t('accountant.refunds.decisionCommentLabel')} htmlFor="refund-decision-comment">
-          <Textarea id="refund-decision-comment" value={comment} onChange={(e) => setComment(e.target.value)} rows={2} />
+          <Textarea id="refund-decision-comment" value={comment} onChange={(e) => setComment(e.target.value)} rows={2} maxLength={REFUND_COMMENT_MAX_LENGTH} />
         </FormField>
         {error && <Alert variant="danger">{error}</Alert>}
       </div>
@@ -440,7 +453,7 @@ function ApproveModal({ refund, onClose }: { refund: RefundOut; onClose: () => v
       ) : (
         <div className="space-y-3">
           <FormField label={t('accountant.refunds.approveCommentLabel')} htmlFor="refund-approve-comment">
-            <Textarea id="refund-approve-comment" value={comment} onChange={(e) => setComment(e.target.value)} rows={2} />
+            <Textarea id="refund-approve-comment" value={comment} onChange={(e) => setComment(e.target.value)} rows={2} maxLength={REFUND_COMMENT_MAX_LENGTH} />
           </FormField>
           {error && <Alert variant="danger">{error}</Alert>}
         </div>

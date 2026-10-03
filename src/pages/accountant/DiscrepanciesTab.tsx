@@ -3,6 +3,7 @@ import { Button } from '../../components/ui/button';
 import { FileInput, FormField, Textarea } from '../../components/ui/FormControls';
 import { Modal } from '../../components/ui/Overlay';
 import { Alert } from '../../components/ui/Feedback';
+import { ExportXlsxButton } from '../../components/ui/ExportXlsxButton';
 import { useAuth } from '../../auth/useAuth';
 import { ApiError } from '../../api/errors';
 import { useApiErrorText } from '../../i18n/useApiErrorText';
@@ -25,6 +26,11 @@ import {
 const PAYMENTS_VIEW = 'payments.view';
 const PAYMENTS_MANAGE = 'payments.manage';
 const PAYMENTS_CONFIRM = 'payments.confirm';
+
+/** `ReconciliationResolveIn.comment`/`ManualConfirmationRejectIn.reason`
+ *  (`TextStr`/`NoteStr`, `app/core/schemas.py`) — the same bound on both
+ *  free-text fields below. */
+const DISCREPANCY_TEXT_MAX_LENGTH = 2000;
 
 /**
  * G4 — the discrepancy register (`GET /payments/reconciliations`, resolved
@@ -70,15 +76,21 @@ function ReconciliationRegister({ canResolve }: { canResolve: boolean }) {
 
   return (
     <section className="rounded-2xl border border-[#E4E7EA] bg-white shadow-xs">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#E4E7EA] p-4">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-[#E4E7EA] p-4">
         <h2 className="text-sm font-bold text-[#1A1F24]">{t('accountant.discrepancies.title')}</h2>
-        <div className="flex gap-1.5 w-full sm:w-auto">
-          <Button size="sm" className="flex-1 sm:flex-initial" variant={status === 'open' ? 'primary' : 'outline'} onClick={() => setStatus('open')}>
+        <div className="flex flex-wrap items-center gap-1.5 w-full lg:w-auto">
+          <Button size="md" className="flex-1 sm:flex-initial" variant={status === 'open' ? 'primary' : 'outline'} onClick={() => setStatus('open')}>
             {t('accountant.discrepancies.filterOpen')}
           </Button>
-          <Button size="sm" className="flex-1 sm:flex-initial" variant={status === 'resolved' ? 'primary' : 'outline'} onClick={() => setStatus('resolved')}>
+          <Button size="md" className="flex-1 sm:flex-initial" variant={status === 'resolved' ? 'primary' : 'outline'} onClick={() => setStatus('resolved')}>
             {t('accountant.discrepancies.filterResolved')}
           </Button>
+          <ExportXlsxButton
+            className="ml-auto"
+            path="/api/v1/payments/reconciliations"
+            query={{ status }}
+            disabled={!query.data?.total}
+          />
         </div>
       </div>
 
@@ -193,7 +205,7 @@ function ResolveModal({ row, onClose }: { row: ReconciliationOut; onClose: () =>
     >
       <div className="space-y-3">
         <FormField label={t('accountant.discrepancies.resolveCommentLabel')} required htmlFor="resolve-comment">
-          <Textarea id="resolve-comment" value={comment} onChange={(e) => setComment(e.target.value)} rows={3} />
+          <Textarea id="resolve-comment" value={comment} onChange={(e) => setComment(e.target.value)} rows={3} maxLength={DISCREPANCY_TEXT_MAX_LENGTH} />
         </FormField>
         <FormField label={t('accountant.discrepancies.resolveDocLabel')} htmlFor="resolve-doc">
           <FileInput
@@ -263,7 +275,15 @@ function ManualConfirmationCheckPanel() {
 
   return (
     <section className="rounded-2xl border border-[#E4E7EA] bg-white p-4 shadow-xs" data-testid="manual-check-panel">
-      <h2 className="mb-1 text-sm font-bold text-[#1A1F24]">{t('accountant.discrepancies.manualCheckTitle')}</h2>
+      <div className="mb-1 flex flex-col lg:flex-row lg:items-center justify-between gap-2">
+        <h2 className="text-sm font-bold text-[#1A1F24]">{t('accountant.discrepancies.manualCheckTitle')}</h2>
+        <ExportXlsxButton
+          className="ml-auto"
+          path="/api/v1/payments/manual-confirmations"
+          query={{ status: 'pending_check' }}
+          disabled={!pendingQuery.data?.total}
+        />
+      </div>
       <p className="mb-3 text-xs text-[#5A646D]">{t('accountant.discrepancies.manualCheckHint')}</p>
 
       {error && (
@@ -400,6 +420,7 @@ function ManualConfirmationsPendingList({
                         value={rejectReason}
                         onChange={(e) => onReasonChange(e.target.value)}
                         rows={2}
+                        maxLength={DISCREPANCY_TEXT_MAX_LENGTH}
                       />
                     </FormField>
                     <div className="mt-2 flex gap-1.5">

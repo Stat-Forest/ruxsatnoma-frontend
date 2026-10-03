@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useId } from 'react';
+import React, { useState, useRef, useEffect, useId, useLayoutEffect } from 'react';
 import { AlertCircle, Check, CheckCircle2, ChevronDown, Loader2, Paperclip, Upload, X } from 'lucide-react';
 import { useLanguage, useT } from '../../i18n/useT';
 
@@ -219,7 +219,9 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
     ref
   ) => {
     const [isOpen, setIsOpen] = useState(false);
+    const [dropdownOffset, setDropdownOffset] = useState(0);
     const containerRef = useRef<HTMLDivElement>(null);
+    const dropdownRef = useRef<HTMLDivElement>(null);
     const nativeSelectRef = useRef<HTMLSelectElement | null>(null);
     const autoId = useId();
     const selectId = id || autoId;
@@ -251,6 +253,19 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
         document.removeEventListener('keydown', handleKeyDown);
       };
     }, [isOpen]);
+
+    useLayoutEffect(() => {
+      if (!isOpen || !containerRef.current || !dropdownRef.current) return;
+
+      const containerRect = containerRef.current.getBoundingClientRect();
+      const dropdownRect = dropdownRef.current.getBoundingClientRect();
+      const viewportPadding = 16;
+      const minLeft = viewportPadding;
+      const maxLeft = Math.max(minLeft, window.innerWidth - dropdownRect.width - viewportPadding);
+      const safeLeft = Math.min(Math.max(containerRect.left, minLeft), maxLeft);
+
+      setDropdownOffset(safeLeft - containerRect.left);
+    }, [isOpen, options]);
 
     function handleSelect(val: string) {
       if (disabled) return;
@@ -315,7 +330,7 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
           aria-haspopup="listbox"
           aria-expanded={isOpen}
         >
-          <span className="truncate pr-2">{displayLabel}</span>
+          <span className="truncate pr-2" title={displayLabel}>{displayLabel}</span>
           <ChevronDown
             className={`w-4 h-4 shrink-0 transition-transform duration-200 ${
               isOpen ? 'rotate-180 text-[#2E7D4F]' : disabled ? 'text-[#C2C9D0]' : 'text-[#767F87]'
@@ -326,8 +341,10 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
         {/* Custom floating dropdown popover with smooth shadcn-like styling */}
         {isOpen && (
           <div
+            ref={dropdownRef}
             role="listbox"
-            className="absolute left-0 top-[calc(100%+6px)] w-full min-w-full z-50 bg-white border border-[#E4E7EA] rounded-2xl shadow-xl p-1.5 max-h-64 overflow-y-auto outline-none transition-all"
+            style={{ left: dropdownOffset }}
+            className="absolute top-[calc(100%+6px)] w-full min-w-[min(18rem,calc(100vw-2rem))] max-w-[min(24rem,calc(100vw-2rem))] z-50 bg-white border border-[#E4E7EA] rounded-2xl shadow-xl p-1.5 max-h-64 overflow-y-auto outline-none transition-all"
           >
             {options.map((opt) => {
               const isSelected = String(opt.value) === currentValue;
@@ -345,7 +362,7 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
                       : 'text-[#1A1F24] hover:bg-[#F8F9FA]'
                   }`}
                 >
-                  <span className="truncate">{opt.label}</span>
+                  <span className="min-w-0 whitespace-normal break-words">{opt.label}</span>
                   {isSelected && <Check className="w-4 h-4 text-[#15803D] shrink-0 ml-2" />}
                 </div>
               );

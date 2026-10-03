@@ -17,6 +17,13 @@ import {
 import { LANGUAGE_LABEL_KEY, type AnnouncementLabels } from './labels';
 import { useAnnouncement, useCreateAnnouncement, usePatchAnnouncement } from './queries';
 
+/** `AnnouncementCreateIn.body` — `LocalizedName` caps each language at
+ *  `LONG_TEXT_MAX_LENGTH` (`app/core/schemas.py`). `title` uses the same
+ *  `LocalizedName` type server-side (also capped at 10 000), but keeps its
+ *  own, tighter `maxLength={300}` below — an existing adminka bound already
+ *  under the backend's, left as is (never raised to match it). */
+const ANNOUNCEMENT_BODY_MAX_LENGTH = 10_000;
+
 interface FormState {
   title: Record<BackendLanguage, string>;
   body: Record<BackendLanguage, string>;
@@ -267,6 +274,7 @@ function AnnouncementForm({ announcementId, initial, roles, regions, lang, L, on
                   data-testid={`field-body-${code}`}
                   value={form.body[code]}
                   onChange={(e) => setBody(code, e.target.value)}
+                  maxLength={ANNOUNCEMENT_BODY_MAX_LENGTH}
                 />
               </FormField>
             </div>

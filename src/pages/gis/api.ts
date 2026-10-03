@@ -32,6 +32,7 @@ export type ImportOut = components['schemas']['ImportOut'];
 export type PublishImportOut = components['schemas']['PublishImportOut'];
 export type FeatureCollectionOut = components['schemas']['FeatureCollectionOut'];
 export type OrganizationOut = components['schemas']['OrganizationOut'];
+export type RegionOut = components['schemas']['RegionOut'];
 export type FileOut = components['schemas']['FileOut'];
 
 export interface Paged<T> {
@@ -122,6 +123,7 @@ export async function listContours(params: {
   page?: number;
   page_size?: number;
   organization_id?: string;
+  region_id?: string;
   bbox?: string;
 }): Promise<Paged<ContourListItem>> {
   const { data, error } = await api.GET('/api/v1/gis/contours', { params: { query: params } });
@@ -135,6 +137,8 @@ export async function listContours(params: {
 export async function listContourFeatures(params: {
   bbox?: string;
   organization_id?: string;
+  region_id?: string;
+  tolerance?: number;
 }): Promise<FeatureCollectionOut> {
   const { data, error } = await api.GET('/api/v1/gis/contours/features', {
     params: { query: params },
@@ -378,6 +382,34 @@ async function listOrganizationsUnder(parentId: string | undefined): Promise<Org
   });
   if (error) throw apiError(error);
   return data.items;
+}
+
+/** `components['schemas']['ExtentOut']` types `bbox` as a 4-tuple while the
+ * response as fetched is typed `number[]`; the wider shape is what a caller
+ * can actually rely on, so it is declared here rather than cast. */
+export type ExtentOut = { bbox: number[] | null };
+
+/** `GET /gis/contours/extent` — the bbox of the published contours under
+ * the same filters `/contours/features` takes; what the map flies to when a
+ * region or a leshoz is picked. */
+export async function contoursExtent(params: {
+  organization_id?: string;
+  region_id?: string;
+}): Promise<ExtentOut> {
+  const { data, error } = await api.GET('/api/v1/gis/contours/extent', {
+    params: { query: params },
+  });
+  if (error) throw apiError(error);
+  return data;
+}
+
+/** `GET /refs/regions` — the first step of the Viloyat → Xoʻjalik → Kontur
+ * cascade on the contours tab. Duplicated from `admin/api.ts::listRegions`
+ * for the same cross-track reason as `listOrganizations` below. */
+export async function listRegions(): Promise<RegionOut[]> {
+  const { data, error } = await api.GET('/api/v1/refs/regions', {});
+  if (error) throw apiError(error);
+  return data;
 }
 
 /** The full organization tree, flattened — same two-level walk

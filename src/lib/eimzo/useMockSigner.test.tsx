@@ -25,7 +25,6 @@ function auth(pinfl: string | null): AuthContextValue {
       csrf_token: 'tok',
       is_superuser: false,
       applicant: null,
-      representations: [],
       registration_complete: true,
     },
     loading: false,

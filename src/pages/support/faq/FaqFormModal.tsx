@@ -36,6 +36,9 @@ const LANGUAGE_LABEL_KEY: Record<FaqLanguage, string> = {
   en: 'support.faq.admin.langEn',
 };
 
+/** `FaqIn`/`FaqPatch.sort_order` — `ge=0, le=SORT_ORDER_MAX`. */
+const FAQ_SORT_ORDER_MAX = 10000;
+
 const FAQ_STATUSES: FaqStatus[] = ['draft', 'published', 'archived'];
 const STATUS_LABEL_KEY: Record<FaqStatus, string> = {
   draft: 'support.faq.admin.statusDraft',
@@ -250,6 +253,8 @@ export function FaqFormModal({ faq, onClose }: FaqFormModalProps) {
               id="faq-form-sort-order"
               data-testid="faq-form-sort-order"
               type="number"
+              min={0}
+              max={FAQ_SORT_ORDER_MAX}
               value={form.sortOrder}
               onChange={(e) => setForm((f) => ({ ...f, sortOrder: e.target.value }))}
             />

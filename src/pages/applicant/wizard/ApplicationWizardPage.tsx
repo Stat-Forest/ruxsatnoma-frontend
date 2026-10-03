@@ -29,6 +29,7 @@ import {
 } from '../api';
 import { formatMoney, formatUnit, pickName } from '../format';
 import { fromPrecheckChecks } from '../checkTypeLabels';
+import { CalculationBreakdown } from '../components/CalculationBreakdown';
 import { ChecksList } from './ChecksList';
 import { ContourPicker, type PickedContour } from './ContourPicker';
 import { PricePreviewPanel } from './PricePreviewPanel';
@@ -38,12 +39,28 @@ import {
   buildMockSignature,
   EimzoError,
   eimzoErrorMessageKey,
+  isEimzoCancelled,
   isEimzoMock,
   isProviderUnreachable,
   signDocument,
 } from '../../../lib/eimzo';
 
+// C1 (final review, stage 18): a real organisation certificate carries the
+// signer's own personal PINFL alongside the org TIN — this mock stand-in has
+// no employee identity to read one from (a legal cabinet's own `users.pinfl`
+// is NULL, R1), so this fixed, obviously-fake value fills that slot; the
+// ownership check never reads it for a legal caller (`tin` alone decides).
+const DEMO_ORG_SIGNER_PINFL = '00000000000000';
+
 const GRAZING_CODE = 'grazing';
+// Decision #215 R6: the two activities whose blanks carry lines of their
+// own — asked on step 3 for that activity alone, required before it lets go.
+const DEADWOOD_CODE = 'deadwood';
+const RECREATION_CODE = 'recreation';
+type DeadwoodProduct = NonNullable<ApplicationFilingIn['deadwood_product']>;
+type RecreationPurpose = NonNullable<ApplicationFilingIn['recreation_purpose']>;
+const DEADWOOD_PRODUCTS: readonly DeadwoodProduct[] = ['firewood', 'branches', 'both'];
+const RECREATION_PURPOSES: readonly RecreationPurpose[] = ['cultural_educational', 'upbringing', 'health', 'recreational', 'aesthetic'];
 
 // Mirrors the backend's own ceiling (`backend/app/modules/norms/checks.py`,
 // `MAX_PERIOD_DAYS = 5 * 366`) so a reversed or overlong period is named IN
@@ -147,6 +164,60 @@ interface LivestockRow {
   headCount: string;
 }
 
+// Mirrors the backend's `MAX_HEAD_COUNT` (`norms/schemas.py`, moved there by
+// stage 17 R4) — a livestock row's head count is refused above this, so the
+// wizard holds the input to the same bound rather than letting the applicant
+// type past it and learn about it from a 422.
+export const LIVESTOCK_HEAD_COUNT_MAX = 1_000_000;
+// Mirrors the backend's quantity `Decimal` column: 12 digits, 4 decimal
+// places (`10**(12-4) - 10**-4`, stage 17 R7) — the single quantity field a
+// non-livestock activity fills on step 3.
+export const QUANTITY_MAX = 99_999_999.9999;
+// Mirrors `ApplicantAddressIn.address` (stage 17 C1) — a bound of its own,
+// not one of the shared `CodeStr`/`NameStr`/`TextStr` types — the address
+// this step collects when the applicant's own profile has none yet.
+export const APPLICANT_ADDRESS_MAX_LENGTH = 500;
+// Mirrors the backend's `MAX_LIVESTOCK_ITEMS` (`norms/schemas.py`, stage 17
+// R3) — the add-row button additionally stops here even if more livestock
+// types than this exist (ten are seeded today).
+export const LIVESTOCK_ITEMS_MAX = 20;
+
+/**
+ * Fix round 1 (stage 17 QA-01 review, Important — this was the QA trigger):
+ * `max={LIVESTOCK_HEAD_COUNT_MAX}` on the input does nothing without a
+ * `<form>`, and a row with a species but no head count (or the reverse) used
+ * to be silently dropped by `buildFiling`/`calculationRequest` rather than
+ * named. A fully empty row (freshly added, neither field touched) is not an
+ * error — it simply does not count as complete yet; `null` from both means
+ * "nothing to say about this row".
+ */
+function livestockRowIssue(
+  row: LivestockRow,
+  t: (key: string) => string,
+): { typeError: string | null; countError: string | null } {
+  const hasType = row.livestockTypeId !== '';
+  const hasCount = row.headCount !== '';
+  if (!hasType && !hasCount) return { typeError: null, countError: null };
+  if (!hasType) return { typeError: t('wizard.step3.typeRequired'), countError: null };
+  if (!hasCount) return { typeError: null, countError: t('wizard.step3.headCountRequired') };
+  const n = Number(row.headCount);
+  const valid = Number.isInteger(n) && n >= 1 && n <= LIVESTOCK_HEAD_COUNT_MAX;
+  return { typeError: null, countError: valid ? null : t('wizard.step3.headCountInvalid') };
+}
+
+/** Same QA trigger, the non-livestock side: `max={QUANTITY_MAX}` on the
+ *  input does nothing without a `<form>` either, so a value outside
+ *  0..`QUANTITY_MAX` or with more than 4 decimal places must be named IN THE
+ *  FIELD, not learned from a 422 after Next. */
+function quantityIssue(quantity: string, t: (key: string) => string): string | null {
+  if (!quantity) return null;
+  const n = Number(quantity);
+  if (!Number.isFinite(n) || n < 0 || n > QUANTITY_MAX) return t('wizard.step3.quantityInvalid');
+  const decimals = quantity.split('.')[1];
+  if (decimals && decimals.length > 4) return t('wizard.step3.quantityInvalid');
+  return null;
+}
+
 /**
  * One not-yet-uploaded row of step 4. `typeValue` is a `doc_types` item id,
  * or `''` while nothing is chosen. A row LEAVES this list the moment its
@@ -178,6 +249,27 @@ function isUnknownBenefitCode(error: unknown): boolean {
   );
 }
 
+/** The backend's refusals of the benefit claim itself (`ERR-APP-003`): the
+ *  number missing (#181), the scan missing or its type not configured
+ *  (#220), or — for the Beekeeping Union member — a number unknown to the
+ *  Union's register, someone else's, or expired (#219). Each belongs to the
+ *  benefit row: the wizard keeps or sends the applicant back to step 4 and
+ *  shows it there, rather than a banner about a field they cannot see. */
+const BENEFIT_CLAIM_REASONS = new Set([
+  'benefit_certificate_required',
+  'benefit_claim_needs_a_document',
+  'benefit_doc_type_not_configured',
+  'benefit_certificate_unknown',
+  'benefit_certificate_not_yours',
+  'benefit_certificate_expired',
+]);
+
+function isBenefitClaimRefusal(error: unknown): boolean {
+  if (!(error instanceof ApiError) || error.code !== 'ERR-APP-003') return false;
+  const reason = (error.details as { reason?: string } | undefined)?.reason;
+  return reason !== undefined && BENEFIT_CLAIM_REASONS.has(reason);
+}
+
 /**
  * B7 — the application wizard, the core of the system. Rewritten in stage 12
  * (plan 12, R10 — filing without a draft): steps 1-4 write NOTHING, and the
@@ -185,11 +277,12 @@ function isUnknownBenefitCode(error: unknown): boolean {
  * state to `POST /applications/precheck` for the checks and the price;
  * pressing «Yuborish» posts the SAME filing to `POST /applications`, which
  * creates the application already SUBMITTED, numbered, priced, signed and
- * assigned, in one request. A legal-entity filing first calls
+ * assigned, in one request. A legal applicant's filing first calls
  * `POST /applications/package` to mint the id and get the bytes to sign,
- * then posts that id and the signature alongside the filing; a citizen
- * filing for themselves (`on_behalf='self'`, ruling #183) skips the package
- * call entirely. There is no DRAFT anywhere in this flow any more — a
+ * then posts that id and the signature alongside the filing (ERI is the
+ * only signing method for a legal applicant, ruling #226); an individual
+ * signing for themselves (ruling #183) skips the package call entirely.
+ * There is no DRAFT anywhere in this flow any more — a
  * `?draft=<id>` in the URL is simply never read, and leaving before the
  * final POST loses everything entered (the leave guard below says so).
  */
@@ -207,13 +300,17 @@ export function ApplicationWizardPage() {
   // still — reaching step 4 then returning to step 2 must not re-lock
   // steps 3 and 4 (`Stepper`'s own `maxStepReached` prop docstring).
   const [maxStepReached, setMaxStepReached] = useState(1);
-  const [onBehalf, setOnBehalf] = useState<'self' | 'legal'>('self');
-  const [representationApplicantId, setRepresentationApplicantId] = useState('');
   const [activityTypeId, setActivityTypeId] = useState('');
   const [contour, setContour] = useState<PickedContour | null>(null);
   const [periodFrom, setPeriodFrom] = useState('');
   const [periodTo, setPeriodTo] = useState('');
   const [quantity, setQuantity] = useState('');
+  // Decision #215 R6 — the deadwood and recreation blanks' own lines, asked
+  // only when that activity is chosen and required before step 3 lets go.
+  const [deadwoodProduct, setDeadwoodProduct] = useState<DeadwoodProduct | ''>('');
+  const [removalDeadline, setRemovalDeadline] = useState('');
+  const [recreationPurpose, setRecreationPurpose] = useState<RecreationPurpose | ''>('');
+  const [eventAt, setEventAt] = useState('');
   const [items, setItems] = useState<LivestockRow[]>([]);
   // Step 4's local documents (plan 12, R9): each is uploaded through
   // `POST /files` the moment it is chosen, exactly as before, but there is
@@ -236,10 +333,11 @@ export function ApplicationWizardPage() {
   // applicant first learns of it.
   const [benefitCertificateNo, setBenefitCertificateNo] = useState('');
   const [certificateTouched, setCertificateTouched] = useState(false);
-  // Set only from a filing refusal (`ERR-APP-003`,
-  // `benefit_certificate_required/unknown/not_yours`) — `handleSignAndSubmit`
-  // sends the applicant back to step 4 and shows the server's own reason
-  // right at this field, rather than only in the step-5 banner.
+  // Set only from a backend refusal of the claim (`isBenefitClaimRefusal`)
+  // — step 4's own pre-check (#219: the Union's register answers
+  // on "Next") or a filing refusal in `handleSignAndSubmit`, which sends the
+  // applicant back to step 4. Shown right at this field, never only as a
+  // step-5 banner.
   const [benefitCertificateServerError, setBenefitCertificateServerError] = useState<string | null>(null);
   // Step 4's rows that have no file yet. One empty row from the start, so
   // the step opens on a select rather than on a lone "add" button; every
@@ -257,6 +355,11 @@ export function ApplicationWizardPage() {
   const [precheckResult, setPrecheckResult] = useState<PrecheckOut | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [signing, setSigning] = useState(false);
+  // The id of the application a successful filing produced — set instead of
+  // navigating away at once, so the citizen first sees which phone the
+  // status SMS will reach (Oybek, 2026-09-13). Every way out of that dialog
+  // is a navigation, and all of them land somewhere safe.
+  const [filedId, setFiledId] = useState<string | null>(null);
   // Ruling #184: mandatory before ANY signature, self or legal alike — the
   // sign button stays disabled until this is ticked. Never persisted: the
   // applicant accepts it fresh at the moment of signing, not once and
@@ -264,13 +367,9 @@ export function ApplicationWizardPage() {
   const [rulesAccepted, setRulesAccepted] = useState(false);
 
   // Ruling #113: the address requisite is gated at SUBMIT, not at
-  // registration. It belongs to the applicant the filing is FOR — the
-  // signed-in citizen when filing for themselves, the represented legal
-  // entity when filing on its behalf — because requisite 11 of form
-  // 1-ilova prints the holder's address, and the holder is whoever the
-  // permit will name. Asking about `MeOut.applicant` in both cases would
-  // leave a representative unable to file for an entity that has no
-  // address: the backend refuses the submission and the wizard never asks.
+  // registration — requisite 11 of form 1-ilova prints the holder's
+  // address, and the holder is always the caller's own applicant (stage 18,
+  // decision #226: no more filing "on behalf" of someone else's entity).
   // An applicant that already has one is never asked again.
   const [address, setAddress] = useState('');
   const [addressTouched, setAddressTouched] = useState(false);
@@ -282,12 +381,12 @@ export function ApplicationWizardPage() {
   // never shown. So the first press saves the address and re-runs the
   // pre-check, the price appears, and the second press signs.
   const [addressSaved, setAddressSaved] = useState(false);
-  const filingApplicant =
-    onBehalf === 'legal'
-      ? (me?.representations.find((r) => r.applicant.id === representationApplicantId)?.applicant ??
-        null)
-      : (me?.applicant ?? null);
+  const filingApplicant = me?.applicant ?? null;
   const needsAddress = filingApplicant !== null && !filingApplicant.address;
+  // Ruling #226: an organisation's ERI already proves authority, so a legal
+  // applicant always signs with ERI — there is no plain-button path for it,
+  // the way ruling #183 still gives an individual applicant.
+  const isLegalApplicant = filingApplicant?.kind === 'legal';
 
   const activityTypesQuery = useQuery({ queryKey: ['activity-types'], queryFn: listActivityTypes });
   const livestockTypesQuery = useQuery({ queryKey: ['livestock-types'], queryFn: listLivestockTypes });
@@ -302,6 +401,8 @@ export function ApplicationWizardPage() {
 
   const activityCode = activityTypesQuery.data?.find((a) => a.id === activityTypeId)?.code;
   const isGrazing = activityCode === GRAZING_CODE;
+  const isDeadwood = activityCode === DEADWOOD_CODE;
+  const isRecreation = activityCode === RECREATION_CODE;
   const quantityUnit = activityTypesQuery.data?.find((a) => a.id === activityTypeId)?.quantity_unit;
 
   // Ruling #181 scopes every benefit category to ONE activity — the item's
@@ -332,19 +433,23 @@ export function ApplicationWizardPage() {
       ? claimedBenefitCategoryItemId
       : '';
 
-  // Ruling #181: every one of the seven benefit categories needs a
-  // certificate number — there is no `props.requires_certificate` switch to
-  // read any more. Simply: a category is chosen, or it isn't. The
-  // certificate's scan is OPTIONAL (ruling #189): the number is the claim,
-  // the file is support for whoever verifies it, and the backend no longer
-  // gates the submission on it either.
+  // Ruling #181 and decision #220: every one of the seven benefit categories
+  // needs a certificate number AND its scan — there is no
+  // `props.requires_certificate` switch to read. Simply: a category is
+  // chosen, or it isn't.
   const requiresCertificate = benefitCategoryItemId !== '';
   // The `doc_types` item the scan is filed under (`benefit_proof`,
   // migration `0024`) — looked up by CODE, never by list position (the exact
   // bug `respond_info`'s own fix wave, docs/status.md, exists to avoid
   // repeating here). Undefined while the list loads or if the item is
-  // archived — then the benefit row simply offers no file button.
+  // archived — then the benefit row offers no file button.
   const benefitProofDocTypeId = docTypesQuery.data?.find((d) => d.code === 'benefit_proof')?.id;
+  // FAIL-CLOSED, like the backend's own check (#220): while the doc-type list
+  // has not loaded, or `benefit_proof` is not in it, the gate stays SHUT —
+  // never a green "attached" over an empty list.
+  const hasBenefitProofDoc =
+    !requiresCertificate ||
+    (!!benefitProofDocTypeId && documents.some((d) => d.doc_type_item_id === benefitProofDocTypeId));
 
   // Plan 12: the whole filing, assembled from this component's own state —
   // never a server-side draft. Shared by the pre-check, the package and the
@@ -356,27 +461,36 @@ export function ApplicationWizardPage() {
           .map((i) => ({ livestock_type_id: i.livestockTypeId, head_count: Number(i.headCount) }))
       : [];
     return {
-      on_behalf: onBehalf,
-      applicant_id: onBehalf === 'legal' ? representationApplicantId : undefined,
       activity_type_id: activityTypeId || undefined,
       contour_id: contour?.id,
       period_from: periodFrom || undefined,
       period_to: periodTo || undefined,
       quantity: isGrazing ? undefined : quantity || undefined,
+      deadwood_product: isDeadwood ? deadwoodProduct || undefined : undefined,
+      removal_deadline: isDeadwood ? removalDeadline || undefined : undefined,
+      recreation_purpose: isRecreation ? recreationPurpose || undefined : undefined,
+      // <input type="datetime-local"> yields `YYYY-MM-DDTHH:MM` with no zone;
+      // sent as-is — the backend reads a naive value as Tashkent wall-clock time
+      // (the only zone this system serves) and stores it aware.
+      event_at: isRecreation ? eventAt || undefined : undefined,
       items: filingItems,
       benefit_category_item_id: benefitCategoryItemId || null,
       benefit_certificate_no: requiresCertificate ? benefitCertificateNo.trim() || null : null,
       documents: documents.map((d) => ({ doc_type_item_id: d.doc_type_item_id, file_id: d.file_id })),
     };
   }, [
-    onBehalf,
-    representationApplicantId,
     activityTypeId,
     contour,
     periodFrom,
     periodTo,
     isGrazing,
     quantity,
+    isDeadwood,
+    deadwoodProduct,
+    removalDeadline,
+    isRecreation,
+    recreationPurpose,
+    eventAt,
     items,
     benefitCategoryItemId,
     requiresCertificate,
@@ -399,9 +513,16 @@ export function ApplicationWizardPage() {
 
   // The stepper's own click handler: only a step already reached is a valid
   // destination — `Stepper` itself also gates this, so the check here is
-  // belt-and-braces, not the only guard.
+  // belt-and-braces, not the only guard. A second guard, `step3Blocked`
+  // (below), refuses a jump PAST step 3 while its own data is unfinished or
+  // out of range — the exact round trip this closes: reach step 5 once,
+  // come back to step 3, break a row, then skip it again through the
+  // stepper instead of step 3's own (already-guarded) Next. Going back to
+  // step 3 or earlier is always allowed, whatever state step 3 is in.
   function goToCompletedStep(stepId: number) {
-    if (stepId <= maxStepReached) setStep(stepId);
+    if (stepId > maxStepReached) return;
+    if (stepId > 3 && step3Blocked) return;
+    setStep(stepId);
   }
 
   // T1's contract: choosing the activity type advances to step 2 BY
@@ -441,8 +562,27 @@ export function ApplicationWizardPage() {
       return;
     }
     if (step === 4) {
-      goToStep(5);
       setPrecheckResult(null);
+      // Ruling #219: with a benefit claimed, the pre-check runs while the
+      // applicant is STILL on step 4 — the Beekeeping Union's register
+      // answers there, and a number it refuses keeps them where the number
+      // is typed (Odilxon's own words: "returns"), never on step 5 with a
+      // banner. Any other outcome moves on as before: the result, or a
+      // refusal of something else, is shown on step 5.
+      if (requiresCertificate) {
+        precheckMutation.mutate(undefined, {
+          onSuccess: () => goToStep(5),
+          onError: (err) => {
+            if (isBenefitClaimRefusal(err)) {
+              setBenefitCertificateServerError(errorText(err));
+              return;
+            }
+            goToStep(5);
+          },
+        });
+        return;
+      }
+      goToStep(5);
       // `mutate`, not `mutateAsync`: nothing here awaits the result, and a
       // refused pre-check (a 400 on the input, `precheckFiling`'s own
       // docstring) is shown from the mutation's state on step 5 — as an
@@ -456,6 +596,29 @@ export function ApplicationWizardPage() {
   function goBack() {
     setStep((s) => Math.max(1, s - 1));
   }
+
+  // Fix round 1 (stage 17 QA-01 review, Important): one entry per row,
+  // `null`/`null` for a row with nothing to say (fully empty, or complete
+  // and valid) — read by both the row's own fields (below) and the Next
+  // button's `disabled` (further down) so the two never disagree about
+  // which row is blocking.
+  const grazingRowIssues = useMemo(
+    () => items.map((row) => livestockRowIssue(row, t)),
+    [items, t],
+  );
+  const grazingHasBlockingRow = grazingRowIssues.some((issue) => issue.typeError || issue.countError);
+  const quantityError = useMemo(() => quantityIssue(quantity, t), [quantity, t]);
+
+  // The exact rule step 3's own Next button disables on (below, in the
+  // footer) — pulled out so `goToCompletedStep` above and step 4/5's own
+  // guards can all ask "is step 3's data actually complete" without
+  // repeating (or drifting from) the same four conditions.
+  const step3Blocked =
+    (!isGrazing && (!quantity || !!quantityError)) ||
+    (isGrazing &&
+      (items.filter((i) => i.livestockTypeId && i.headCount).length === 0 || grazingHasBlockingRow)) ||
+    (isDeadwood && (!deadwoodProduct || !removalDeadline)) ||
+    (isRecreation && (!recreationPurpose || !eventAt));
 
   const calculationRequest: CalculationIn | null = useMemo(() => {
     if (!activityTypeId || !contour || !periodFrom || !periodTo) return null;
@@ -491,7 +654,7 @@ export function ApplicationWizardPage() {
     setSigning(true);
     try {
       const applicant = me?.applicant;
-      if (!applicant?.pinfl) {
+      if (!isLegalApplicant && !applicant?.pinfl) {
         setSubmitError(t('wizard.step5.noPinfl'));
         return;
       }
@@ -502,9 +665,7 @@ export function ApplicationWizardPage() {
         }
         // Save before signing: requisite 11 of form 1-ilova is printed from
         // `applicants.address`, so the applicant the permit will name must
-        // carry it before the package is fetched and signed. The signature
-        // itself stays the citizen's own (`applicant.pinfl` above) — a legal
-        // entity has a STIR, not a PINFL, and never signs for itself.
+        // carry it before the package is fetched and signed.
         // `refreshMe` adopts the result — this route hands back an
         // `ApplicantOut`, not a whole `MeOut`
         // (`AuthContextValue.refreshMe`'s own docstring).
@@ -519,12 +680,14 @@ export function ApplicationWizardPage() {
         return;
       }
       let created;
-      // Ruling #183: a citizen filing for themselves signs with a plain
-      // button — no envelope, no E-IMZO dialog at all. The applicant session
-      // already identifies them by PINFL (OneID/E-IMZO login, #32), so
-      // there is nothing left for this browser to produce; `file()` mints
-      // the application id itself (plan 12, R2).
-      if (onBehalf === 'self') {
+      // Ruling #183/#226: an individual applicant filing for themselves
+      // signs with a plain button — no envelope, no E-IMZO dialog at all.
+      // The applicant session already identifies them by PINFL (OneID/
+      // E-IMZO login, #32), so there is nothing left for this browser to
+      // produce; `file()` mints the application id itself (plan 12, R2). A
+      // legal applicant has no such plain path — its ERI already proves
+      // authority, so it always signs, ruling #226.
+      if (!isLegalApplicant) {
         created = await fileApplication({ ...buildFiling(), rules_accepted: true });
       } else {
         // Plan 12, R2: the package mints the id the application WILL carry
@@ -535,8 +698,18 @@ export function ApplicationWizardPage() {
         const pkcs7 = isEimzoMock()
           ? await buildMockSignature({
               documentBytes: packageBytes.buffer as ArrayBuffer,
-              pinfl: applicant.pinfl,
-              fullName: applicant.name,
+              // C1 (final review): a real organisation certificate carries
+              // BOTH the signer's own personal PINFL and the org TIN at
+              // once — `pinfl_or_stir` alone (the STIR passed as if it were
+              // a PINFL) never exercised the branch of `_ownership_reason`
+              // a legal cabinet's own key actually hits. This account's own
+              // `users.pinfl` is NULL (R1), so a demo placeholder stands in
+              // for "some employee's PINFL" — the ownership check matches on
+              // `tin` against the applicant's own `stir`, never on this
+              // value.
+              pinfl: DEMO_ORG_SIGNER_PINFL,
+              tin: applicant?.stir ?? null,
+              fullName: applicant?.name,
             })
           : await signDocument(packageBytes);
         created = await fileApplication({
@@ -546,25 +719,20 @@ export function ApplicationWizardPage() {
           pkcs7,
         });
       }
-      // The one navigation the leave-guard below must let through without
-      // asking — it fires right after a successful filing, when there is
-      // nothing left to lose. A ref, not state: `navigate()` runs in the
-      // same tick, before a `setState` would have re-rendered the guard.
+      // The filing is in the database — from here on every navigation
+      // (the card, the profile, a dismissed dialog) must pass the
+      // leave-guard below without asking: there is nothing left to lose.
       skipLeaveGuardRef.current = true;
-      navigate(`/my/applications/${created.id}`);
+      setFiledId(created.id);
     } catch (err) {
-      // Ruling #181: a benefit-certificate refusal is a FIELD error, not a
-      // banner — the wizard sends the applicant back to step 4, where the
-      // certificate number actually lives, rather than leaving them on step
-      // 5 staring at a sentence about a field they cannot see.
-      const reason = err instanceof ApiError ? (err.details as { reason?: string } | undefined)?.reason : undefined;
-      if (
-        err instanceof ApiError &&
-        err.code === 'ERR-APP-003' &&
-        (reason === 'benefit_certificate_required' ||
-          reason === 'benefit_certificate_unknown' ||
-          reason === 'benefit_certificate_not_yours')
-      ) {
+      // Cancel in the certificate picker is a decision, not a failure: an
+      // error banner here would claim the filing failed when nobody tried.
+      if (isEimzoCancelled(err)) return;
+      // Rulings #181/#219: a refusal of the certificate number is a FIELD
+      // error, not a banner — the register may have changed since step 4's
+      // pre-check, so the filing can still refuse it, and the wizard sends
+      // the applicant back to step 4, where the number actually lives.
+      if (isBenefitClaimRefusal(err)) {
         setBenefitCertificateServerError(errorText(err));
         setStep(4);
         return;
@@ -698,32 +866,6 @@ export function ApplicationWizardPage() {
       {step === 1 && (
         <section className="bg-white border border-[#E4E7EA] rounded-2xl p-6 shadow-xs space-y-4">
           <h2 className="text-sm font-bold text-[#1A1F24] uppercase tracking-wider">{t('wizard.step1.heading')}</h2>
-          {me && me.representations.length > 0 && (
-            <FormField label={t('wizard.step1.onBehalfLabel')}>
-              {/* Frozen once an activity is chosen: ruling #183 makes the
-                  signing path depend on `on_behalf` — flipping it after
-                  later steps were already filled in for one identity would
-                  send a `self` filing to E-IMZO or a `legal` one to the
-                  plain button (stage 10 review, finding 4). */}
-              <Select
-                value={onBehalf === 'legal' ? representationApplicantId : ''}
-                disabled={activityTypeId !== ''}
-                onChange={(e) => {
-                  if (!e.target.value) {
-                    setOnBehalf('self');
-                    setRepresentationApplicantId('');
-                  } else {
-                    setOnBehalf('legal');
-                    setRepresentationApplicantId(e.target.value);
-                  }
-                }}
-                options={[
-                  { value: '', label: t('wizard.step1.onBehalfSelf') },
-                  ...me.representations.map((r) => ({ value: r.applicant.id, label: r.applicant.name })),
-                ]}
-              />
-            </FormField>
-          )}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             {(activityTypesQuery.data ?? []).map((a) => (
               <button
@@ -810,53 +952,180 @@ export function ApplicationWizardPage() {
             <h2 className="text-sm font-bold text-[#1A1F24] uppercase tracking-wider">{t('wizard.step3.heading')}</h2>
             {isGrazing ? (
               <div className="space-y-3">
-                {items.map((row, idx) => (
-                  <div key={row.key} className="flex items-end gap-3">
-                    <FormField label={t('wizard.step3.livestockType')} className="flex-1">
+                {items.map((row, idx) => {
+                  const rowIssue = grazingRowIssues[idx] ?? { typeError: null, countError: null };
+                  return (
+                    // Top-aligned, not bottom: a field's error line grows its
+                    // column, and `items-end` then pushed that column's label
+                    // and input above the neighbour's.
+                    <div key={row.key} className="flex flex-col sm:flex-row sm:items-start gap-3">
+                      <FormField
+                        label={t('wizard.step3.livestockType')}
+                        className="flex-1 min-w-0"
+                        error={rowIssue.typeError ?? undefined}
+                      >
+                        <Select
+                          value={row.livestockTypeId}
+                          error={!!rowIssue.typeError}
+                          onChange={(e) => {
+                            const next = [...items];
+                            next[idx] = { ...row, livestockTypeId: e.target.value };
+                            setItems(next);
+                          }}
+                          options={[
+                            { value: '', label: t('wizard.step3.selectPrompt') },
+                            // A type another row already carries is dropped
+                            // from THIS row's own options — except the one
+                            // this row itself currently holds, or picking it
+                            // again would look chosen and then vanish from
+                            // its own select. Backend: `duplicate_livestock_type`.
+                            ...(livestockTypesQuery.data ?? [])
+                              .filter(
+                                (l) =>
+                                  l.id === row.livestockTypeId ||
+                                  !items.some((i) => i.livestockTypeId === l.id),
+                              )
+                              .map((l) => ({ value: l.id, label: pickName(l.name, lang) })),
+                          ]}
+                        />
+                      </FormField>
+                      <div className="flex items-start gap-3">
+                        <FormField
+                          label={t('wizard.step3.headCount')}
+                          className="w-32"
+                          error={rowIssue.countError ?? undefined}
+                        >
+                          <Input
+                            type="number"
+                            min={1}
+                            max={LIVESTOCK_HEAD_COUNT_MAX}
+                            error={!!rowIssue.countError}
+                            value={row.headCount}
+                            onChange={(e) => {
+                              const next = [...items];
+                              next[idx] = { ...row, headCount: e.target.value };
+                              setItems(next);
+                            }}
+                          />
+                        </FormField>
+                        <div className="mt-[22px] h-[40px] flex items-center">
+                          <Button variant="ghost" size="sm" onClick={() => setItems(items.filter((_, i) => i !== idx))} className="cursor-pointer">
+                            <Trash2 className="w-4 h-4 text-[#B91C1C]" />
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+                {/* Fix round 1 (stage 17 QA-01 review): this project's own
+                    defects keep failing in the HIDING direction, and a
+                    button that vanishes whenever the query is loading,
+                    errored, or simply not answered yet would be exactly
+                    that — a grazing applicant left with no row, no button
+                    and no message. So every branch below renders SOMETHING:
+                    a spinner-disabled button while loading; a danger Alert
+                    plus a disabled button on error (never hidden, so the
+                    applicant sees WHY nothing can be added); a "not
+                    configured" Alert with no button when the list loaded but
+                    is genuinely empty (nothing to add — the Alert IS the
+                    message, not a silent gap); and — the only case with no
+                    Alert, because it is the intended end state — no button
+                    once every known type already has its own row. */}
+                {livestockTypesQuery.isError && (
+                  <Alert variant="danger">
+                    {errorText(livestockTypesQuery.error, t('wizard.step3.livestockTypesLoadError'))}
+                  </Alert>
+                )}
+                {livestockTypesQuery.isSuccess && livestockTypesQuery.data.length === 0 && (
+                  <Alert variant="warning">{t('wizard.step3.livestockNotConfigured')}</Alert>
+                )}
+                {/* One row per known type at most, and never more than
+                    `LIVESTOCK_ITEMS_MAX` (stage 17 R3/M2) — a row with no
+                    type left to offer would only duplicate an existing one,
+                    which is exactly the refusal this caps client-side.
+                    Hidden only once the cap is actually known and reached
+                    (including the trivial "0 types, 0 rows" case, covered by
+                    the Alert above); loading and error keep the button
+                    visible instead of hiding it (see the Alert/disabled
+                    handling above). */}
+                {!(
+                  livestockTypesQuery.isSuccess &&
+                  items.length >= Math.min(livestockTypesQuery.data.length, LIVESTOCK_ITEMS_MAX)
+                ) && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    leftIcon={<Plus className="w-4 h-4" />}
+                    isLoading={livestockTypesQuery.isLoading}
+                    disabled={livestockTypesQuery.isError}
+                    onClick={() => setItems([...items, { key: crypto.randomUUID(), livestockTypeId: '', headCount: '' }])}
+                    className="cursor-pointer"
+                  >
+                    {t('wizard.step3.addLivestock')}
+                  </Button>
+                )}
+              </div>
+            ) : (
+              <>
+                <FormField
+                  label={quantityUnit ? `${t('wizard.step3.quantity')} (${formatUnit(quantityUnit, t, lang)})` : t('wizard.step3.quantity')}
+                  required
+                  htmlFor="quantity"
+                  error={quantityError ?? undefined}
+                >
+                  <Input
+                    id="quantity"
+                    type="number"
+                    min={0}
+                    max={QUANTITY_MAX}
+                    step="0.0001"
+                    error={!!quantityError}
+                    value={quantity}
+                    onChange={(e) => setQuantity(e.target.value)}
+                  />
+                </FormField>
+                {/* Decision #215 R6: the deadwood blank's own lines, for
+                    that activity alone; the backend refuses a pre-check
+                    without them (`checks.missing_for_pricing`), so Next
+                    holds until both are filled. */}
+                {isDeadwood && (
+                  <>
+                    <FormField label={t('wizard.step3.deadwoodProduct')} required htmlFor="deadwood-product">
                       <Select
-                        value={row.livestockTypeId}
-                        onChange={(e) => {
-                          const next = [...items];
-                          next[idx] = { ...row, livestockTypeId: e.target.value };
-                          setItems(next);
-                        }}
+                        id="deadwood-product"
+                        value={deadwoodProduct}
+                        onChange={(e) => setDeadwoodProduct(e.target.value as DeadwoodProduct | '')}
                         options={[
                           { value: '', label: t('wizard.step3.selectPrompt') },
-                          ...(livestockTypesQuery.data ?? []).map((l) => ({ value: l.id, label: pickName(l.name, lang) })),
+                          ...DEADWOOD_PRODUCTS.map((code) => ({ value: code, label: t(`wizard.step3.deadwoodProduct.${code}`) })),
                         ]}
                       />
                     </FormField>
-                    <FormField label={t('wizard.step3.headCount')} className="w-32">
-                      <Input
-                        type="number"
-                        min={1}
-                        value={row.headCount}
-                        onChange={(e) => {
-                          const next = [...items];
-                          next[idx] = { ...row, headCount: e.target.value };
-                          setItems(next);
-                        }}
+                    <FormField label={t('wizard.step3.removalDeadline')} required htmlFor="removal-deadline">
+                      <Input id="removal-deadline" type="date" value={removalDeadline} onChange={(e) => setRemovalDeadline(e.target.value)} />
+                    </FormField>
+                  </>
+                )}
+                {/* The recreation blank's lines, the same way (#215 R6). */}
+                {isRecreation && (
+                  <>
+                    <FormField label={t('wizard.step3.recreationPurpose')} required htmlFor="recreation-purpose">
+                      <Select
+                        id="recreation-purpose"
+                        value={recreationPurpose}
+                        onChange={(e) => setRecreationPurpose(e.target.value as RecreationPurpose | '')}
+                        options={[
+                          { value: '', label: t('wizard.step3.selectPrompt') },
+                          ...RECREATION_PURPOSES.map((code) => ({ value: code, label: t(`wizard.step3.recreationPurpose.${code}`) })),
+                        ]}
                       />
                     </FormField>
-                    <Button variant="ghost" size="sm" onClick={() => setItems(items.filter((_, i) => i !== idx))} className="cursor-pointer">
-                      <Trash2 className="w-4 h-4 text-[#B91C1C]" />
-                    </Button>
-                  </div>
-                ))}
-                <Button
-                  variant="outline"
-                  size="sm"
-                  leftIcon={<Plus className="w-4 h-4" />}
-                  onClick={() => setItems([...items, { key: crypto.randomUUID(), livestockTypeId: '', headCount: '' }])}
-                  className="cursor-pointer"
-                >
-                  {t('wizard.step3.addLivestock')}
-                </Button>
-              </div>
-            ) : (
-              <FormField label={quantityUnit ? `${t('wizard.step3.quantity')} (${formatUnit(quantityUnit, t, lang)})` : t('wizard.step3.quantity')} required htmlFor="quantity">
-                <Input id="quantity" type="number" min={0} step="0.0001" value={quantity} onChange={(e) => setQuantity(e.target.value)} />
-              </FormField>
+                    <FormField label={t('wizard.step3.eventAt')} required htmlFor="event-at">
+                      <Input id="event-at" type="datetime-local" value={eventAt} onChange={(e) => setEventAt(e.target.value)} />
+                    </FormField>
+                  </>
+                )}
+              </>
             )}
           </div>
 
@@ -871,6 +1140,11 @@ export function ApplicationWizardPage() {
       {step === 4 && (
         <section className="bg-white border border-[#E4E7EA] rounded-2xl p-6 shadow-xs space-y-4">
           <h2 className="text-sm font-bold text-[#1A1F24] uppercase tracking-wider">{t('wizard.step4.heading')}</h2>
+          {/* Second line of defence, visible: normally unreachable (step 3's
+              own Next and the stepper both already refuse to leave it
+              broken), but named here too rather than just disabling Next
+              with no explanation. */}
+          {step3Blocked && <Alert variant="warning">{t('wizard.nav.step3Incomplete')}</Alert>}
           {(docTypesQuery.data ?? []).length === 0 ? (
             <Alert variant="warning">{t('wizard.step4.notConfigured')}</Alert>
           ) : (
@@ -919,6 +1193,8 @@ export function ApplicationWizardPage() {
         <section className="space-y-4">
           <div className="bg-white border border-[#E4E7EA] rounded-2xl p-6 shadow-xs space-y-3">
             <h2 className="text-sm font-bold text-[#1A1F24] uppercase tracking-wider">{t('wizard.step5.heading')}</h2>
+            {/* Same second line of defence as step 4's own, above. */}
+            {step3Blocked && <Alert variant="warning">{t('wizard.nav.step3Incomplete')}</Alert>}
             {precheckMutation.isPending && (
               <p className="text-xs text-[#5A646D] flex items-center gap-2">
                 <Loader2 className="w-4 h-4 animate-spin" /> {t('wizard.step5.checking')}
@@ -935,8 +1211,27 @@ export function ApplicationWizardPage() {
               <>
                 <ChecksList checks={fromPrecheckChecks(precheckResult.checks)} />
                 {precheckResult.calculation ? (
-                  <div className="bg-[#F0F9FF] border border-[#BAE6FD] rounded-xl p-4 font-mono text-lg font-bold text-[#123522]">
-                    {formatMoney(precheckResult.calculation.amount)} {t('wizard.step3.currency')}
+                  <div className="bg-[#F0F9FF] border border-[#BAE6FD] rounded-xl p-4 space-y-2">
+                    <div className="font-mono text-lg font-bold text-[#123522]">
+                      {formatMoney(precheckResult.calculation.amount)} {t('wizard.step3.currency')}
+                    </div>
+                    {/* The citizen signs over this figure, so they see how it
+                        came about here, before the signature — not only on
+                        the card afterwards. */}
+                    <CalculationBreakdown
+                      lines={precheckResult.calculation.lines}
+                      bhm={precheckResult.calculation.bhm}
+                      amount={precheckResult.calculation.amount}
+                      livestockName={(code) =>
+                        pickName(livestockTypesQuery.data?.find((l) => l.code === code)?.name, lang)
+                      }
+                      activityName={(code) =>
+                        pickName(activityTypesQuery.data?.find((a) => a.code === code)?.name, lang)
+                      }
+                      benefitName={(code) =>
+                        pickName(benefitCategoriesQuery.data?.find((b) => b.code === code)?.name, lang)
+                      }
+                    />
                   </div>
                 ) : (
                   <Alert variant="warning">{t('wizard.step5.incompleteWarning')}</Alert>
@@ -967,6 +1262,7 @@ export function ApplicationWizardPage() {
                   value={address}
                   onChange={(e) => setAddress(e.target.value)}
                   onBlur={() => setAddressTouched(true)}
+                  maxLength={APPLICANT_ADDRESS_MAX_LENGTH}
                 />
               </FormField>
             </div>
@@ -974,10 +1270,10 @@ export function ApplicationWizardPage() {
 
           <div className="bg-white border border-[#E4E7EA] rounded-2xl p-6 shadow-xs space-y-3">
             <h2 className="text-sm font-bold text-[#1A1F24] uppercase tracking-wider">
-              {onBehalf === 'self' ? t('wizard.step5.signTitle') : t('wizard.step5.eriTitle')}
+              {isLegalApplicant ? t('wizard.step5.eriTitle') : t('wizard.step5.signTitle')}
             </h2>
             <p className="text-xs text-[#5A646D]">
-              {onBehalf === 'self' ? t('wizard.step5.signDesc') : t('wizard.step5.eriDesc')}
+              {isLegalApplicant ? t('wizard.step5.eriDesc') : t('wizard.step5.signDesc')}
             </p>
 
             {/* Ruling #184: mandatory before ANY signature — self or legal
@@ -1033,16 +1329,20 @@ export function ApplicationWizardPage() {
                 hasBlockingCheck ||
                 !precheckResult ||
                 (needsAddress && !addressSaved && !address.trim()) ||
-                !rulesAccepted
+                !rulesAccepted ||
+                // Second line of defence, same reasoning as step 4's Next
+                // above: never sign over a filing whose `buildFiling` would
+                // silently drop a half-filled step 3 row.
+                step3Blocked
               }
               onClick={handleSignAndSubmit}
               className="cursor-pointer font-bold"
             >
               {needsAddress && !addressSaved
                 ? t('wizard.step5.saveAddressAndCalc')
-                : onBehalf === 'self'
-                  ? t('wizard.step5.signApplication')
-                  : t('wizard.step5.signAndSubmit')}
+                : isLegalApplicant
+                  ? t('wizard.step5.signAndSubmit')
+                  : t('wizard.step5.signApplication')}
             </Button>
           </div>
         </section>
@@ -1061,20 +1361,37 @@ export function ApplicationWizardPage() {
               disabled={
                 (step === 1 && !activityTypeId) ||
                 (step === 2 && (!contour || !periodFrom || !periodTo || !!combinedPeriodError)) ||
-                (step === 3 && !isGrazing && !quantity) ||
-                (step === 3 && isGrazing && items.filter((i) => i.livestockTypeId && i.headCount).length === 0) ||
-                // Ruling #181: the certificate number must be filled in
-                // before the wizard moves on — the backend's own refusal
-                // (`ERR-APP-003`, `benefit_certificate_required`) must never
-                // be how the applicant first learns it was needed. The scan
-                // is optional (#189) and gates nothing.
+                // Fix round 1 (QA-01 review, Important — the QA trigger):
+                // `step3Blocked` covers a quantity out of range, a grazing
+                // row that is half-filled or out of range (or no complete
+                // row at all), and the deadwood/recreation lines ruling
+                // #215 R6 requires — one condition, also read by
+                // `goToCompletedStep` above so the stepper cannot skip past
+                // step 3 by a rule this button does not also enforce.
+                (step === 3 && step3Blocked) ||
+                // Ruling #181 and decision #220: the certificate number and
+                // its scan must both be there before the wizard moves on — the
+                // backend's own refusal (`ERR-APP-003`) must never be how the
+                // applicant first learns they were needed.
                 (step === 4 && requiresCertificate && !benefitCertificateNo.trim()) ||
+                (step === 4 && !hasBenefitProofDoc) ||
                 // A row with a type chosen and no file is a document the
                 // citizen meant to attach: moving on would drop it without
                 // a word (the hiding direction), so the row is finished or
                 // removed first — the hint under it says which.
-                (step === 4 && docRows.some((r) => r.typeValue !== ''))
+                (step === 4 && docRows.some((r) => r.typeValue !== '')) ||
+                // Second line of defence: step 3's own Next and the
+                // stepper's `goToCompletedStep` both already refuse to leave
+                // step 3 broken, which makes this normally unreachable — but
+                // this project's own defects keep failing by HIDING data
+                // rather than leaking it, so this never trusts a single gate
+                // against a row reaching `buildFiling` half-filled.
+                (step === 4 && step3Blocked)
               }
+              // #219: step 4's own pre-check (a benefit claimed) — one press,
+              // one request; a second one while the register answers would
+              // race the first.
+              isLoading={step === 4 && precheckMutation.isPending}
               onClick={goNext}
               className="cursor-pointer font-bold"
             >
@@ -1106,6 +1423,49 @@ export function ApplicationWizardPage() {
           <p>{leaveCopy.body}</p>
         </Modal>
       )}
+
+      {/* A successful filing: which phone the status SMS will reach
+          (`me.user.phone` — the field the profile's contacts section edits
+          and the backend's `get_notification_contact` reads), with a way to
+          the profile if it is stale. The cross, the backdrop and Esc all
+          count as «open the card»: the filing is done, and any exit from
+          this dialog has to lead somewhere sensible. */}
+      {filedId && (
+        <Modal
+          isOpen
+          onClose={() => navigate(`/my/applications/${filedId}`)}
+          title={t('wizard.filed.title')}
+          footer={
+            <>
+              <Button variant="outline" onClick={() => navigate('/profile')} className="cursor-pointer font-bold">
+                {t('wizard.filed.changePhone')}
+              </Button>
+              <Button
+                variant="primary"
+                onClick={() => navigate(`/my/applications/${filedId}`)}
+                className="cursor-pointer font-bold"
+              >
+                {t('wizard.filed.openCard')}
+              </Button>
+            </>
+          }
+        >
+          {me?.user.phone ? (
+            (() => {
+              const [before, after] = t('wizard.filed.phoneNotice').split('{phone}');
+              return (
+                <p>
+                  {before}
+                  <strong className="font-mono">{me.user.phone}</strong>
+                  {after}
+                </p>
+              );
+            })()
+          ) : (
+            <p>{t('wizard.filed.noPhone')}</p>
+          )}
+        </Modal>
+      )}
     </div>
   );
 }
@@ -1118,7 +1478,7 @@ type UploadedDocument = { id: string; doc_type_item_id: string; file_id: string 
  * Step 4 as rows. The "document type" select of every row carries BOTH the
  * `doc_types` items and, under a divider, the `benefit_categories` items:
  * picking a category turns that row into THE benefit row — category, its
- * certificate number (ruling #181) and, optionally (#189), its scan — because
+ * certificate number (ruling #181) and its scan (#220) — because
  * an application claims at most one benefit (`applications.benefit_category_
  * item_id` is one column), so the categories disappear from every other
  * row's select while one is chosen. `benefit_proof` itself is not offered
@@ -1222,7 +1582,7 @@ function DocumentsStep({
 
       {benefitClaimed && (
         <div className="border border-[#E4E7EA] rounded-xl p-3 space-y-3">
-          <div className="flex flex-wrap items-end gap-3">
+          <div className="flex flex-wrap items-start gap-3">
             <FormField label={t('wizard.step4.docType')} htmlFor="benefit" className="flex-1 min-w-[220px]">
               <Select
                 id="benefit"
@@ -1253,17 +1613,21 @@ function DocumentsStep({
               />
             </FormField>
             {proofDocuments.length === 0 && benefitProofDocTypeId && (
-              <FileButton onFile={(file) => onUpload(file, benefitProofDocTypeId)} />
+              <div className="mt-[22px]">
+                <FileButton onFile={(file) => onUpload(file, benefitProofDocTypeId)} />
+              </div>
             )}
-            <Button variant="ghost" size="sm" onClick={() => handleTypeChange(null, '')} className="cursor-pointer" aria-label={t('wizard.step4.deleteDoc')}>
-              <Trash2 className="w-4 h-4 text-[#B91C1C]" />
-            </Button>
+            <div className="mt-[22px] h-[40px] flex items-center">
+              <Button variant="ghost" size="sm" onClick={() => handleTypeChange(null, '')} className="cursor-pointer" aria-label={t('wizard.step4.deleteDoc')}>
+                <Trash2 className="w-4 h-4 text-[#B91C1C]" />
+              </Button>
+            </div>
           </div>
-          {/* Ruling #189: the scan is optional — said so under the row, and
-              listed with its own delete once attached (filed under
-              `benefit_proof`). */}
+          {/* Decision #220: the scan is mandatory exactly like the number —
+              said so under the row until it is attached, then listed with
+              its own delete (filed under `benefit_proof`). */}
           {proofDocuments.length === 0 ? (
-            <p className="text-[11px] text-[#5A646D]">{t('wizard.step4.benefitProofOptional')}</p>
+            <Alert variant="warning">{t('wizard.step4.benefitProofRequired')}</Alert>
           ) : (
             <Alert variant="success">
               <span className="flex flex-wrap items-center justify-between gap-2">
@@ -1281,7 +1645,7 @@ function DocumentsStep({
 
       {rows.map((row) => (
         <div key={row.key} className="space-y-1">
-          <div className="flex flex-wrap items-end gap-3">
+          <div className="flex flex-wrap items-start gap-3">
             <FormField label={t('wizard.step4.docType')} className="flex-1 min-w-[220px]">
               <Select
                 value={row.typeValue}
@@ -1293,18 +1657,22 @@ function DocumentsStep({
                 ]}
               />
             </FormField>
-            <FileButton
-              disabled={!row.typeValue}
-              onFile={async (file) => {
-                await onUpload(file, row.typeValue);
-                removeRow(row.key);
-              }}
-            />
-            <Button variant="ghost" size="sm" onClick={() => removeRow(row.key)} className="cursor-pointer" aria-label={t('wizard.step4.deleteDoc')}>
-              <Trash2 className="w-4 h-4 text-[#B91C1C]" />
-            </Button>
+            <div className="mt-[22px]">
+              <FileButton
+                disabled={!row.typeValue}
+                onFile={async (file) => {
+                  await onUpload(file, row.typeValue);
+                  removeRow(row.key);
+                }}
+              />
+            </div>
+            <div className="mt-[22px] h-[40px] flex items-center">
+              <Button variant="ghost" size="sm" onClick={() => removeRow(row.key)} className="cursor-pointer" aria-label={t('wizard.step4.deleteDoc')}>
+                <Trash2 className="w-4 h-4 text-[#B91C1C]" />
+              </Button>
+            </div>
           </div>
-          {row.typeValue && <p className="text-[11px] text-[#5A646D]">{t('wizard.step4.pendingRowHint')}</p>}
+          {row.typeValue && <p className="text-[11px] text-[#5A646D] mt-1">{t('wizard.step4.pendingRowHint')}</p>}
         </div>
       ))}
 
@@ -1324,6 +1692,7 @@ function DocumentsStep({
 /** "Choose file" with its hidden `<input type="file">`, one upload at a time. */
 function FileButton({ onFile, disabled }: { onFile: (file: File) => Promise<void>; disabled?: boolean }) {
   const t = useT();
+  const errorText = useApiErrorText();
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -1334,7 +1703,7 @@ function FileButton({ onFile, disabled }: { onFile: (file: File) => Promise<void
     try {
       await onFile(file);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : t('wizard.step4.uploadError'));
+      setError(errorText(err, t('wizard.step4.uploadError')));
     } finally {
       setUploading(false);
       if (inputRef.current) inputRef.current.value = '';

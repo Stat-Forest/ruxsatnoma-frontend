@@ -93,7 +93,6 @@ function authValue(permissions: string[], applicantId: string | null = null): Au
             verified_at: null,
           }
         : null,
-      representations: [],
       registration_complete: true,
     },
     loading: false,

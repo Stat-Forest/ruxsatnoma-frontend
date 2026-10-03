@@ -31,6 +31,20 @@ function emptyColumn(): ColumnDraft {
   return { code: '', labelUz: '', labelRu: '', source: 'manual', type: 'text' };
 }
 
+/** `ReportFormCreate.code` and `ReportFormColumn.code` (`CodeStr`,
+ *  `app/core/schemas.py`) — the same bound on the form's own code and on
+ *  each column's. */
+const REPORT_FORM_CODE_MAX_LENGTH = 64;
+/** `ReportFormCreate.version` — `ge=1, le=1000`. */
+const REPORT_FORM_VERSION_MAX = 1000;
+/** Fix round 1 (stage 17 QA-01 review, Important — I2): `ReportFormCreate.columns`
+ *  is `Field(max_length=100)` on the wire (`schemas.py`) — the same unbounded
+ *  "add row" pattern the wizard's own fix round closes for livestock rows,
+ *  capped here the same way: the button disappears once the limit is
+ *  reached, rather than letting the citizen add past what the backend
+ *  would refuse. */
+const REPORT_FORM_COLUMNS_MAX = 100;
+
 function localizedName(uz: string, ru: string): Record<string, string> {
   const name: Record<string, string> = {};
   if (uz.trim()) name.uz_latn = uz.trim();
@@ -149,10 +163,22 @@ export function ReportFormCreateModal({ onClose, onSaved }: { onClose: () => voi
       <div className="space-y-4">
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <FormField label={t('reports.forms.create.codeLabel')} required>
-            <Input value={code} onChange={(e) => setCode(e.target.value)} />
+            <Input
+              data-testid="report-form-code"
+              value={code}
+              onChange={(e) => setCode(e.target.value)}
+              maxLength={REPORT_FORM_CODE_MAX_LENGTH}
+            />
           </FormField>
           <FormField label={t('reports.forms.create.versionLabel')} required>
-            <Input type="number" min={1} value={version} onChange={(e) => setVersion(e.target.value)} />
+            <Input
+              data-testid="report-form-version"
+              type="number"
+              min={1}
+              max={REPORT_FORM_VERSION_MAX}
+              value={version}
+              onChange={(e) => setVersion(e.target.value)}
+            />
           </FormField>
           <FormField label={t('reports.forms.create.nameUzLabel')}>
             <Input value={nameUz} onChange={(e) => setNameUz(e.target.value)} />
@@ -194,9 +220,11 @@ export function ReportFormCreateModal({ onClose, onSaved }: { onClose: () => voi
             {columns.map((col, index) => (
               <div key={index} className="grid grid-cols-1 gap-2 rounded-lg border border-[#E4E7EA] p-3 sm:grid-cols-6" data-testid={`report-form-column-${index}`}>
                 <Input
+                  data-testid={`report-form-column-${index}-code`}
                   placeholder={t('reports.forms.create.columnCode')}
                   value={col.code}
                   onChange={(e) => updateColumn(index, { code: e.target.value })}
+                  maxLength={REPORT_FORM_CODE_MAX_LENGTH}
                 />
                 <Input
                   placeholder={t('reports.forms.create.columnLabelUz')}
@@ -240,9 +268,15 @@ export function ReportFormCreateModal({ onClose, onSaved }: { onClose: () => voi
                 </div>
               </div>
             ))}
-            <Button type="button" variant="outline" size="sm" leftIcon={<Plus className="h-3.5 w-3.5" />} onClick={addColumn} data-testid="report-form-column-add">
-              {t('reports.forms.create.columnAdd')}
-            </Button>
+            {/* Capped at REPORT_FORM_COLUMNS_MAX (I2): the button is gone
+                once the limit is reached, the same "hidden, not merely
+                disabled with no reason given" rule the wizard's own add-row
+                button follows. */}
+            {columns.length < REPORT_FORM_COLUMNS_MAX && (
+              <Button type="button" variant="outline" size="sm" leftIcon={<Plus className="h-3.5 w-3.5" />} onClick={addColumn} data-testid="report-form-column-add">
+                {t('reports.forms.create.columnAdd')}
+              </Button>
+            )}
           </div>
         </FormField>
 

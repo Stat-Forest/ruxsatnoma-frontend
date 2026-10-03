@@ -14,6 +14,7 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router';
 import { http, HttpResponse } from 'msw';
 import { setupServer } from 'msw/node';
+import { vi } from 'vitest';
 import { AuthContext } from '../../auth/AuthContext';
 import type { AuthContextValue } from '../../auth/AuthContext';
 import { stubAuthActions } from '../../auth/testAuthActions';
@@ -60,7 +61,6 @@ function authValue(permissions: string[]): AuthContextValue {
       csrf_token: 'tok-1',
       is_superuser: false,
       applicant: null,
-      representations: [],
       registration_complete: true,
     },
     loading: false,
@@ -178,8 +178,7 @@ test('archiving a permit posts series and number', async () => {
 
   await user.click(await screen.findByRole('button', { name: DICTIONARIES.uz_latn['archive.actions.newItem'] }));
   await user.selectOptions(screen.getByTestId('archive-object-type'), 'permit');
-  await user.type(screen.getByTestId('archive-permit-series'), 'А');
-  await user.type(screen.getByTestId('archive-permit-number'), '4182');
+  await user.type(screen.getByTestId('archive-permit-no'), 'А № 004182');
   await user.click(screen.getByTestId('archive-object-submit'));
 
   await waitFor(() => expect(posted).toEqual({ series: 'А', number: 4182, retention_until: null }));
@@ -205,14 +204,13 @@ test('a Latin "A" typed for the permit series posts the Cyrillic series the regi
 
   await user.click(await screen.findByRole('button', { name: DICTIONARIES.uz_latn['archive.actions.newItem'] }));
   await user.selectOptions(screen.getByTestId('archive-object-type'), 'permit');
-  await user.type(screen.getByTestId('archive-permit-series'), 'A'); // a Latin keyboard's own 'A'
-  await user.type(screen.getByTestId('archive-permit-number'), '4182');
+  await user.type(screen.getByTestId('archive-permit-no'), 'a4182'); // a Latin keyboard's own 'a'
   await user.click(screen.getByTestId('archive-object-submit'));
 
   await waitFor(() => expect(posted).toEqual({ series: 'А', number: 4182, retention_until: null }));
 });
 
-test('a permit number with trailing letters stays disabled rather than silently truncating (final review minor)', async () => {
+test('a permit number with trailing letters, or a zero, stays disabled and says so', async () => {
   server.use(
     http.get('*/api/v1/archive', () => HttpResponse.json(page([]))),
     http.get('*/api/v1/refs/organizations', () => HttpResponse.json(page([]))),
@@ -223,9 +221,13 @@ test('a permit number with trailing letters stays disabled rather than silently 
 
   await user.click(await screen.findByRole('button', { name: DICTIONARIES.uz_latn['archive.actions.newItem'] }));
   await user.selectOptions(screen.getByTestId('archive-object-type'), 'permit');
-  await user.type(screen.getByTestId('archive-permit-series'), 'А');
-  await user.type(screen.getByTestId('archive-permit-number'), '12abc');
+  const box = screen.getByTestId('archive-permit-no');
+  await user.type(box, 'А 12abc');
+  expect(screen.getByTestId('archive-object-submit')).toBeDisabled();
+  expect(screen.getByText(DICTIONARIES.uz_latn['archive.newItemModal.permitNoInvalid'])).toBeInTheDocument();
 
+  await user.clear(box);
+  await user.type(box, 'А 0'); // the backend's `ge=1` — refused here, not sent (14-findings F18)
   expect(screen.getByTestId('archive-object-submit')).toBeDisabled();
 });
 
@@ -311,6 +313,18 @@ test('the empty state renders when the register is empty', async () => {
   expect(await screen.findByText('archive.empty')).toBeInTheDocument();
 });
 
+test('an empty list disables the Excel button — there is nothing to export', async () => {
+  server.use(
+    http.get('*/api/v1/archive', () => HttpResponse.json(page([]))),
+    http.get('*/api/v1/refs/organizations', () => HttpResponse.json(page([]))),
+  );
+
+  renderArchivePage(['archive.view']);
+  await screen.findByText('archive.empty');
+
+  expect(screen.getByTestId('export-xlsx')).toBeDisabled();
+});
+
 test('a click anywhere on an archive row opens the item drawer, not the object link', async () => {
   server.use(
     http.get('*/api/v1/archive', () => HttpResponse.json(page([archiveItem()]))),
@@ -325,4 +339,47 @@ test('a click anywhere on an archive row opens the item drawer, not the object l
   await screen.findByTestId(`archive-open-${archiveItem().id}`);
   await user.click(screen.getAllByText('archive.typeApplication').find((el) => el.tagName === 'TD')!);
   await screen.findByTestId(`archive-item-detail-${archiveItem().id}`);
+});
+
+test('the Excel button asks the server for the export with the applied filters, never paging the list itself', async () => {
+  const user = userEvent.setup();
+  const listCalls: string[] = [];
+  let exportUrl: URL | null = null;
+  server.use(
+    http.get('*/api/v1/archive', ({ request }) => {
+      listCalls.push(request.url);
+      return HttpResponse.json(page([archiveItem()]));
+    }),
+    http.get('*/api/v1/archive/export.xlsx', ({ request }) => {
+      exportUrl = new URL(request.url);
+      return HttpResponse.text('xlsx-bytes', {
+        headers: {
+          'Content-Disposition': 'attachment; filename="arxiv-reyestri-2026-09-11.xlsx"',
+          'X-Export-Total': '1',
+          'X-Export-Rows': '1',
+          'X-Export-Truncated': 'false',
+        },
+      });
+    }),
+    http.get('*/api/v1/refs/organizations', () => HttpResponse.json(page([]))),
+  );
+
+  const createObjectURL = vi.fn().mockReturnValue('blob:mock');
+  const revokeObjectURL = vi.fn();
+  URL.createObjectURL = createObjectURL;
+  URL.revokeObjectURL = revokeObjectURL;
+  const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+
+  renderArchivePage(['archive.view']);
+  await screen.findByTestId('archive-page');
+  const listCallsBefore = listCalls.length;
+
+  await user.click(screen.getByTestId('export-xlsx'));
+
+  await waitFor(() => expect(createObjectURL).toHaveBeenCalled());
+  expect(clickSpy).toHaveBeenCalled();
+  expect(listCalls.length).toBe(listCallsBefore); // the export never re-fetches the list
+  expect(exportUrl!.searchParams.get('lang')).toBe('uz_latn');
+  expect(exportUrl!.searchParams.has('page')).toBe(false);
+  expect(exportUrl!.searchParams.has('page_size')).toBe(false);
 });

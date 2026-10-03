@@ -2,7 +2,6 @@ import type { ReactNode } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { http, HttpResponse } from 'msw';
 import { setupServer } from 'msw/node';
 import { AuthContext } from '../../../auth/AuthContext';
 import type { AuthContextValue } from '../../../auth/AuthContext';
@@ -18,7 +17,12 @@ afterAll(() => server.close());
 function renderPage(
   roleCode: string = 'applicant',
   lang: UiLanguage = 'uz_latn',
-  overrides?: { isSuperuser?: boolean; roleName?: Record<string, string>; fullName?: string },
+  overrides?: {
+    isSuperuser?: boolean;
+    roleName?: Record<string, string>;
+    fullName?: string;
+    applicant?: { kind: string; name: string; stir: string | null };
+  },
 ) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
   const dict = DICTIONARIES[lang];
@@ -42,7 +46,7 @@ function renderPage(
         name: overrides?.roleName ?? { uz_latn: 'Ariza beruvchi' },
       },
       is_superuser: overrides?.isSuperuser ?? false,
-      representations: [],
+      applicant: overrides?.applicant ?? null,
     },
     loading: false,
     authError: null,
@@ -77,22 +81,28 @@ test('switching to the password tab shows the existing change-password form (C5)
   expect(screen.queryByTestId('phone-change')).toBeNull();
 });
 
-test('an applicant sees the legal-entity representation tab', async () => {
+// Decision #226: the "representation" mechanism (and its tab) is gone
+// everywhere — an applicant's profile offers only Profile and Password.
+test('an applicant is offered only the profile and password tabs — no representation tab', () => {
   renderPage('applicant');
-  await userEvent.click(screen.getByRole('button', { name: uz_latn['cabinet.profile.tabRepresentation'] }));
-  expect(screen.getByTestId('attach-stir')).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: uz_latn['cabinet.profile.tabProfile'] })).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: uz_latn['cabinet.profile.tabPassword'] })).toBeInTheDocument();
+  expect(screen.queryByText('Yuridik shaxs vakolatlari')).toBeNull();
 });
 
-test('a staff role is not offered the representation tab at all — the backend would refuse it', () => {
-  renderPage('executor_staff');
-  expect(screen.queryByRole('button', { name: uz_latn['cabinet.profile.tabRepresentation'] })).toBeNull();
+// Decision #226/F4: a legal cabinet's header names the organisation and its
+// STIR, not the signed-in person's own name.
+test('a legal applicant’s header shows the organisation name and STIR', () => {
+  renderPage('applicant', 'uz_latn', {
+    applicant: { kind: 'legal', name: '"Chorvador" MChJ', stir: '302345678' },
+  });
+  expect(screen.getByText('"Chorvador" MChJ')).toBeInTheDocument();
+  expect(screen.getByText('302345678')).toBeInTheDocument();
 });
 
-test('every role, staff included, sees the certificates tab', async () => {
-  server.use(http.get('*/certificates', () => HttpResponse.json({ items: [], total: 0, page: 1, page_size: 100 })));
-  renderPage('executor_staff');
-  await userEvent.click(screen.getByRole('button', { name: uz_latn['cabinet.profile.tabCertificates'] }));
-  expect(await screen.findByTestId('certificates-empty')).toBeInTheDocument();
+test('no role is offered a certificates tab — a key is bound on its first signature', () => {
+  renderPage('applicant');
+  expect(screen.queryByRole('button', { name: /ERI sertifikat/ })).toBeNull();
 });
 
 test('translates profile hero card across all 5 languages for chief forester', () => {

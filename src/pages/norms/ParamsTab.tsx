@@ -291,15 +291,13 @@ export function ParamsTab({ active }: { active: boolean }) {
     archive.reset();
   }
 
-  const list = useRuleParametersList(
-    {
-      code: applied.code || undefined,
-      status: applied.status || undefined,
-      limit: PAGE_SIZE,
-      offset: (page - 1) * PAGE_SIZE,
-    },
-    active,
-  );
+  const queryFilters = {
+    code: applied.code || undefined,
+    status: applied.status || undefined,
+    limit: PAGE_SIZE,
+    offset: (page - 1) * PAGE_SIZE,
+  };
+  const list = useRuleParametersList(queryFilters, active);
 
   function applyFilters() {
     setApplied(filters);
@@ -382,7 +380,7 @@ export function ParamsTab({ active }: { active: boolean }) {
       <ProvisionalCoefficientBanner active={active} t={t} canPublish={canPublishRoute} onPublish={openPublish} />
 
       <div className="space-y-3 rounded-2xl border border-[#E4E7EA] bg-white p-6 shadow-xs">
-        <div className="grid grid-cols-1 items-end gap-3 sm:grid-cols-2">
+        <div className="grid grid-cols-1 items-start gap-3 sm:grid-cols-2">
           <FormField label={t('norms.params.filter.code')}>
             <Input
               data-testid="params-filter-code"

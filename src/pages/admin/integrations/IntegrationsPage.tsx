@@ -271,12 +271,13 @@ function OutboxTab({ L }: { L: IntegrationsLabels }) {
   const [details, setDetails] = useState<OutboxMessageOut | null>(null);
   const [confirming, setConfirming] = useState<OutboxMessageOut | null>(null);
 
-  const list = useOutboxList({
+  const queryParams = {
     status: applied.status || undefined,
     destination: applied.destination || undefined,
     page,
     page_size: PAGE_SIZE,
-  });
+  };
+  const list = useOutboxList(queryParams);
   const requeue = useRequeueOutboxMessage();
 
   function apply() {
@@ -484,7 +485,8 @@ function DeadLettersTab({ L }: { L: IntegrationsLabels }) {
   const [details, setDetails] = useState<DeadLetterOut | null>(null);
   const [confirming, setConfirming] = useState<DeadLetterOut | null>(null);
 
-  const list = useDeadLetterList({ status: applied.status || undefined, page, page_size: PAGE_SIZE });
+  const queryParams = { status: applied.status || undefined, page, page_size: PAGE_SIZE };
+  const list = useDeadLetterList(queryParams);
   const discard = useDiscardDeadLetter();
 
   function apply() {

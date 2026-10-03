@@ -5,6 +5,7 @@
  * `resolveLanguage` (src/i18n/index.tsx) — nothing else changes shape.
  */
 export const uz_latn = {
+  'common.back': 'Orqaga',
   'nav.dashboard': 'Bosh sahifa',
   'nav.myApplications': 'Mening arizalarim',
   'nav.myPermits': 'Mening ruxsatnomalarim',
@@ -15,7 +16,6 @@ export const uz_latn = {
   'nav.invoices': 'Hisob-fakturalar',
   'nav.permits': 'Ruxsatnomalar',
   'nav.oversight': 'Nazorat reyestri',
-  'nav.search': 'Qidiruv',
   'nav.archive': 'Arxiv reyestri',
   'nav.reports': 'Hisobotlar',
   'nav.ratings': 'Baholashlar',
@@ -37,6 +37,8 @@ export const uz_latn = {
   'shell.language': 'Til',
   'shell.openMenu': 'Menyu',
   'shell.closeMenu': 'Yopish',
+  'shell.expandSidebar': 'Sidebarni ochish',
+  'shell.collapseSidebar': 'Sidebarni yig‘ish',
   'shell.logout': 'Chiqish',
   'shell.techSupport': 'Texnik murojaatlar uchun',
   'shell.extension': 'ichki raqami',
@@ -48,6 +50,24 @@ export const uz_latn = {
   'login.submitPassword': 'Kirish',
   'login.submitCode': 'Tasdiqlash',
   'login.back': 'Orqaga',
+  'login.forgotLink': 'Parolni unutdingizmi?',
+  'login.forgotTitle': 'Parolni tiklash',
+  'login.forgotNext': 'Davom etish',
+  'login.forgotChannelTitle': 'Kod qayerga yuborilsin?',
+  'login.forgotPhone': 'Telefon',
+  'login.forgotEmail': 'E-mail',
+  'login.forgotNotFilled': "to'ldirilmagan",
+  'login.forgotNoContacts': 'Login topilmadi yoki unga telefon ham, e-mail ham biriktirilmagan. Administratorga murojaat qiling.',
+  'login.forgotCodeLabel': 'Xabardagi kod',
+  'login.forgotCodeHelp': '6 ta raqam, bir necha daqiqa amal qiladi',
+  'login.forgotNewPassword': 'Yangi parol',
+  'login.forgotPolicyHelp': 'Kamida 8 ta belgi: katta va kichik harflar, raqam va maxsus belgi',
+  'login.forgotRepeatPassword': 'Parolni takrorlang',
+  'login.forgotSubmit': "Parolni o'zgartirish",
+  'login.forgotMismatch': 'Parollar mos kelmadi.',
+  'login.forgotWeakPassword': 'Parol talabga javob bermaydi: kamida 8 ta belgi, katta va kichik harflar, raqam va maxsus belgi kerak.',
+  'login.forgotDone': "Parol o'zgartirildi. Yangi parol bilan kiring.",
+  'login.adminContact': 'Kira olmayapsizmi? Administratorga yoki texnik yordamga murojaat qiling:',
   'login.badCredentials': "Login yoki parol noto'g'ri.",
   'login.blockedAccount':
     'Notoʻgʻri urinishlar koʻp boʻldi. Kirish vaqtincha bloklandi — bir necha daqiqadan soʻng qayta urinib koʻring.',
@@ -65,12 +85,19 @@ export const uz_latn = {
   'login.eimzoNameLabel': 'F.I.SH.',
   'login.eimzoButton': 'E-IMZO kaliti bilan kirish',
   'login.eimzoBadPinfl': "PINFL 14 ta raqamdan iborat bo'lishi kerak.",
+  'login.eimzoStirLabel': 'Tashkilot STIR (ixtiyoriy)',
+  'login.eimzoStirHelp': "9 xonali STIR — shaxsiy kirish uchun bo'sh qoldiring, tashkilot sifatida kirish uchun to'ldiring.",
+  'login.eimzoOrgNameLabel': 'Tashkilot nomi',
+  'login.eimzoBadStir': "STIR 9 ta raqamdan iborat bo'lishi kerak.",
   'login.eimzoMockNotice':
     'Sinov rejimi: kalit tekshirilmaydi. Haqiqiy E-IMZO NIC dan VPN kaliti olingach yoqiladi.',
   'login.eimzoRealHint':
     "Ulangan E-IMZO kalitingiz orqali tizimga kiring. Kalit parolini E-IMZO dasturining o'zi so'raydi.",
   // The page frame (2026-09-10) — see the matching comment in `ru.ts`.
   'login.brandName': 'ruxsatnoma-urmon.uz',
+  'brand.line1': 'O‘rmon va yashil hududlarni ko‘paytirish,',
+  'brand.line2': 'cho‘llanishga qarshi kurashish agentligi',
+  'brand.line3': 'Ruxsatnoma olish portali',
   'login.brandTagline': 'Oʻrmon xoʻjaligi davlat portali',
   'login.backHome': 'Bosh sahifa',
   'login.eyebrow': 'Shaxsiy kabinet',
@@ -85,7 +112,22 @@ export const uz_latn = {
   'login.firstTime': 'Portalda birinchi marta?',
   'login.firstTimeHint': 'Roʻyxatdan oʻtish birinchi kirishda OneID orqali amalga oshiriladi — alohida hisob kerak emas.',
   'login.verifyWithoutLogin': 'Ruxsatnomani kirmasdan tekshirish',
-  'login.footerCopyright': '© 2026 Oʻrmon va yashil hududlarni koʻpaytirish, choʻllanishga qarshi kurashish agentligi. Barcha huquqlar himoyalangan.',
+  // The terms a visitor accepts by signing in. The legally recorded consent
+  // does NOT move: it stays the two checkboxes of the finish-registration
+  // screen, written to `user_consents` with the document version and the
+  // client IP, which need a known user. But that screen is reached only AFTER
+  // an ERI signature, so until now nothing named the two documents before the
+  // citizen had already signed. This is the notice that names them, on the
+  // login page itself.
+  //
+  // One key with `{privacy}`/`{offer}` placeholders rather than three
+  // concatenated fragments (same shape as `wizard.step5.rulesCheckboxLabel`):
+  // the two names sit in different places in each language's sentence, and
+  // concatenating in code would freeze every language into Uzbek's word order.
+  'login.termsNotice': 'Tizimga kirish orqali siz {privacy} va {offer} shartlarini qabul qilgan hisoblanasiz.',
+  'login.termsPrivacy': 'Maxfiylik siyosati',
+  'login.termsOffer': 'Ommaviy oferta',
+  'login.footerCopyright': '© 2026 “Oʻrmon xoʻjaligini raqamlashtirish markazi”. Barcha huquqlar himoyalangan.',
   'login.footerHelp': 'Yordam',
   'login.footerContacts': 'Aloqa',
   'login.footerDocuments': 'Hujjatlar',
@@ -122,6 +164,16 @@ export const uz_latn = {
     "Ulangan E-IMZO'da amaldagi (muddati o'tmagan) sertifikat topilmadi. Yangi sertifikat oling yoki muddati o'tgan kalitni yangilang.",
   'eimzo.errors.multipleValidKeys':
     "Bir nechta amaldagi E-IMZO sertifikati aniqlandi — qaysi biri bilan imzolash noaniq. Faqat kerakli sertifikat/kalitni ulab qoldiring va qaytadan urining.",
+  // The certificate picker (2026-09-23). Expired certificates are LISTED,
+  // greyed out, so a signer sees that their own is the one that lapsed.
+  'eimzo.errors.cancelled': 'Imzolash bekor qilindi.',
+  'eimzo.picker.title': 'Sertifikatni tanlang',
+  'eimzo.picker.subtitle': 'Qaysi sertifikat bilan imzolashni tanlang.',
+  'eimzo.picker.cancel': 'Bekor qilish',
+  'eimzo.picker.pinfl': 'PINFL',
+  'eimzo.picker.tin': 'STIR',
+  'eimzo.picker.validUntil': 'Amal qilish muddati:',
+  'eimzo.picker.expiredOn': 'Muddati tugagan:',
   // Mock mode only (`lib/eimzo/useMockSigner.ts`): whose PINFL the mock
   // envelope carries, read from `/auth/me` instead of typed in.
   'eimzo.mock.signingAs': 'Demo rejimi: mock ERI bilan imzolanadi. Sertifikat PINFL (hisobingizdan):',
@@ -141,6 +193,8 @@ export const uz_latn = {
   'dash.expiry.label': 'Muddat tugashiga',
   'dash.expiry.unit': 'kun',
   'dash.expiry.none': "Amaldagi ruxsatnoma yo'q",
+  'dash.newApp.title': "Yangi ruxsatnoma kerakmi?",
+  'dash.newApp.hint': "Chorva boqish, pichan tayyorlash, asalarichilik, dam olish va boshqa faoliyat turlari uchun ariza topshiring.",
   'dash.dynamics.title': 'Arizalar va ruxsatnomalar dinamikasi',
   'dash.dynamics.subtitle': "Topshirilgan arizalar, tasdiqlangan ruxsatnomalar va to'lovlar oqimi",
   'dash.dynamics.avgReview': "O'rtacha ko'rib chiqish",
@@ -154,23 +208,17 @@ export const uz_latn = {
   'dash.dynamics.successLabel': 'Muvaffaqiyatli chiqish',
   'dash.dynamics.successValue': 'tasdiqlangan',
   'dash.dynamics.noData': "Bu davrda hodisa yo'q",
-  'dash.area.title': 'Foydalanilayotgan maydonlar',
-  'dash.area.subtitle': "Faoliyat turlari bo'yicha ajratilgan yer taqsimoti",
-  'dash.area.center': 'GEKTAR',
-  'dash.area.empty': "Amaldagi ruxsatnoma yo'q — maydon biriktirilmagan",
-  'dash.contours.title': 'Biriktirilgan konturlar va amal qilish muddatlari',
-  'dash.contours.subtitle': "O'rmonchiliklar kesimida ajratilgan yer maydonlari va ruxsatnomadan qolgan kunlar",
-  'dash.contours.area': 'Maydon (ga)',
-  'dash.contours.daysLeft': 'Qolgan kunlar',
-  'dash.contours.daysLeftShort': 'kun qoldi',
-  'dash.contours.empty': "Biriktirilgan kontur yo'q",
-  'dash.legal.title': 'Huquqiy maqom va xavfsizlik',
-  'dash.legal.body': "Ruxsatnomalaringiz mansabdor shaxslar tomonidan E-IMZO bilan imzolangan va QR-kod orqali tekshiriladi.",
-  'dash.legal.qrLabel': 'Elektron ruxsatnoma QR-kodi',
-  'dash.legal.qrActive': 'Faol va himoyalangan',
-  'dash.legal.qrNone': 'Hali berilmagan',
-  'dash.legal.hashLabel': 'Hujjat imzosi (SHA-256)',
-  'dash.legal.openPermits': "Ruxsatnomalarim",
+  'dash.deadlines.title': 'Muddatlar',
+  'dash.deadlines.subtitle': "Ruxsatnomalar amal qilish muddati va arizalarni ko'rib chiqish muddati",
+  'dash.deadlines.expiryHeading': "Amal qilish muddati — ruxsatnoma turlari bo'yicha",
+  'dash.deadlines.daysLeft': 'kun qoldi',
+  'dash.deadlines.reviewHeading': "Arizani ko'rib chiqish muddati",
+  'dash.deadlines.workDaysLeft': 'ish kuni qoldi',
+  'dash.deadlines.dueToday': 'Bugun tugaydi',
+  'dash.deadlines.overdue': "Muddati o'tgan",
+  'dash.deadlines.paused': "To'xtatilgan — javobingiz kutilmoqda",
+  'dash.deadlines.reviewEmpty': "Ko'rib chiqilayotgan ariza yo'q",
+  'dash.deadlines.showAll': "Hammasini ko'rish",
   'dash.month.1': 'Yan',
   'dash.month.2': 'Fev',
   'dash.month.3': 'Mar',
@@ -185,7 +233,7 @@ export const uz_latn = {
   'dash.month.12': 'Dek',
 
   // Track F4 (06.5) — cabinet tails: B2 registration, B3 contacts,
-  // B4 legal-entity representation, B5 certificates, C4 notifications.
+  // B5 certificates, C4 notifications.
   'cabinet.otp.sendCode': 'Kod yuborish',
   'cabinet.otp.sending': 'Yuborilmoqda…',
   'cabinet.otp.resend': 'Qayta yuborish',
@@ -200,34 +248,18 @@ export const uz_latn = {
 
   'cabinet.registration.title': "Ro'yxatdan o'tishni yakunlash",
   'cabinet.registration.intro':
-    "Tizimdan foydalanishni davom ettirish uchun bir necha maydonni to'ldiring va telefon raqamingizni tasdiqlang.",
-  'cabinet.registration.consentsTitle': 'Roziliklar',
-  'cabinet.registration.consentPrivacy': "Maxfiylik siyosatiga roziman",
-  'cabinet.registration.consentOffer': "Ommaviy oferta shartlariga roziman",
-  'cabinet.registration.consentsStale':
-    "Hujjatlar yangilandi — davom etish uchun roziliklarni qaytadan tasdiqlang.",
+    'Tizimdan foydalanishni davom ettirish uchun telefon raqamingizni tasdiqlang.',
   'cabinet.registration.phoneTitle': 'Telefon raqami',
   'cabinet.registration.phoneLabel': 'Telefon raqami',
   'cabinet.registration.phonePlaceholder': '+998901234567',
   'cabinet.registration.invalidPhone': "Telefon raqami +998XXXXXXXXX ko'rinishida bo'lishi kerak",
-  'cabinet.registration.detailsTitle': "Qo'shimcha ma'lumotlar",
-  'cabinet.registration.emailLabel': 'Elektron pochta',
-  'cabinet.registration.emailHint': "Elektron pochta keyinroq profilda alohida tasdiqlanadi.",
-  'cabinet.registration.regionLabel': 'Viloyat',
-  'cabinet.registration.districtLabel': 'Tuman',
-  'cabinet.registration.addressLabel': 'Manzil',
-  'cabinet.registration.selectPlaceholder': 'Tanlanmagan',
   'cabinet.registration.submit': 'Yakunlash',
   'cabinet.registration.submitting': 'Yuborilmoqda…',
-  'cabinet.registration.needConsents': "Davom etish uchun ikkala rozilikni ham belgilang.",
   'cabinet.registration.needPhoneVerified':
     'Davom etish uchun telefon raqamini tasdiqlang.',
-  'cabinet.registration.needAddress': 'Manzilni kiriting.',
   'cabinet.registration.genericError': "Xatolik yuz berdi. Qayta urinib ko'ring.",
 
   'cabinet.profile.tabProfile': 'Profil',
-  'cabinet.profile.tabRepresentation': 'Yuridik shaxs vakolatlari',
-  'cabinet.profile.tabCertificates': 'ERI sertifikatlari',
   'cabinet.profile.tabPassword': 'Parol',
   'cabinet.profile.contactsTitle': 'Aloqa maʼlumotlari',
   'cabinet.profile.phoneLabel': 'Telefon raqami',
@@ -241,73 +273,7 @@ export const uz_latn = {
   'cabinet.profile.newPhoneLabel': 'Yangi telefon raqami',
   'cabinet.profile.newEmailLabel': 'Yangi elektron pochta',
 
-  'cabinet.representation.attachTitle': 'Yuridik shaxsni biriktirish',
-  'cabinet.representation.attachIntro':
-    "STIR raqami va vakolat asosini ko'rsating — E-IMZO orqali, OneID direktorlar reestri orqali yoki ishonchnoma bilan.",
-  'cabinet.representation.stirLabel': 'STIR (9 xonali)',
-  'cabinet.representation.invalidStir': '9 xonali raqam boʻlishi kerak',
-  'cabinet.representation.basisLabel': 'Vakolat asosi',
-  'cabinet.representation.basisOrgEri': "Tashkilot ERI (E-IMZO)",
-  'cabinet.representation.basisOrgEriHint':
-    "Tashkilotning elektron raqamli imzosi bilan tasdiqlanadi.",
-  'cabinet.representation.basisDirector': 'OneID direktorlar reestri',
-  'cabinet.representation.basisDirectorHint':
-    "Siz OneID maʼlumotlarida shu tashkilotning rahbari sifatida qayd etilgan boʻlishingiz kerak.",
-  'cabinet.representation.basisPoa': 'Ishonchnoma (PDF)',
-  'cabinet.representation.basisPoaHint':
-    "Ishonchnoma faylini yuklang, amal qilish muddati va tashkilot nomini kiriting.",
-  'cabinet.representation.orgNameLabel': 'Tashkilot nomi',
-  'cabinet.representation.poaFileLabel': 'Ishonchnoma fayli (PDF)',
-  'cabinet.representation.poaUpload': 'Faylni yuklash',
-  'cabinet.representation.poaUploading': 'Yuklanmoqda…',
-  'cabinet.representation.poaUploaded': 'Fayl yuklandi',
-  'cabinet.representation.validUntilLabel': 'Amal qilish muddati',
-  'cabinet.representation.signerPinflLabel': 'Sizning PINFL (JSHSHIR)',
-  'cabinet.representation.attachSubmit': 'Biriktirish',
-  'cabinet.representation.attachSubmitting': 'Yuborilmoqda…',
-  'cabinet.representation.listTitle': 'Vakolatlarim',
-  'cabinet.representation.listEmpty': "Hozircha hech qanday yuridik shaxs biriktirilmagan",
-  'cabinet.representation.statusActive': 'Amalda',
-  'cabinet.representation.statusOther': 'Amal qilmaydi',
-  'cabinet.representation.validFrom': 'Boshlanishi',
-  'cabinet.representation.validUntil': 'Tugashi',
-  'cabinet.representation.validUntilNone': "Muddatsiz",
-  'cabinet.representation.basisShort.org_eri': 'ERI',
-  'cabinet.representation.basisShort.director_registry': 'OneID',
-  'cabinet.representation.basisShort.poa': 'Ishonchnoma',
-  'cabinet.representation.selectOrgLabel': 'Tashkilotni tanlang',
-  'cabinet.representation.addColleagueTitle': "Vakil qo'shish",
-  'cabinet.representation.addColleagueIntro':
-    "Ushbu tashkilot nomidan hujjat topshirishi mumkin bo'lgan yana bir shaxsni qo'shing.",
-  'cabinet.representation.colleaguePinflLabel': 'Vakil PINFL (JSHSHIR, 14 xonali)',
-  'cabinet.representation.invalidPinfl': '14 xonali raqam boʻlishi kerak',
-  'cabinet.representation.addColleagueSubmit': "Qo'shish",
-  'cabinet.representation.needOrgEriOrDirector':
-    "Vakil qo'shish uchun tashkilotni ERI yoki OneID direktorlar reestri asosida biriktirgan bo'lishingiz kerak — ishonchnoma asosidagi vakolat bu huquqni bermaydi.",
-  'cabinet.representation.applicantOnly':
-    "Yuridik shaxs vakolatlari faqat ariza beruvchi hisobiga tegishli.",
 
-  'cabinet.certificates.title': 'Mening ERI sertifikatlarim',
-  'cabinet.certificates.intro':
-    "Bu yerda hujjatlarni imzolash uchun biriktirilgan ERI kalitlaringiz roʻyxati.",
-  'cabinet.certificates.realHint':
-    "Biriktirish ulangan E-IMZO kalitingiz orqali amalga oshadi. Kalit parolini E-IMZO dasturining o'zi so'raydi.",
-  'cabinet.certificates.pinflLabel': 'PINFL (JSHSHIR)',
-  'cabinet.certificates.fullNameLabel': 'Ism (sertifikat subyekti, ixtiyoriy)',
-  'cabinet.certificates.bind': 'Sertifikatni biriktirish',
-  'cabinet.certificates.binding': 'Biriktirilmoqda…',
-  'cabinet.certificates.listEmpty': "Biriktirilgan sertifikat yoʻq",
-  'cabinet.certificates.serial': 'Seriya raqami',
-  'cabinet.certificates.subject': 'Subyekt',
-  'cabinet.certificates.status': 'Holati',
-  'cabinet.certificates.validFrom': 'Amal qilish boshi',
-  'cabinet.certificates.validTo': 'Amal qilish oxiri',
-  'cabinet.certificates.boundAt': 'Biriktirilgan sana',
-  'cabinet.certificates.unbind': 'Ro’yxatdan chiqarish',
-  'cabinet.certificates.unbinding': 'Bajarilmoqda…',
-  'cabinet.certificates.statusActive': 'Faol',
-  'cabinet.certificates.statusRevoked': 'Bekor qilingan',
-  'cabinet.certificates.statusExpired': "Muddati o'tgan",
 
   'cabinet.notifications.title': 'Bildirishnomalar',
   'cabinet.notifications.loading': 'Yuklanmoqda…',
@@ -382,13 +348,12 @@ export const uz_latn = {
   'cabinet.profile.contactsSubtitle': 'Hisobingizga biriktirilgan telefon va elektron pochta maʼlumotlari',
   'cabinet.profile.superuser': 'Superfoydalanuvchi',
   'cabinet.profile.currentLang': 'Oʻzbekcha',
+  'cabinet.profile.stir': 'STIR',
   'cabinet.profile.codePlaceholder': '6 xonali kod',
   'cabinet.profile.emailPlaceholder': 'pochta@misol.uz',
 
   // Track F3 — accountant's workspace (G1–G5), `src/pages/accountant/`.
   'accountant.common.loading': 'Yuklanmoqda…',
-  'accountant.common.copy': 'Nusxalash',
-  'accountant.common.copied': 'Nusxalandi',
   'accountant.common.close': 'Yopish',
   'accountant.common.cancel': 'Bekor qilish',
   'accountant.common.all': 'Barchasi',
@@ -960,6 +925,8 @@ export const uz_latn = {
   'gis.contours.listTitle': 'Konturlar',
   'gis.contours.newContour': 'Yangi kontur',
   'gis.contours.searchPlaceholder': "Kontur raqami bo'yicha qidirish...",
+  'gis.contours.filterRegion': 'Viloyat boʻyicha filtr',
+  'gis.contours.allRegions': 'Barcha viloyatlar',
   'gis.contours.filterOrganization': 'Tashkilot boʻyicha filtr',
   'gis.contours.allOrganizations': 'Barcha tashkilotlar',
   'gis.contours.loading': 'Yuklanmoqda...',
@@ -1199,9 +1166,9 @@ export const uz_latn = {
   'permits.signatures.errors.pdfFetchFailed': "Imzolanadigan hujjatni yuklab boʻlmadi — qaytadan urining.",
 
   // --- I1: the prosecutor's read-only registers with export ---------------
-  'prosecutor.exportCsv': "CSV eksport",
-  'prosecutor.exportTruncated':
-    "Diqqat: roʻyxat 2000 tadan koʻp yozuvni oʻz ichiga oladi — faqat birinchi 2000 tasi eksport qilindi. Aniqroq natija uchun filtrlarni toraytiring.",
+  'export.xlsxButton': 'Yuklab olish',
+  'export.truncated': 'Faylga birinchi {rows} qator kirdi, jami {total}. Aniqroq natija uchun filtrlarni toraytiring.',
+  'export.error': 'Faylni yuklab boʻlmadi',
 
   // --- J3: leadership dashboard --------------------------------------------
   'leadership.dash.loading': "Yuklanmoqda...",
@@ -1631,8 +1598,8 @@ export const uz_latn = {
   'inspector.scan.qrPlaceholder': "QR-ni skanerlang yoki kodni joylashtiring",
   'inspector.scan.checkButton': "Tekshirish",
   'inspector.scan.orByNumberLabel': "yoki seriya va raqam boʻyicha",
-  'inspector.scan.seriesLabel': "Seriya",
-  'inspector.scan.numberLabel': "Raqami",
+  'inspector.scan.permitNoLabel': "Seriya va raqami",
+  'inspector.scan.permitNoInvalid': "Seriya va raqamni «А 000002» koʻrinishida kiriting",
   'inspector.scan.loading': "Tekshirilmoqda...",
   'inspector.scan.error': "Tekshirishni amalga oshirib boʻlmadi.",
   'inspector.scan.notFound': "Ruxsatnoma topilmadi yoki hali amal qilmaydi.",
@@ -1670,6 +1637,7 @@ export const uz_latn = {
 
   // --- J1 (stage 6.7): task detail page -----------------------------------
   'inspector.taskDetail.title': "Topshiriq",
+  'inspector.taskDetail.backButton': "Ortga qaytish",
   'inspector.taskDetail.loading': "Yuklanmoqda...",
   'inspector.taskDetail.notFound': "Topshiriq topilmadi.",
   'inspector.taskDetail.kindLabel': "Turi:",
@@ -1802,44 +1770,6 @@ export const uz_latn = {
   'inspector.caseDetail.appealPending': "Koʻrib chiqilmoqda",
 
   // Search screen (stage 6.9, track T69) — GET /search + saved filter profiles.
-  'search.title': "Qidiruv",
-  'search.kindApplications': "Arizalar",
-  'search.kindPermits': "Ruxsatnomalar",
-  'search.filters.query': "Soʻrov",
-  'search.filters.queryPlaceholder': "Raqam, F.I.Sh., telefon",
-  'search.filters.status': "Holat",
-  'search.filters.allStatuses': "Barcha holatlar",
-  'search.filters.organization': "Tashkilot",
-  'search.filters.allOrganizations': "Barcha tashkilotlar",
-  'search.filters.activityType': "Faoliyat turi",
-  'search.filters.allActivityTypes': "Barcha faoliyat turlari",
-  'search.filters.series': "Seriya",
-  'search.actions.search': "Qidirish",
-  'search.actions.reset': "Tozalash",
-  'search.col.number': "Raqam",
-  'search.col.status': "Holat",
-  'search.col.organization': "Tashkilot",
-  'search.col.applicant': "Ariza beruvchi",
-  'search.col.createdAt': "Yaratilgan",
-  'search.empty': "Hech narsa topilmadi",
-  'search.error': "Qidiruvni bajarib boʻlmadi",
-  'search.profiles.title': "Saqlangan filtrlar:",
-  'search.profiles.saveCurrent': "Filtrni saqlash",
-  'search.profiles.namePlaceholder': "Filtr nomi",
-  'search.profiles.saveConfirm': "Saqlash",
-  'search.profiles.saveCancel': "Bekor qilish",
-  'search.profiles.delete': "Filtrni oʻchirish",
-  'search.export.title': "Eksport (С22)",
-  'search.export.xlsxButton': "XLSX ga eksport",
-  'search.export.pdfButton': "PDF ga eksport",
-  'search.export.download': "Yuklab olish",
-  'search.export.error': "Eksportni bajarib boʻlmadi",
-  'search.detail.title': "Qidiruv natijasi tafsilotlari",
-  'search.detail.kind': "Turi",
-  'search.detail.noOrgDraftNotice': "Ushbu ariza qoralama holatida va unga hali tashkilot biriktirilmagan. Toʻliq ariza kartasi ariza topshirilib, masʼul tashkilotga yoʻnaltirilgandan soʻng shakllanadi.",
-  'search.detail.noOrg': "Tashkilot biriktirilmagan",
-  'search.detail.openCard': "Kartochkani ochish",
-  'search.detail.close': "Yopish",
 
   // Archive register (stage 6.9, track T69) — GET /archive + item card + archive/verify.
   'archive.title': "Arxiv reyestri",
@@ -1872,10 +1802,9 @@ export const uz_latn = {
   'archive.newItemModal.objectType': "Obyekt turi",
   'archive.newItemModal.objectNumber': "Ariza raqami",
   'archive.newItemModal.objectNumberPlaceholder': "RX-2026-00001",
-  'archive.newItemModal.permitSeries': "Seriya",
-  'archive.newItemModal.permitSeriesPlaceholder': "А",
-  'archive.newItemModal.permitNumber': "Raqam",
-  'archive.newItemModal.permitNumberPlaceholder': "4182",
+  'archive.newItemModal.permitNo': "Seriya va raqami",
+  'archive.newItemModal.permitNoPlaceholder': "А 000002",
+  'archive.newItemModal.permitNoInvalid': "Seriya va raqamni «А 000002» koʻrinishida kiriting",
   'archive.newItemModal.retentionUntil': "Saqlash muddati (ixtiyoriy)",
   'archive.newItemModal.submit': "Arxivlash",
   'archive.newItemModal.cancel': "Bekor qilish",
@@ -1962,8 +1891,6 @@ export const uz_latn = {
   'wizard.step1.title': "Faoliyat turi",
   'wizard.step1.desc': "Foydalanish turi",
   'wizard.step1.heading': "1. Faoliyat turini tanlang",
-  'wizard.step1.onBehalfLabel': "Kimning nomidan topshiriladi",
-  'wizard.step1.onBehalfSelf': "Oʻzim uchun (jismoniy shaxs)",
   'wizard.step1.unit': "Birlik:",
   'wizard.step2.title': "Maydon",
   'wizard.step2.desc': "Kontur va davr",
@@ -1991,9 +1918,27 @@ export const uz_latn = {
   'wizard.step3.heading': "3. Parametrlar",
   'wizard.step3.livestockType': "Chorva turi",
   'wizard.step3.headCount': "Bosh soni",
+  'wizard.step3.typeRequired': "Chorva turini tanlang.",
+  'wizard.step3.headCountRequired': "Bosh sonini kiriting.",
+  'wizard.step3.headCountInvalid': "Bosh soni 1 dan 1 000 000 gacha butun son boʻlishi kerak.",
   'wizard.step3.selectPrompt': "Tanlang...",
   'wizard.step3.addLivestock': "Chorva turini qoʻshish",
   'wizard.step3.quantity': "Miqdori",
+  'wizard.step3.quantityInvalid': "Miqdor 0 dan maksimumgacha va koʻpi bilan 4 xonali kasr boʻlishi kerak.",
+  'wizard.step3.livestockTypesLoadError': "Chorva turlari yuklanmadi.",
+  'wizard.step3.livestockNotConfigured': "Chorva turlari hali sozlanmagan — chorva turini qoʻshish imkonsiz.",
+  'wizard.step3.deadwoodProduct': "Mahsulot turi",
+  'wizard.step3.deadwoodProduct.firewood': "Oʻtin",
+  'wizard.step3.deadwoodProduct.branches': "Shox-shabba",
+  'wizard.step3.deadwoodProduct.both': "Oʻtin va shox-shabba",
+  'wizard.step3.removalDeadline': "Olib chiqish muddati",
+  'wizard.step3.recreationPurpose': "Foydalanish maqsadi",
+  'wizard.step3.recreationPurpose.cultural_educational': "Madaniy-maʼrifiy",
+  'wizard.step3.recreationPurpose.upbringing': "Tarbiyaviy",
+  'wizard.step3.recreationPurpose.health': "Sogʻlomlashtirish",
+  'wizard.step3.recreationPurpose.recreational': "Rekreatsion",
+  'wizard.step3.recreationPurpose.aesthetic': "Estetik",
+  'wizard.step3.eventAt': "Tadbir sanasi va vaqti",
   'wizard.step4.benefitCategory': "Imtiyoz toifasi (agar mavjud boʻlsa)",
   'wizard.step4.noBenefit': "Imtiyoz yoʻq",
   'wizard.step3.estimatedPrice': "Moʻljallangan narx",
@@ -2062,6 +2007,7 @@ export const uz_latn = {
   'wizard.step5.noPinfl': "ERI orqali imzolash uchun zarur JSHSHIR topilmadi. Profilingizni tekshiring.",
   'wizard.nav.back': "Orqaga",
   'wizard.nav.next': "Keyingisi",
+  'wizard.nav.step3Incomplete': "Davom etishdan oldin 3-qadamdagi toʻldirilmagan yoki notoʻgʻri maʼlumotni tuzating.",
   'wizard.checks.gis_validity': "Kontur geometriyasi toʻgʻriligi",
   'wizard.checks.gis_within_fund': "Oʻrmon fondi chegarasiga kirishi",
   'wizard.checks.gis_overlap': "Boshqa ruxsatnoma bilan kesishmasligi",
@@ -2119,12 +2065,8 @@ export const uz_latn = {
     "Tavsif: uz_latn (oʻzbekcha lotin) tili boʻsh boʻlishi mumkin emas.",
   'activityTypes.errProcessingDays': "Muddat musbat butun son boʻlishi kerak.",
   'activityTypes.saveError': "Saqlab boʻlmadi.",
-  'activityTypes.archiveTitle': "Xizmatni oʻchirish",
-  'activityTypes.archiveBody':
-    "Bu xizmat bosh sahifada, narx kalkulyatorida va ariza shaklida koʻrinmay qoladi — bu xizmat boʻyicha yangi ariza berish ham yopiladi.",
-  'activityTypes.archiveConfirm': 'Tasdiqlash',
-  'activityTypes.archiveCancel': 'Bekor qilish',
-  'activityTypes.archiveError': "Xizmatni oʻchirib boʻlmadi.",
+  'activityTypes.inactiveHint': "Saytda, narx kalkulyatorida va ariza shaklida koʻrinmaydi.",
+  'activityTypes.toggleError': "Xizmat holatini oʻzgartirib boʻlmadi.",
 
   // Permit rating panel (B10 cabinet, task 8 of 07.7-services-catalog-and-ratings).
   // Option copy for 5-2 is the old landing form's own wording, carried over
@@ -2214,8 +2156,6 @@ export const uz_latn = {
   'staff.decision.benefit.approveBlockedPending': 'Imtiyoz tekshirilmagan.',
   'staff.benefitClaim.notInReview': "Tekshirish uchun avval arizani ko'rib chiqishga oling.",
   'staff.decision.benefit.approveBlockedRejectedPrefix': 'Imtiyoz rad etilgan:',
-  'staff.decision.benefit.legalBasisOptionalHint':
-    "Boʻsh qoldirilsa, tekshiruvchi koʻrsatgan sabab huquqiy asos sifatida ishlatiladi.",
   // `StartReviewConfirmModal` (`pages/staff/components/`) — the question
   // before an application is taken into review; one slip of the mouse used
   // to move it into IN_REVIEW and assign it to whoever slipped.
@@ -2270,6 +2210,25 @@ export const uz_latn = {
   'beekeepers.remove.submit': 'Chiqarish',
   'beekeepers.remove.cancel': 'Bekor qilish',
   'beekeepers.remove.error': "Chiqarib boʻlmadi.",
+  // Ruling #217 — the certificate's term and the Union's monitoring tab.
+  'beekeepers.col.validTo': 'Amal qilish muddati',
+  'beekeepers.form.fieldValidTo': 'Amal qilish muddati (gacha)',
+  'beekeepers.form.validToHint': 'Guvohnomadagi «... gacha amal qiladi» sanasi. Muddat koʻrsatilmagan boʻlsa — boʻsh qoldiring.',
+  'beekeepers.tab.register': 'Reyestr',
+  'beekeepers.tab.claims': 'Arizalar',
+  'beekeepers.claims.col.number': 'Ariza raqami',
+  'beekeepers.claims.col.applicant': 'Ariza beruvchi',
+  'beekeepers.claims.col.certificateNo': 'Guvohnoma raqami',
+  'beekeepers.claims.col.organization': 'Oʻrmon xoʻjaligi',
+  'beekeepers.claims.col.period': 'Davr',
+  'beekeepers.claims.col.verification': 'Imtiyoz tekshiruvi',
+  'beekeepers.claims.col.status': 'Ariza holati',
+  'beekeepers.claims.filters.status': 'Ariza holati',
+  'beekeepers.claims.empty': 'Uyushma a\'zolari imtiyozini soʻragan arizalar hozircha yoʻq.',
+  'beekeepers.claims.verification.pending': 'Tekshirilmoqda',
+  'beekeepers.claims.verification.verified': 'Tasdiqlangan',
+  'beekeepers.claims.verification.rejected': 'Rad etilgan',
+  'beekeepers.claims.verification.not_required': 'Talab qilinmaydi',
 
   // Stage 10, F1 — the rules checkbox (ruling #184), the self/legal branch of
   // the wizard's last step (ruling #183), and the benefit block's
@@ -2281,7 +2240,7 @@ export const uz_latn = {
   'wizard.step5.signDesc':
     "Arizani topshirish uchun quyidagi tugmani bosing — elektron imzo talab qilinmaydi, chunki tizimga OneID yoki E-IMZO orqali kirgansiz.",
   'wizard.step4.benefitProofOk': "Imtiyozni tasdiqlovchi hujjat ilova qilindi.",
-  'wizard.step4.benefitProofOptional': "Guvohnoma nusxasini ilova qilish ixtiyoriy.",
+  'wizard.step4.benefitProofRequired': "Tanlangan imtiyoz toifasi uchun tasdiqlovchi hujjat ilova qilinishi shart.",
 
   // Stage 11 — «Mening toʻlovlarim»: the citizen's invoices and refund
   // requests in one place (rulings R1-R6, ruling R1: `GET /invoices` and
@@ -2327,4 +2286,13 @@ export const uz_latn = {
   'myPayments.refunds.requestSent': 'Soʻrov yuborildi. Javob muddati — 20 ish kuni.',
   'myPayments.backToPayments': 'Toʻlovlarga qaytish',
   'wizard.step5.benefitNotForActivity': "Tanlangan imtiyoz ushbu faoliyat turiga qoʻllanilmaydi. 4-bosqichga qaytib, imtiyozni oʻzgartiring yoki olib tashlang.",
+
+  // 2026-09-13 — the dialog a successful filing opens before the card:
+  // which phone the status SMS will reach (`me.user.phone`), and a way to
+  // the profile if that number is stale.
+  'wizard.filed.title': 'Ariza yuborildi',
+  'wizard.filed.phoneNotice': 'Ariza holati haqidagi xabarlar {phone} raqamiga yuboriladi. Raqamingiz oʻzgargan boʻlsa, uni profil boʻlimida yangilang.',
+  'wizard.filed.noPhone': 'Profilingizda telefon raqami koʻrsatilmagan — ariza holati haqidagi xabarlarni olish uchun uni profil boʻlimida kiriting.',
+  'wizard.filed.openCard': 'Arizaga oʻtish',
+  'wizard.filed.changePhone': 'Telefonni oʻzgartirish',
 };

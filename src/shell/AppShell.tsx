@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { Link, Outlet } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
-import { Bell, LogOut, Menu, Trees, Video, X } from 'lucide-react';
+import { Bell, LogOut, Menu, PanelLeftClose, PanelLeftOpen, Video, X } from 'lucide-react';
+import ormonLogo from '../assets/img/ormonlogo.png';
 import { api } from '../api/client';
 import { apiError } from '../api/errors';
 import { useAuth } from '../auth/useAuth';
@@ -46,6 +47,7 @@ export function AppShell() {
   const t = useT();
   const { lang, backendLang, setLanguage } = useLanguage();
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   // Ruling 10's global rule ("any ERR-AUTH-002 clears the session") is wired
   // once, in `sessionMiddleware` (`src/api/client.ts`) — this query just
@@ -65,6 +67,10 @@ export function AppShell() {
   if (!me) return null;
 
   const roleName = pickLocalizedName(me.role.name, lang, me.role.code);
+  // The video guide is made for citizens filing applications; staff have
+  // their own training and the button only crowded their header
+  // (Oybek, 2026-09-13). Same role test as `ProfilePage`.
+  const isApplicant = me.role.code === 'applicant';
   const unreadCount = unreadQuery.data?.count ?? 0;
 
   return (
@@ -80,10 +86,12 @@ export function AppShell() {
         </button>
 
         <div className="flex items-center gap-2.5 shrink-0">
-          <div className="w-9 h-9 rounded-lg bg-[#2E7D4F] text-white flex items-center justify-center shadow-xs">
-            <Trees className="w-5 h-5" />
+          <img src={ormonLogo} alt="Logo" className="w-9 h-9 rounded-lg shadow-xs object-cover" />
+          <div className="hidden sm:flex flex-col justify-center">
+            <span className="text-[9px] font-bold text-[#1A1F24] leading-[1.1] uppercase tracking-wide">{t('brand.line1')}</span>
+            <span className="text-[9px] font-bold text-[#1A1F24] leading-[1.1] uppercase tracking-wide">{t('brand.line2')}</span>
+            <span className="text-[10px] font-extrabold text-[#2E7D4F] leading-[1.2] uppercase tracking-wide">{t('brand.line3')}</span>
           </div>
-          <span className="hidden sm:block text-sm font-bold text-[#1A1F24]">ruxsatnoma-urmon.uz</span>
         </div>
 
         {/* Two lines, like the profile block on the right, so it fits beside
@@ -93,17 +101,19 @@ export function AppShell() {
 
         <div className="flex-1" />
 
-        <a
-          href={VIDEO_GUIDE_URL}
-          target="_blank"
-          rel="noopener noreferrer"
-          aria-label={t('shell.videoGuide')}
-          data-testid="video-guide-link"
-          className="flex h-11 w-11 lg:w-auto lg:px-3 items-center justify-center gap-1.5 rounded-md bg-[#2E7D4F] text-white text-xs font-semibold hover:bg-[#23653F] transition-colors shrink-0"
-        >
-          <Video className="w-5 h-5 lg:w-4 lg:h-4" />
-          <span className="hidden lg:inline">{t('shell.videoGuide')}</span>
-        </a>
+        {isApplicant && (
+          <a
+            href={VIDEO_GUIDE_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label={t('shell.videoGuide')}
+            data-testid="video-guide-link"
+            className="flex h-11 w-11 lg:w-auto lg:px-3 items-center justify-center gap-1.5 rounded-md bg-[#2E7D4F] text-white text-xs font-semibold hover:bg-[#23653F] transition-colors shrink-0"
+          >
+            <Video className="w-5 h-5 lg:w-4 lg:h-4" />
+            <span className="hidden lg:inline">{t('shell.videoGuide')}</span>
+          </a>
+        )}
 
         <LanguageMenu
           value={backendLang}
@@ -144,12 +154,12 @@ export function AppShell() {
           to="/profile"
           aria-label={t('nav.profile')}
           data-testid="header-profile-link"
-          className="hidden sm:flex flex-col items-end shrink-0 pl-3 border-l border-[#E4E7EA] max-w-[12rem] py-1 px-2 rounded-md hover:bg-[#F8F9FA] transition-colors"
+          className="hidden md:flex flex-col items-end shrink-0 pl-3 border-l border-[#E4E7EA] max-w-[12rem] xl:max-w-[20rem] py-1 px-2 rounded-md hover:bg-[#F8F9FA] transition-colors"
         >
-          <span className="text-xs font-semibold text-[#1A1F24] hover:text-[#2E7D4F] leading-tight truncate w-full text-right transition-colors">
+          <span className="text-xs font-semibold text-[#1A1F24] hover:text-[#2E7D4F] leading-tight truncate w-full text-right transition-colors" title={translateTerm(me.user.full_name, lang) || me.user.full_name}>
             {translateTerm(me.user.full_name, lang) || me.user.full_name}
           </span>
-          <span className="text-[11px] text-[#5A646D] truncate w-full text-right">{roleName}</span>
+          <span className="text-[11px] text-[#5A646D] truncate w-full text-right" title={roleName}>{roleName}</span>
         </Link>
 
         <button
@@ -164,9 +174,28 @@ export function AppShell() {
 
       <div className="flex flex-1 min-w-0">
         {/* Persistent sidebar — pure CSS (`hidden md:flex`), unaffected by `drawerOpen`. */}
-        <aside className="hidden md:flex md:flex-col w-[260px] shrink-0 bg-white border-r border-[#E4E7EA] sticky top-16 h-[calc(100vh-4rem)] overflow-y-auto">
-          <Nav me={me} />
-          <SupportFooter className="mt-auto lg:hidden" />
+        <aside
+          className={`hidden md:flex md:flex-col shrink-0 bg-white border-r border-[#E4E7EA] sticky top-16 h-[calc(100vh-4rem)] overflow-hidden transition-[width] duration-200 ${
+            sidebarCollapsed ? 'w-[72px]' : 'w-[260px]'
+          }`}
+        >
+          <div className="flex-1 overflow-y-auto">
+            <Nav me={me} collapsed={sidebarCollapsed} />
+          </div>
+          <div className="flex flex-col w-full shrink-0">
+            {!sidebarCollapsed && <SupportFooter className="lg:hidden" />}
+            <div className={`flex h-14 items-center border-t border-[#E4E7EA] px-3 ${sidebarCollapsed ? 'justify-center' : 'justify-end'}`}>
+              <button
+                type="button"
+                onClick={() => setSidebarCollapsed((collapsed) => !collapsed)}
+                aria-label={sidebarCollapsed ? t('shell.expandSidebar') : t('shell.collapseSidebar')}
+                title={sidebarCollapsed ? t('shell.expandSidebar') : t('shell.collapseSidebar')}
+                className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#E4E7EA] text-[#5A646D] transition-colors hover:border-[#7FB98A] hover:bg-[#F0F7F1] hover:text-[#23653F]"
+              >
+                {sidebarCollapsed ? <PanelLeftOpen className="h-5 w-5" /> : <PanelLeftClose className="h-5 w-5" />}
+              </button>
+            </div>
+          </div>
         </aside>
 
         {/* Mobile drawer — always in the DOM; the `hidden` attribute is the sole
@@ -176,7 +205,14 @@ export function AppShell() {
           <div className="fixed inset-0 bg-black/40" onClick={() => setDrawerOpen(false)} aria-hidden="true" />
           <div className="relative w-72 max-w-[80%] bg-white h-full shadow-2xl flex flex-col">
             <div className="h-16 flex items-center justify-between px-4 border-b border-[#E4E7EA] shrink-0">
-              <span className="text-sm font-bold text-[#1A1F24]">ruxsatnoma-urmon.uz</span>
+              <div className="flex items-center gap-2.5">
+                <img src={ormonLogo} alt="Logo" className="w-8 h-8 rounded-lg shadow-xs object-cover" />
+                <div className="flex flex-col justify-center">
+                  <span className="text-[8px] font-bold text-[#1A1F24] leading-[1.1] uppercase tracking-wide">{t('brand.line1')}</span>
+                  <span className="text-[8px] font-bold text-[#1A1F24] leading-[1.1] uppercase tracking-wide">{t('brand.line2')}</span>
+                  <span className="text-[9px] font-extrabold text-[#2E7D4F] leading-[1.2] uppercase tracking-wide">{t('brand.line3')}</span>
+                </div>
+              </div>
               <button
                 type="button"
                 onClick={() => setDrawerOpen(false)}

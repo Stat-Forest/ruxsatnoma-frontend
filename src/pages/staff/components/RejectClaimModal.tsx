@@ -14,6 +14,9 @@ export interface RejectClaimModalProps {
   onRejected: () => void;
 }
 
+/** `BenefitClaimRejectIn.reason` (`TextStr`, `app/core/schemas.py`). */
+const REJECT_REASON_MAX_LENGTH = 2000;
+
 /**
  * The rejection reason (rulings #181/#182, moved unchanged from stage 9's
  * `src/pages/benefits/RejectClaimModal.tsx`): "a rejection without a reason
@@ -69,6 +72,7 @@ export function RejectClaimModal({ applicationId, onClose, onRejected }: RejectC
             onChange={(e) => setReason(e.target.value)}
             placeholder={t('staff.benefitClaim.reject.reasonPlaceholder')}
             data-testid="reject-claim-reason"
+            maxLength={REJECT_REASON_MAX_LENGTH}
           />
         </FormField>
 

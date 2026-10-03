@@ -4,6 +4,7 @@ import { Button } from '../../components/ui/button';
 import { FileInput, FormField, Input, Select } from '../../components/ui/FormControls';
 import { Pagination } from '../../components/ui/Navigation';
 import { Alert } from '../../components/ui/Feedback';
+import { ExportXlsxButton } from '../../components/ui/ExportXlsxButton';
 import { useAuth } from '../../auth/useAuth';
 import { ApiError } from '../../api/errors';
 import { useApiErrorText } from '../../i18n/useApiErrorText';
@@ -105,17 +106,25 @@ function StatementsRegister({ onOpen }: { onOpen: (id: string) => void }) {
     <section className="rounded-2xl border border-[#E4E7EA] bg-white shadow-xs">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#E4E7EA] p-4">
         <h2 className="text-sm font-bold text-[#1A1F24]">{t('accountant.statements.registerTitle')}</h2>
-        <FormField label={t('accountant.invoices.statusFilterLabel')} htmlFor="statements-status-filter" className="w-full sm:w-auto">
-          <Select
-            id="statements-status-filter"
-            value={status}
-            onChange={(e) => {
-              setStatus(e.target.value);
-              setPage(1);
-            }}
-            options={statusOptions}
+        <div className="flex items-end gap-2 w-full sm:w-auto">
+          <FormField label={t('accountant.invoices.statusFilterLabel')} htmlFor="statements-status-filter" className="w-full sm:w-auto">
+            <Select
+              id="statements-status-filter"
+              value={status}
+              onChange={(e) => {
+                setStatus(e.target.value);
+                setPage(1);
+              }}
+              options={statusOptions}
+            />
+          </FormField>
+          <ExportXlsxButton
+            className="ml-auto"
+            path="/api/v1/payments/bank-statements"
+            query={{ status: status || undefined }}
+            disabled={!query.data?.total}
           />
-        </FormField>
+        </div>
       </div>
 
       {query.isLoading ? (

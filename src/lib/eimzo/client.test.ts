@@ -8,8 +8,11 @@
 import { http, HttpResponse } from 'msw';
 import { setupServer } from 'msw/node';
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
+import type { EimzoKeyInfo } from './client';
 import { createPkcs7, listKeys, loadKey, signAttached, signDocument } from './client';
+import { setEimzoKeySelector } from './keySelector';
 import {
+  EimzoCancelledError,
   EimzoChromeBlockedError,
   EimzoError,
   EimzoMultipleKeysError,
@@ -55,6 +58,10 @@ function vendorKeyVo(overrides: Record<string, unknown> = {}) {
 // DETACHED and ATTACHED. Reset in `afterEach` below.
 let lastCreatePkcs7Detached: boolean | undefined;
 
+/** Which certificate `loadKey` was actually handed — the only way to prove
+ *  the picker's choice, not list order, decided what signs. */
+let lastLoadedKeySerial: string | undefined;
+
 /** Installs `window.EIMZOClient` shaped exactly like the vendored
  *  `public/e-imzo-client.js` — same method names, same callback-pair shape —
  *  configured for one scenario at a time. */
@@ -89,7 +96,8 @@ function installVendorStub(options: VendorStubOptions = {}) {
       const items = ids.map((id, i) => itemUiGen(id, keys[i]));
       (success as (items: string[], firstId: string | null) => void)(items, items.length === 1 ? items[0] : null);
     },
-    loadKey: (_vo: unknown, success: SuccessFn, fail: FailFn) => {
+    loadKey: (vo: { serialNumber?: string }, success: SuccessFn, fail: FailFn) => {
+      lastLoadedKeySerial = vo?.serialNumber;
       if (options.loadKeyFail) {
         fail(null, 'wrong password');
         return;
@@ -126,6 +134,7 @@ afterEach(() => {
   delete (window as { EIMZOClient?: unknown }).EIMZOClient;
   document.querySelectorAll('script[data-eimzo-vendor]').forEach((el) => el.remove());
   lastCreatePkcs7Detached = undefined;
+  lastLoadedKeySerial = undefined;
   vi.restoreAllMocks();
 });
 afterAll(() => server.close());
@@ -261,7 +270,7 @@ describe('signAttached', () => {
   });
 });
 
-describe('key selection (fix wave, finding 5)', () => {
+describe('key selection without a picker mounted (the pre-2026-09-23 fallback)', () => {
   it('filters out an expired key and signs with the remaining valid one', async () => {
     stubUserAgent(CHROME_OLD);
     installVendorStub({
@@ -320,6 +329,101 @@ describe('key selection (fix wave, finding 5)', () => {
     await expect(signAttached(new TextEncoder().encode('nonce'))).rejects.toBeInstanceOf(EimzoMultipleKeysError);
 
     installVendorStub({ keys: [vendorKeyVo({ serialNumber: 'SN-A' })] });
+    await expect(signAttached(new TextEncoder().encode('nonce'))).resolves.toBe('RAW-PKCS7');
+  });
+});
+
+/**
+ * 2026-09-23, on the first run against a real E-IMZO install: six
+ * certificates were connected, five of them expired, and the ONE still
+ * valid belonged to somebody else entirely. The rule above picked it
+ * silently and went straight to the password dialog — the signer was never
+ * told whose certificate they were about to sign with, and their own lapsed
+ * one was nowhere on screen to explain why. With a picker mounted, the
+ * choice is always the signer's.
+ */
+describe('key selection with a picker mounted', () => {
+  const expired = vendorKeyVo({
+    CN: 'MINE, LAPSED',
+    serialNumber: 'SN-EXPIRED',
+    validTo: new Date('2020-01-01T00:00:00Z'),
+  });
+  const valid = vendorKeyVo({ serialNumber: 'SN-VALID', validTo: new Date('2099-01-01T00:00:00Z') });
+  const otherValid = vendorKeyVo({ serialNumber: 'SN-OTHER', validTo: new Date('2099-01-01T00:00:00Z') });
+
+  afterEach(() => setEimzoKeySelector(null));
+
+  it('asks even when exactly one certificate is valid — the silent pick is what went wrong', async () => {
+    stubUserAgent(CHROME_OLD);
+    installVendorStub({ keys: [valid] });
+    let asked = 0;
+    setEimzoKeySelector(async (keys) => {
+      asked += 1;
+      return keys[0];
+    });
+    await expect(signAttached(new TextEncoder().encode('nonce'))).resolves.toBe('RAW-PKCS7');
+    expect(asked).toBe(1);
+  });
+
+  it('offers EXPIRED certificates too, so the signer can see their own lapsed one', async () => {
+    stubUserAgent(CHROME_OLD);
+    installVendorStub({ keys: [expired, valid] });
+    let offered: readonly EimzoKeyInfo[] = [];
+    setEimzoKeySelector(async (keys) => {
+      offered = keys;
+      return keys.find((key) => key.serialNumber === 'SN-VALID')!;
+    });
+    await signAttached(new TextEncoder().encode('nonce'));
+    expect(offered.map((key) => key.serialNumber)).toEqual(['SN-EXPIRED', 'SN-VALID']);
+  });
+
+  it('signs with the certificate the picker returned, not the first of the list', async () => {
+    stubUserAgent(CHROME_OLD);
+    installVendorStub({ keys: [valid, otherValid] });
+    setEimzoKeySelector(async (keys) => keys.find((key) => key.serialNumber === 'SN-OTHER')!);
+    await signAttached(new TextEncoder().encode('nonce'));
+    expect(lastLoadedKeySerial).toBe('SN-OTHER');
+  });
+
+  it('refuses an expired certificate even if the picker hands one back', async () => {
+    // The picker disables them; this is the second lock, in the layer that
+    // actually signs — a UI bug must not become a signature the provider
+    // will reject with a status code nobody on this screen can read.
+    stubUserAgent(CHROME_OLD);
+    installVendorStub({ keys: [expired, valid] });
+    setEimzoKeySelector(async (keys) => keys[0]);
+    const err = await signAttached(new TextEncoder().encode('nonce')).catch((e: unknown) => e);
+    expect(err).toBeInstanceOf(EimzoNoValidKeyError);
+  });
+
+  it('a cancelled choice stays cancelled — never a generic failure', async () => {
+    stubUserAgent(CHROME_OLD);
+    installVendorStub({ keys: [valid, otherValid] });
+    setEimzoKeySelector(async () => {
+      throw new EimzoCancelledError();
+    });
+    const err = await signAttached(new TextEncoder().encode('nonce')).catch((e: unknown) => e);
+    expect(err).toBeInstanceOf(EimzoCancelledError);
+    expect((err as EimzoError).kind).toBe('cancelled');
+  });
+
+  it('is never asked when nothing valid is connected at all', async () => {
+    stubUserAgent(CHROME_OLD);
+    installVendorStub({ keys: [expired] });
+    let asked = false;
+    setEimzoKeySelector(async (keys) => {
+      asked = true;
+      return keys[0];
+    });
+    const err = await signAttached(new TextEncoder().encode('nonce')).catch((e: unknown) => e);
+    expect(err).toBeInstanceOf(EimzoNoValidKeyError);
+    expect(asked).toBe(false);
+  });
+
+  it('two valid certificates are a choice now, not a refusal', async () => {
+    stubUserAgent(CHROME_OLD);
+    installVendorStub({ keys: [valid, otherValid] });
+    setEimzoKeySelector(async (keys) => keys[1]);
     await expect(signAttached(new TextEncoder().encode('nonce'))).resolves.toBe('RAW-PKCS7');
   });
 });

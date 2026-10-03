@@ -57,13 +57,14 @@ export function TemplatesPage() {
   const [editing, setEditing] = useState<TemplateOut | null | undefined>(undefined);
   const [archiving, setArchiving] = useState<TemplateOut | null>(null);
 
-  const list = useTemplatesList({
+  const queryParams = {
     event_code: applied.event_code || undefined,
     channel: applied.channel || undefined,
     status: applied.status || undefined,
     page,
     page_size: PAGE_SIZE,
-  });
+  };
+  const list = useTemplatesList(queryParams);
   const archive = useArchiveTemplate();
 
   const totalPages = list.data ? Math.max(1, Math.ceil(list.data.total / PAGE_SIZE)) : 1;

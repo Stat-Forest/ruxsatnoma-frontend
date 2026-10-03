@@ -53,7 +53,14 @@ export default defineConfig({
     // a green run over the wrong tests reads exactly like a green run.
     // `.claude/` is gitignored, so CI never saw this and never will; it is
     // purely a local trap, and only for whoever is running parallel sessions.
-    exclude: ['**/node_modules/**', '**/dist/**', '**/.claude/**'],
+    // `.worktrees/` alongside `.claude/`: this repo's git worktrees live in
+    // either place (the backend uses `.claude/worktrees/`, this one
+    // `.worktrees/`), both are gitignored — but gitignore means nothing to
+    // vitest, which walks the directory tree. Without this, a run from the
+    // main checkout collects every worktree's copy of the suite too: another
+    // session's half-finished tests failing under your name, on files you
+    // never touched.
+    exclude: ['**/node_modules/**', '**/dist/**', '**/.claude/**', '**/.worktrees/**'],
     // Both restore automatically after every test instead of relying on each
     // test file to remember its own `afterEach`: `restoreMocks` puts every
     // `vi.spyOn` back to its original implementation (a `navigation.assign`

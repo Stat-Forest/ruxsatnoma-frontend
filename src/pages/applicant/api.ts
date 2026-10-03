@@ -47,6 +47,8 @@ export interface ListApplicationsParams {
   number?: string;
   period_from?: string;
   period_to?: string;
+  created_from?: string;
+  created_to?: string;
 }
 
 export async function listApplications(params: ListApplicationsParams): Promise<Paged<ApplicationOut>> {

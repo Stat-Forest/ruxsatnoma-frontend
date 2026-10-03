@@ -167,7 +167,7 @@ export const Pagination: React.FC<PaginationProps> = ({
           <button
             onClick={() => onPageChange(currentPage - 1)}
             disabled={currentPage <= 1}
-            className="h-8 px-2.5 rounded border border-[#767F87] hover:bg-[#F8F9FA] disabled:opacity-40 disabled:cursor-not-allowed shrink-0"
+            className="h-8 px-2.5 rounded border border-[#767F87] enabled:hover:bg-[#F0F7F1] enabled:hover:border-[#2E7D4F] enabled:hover:text-[#23653F] disabled:opacity-40 disabled:cursor-not-allowed shrink-0"
           >
             {pt.prev}
           </button>
@@ -187,7 +187,7 @@ export const Pagination: React.FC<PaginationProps> = ({
           <button
             onClick={() => onPageChange(currentPage + 1)}
             disabled={currentPage >= totalPages}
-            className="h-8 px-2.5 rounded border border-[#767F87] hover:bg-[#F8F9FA] disabled:opacity-40 disabled:cursor-not-allowed shrink-0"
+            className="h-8 px-2.5 rounded border border-[#767F87] enabled:hover:bg-[#F0F7F1] enabled:hover:border-[#2E7D4F] enabled:hover:text-[#23653F] disabled:opacity-40 disabled:cursor-not-allowed shrink-0"
             aria-label={pt.next}
           >
             <span>{pt.next}</span>

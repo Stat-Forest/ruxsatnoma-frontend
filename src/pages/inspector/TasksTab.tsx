@@ -1,9 +1,10 @@
-import { useState } from 'react';
 import { useNavigate } from 'react-router';
 import { Loader2 } from 'lucide-react';
+import { useListUrlState } from '../../lib/useListUrlState';
 import { useAuth } from '../../auth/useAuth';
 import { useT } from '../../i18n/useT';
 import { Button } from '../../components/ui/button';
+import { ExportXlsxButton } from '../../components/ui/ExportXlsxButton';
 import { Select } from '../../components/ui/FormControls';
 import { Pagination } from '../../components/ui/Navigation';
 import { StatusBadge, type StatusType } from '../../components/ui/StatusBadge';
@@ -16,6 +17,8 @@ import { CLICKABLE_ROW_CLASS, clickableRowProps } from '../../lib/rowClick';
 const PAGE_SIZE = 20;
 
 type TaskStatusFilter = '' | 'assigned' | 'in_progress' | 'done' | 'cancelled';
+
+const EMPTY_FILTERS: { status: TaskStatusFilter } = { status: '' };
 
 /** `StatusBadge`'s own `StatusType` enum knows nothing about a task's
  *  statuses — mapped onto the closest colour bucket; the visible TEXT is
@@ -124,29 +127,39 @@ function TaskCard({ task }: { task: TaskOut }) {
 export function TasksTab({ active }: { active: boolean }) {
   const t = useT();
   const errorText = useApiErrorText();
-  const [status, setStatus] = useState<TaskStatusFilter>('');
-  const [page, setPage] = useState(1);
+  // Filter and page live in the URL as `tasks_*` (the three tabs share one
+  // address), so Back from a task returns to the same filtered page.
+  const { filters: applied, page, setFilters, setPage } = useListUrlState(EMPTY_FILTERS, { prefix: 'tasks' });
+  const status = applied.status;
 
-  const list = useTasksList({ status: status || undefined, page, page_size: PAGE_SIZE }, { enabled: active });
+  const filters = { status: status || undefined, page, page_size: PAGE_SIZE };
+  const list = useTasksList(filters, { enabled: active });
   const totalPages = list.data ? Math.max(1, Math.ceil(list.data.total / PAGE_SIZE)) : 1;
 
   return (
     <div className="space-y-4" data-testid="inspector-tasks-tab">
-      <div className="max-w-xs">
-        <Select
-          touchSize
-          value={status}
-          onChange={(e) => {
-            setStatus(e.target.value as TaskStatusFilter);
-            setPage(1);
-          }}
-          options={[
-            { value: '', label: t('inspector.tasks.status.all') },
-            { value: 'assigned', label: t('inspector.tasks.status.assigned') },
-            { value: 'in_progress', label: t('inspector.tasks.status.inProgress') },
-            { value: 'done', label: t('inspector.tasks.status.done') },
-            { value: 'cancelled', label: t('inspector.tasks.status.cancelled') },
-          ]}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <div className="max-w-xs">
+          <Select
+            touchSize
+            value={status}
+            onChange={(e) => {
+              setFilters({ status: e.target.value as TaskStatusFilter });
+            }}
+            options={[
+              { value: '', label: t('inspector.tasks.status.all') },
+              { value: 'assigned', label: t('inspector.tasks.status.assigned') },
+              { value: 'in_progress', label: t('inspector.tasks.status.inProgress') },
+              { value: 'done', label: t('inspector.tasks.status.done') },
+              { value: 'cancelled', label: t('inspector.tasks.status.cancelled') },
+            ]}
+          />
+        </div>
+        <ExportXlsxButton
+          path="/api/v1/inspections/tasks"
+          query={filters}
+          className="w-full sm:w-auto sm:ml-auto"
+          disabled={!list.data?.total}
         />
       </div>
 

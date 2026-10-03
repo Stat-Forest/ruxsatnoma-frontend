@@ -23,6 +23,7 @@ import { FormField, Input, Select, Textarea } from '../../../components/ui/FormC
 import { Modal } from '../../../components/ui/Overlay';
 import { Alert } from '../../../components/ui/Feedback';
 import { StatusBadge } from '../../../components/ui/StatusBadge';
+import { ExportXlsxButton } from '../../../components/ui/ExportXlsxButton';
 import { ApiError } from '../../../api/errors';
 import { useApiErrorText } from '../../../i18n/useApiErrorText';
 import { useLanguage } from '../../../i18n/useT';
@@ -32,6 +33,13 @@ import type { PaymentRecipientIn, PaymentRecipientOut, RecipientKind } from './a
 import { useLabels, type RecipientLabels } from './labels';
 import { useCreateRecipient, usePatchRecipient, useRecipientsList } from './queries';
 import { CLICKABLE_ROW_CLASS, clickableRowProps } from '../../../lib/rowClick';
+
+/** `PaymentRecipientIn.payme_account_id` (`CodeStr`, `app/core/schemas.py`). */
+const RECIPIENT_PAYME_ACCOUNT_ID_MAX_LENGTH = 64;
+/** `PaymentRecipientIn.note` (`NoteStr`). */
+const RECIPIENT_NOTE_MAX_LENGTH = 2000;
+/** `PaymentRecipientIn.sort_order` — `le=SORT_ORDER_MAX`. */
+const RECIPIENT_SORT_ORDER_MAX = 10000;
 
 /** `50.00` -> `"50%"`, `12.50` -> `"12.5%"` — trailing zeros trimmed, the
  *  same reading `formatMoney` gives a whole so'm amount. */
@@ -95,19 +103,26 @@ export function RecipientsPage() {
 
   return (
     <div className="space-y-6 font-sans pb-16" data-testid="payment-recipients-page">
-      <div className="border-b border-[#E4E7EA] pb-4 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
-        <div>
+      <div className="border-b border-[#E4E7EA] pb-4 flex flex-col gap-4">
+        <div className="min-w-0 flex-1">
           <h1 className="text-lg md:text-xl font-bold text-[#1A1F24] tracking-tight">{L.pageTitle}</h1>
           <p className="text-xs md:text-sm text-[#5A646D] mt-1 max-w-2xl">{L.pageSubtitle}</p>
         </div>
-        <Button
-          variant="primary"
-          size="sm"
-          leftIcon={<Plus className="w-3.5 h-3.5" />}
-          onClick={() => setFormTarget({ id: null })}
-        >
-          {L.create}
-        </Button>
+        <div className="flex items-center gap-2 shrink-0">
+          <Button
+            variant="primary"
+            size="sm"
+            leftIcon={<Plus className="w-3.5 h-3.5" />}
+            onClick={() => setFormTarget({ id: null })}
+          >
+            {L.create}
+          </Button>
+          <ExportXlsxButton
+            path="/api/v1/payments/recipients"
+            query={{}}
+            disabled={!list.data?.items.length}
+          />
+        </div>
       </div>
 
       {missingPayme.length > 0 && (
@@ -145,12 +160,12 @@ export function RecipientsPage() {
           <table className="w-full text-sm">
             <thead className="bg-[#F8F9FA] text-left text-xs font-bold uppercase tracking-wide text-[#5A646D]">
               <tr>
-                <th className="px-4 py-3">{L.colName}</th>
-                <th className="px-4 py-3">{L.colRule}</th>
-                <th className="px-4 py-3">{L.colPaymeId}</th>
-                <th className="px-4 py-3">{L.colStatus}</th>
-                <th className="px-4 py-3 text-right">{L.colSortOrder}</th>
-                <th className="px-4 py-3 text-right">{L.colActions}</th>
+                <th className="px-4 py-3 min-w-[200px]">{L.colName}</th>
+                <th className="px-4 py-3 min-w-[280px]">{L.colRule}</th>
+                <th className="px-4 py-3 min-w-[150px]">{L.colPaymeId}</th>
+                <th className="px-4 py-3 min-w-[120px]">{L.colStatus}</th>
+                <th className="px-4 py-3 text-right whitespace-nowrap">{L.colSortOrder}</th>
+                <th className="px-4 py-3 text-right min-w-[100px]">{L.colActions}</th>
               </tr>
             </thead>
             <tbody>
@@ -430,6 +445,7 @@ function RecipientFormModal({
             data-testid="recipient-payme-id"
             value={form.paymeAccountId}
             onChange={(e) => set('paymeAccountId', e.target.value)}
+            maxLength={RECIPIENT_PAYME_ACCOUNT_ID_MAX_LENGTH}
           />
         </FormField>
 
@@ -440,11 +456,20 @@ function RecipientFormModal({
             type="number"
             value={form.sortOrder}
             onChange={(e) => set('sortOrder', e.target.value)}
+            min={0}
+            max={RECIPIENT_SORT_ORDER_MAX}
           />
         </FormField>
 
         <FormField label={L.fieldNote} htmlFor="recipient-note">
-          <Textarea id="recipient-note" data-testid="recipient-note" rows={2} value={form.note} onChange={(e) => set('note', e.target.value)} />
+          <Textarea
+            id="recipient-note"
+            data-testid="recipient-note"
+            rows={2}
+            value={form.note}
+            onChange={(e) => set('note', e.target.value)}
+            maxLength={RECIPIENT_NOTE_MAX_LENGTH}
+          />
         </FormField>
 
         {recipientId !== null && (

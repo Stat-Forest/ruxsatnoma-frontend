@@ -3,7 +3,7 @@
  * `docs/plans/06.5-staff-tails.md`). Two things this test file pins:
  *   1. a caller holding only `applications.view_any` (never `.review`) sees
  *      the register but no "Ishga olish" action — read-only, honestly;
- *   2. "CSV eksport" fetches every matching page (not just the one on
+ *   2. the Excel button asks the SERVER for the file (never pages the list
  *      screen) and hands the browser a real file.
  *
  * A third (F11, `docs/plans/07.3-findings.md`, first sighting): after
@@ -16,13 +16,14 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { vi } from 'vitest';
-import { MemoryRouter, useLocation } from 'react-router';
+import { MemoryRouter, Route, Routes, useLocation, useNavigate } from 'react-router';
 import { http, HttpResponse } from 'msw';
 import { setupServer } from 'msw/node';
 import { AuthContext } from '../../auth/AuthContext';
 import type { AuthContextValue } from '../../auth/AuthContext';
 import { stubAuthActions } from '../../auth/testAuthActions';
 import { I18nContext } from '../../i18n/context';
+import { SEARCH_MAX_LENGTH } from '../../api/limits';
 import { ApplicationsListPage } from './ApplicationsListPage';
 import type { ApplicationOut } from './queries';
 
@@ -33,8 +34,6 @@ function row(over: Partial<ApplicationOut> = {}): ApplicationOut {
     status: 'IN_REVIEW',
     applicant_id: 'ap000000-0000-4000-8000-000000000001',
     submitted_by_user_id: 'u0000000-0000-4000-8000-000000000001',
-    on_behalf: 'self',
-    representation_id: null,
     activity_type_id: null,
     contour_id: null,
     contour_version_id: null,
@@ -42,6 +41,12 @@ function row(over: Partial<ApplicationOut> = {}): ApplicationOut {
     period_from: '2026-01-01',
     period_to: '2026-12-31',
     quantity: null,
+    // Decision #215 R6: the deadwood and recreation blanks' own lines —
+    // required by the schema (nullable), null for every other activity.
+    deadwood_product: null,
+    removal_deadline: null,
+    recreation_purpose: null,
+    event_at: null,
     channel: 'portal',
     kind: 'new',
     benefit_category_item_id: null,
@@ -86,7 +91,6 @@ function authValue(permissions: string[]): AuthContextValue {
       csrf_token: 'tok-1',
       is_superuser: false,
       applicant: null,
-      representations: [],
       registration_complete: true,
     },
     loading: false,
@@ -106,18 +110,38 @@ afterAll(() => server.close());
 /** Rendered alongside the page so a row's navigation is observable. */
 function LocationProbe() {
   const location = useLocation();
-  return <div data-testid="current-location">{location.pathname}</div>;
+  const from = (location.state as { from?: string } | null)?.from;
+  return (
+    <>
+      <div data-testid="current-location">{location.pathname}</div>
+      <div data-testid="current-search">{location.search}</div>
+      <div data-testid="state-from">{from ?? ''}</div>
+    </>
+  );
 }
 
-function renderPage(permissions: string[]) {
+/** Stands in for the card: the only thing the list test needs of it is Back. */
+function CardStub() {
+  const navigate = useNavigate();
+  return (
+    <button type="button" onClick={() => navigate(-1)}>
+      browser-back
+    </button>
+  );
+}
+
+function renderPage(permissions: string[], initialEntry = '/applications') {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
   const i18n = { lang: 'uz_latn' as const, backendLang: 'uz_latn' as const, t: (key: string) => key, setLanguage: async () => {} };
   return render(
     <QueryClientProvider client={client}>
       <I18nContext.Provider value={i18n}>
         <AuthContext.Provider value={authValue(permissions)}>
-          <MemoryRouter>
-            <ApplicationsListPage />
+          <MemoryRouter initialEntries={[initialEntry]}>
+            <Routes>
+              <Route path="/applications" element={<ApplicationsListPage />} />
+              <Route path="/applications/:id" element={<CardStub />} />
+            </Routes>
             <LocationProbe />
           </MemoryRouter>
         </AuthContext.Provider>
@@ -136,6 +160,20 @@ test('a prosecutor (applications.view_any, never .review) sees rows but no "Ishg
   renderPage(['applications.view_any']);
   expect(await screen.findByText('RX-2026-000001')).toBeInTheDocument();
   expect(screen.queryByText('Ishga olish')).not.toBeInTheDocument();
+});
+
+// Stage 19, A2: `GET /applications?q` caps at SEARCH_MAX_LENGTH (200) — the
+// search box must stop there too, instead of a 422 later.
+test('the search filter caps input at the server limit (SEARCH_MAX_LENGTH)', async () => {
+  server.use(
+    http.get('*/api/v1/applications', () =>
+      HttpResponse.json({ items: [row({ status: 'SUBMITTED' })], total: 1, page: 1, page_size: 20 }),
+    ),
+  );
+
+  renderPage(['applications.view_any']);
+  await screen.findByText('RX-2026-000001');
+  expect(screen.getByTestId('applications-filter-q')).toHaveAttribute('maxLength', String(SEARCH_MAX_LENGTH));
 });
 
 test('a worklist row shows the new status right after "Ishga olish", with no reload', async () => {
@@ -162,18 +200,29 @@ test('a worklist row shows the new status right after "Ishga olish", with no rel
   expect(within(tableRow).queryByText('Ishga olish')).not.toBeInTheDocument();
 });
 
-test('CSV export requests the server\'s own page-size ceiling (100), not the on-screen page size (20), and downloads one file', async () => {
+test('the Excel button asks the server for the export with the applied filters, never paging the list itself', async () => {
   const user = userEvent.setup();
-  const requestedPageSizes: string[] = [];
+  const listCalls: string[] = [];
+  let exportUrl: URL | null = null;
   server.use(
     http.get('*/api/v1/applications', ({ request }) => {
-      const url = new URL(request.url);
-      requestedPageSizes.push(url.searchParams.get('page_size') ?? '');
+      listCalls.push(request.url);
       return HttpResponse.json({
         items: [row({ id: 'a-1', number: 'RX-1' })],
         total: 1,
         page: 1,
         page_size: 20,
+      });
+    }),
+    http.get('*/api/v1/applications/export.xlsx', ({ request }) => {
+      exportUrl = new URL(request.url);
+      return HttpResponse.text('xlsx-bytes', {
+        headers: {
+          'Content-Disposition': 'attachment; filename="arizalar-2026-09-11.xlsx"',
+          'X-Export-Total': '1',
+          'X-Export-Rows': '1',
+          'X-Export-Truncated': 'false',
+        },
       });
     }),
   );
@@ -188,14 +237,17 @@ test('CSV export requests the server\'s own page-size ceiling (100), not the on-
   const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
 
   renderPage(['applications.view_any']);
-  await screen.findByText('RX-1'); // the on-screen load, requested with page_size=20
+  await screen.findByText('RX-1');
+  const listCallsBefore = listCalls.length;
 
-  await user.click(screen.getByText('prosecutor.exportCsv'));
+  await user.click(screen.getByTestId('export-xlsx'));
 
   await waitFor(() => expect(createObjectURL).toHaveBeenCalled());
   expect(clickSpy).toHaveBeenCalled();
-  expect(requestedPageSizes).toContain('20'); // the on-screen table
-  expect(requestedPageSizes).toContain('100'); // the export's own fetch
+  expect(listCalls.length).toBe(listCallsBefore); // the export never re-fetches the list
+  expect(exportUrl!.searchParams.get('lang')).toBe('uz_latn');
+  expect(exportUrl!.searchParams.has('page')).toBe(false);
+  expect(exportUrl!.searchParams.has('page_size')).toBe(false);
 });
 
 test('a click anywhere on a worklist row opens the application; "Ishga olish" inside it stays its own action', async () => {
@@ -216,7 +268,7 @@ test('a click anywhere on a worklist row opens the application; "Ishga olish" in
   await user.click(within(tr).getByRole('button', { name: 'Ishga olish' }));
   await user.click(within(await screen.findByRole('dialog')).getByText('staff.startReview.confirm.button'));
   await waitFor(() => expect(startReview).toHaveBeenCalledTimes(1));
-  expect(screen.getByTestId('current-location')).toHaveTextContent('/');
+  expect(screen.getByTestId('current-location')).toHaveTextContent(/^\/applications$/);
 
   await user.click(within(tr).getByText(/ga$/));
   expect(screen.getByTestId('current-location')).toHaveTextContent('/applications/a1000000-0000-4000-8000-000000000001');
@@ -252,6 +304,67 @@ test('"Ishga olish" asks first; dismissing the question posts nothing and does n
   await user.click(dialog.previousElementSibling as HTMLElement);
   expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   expect(startReview).not.toHaveBeenCalled();
-  expect(screen.getByTestId('current-location')).toHaveTextContent('/');
+  expect(screen.getByTestId('current-location')).toHaveTextContent(/^\/applications$/);
   expect(within(tr).getByText('Ishga olish')).toBeInTheDocument();
+});
+
+// The reported defect: pick a status, open a row, press Back — and the list
+// came back with every filter cleared, because the filters lived in the
+// component's own state and the component had unmounted. They live in the
+// URL now, which is exactly what Back restores.
+test('filters and page survive opening a row and coming back', async () => {
+  const user = userEvent.setup();
+  const listCalls: URL[] = [];
+  server.use(
+    http.get('*/api/v1/applications', ({ request }) => {
+      listCalls.push(new URL(request.url));
+      return HttpResponse.json({ items: [row()], total: 45, page: 1, page_size: 20 });
+    }),
+  );
+  renderPage(['applications.view_any']);
+  await screen.findByText('RX-2026-000001');
+
+  await user.selectOptions(screen.getAllByRole('combobox')[0], 'IN_REVIEW');
+  await user.click(screen.getByRole('button', { name: '2' }));
+  await waitFor(() => expect(listCalls.at(-1)!.searchParams.get('page')).toBe('2'));
+  expect(listCalls.at(-1)!.searchParams.get('status')).toBe('IN_REVIEW');
+  expect(screen.getByTestId('current-search')).toHaveTextContent('status=IN_REVIEW&page=2');
+
+  await user.click(screen.getByText('RX-2026-000001'));
+  expect(screen.getByTestId('current-location')).toHaveTextContent(/^\/applications\/a1000000/);
+  // The card's own "back to list" link gets the filtered URL to return to.
+  expect(screen.getByTestId('state-from')).toHaveTextContent(/^\/applications\?status=IN_REVIEW&page=2$/);
+
+  await user.click(screen.getByText('browser-back'));
+  await screen.findByText('RX-2026-000001');
+  expect(screen.getAllByRole('combobox')[0]).toHaveValue('IN_REVIEW');
+  expect(listCalls.at(-1)!.searchParams.get('status')).toBe('IN_REVIEW');
+  expect(listCalls.at(-1)!.searchParams.get('page')).toBe('2');
+});
+
+test('an empty list disables the Excel button — there is nothing to export', async () => {
+  server.use(
+    http.get('*/api/v1/applications', () => HttpResponse.json({ items: [], total: 0, page: 1, page_size: 20 })),
+  );
+
+  renderPage(['applications.view_any']);
+  await screen.findByText('Filtr boʻyicha ariza topilmadi.');
+
+  expect(screen.getByTestId('export-xlsx')).toBeDisabled();
+});
+
+test('a list opened by a filtered address shows that filter in the form and asks the server for it', async () => {
+  const listCalls: URL[] = [];
+  server.use(
+    http.get('*/api/v1/applications', ({ request }) => {
+      listCalls.push(new URL(request.url));
+      return HttpResponse.json({ items: [], total: 0, page: 1, page_size: 20 });
+    }),
+  );
+  renderPage(['applications.view_any'], '/applications?status=SUBMITTED&q=Nazarov');
+  await waitFor(() => expect(listCalls.length).toBeGreaterThan(0));
+  expect(listCalls[0].searchParams.get('status')).toBe('SUBMITTED');
+  expect(listCalls[0].searchParams.get('q')).toBe('Nazarov');
+  expect(screen.getAllByRole('combobox')[0]).toHaveValue('SUBMITTED');
+  expect(screen.getByDisplayValue('Nazarov')).toBeInTheDocument();
 });

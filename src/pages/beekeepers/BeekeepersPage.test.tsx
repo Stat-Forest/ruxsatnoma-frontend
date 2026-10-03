@@ -14,6 +14,7 @@ import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { setupServer } from 'msw/node';
 import { I18nContext } from '../../i18n/context';
+import { SEARCH_MAX_LENGTH } from '../../api/limits';
 import { BeekeepersPage } from './BeekeepersPage';
 import type { BeekeeperOut } from './api';
 
@@ -27,6 +28,7 @@ function beekeeper(over: Partial<BeekeeperOut> = {}): BeekeeperOut {
     stir: null,
     full_name: 'Asalov Nodir',
     farm_name: 'Nodir asalarichilik xoʻjaligi',
+    valid_to: null,
     status: 'active',
     removed_reason: null,
     created_by: 'u0000000-0000-4000-8000-000000000001',
@@ -64,6 +66,15 @@ test('renders the register and its rows', async () => {
   renderPage();
   expect(await screen.findByText('BEE-001')).toBeInTheDocument();
   expect(screen.getByText('Asalov Nodir')).toBeInTheDocument();
+});
+
+test('an empty list disables the Excel button — there is nothing to export', async () => {
+  server.use(http.get('*/api/v1/beekeepers', () => HttpResponse.json(page([]))));
+  renderPage();
+
+  await screen.findByText('beekeepers.empty');
+
+  expect(screen.getByTestId('export-xlsx')).toBeDisabled();
 });
 
 test('search and status filter reach the query as q/status', async () => {
@@ -175,7 +186,32 @@ test('create posts the typed body', async () => {
     stir: null,
     full_name: 'Yangi Aʼzo',
     farm_name: null,
+    valid_to: null,
   });
+});
+
+test('the certificate no. field caps input at the backend bound (CodeStr, 64)', async () => {
+  server.use(
+    http.get('*/api/v1/beekeepers/lookup', () =>
+      HttpResponse.json({ error: { code: 'ERR-SYS-003', message: 'not found' } }, { status: 404 }),
+    ),
+  );
+  const user = userEvent.setup();
+  renderPage();
+
+  await user.click(await screen.findByTestId('beekeeper-create-button'));
+
+  expect(screen.getByTestId('beekeeper-form-certificate-no')).toHaveAttribute('maxLength', '64');
+  expect(screen.getByTestId('beekeeper-form-full-name')).toHaveAttribute('maxLength', '255');
+});
+
+// Stage 19, A2: `GET /beekeepers?q` caps at SEARCH_MAX_LENGTH (200) — the
+// register's search box must stop there too, instead of a 422 later.
+test('the search filter caps input at the server limit (SEARCH_MAX_LENGTH)', async () => {
+  renderPage();
+
+  await screen.findByText('Asalov Nodir');
+  expect(screen.getByTestId('beekeepers-filter-q')).toHaveAttribute('maxLength', String(SEARCH_MAX_LENGTH));
 });
 
 test('removal posts a mandatory reason to the remove route, never a DELETE', async () => {
@@ -218,4 +254,119 @@ test('a click anywhere on a beekeeper row opens the edit form', async () => {
 
   await user.click(await screen.findByText('Asalov Nodir'));
   expect(await screen.findByTestId('beekeeper-form-submit')).toBeInTheDocument();
+});
+
+test('the Excel button asks the server for the export with the applied filters, never paging the list itself', async () => {
+  const listCalls: string[] = [];
+  let exportUrl: URL | null = null;
+  server.use(
+    http.get('*/api/v1/beekeepers', ({ request }) => {
+      listCalls.push(request.url);
+      return HttpResponse.json(page([beekeeper()]));
+    }),
+    http.get('*/api/v1/beekeepers/export.xlsx', ({ request }) => {
+      exportUrl = new URL(request.url);
+      return HttpResponse.text('xlsx-bytes', {
+        headers: {
+          'Content-Disposition': 'attachment; filename="asalarichilar-2026-09-11.xlsx"',
+          'X-Export-Total': '1',
+          'X-Export-Rows': '1',
+          'X-Export-Truncated': 'false',
+        },
+      });
+    }),
+  );
+
+  const createObjectURL = vi.fn().mockReturnValue('blob:mock');
+  const revokeObjectURL = vi.fn();
+  URL.createObjectURL = createObjectURL;
+  URL.revokeObjectURL = revokeObjectURL;
+  const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+
+  const user = userEvent.setup();
+  renderPage();
+  await screen.findByText('BEE-001');
+  const listCallsBefore = listCalls.length;
+
+  await user.click(screen.getByTestId('export-xlsx'));
+
+  await waitFor(() => expect(createObjectURL).toHaveBeenCalled());
+  expect(clickSpy).toHaveBeenCalled();
+  expect(listCalls.length).toBe(listCallsBefore); // the export never re-fetches the list
+  expect(exportUrl!.searchParams.get('lang')).toBe('uz_latn');
+  expect(exportUrl!.searchParams.has('page')).toBe(false);
+  expect(exportUrl!.searchParams.has('page_size')).toBe(false);
+});
+
+// --- Ruling #217: the certificate's term and the Union's monitoring tab ----
+
+test('the term is shown in the register and posted from the form', async () => {
+  let body: Record<string, unknown> | null = null;
+  server.use(
+    http.get('*/api/v1/beekeepers', () => HttpResponse.json(page([beekeeper({ valid_to: '2025-12-31' })]))),
+    http.post('*/api/v1/beekeepers', async ({ request }) => {
+      body = (await request.json()) as Record<string, unknown>;
+      return HttpResponse.json(beekeeper({ id: 'bk000000-0000-4000-8000-000000000009', valid_to: '2026-12-31' }), { status: 201 });
+    }),
+  );
+  const user = userEvent.setup();
+  renderPage();
+  expect(await screen.findByText('31.12.2025')).toBeInTheDocument();
+
+  await user.click(screen.getByTestId('beekeeper-create-button'));
+  await user.type(screen.getByTestId('beekeeper-form-pinfl'), '30260904000003');
+  await user.type(screen.getByTestId('beekeeper-form-certificate-no'), '2/2');
+  await user.type(screen.getByTestId('beekeeper-form-full-name'), 'Mamajonov Abdishkur');
+  await user.type(screen.getByTestId('beekeeper-form-passport-series'), 'AD');
+  await user.type(screen.getByTestId('beekeeper-form-passport-number'), '7654321');
+  await user.type(screen.getByTestId('beekeeper-form-valid-to'), '2026-12-31');
+  await user.click(screen.getByTestId('beekeeper-form-submit'));
+
+  await waitFor(() => expect(body).not.toBeNull());
+  expect(body).toMatchObject({ certificate_no: '2/2', valid_to: '2026-12-31' });
+});
+
+test('the applications tab lists the beekeeping claims through the monitoring route, filtered by status', async () => {
+  const seen: URLSearchParams[] = [];
+  server.use(
+    http.get('*/api/v1/applications/beekeeping', ({ request }) => {
+      seen.push(new URL(request.url).searchParams);
+      return HttpResponse.json({
+        items: [
+          {
+            id: 'ap000000-0000-4000-8000-000000000001',
+            number: 'RX-2026-000123',
+            status: 'PERMIT_ISSUED',
+            applicant_name: 'Mamajonov Abdishkur',
+            organization_name: { uz_latn: "Bo'stonliq o'rmon xo'jaligi" },
+            benefit_certificate_no: '2/2',
+            benefit_verification_status: 'verified',
+            period_from: '2026-05-01',
+            period_to: '2026-09-30',
+            submitted_at: '2026-04-20T10:00:00Z',
+            decided_at: '2026-04-25T10:00:00Z',
+          },
+        ],
+        total: 1,
+        page: 1,
+        page_size: 20,
+      });
+    }),
+  );
+  const user = userEvent.setup();
+  renderPage();
+  expect(await screen.findByText('BEE-001')).toBeInTheDocument();
+
+  await user.click(screen.getByTestId('beekeepers-tab-claims'));
+  expect(await screen.findByText('RX-2026-000123')).toBeInTheDocument();
+  expect(screen.getByText('Mamajonov Abdishkur')).toBeInTheDocument();
+  expect(screen.getByText('2/2')).toBeInTheDocument();
+  expect(screen.getByText("Bo'stonliq o'rmon xo'jaligi")).toBeInTheDocument();
+  expect(screen.getByText('beekeepers.claims.verification.verified')).toBeInTheDocument();
+  // The register's own controls leave with the tab — one screen, two lists.
+  expect(screen.queryByTestId('beekeepers-filter-q')).not.toBeInTheDocument();
+
+  await user.selectOptions(screen.getByTestId('beekeeping-claims-filter-status'), 'REJECTED');
+  await waitFor(() => expect(seen.at(-1)?.get('status')).toBe('REJECTED'));
+  expect(seen[0].get('status')).toBeNull();
 });

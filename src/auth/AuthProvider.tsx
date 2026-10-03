@@ -13,6 +13,11 @@ type MeOut = components['schemas']['MeOut'];
 /** Shared with `OneIdReturnPage`, which consumes what `startOneId` stores. */
 export const ONEID_NEXT_KEY = 'ruxsatnoma.oneid.next';
 
+function isPlainUnauthorized(body: unknown): boolean {
+  const detail = (body as { detail?: unknown })?.detail;
+  return typeof detail === 'string' && /unauthorized|not authenticated/i.test(detail);
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [me, setMe] = useState<MeOut | null>(null);
   const [loading, setLoading] = useState(true);
@@ -43,7 +48,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     let cancelled = false;
     void (async () => {
       try {
-        const { data, error } = await api.GET('/api/v1/auth/me', {});
+        const { data, error, response } = await api.GET('/api/v1/auth/me', {});
         if (cancelled) return;
         if (error) {
           const err = apiError(error);
@@ -53,7 +58,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           // is NOT the same as logged-out and must stay visibly distinct, or a
           // still-logged-in user gets silently bounced with no explanation.
           setMe(null);
-          setAuthError(err.code === SESSION_GONE ? null : err);
+          setAuthError(err.code === SESSION_GONE || (response as Response).status === 401 || isPlainUnauthorized(error) ? null : err);
         } else {
           setCsrfToken(data.csrf_token);
           setMe(data);
@@ -162,29 +167,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // own docstring: `login_via_eimzo`/`verify_signed_challenge` is not
   // `signatures.service.sign()`, so ruling R5's mandatory timestamp does not
   // gate it). Mock mode keeps building the same JSON envelope it always did,
-  // from the pinfl/fullName the caller supplies — see this method's own
-  // doc comment on `AuthContextValue` for why real mode ignores both.
-  const loginViaEimzo = useCallback(async (pinfl?: string, fullName?: string) => {
-    const { data: challengeData, error: challengeError } = await api.POST(
-      '/api/v1/auth/eimzo/challenge',
-      {},
-    );
-    if (challengeError) throw apiError(challengeError);
-    const signed = isEimzoMock()
-      ? await buildMockSignedChallenge({
-          challenge: challengeData.challenge,
-          pinfl: pinfl ?? '',
-          fullName: fullName ?? '',
-        })
-      : await signAttached(new TextEncoder().encode(challengeData.challenge));
-    const { data, error } = await api.POST('/api/v1/auth/eimzo/login', {
-      body: { signed_challenge: signed },
-    });
-    if (error) throw apiError(error);
-    setCsrfToken(data.csrf_token);
-    setMe(data);
-    setAuthError(null);
-  }, []);
+  // from the pinfl/fullName/tin/legalName the caller supplies — see this
+  // method's own doc comment on `AuthContextValue` for why real mode ignores
+  // all four.
+  const loginViaEimzo = useCallback(
+    async (pinfl?: string, fullName?: string, tin?: string, legalName?: string) => {
+      const { data: challengeData, error: challengeError } = await api.POST(
+        '/api/v1/auth/eimzo/challenge',
+        {},
+      );
+      if (challengeError) throw apiError(challengeError);
+      const signed = isEimzoMock()
+        ? await buildMockSignedChallenge({
+            challenge: challengeData.challenge,
+            pinfl: pinfl ?? '',
+            fullName: fullName ?? '',
+            tin: tin ?? null,
+            legalName: legalName ?? null,
+          })
+        : await signAttached(new TextEncoder().encode(challengeData.challenge));
+      const { data, error } = await api.POST('/api/v1/auth/eimzo/login', {
+        body: { signed_challenge: signed },
+      });
+      if (error) throw apiError(error);
+      setCsrfToken(data.csrf_token);
+      setMe(data);
+      setAuthError(null);
+    },
+    [],
+  );
 
   const logout = useCallback(async () => {
     await api.POST('/api/v1/auth/logout', {});

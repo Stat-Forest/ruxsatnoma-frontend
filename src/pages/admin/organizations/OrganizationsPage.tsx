@@ -14,6 +14,7 @@
 import { useMemo, useState } from 'react';
 import { Loader2, Plus, Search } from 'lucide-react';
 import { Button } from '../../../components/ui/button';
+import { ExportXlsxButton } from '../../../components/ui/ExportXlsxButton';
 import { Input } from '../../../components/ui/FormControls';
 import { ApiError } from '../../../api/errors';
 import { useLanguage } from '../../../i18n/useT';
@@ -122,7 +123,7 @@ export function OrganizationsPage() {
               <div className="text-2xl font-bold text-[#2E7D4F]">{leshozes}</div>
             </div>
           </div>
-          <div className="w-full sm:max-w-xs">
+          <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:items-center">
             <Input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
@@ -130,6 +131,20 @@ export function OrganizationsPage() {
               aria-label={labels['search.placeholder']}
               data-testid="org-search"
               leftIcon={<Search className="h-4 w-4" />}
+              className="sm:max-w-xs"
+            />
+            {/* The tree walks `parent_id` level by level and the search above
+                is client-side only (no server query object to mirror), so the
+                export requests every active organization — the same default
+                `GET /refs/organizations` itself answers with no filter.
+                Disabled state mirrors the flat, unfiltered tree fetch
+                (`tree.data`), not `shown` — a search that hides every row
+                must not disable a button whose export ignores that search. */}
+            <ExportXlsxButton
+              className="ml-auto"
+              path="/api/v1/refs/organizations"
+              query={{}}
+              disabled={!tree.data?.length}
             />
           </div>
         </div>

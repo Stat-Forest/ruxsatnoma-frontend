@@ -1,10 +1,12 @@
 import { useParams, Link } from 'react-router';
+import { useBackToList } from '../../lib/returnTo';
 import { ArrowLeft, Loader2, PauseCircle } from 'lucide-react';
 import { useLanguage, useT } from '../../i18n/useT';
 import { ApiError } from '../../api/errors';
 import { useApiErrorText } from '../../i18n/useApiErrorText';
 import { useApplicationCard, useApplicationTimeline } from './queries';
 import { formatDateTime, slaStatus, statusLabel } from './format';
+import { ApplicationStatusBadge } from '../applicant/ApplicationStatusBadge';
 import { GeneralInfoPanel } from './components/GeneralInfoPanel';
 import { ChecksPanel } from './components/ChecksPanel';
 import { ConclusionsPanel } from './components/ConclusionsPanel';
@@ -14,6 +16,8 @@ import { HistoryPanel } from './components/HistoryPanel';
 import { DecisionPanel } from './components/DecisionPanel';
 import { ReviewActionsPanel } from './components/ReviewActionsPanel';
 import { BenefitClaimPanel } from './components/BenefitClaimPanel';
+import { ContourBoundaryPanel } from '../gis/ContourBoundaryPanel';
+import { ApplicationPrintoutButtons } from '../../components/ApplicationPrintoutButtons';
 
 const STAFF_CARD_I18N = {
   uz_latn: {
@@ -82,6 +86,7 @@ const STAFF_CARD_I18N = {
  */
 export function StaffApplicationCard() {
   const { id } = useParams<{ id: string }>();
+  const backToList = useBackToList('/applications');
   const t = useT();
   const { lang } = useLanguage();
   const tr = STAFF_CARD_I18N[lang] ?? STAFF_CARD_I18N.uz_latn;
@@ -105,7 +110,7 @@ export function StaffApplicationCard() {
     return (
       <div className="space-y-4" data-testid="staff-card-error">
         <div className="flex items-center gap-2 text-xs text-[#5A646D] border-b border-[#E4E7EA] pb-3">
-          <Link to="/applications" className="inline-flex items-center gap-1.5 text-[#2E7D4F] font-bold hover:underline">
+          <Link to={backToList} className="inline-flex items-center gap-1.5 text-[#2E7D4F] font-bold hover:underline">
             <ArrowLeft className="w-4 h-4" /> {tr.backToList}
           </Link>
           <span>/</span>
@@ -131,7 +136,7 @@ export function StaffApplicationCard() {
   return (
     <div className="space-y-6" data-testid="staff-application-card-page">
       <div className="flex items-center gap-2 text-xs text-[#5A646D] border-b border-[#E4E7EA] pb-3">
-        <Link to="/applications" className="inline-flex items-center gap-1.5 text-[#2E7D4F] font-bold hover:underline">
+        <Link to={backToList} className="inline-flex items-center gap-1.5 text-[#2E7D4F] font-bold hover:underline">
           <ArrowLeft className="w-4 h-4" /> {tr.backToList}
         </Link>
         <span>/</span>
@@ -142,9 +147,7 @@ export function StaffApplicationCard() {
         <h1 className="font-mono text-2xl font-extrabold text-[#1A1F24] tracking-tight">
           {card.number ?? tr.noNumber}
         </h1>
-        <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-[#E0F2FE] text-[#0369A1] border border-[#BAE6FD]">
-          {statusLabel(card.status, lang)}
-        </span>
+        <ApplicationStatusBadge status={card.status} label={statusLabel(card.status, lang)} size="md" />
         {(() => {
           // `card.sla_overdue` is the AUTHORITATIVE, pause-aware answer
           // (`sla.is_overdue`) — preferred over recomputing from the raw
@@ -173,12 +176,16 @@ export function StaffApplicationCard() {
         {card.submitted_at && (
           <span className="text-xs text-[#5A646D]">{tr.submittedAt} {formatDateTime(card.submitted_at)}</span>
         )}
+        <div className="ml-auto">
+          <ApplicationPrintoutButtons applicationId={card.id} printouts={card.printouts} />
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-6 items-start">
         <div className="space-y-6 min-w-0">
           <GeneralInfoPanel card={card} />
           <CalculationPanel card={card} />
+          <ContourBoundaryPanel contourId={card.contour_id} />
           <ChecksPanel card={card} />
           <DocumentsPanel card={card} />
           {timelineQuery.data && <HistoryPanel timeline={timelineQuery.data} />}

@@ -64,19 +64,21 @@ export function FaqAdminTab() {
         </Button>
       </div>
 
-      <div className="max-w-xs">
-        <FormField label={t('support.faq.admin.filterStatus')} htmlFor="faq-admin-status-filter">
-          <Select
-            id="faq-admin-status-filter"
-            data-testid="faq-admin-status-filter"
-            value={status}
-            onChange={(e) => setStatus(e.target.value as FaqStatus | '')}
-            options={[
-              { value: '', label: t('support.common.all') },
-              ...FAQ_STATUSES.map((s) => ({ value: s, label: t(STATUS_META[s].labelKey) })),
-            ]}
-          />
-        </FormField>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <div className="max-w-xs">
+          <FormField label={t('support.faq.admin.filterStatus')} htmlFor="faq-admin-status-filter">
+            <Select
+              id="faq-admin-status-filter"
+              data-testid="faq-admin-status-filter"
+              value={status}
+              onChange={(e) => setStatus(e.target.value as FaqStatus | '')}
+              options={[
+                { value: '', label: t('support.common.all') },
+                ...FAQ_STATUSES.map((s) => ({ value: s, label: t(STATUS_META[s].labelKey) })),
+              ]}
+            />
+          </FormField>
+        </div>
       </div>
 
       {list.error && (

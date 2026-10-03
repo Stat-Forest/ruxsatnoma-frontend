@@ -116,7 +116,7 @@ export function ContactField({
           </div>
           <div className="min-w-0 flex-1">
             <dt className="text-xs font-semibold uppercase tracking-wider text-[#5A646D] mb-1">{label}</dt>
-            <dd className="text-sm sm:text-base font-semibold text-[#1A1F24] truncate">
+            <dd className="text-sm sm:text-base font-semibold text-[#1A1F24] break-all">
               {currentValue ? (
                 <span className="flex items-center gap-1.5">
                   {currentValue}

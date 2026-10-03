@@ -31,7 +31,6 @@ function renderAs(roleCode: string, options: { permissions?: string[]; isSuperus
     csrf_token: 'tok',
     is_superuser: options.isSuperuser ?? false,
     applicant: roleCode === 'applicant' ? { id: 'a-1' } : null,
-    representations: [],
     registration_complete: true,
   };
   const value = { me, loading: false, authError: null } as unknown as AuthContextValue;

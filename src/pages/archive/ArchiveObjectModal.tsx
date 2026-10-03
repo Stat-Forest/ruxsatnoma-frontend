@@ -13,8 +13,9 @@ import { Button } from '../../components/ui/button';
 import { FormField, Input, Select } from '../../components/ui/FormControls';
 import { Modal } from '../../components/ui/Overlay';
 import { ApiError } from '../../api/errors';
+import { PUBLIC_NUMBER_MAX_LENGTH } from '../../api/limits';
 import { useT } from '../../i18n/useT';
-import { normalizePermitSeries } from '../permits/format';
+import { parsePermitNo } from '../../lib/permitNumber';
 import { useArchiveByNumber } from './queries';
 import type { ArchiveObjectType } from './api';
 
@@ -22,30 +23,30 @@ export function ArchiveObjectModal({ onClose, onArchived }: { onClose: () => voi
   const t = useT();
   const [objectType, setObjectType] = useState<ArchiveObjectType>('application');
   const [applicationNumber, setApplicationNumber] = useState('');
-  const [permitSeries, setPermitSeries] = useState('');
-  const [permitNumber, setPermitNumber] = useState('');
+  const [permitNo, setPermitNo] = useState('');
   const [retentionUntil, setRetentionUntil] = useState('');
   const archive = useArchiveByNumber();
 
-  // Minor (final review): `Number.parseInt` reads a leading digit run and
-  // silently ignores the rest (`parseInt('12abc', 10) === 12`) — requiring
-  // the WHOLE trimmed string to be digits first turns that into "invalid",
-  // not a quietly truncated number sent to the backend.
-  const trimmedPermitNumber = permitNumber.trim();
-  const permitNumberValid = /^\d+$/.test(trimmedPermitNumber);
-  const parsedPermitNumber = permitNumberValid ? Number.parseInt(trimmedPermitNumber, 10) : NaN;
+  // One box, typed the way the permit is printed («А № 000002», «a2»), split
+  // by the same parser the permits register and the inspector's scan use —
+  // a Latin «A» is folded into the Cyrillic series, a zero or a trailing
+  // letter is "invalid" rather than a quietly different number.
+  const parsedPermitNo = parsePermitNo(permitNo);
+  const permitSeries = parsedPermitNo?.series;
+  const permitNumber = parsedPermitNo?.number;
+  const permitNoInvalid = permitNo.trim() !== '' && (!permitSeries || !permitNumber);
   const canSubmit =
-    objectType === 'application' ? applicationNumber.trim() !== '' : permitSeries.trim() !== '' && permitNumberValid;
+    objectType === 'application' ? applicationNumber.trim() !== '' : Boolean(permitSeries && permitNumber);
 
   function submit() {
-    if (!canSubmit) return;
     const retention = retentionUntil || null;
-    archive.mutate(
-      objectType === 'application'
-        ? { objectType: 'application', number: applicationNumber.trim(), retentionUntil: retention }
-        : { objectType: 'permit', series: normalizePermitSeries(permitSeries), number: parsedPermitNumber, retentionUntil: retention },
-      { onSuccess: (item) => onArchived(item.id) },
-    );
+    const onSuccess = (item: { id: string }) => onArchived(item.id);
+    if (objectType === 'application') {
+      if (applicationNumber.trim() === '') return;
+      archive.mutate({ objectType: 'application', number: applicationNumber.trim(), retentionUntil: retention }, { onSuccess });
+    } else if (permitSeries && permitNumber) {
+      archive.mutate({ objectType: 'permit', series: permitSeries, number: permitNumber, retentionUntil: retention }, { onSuccess });
+    }
   }
 
   return (
@@ -89,30 +90,24 @@ export function ArchiveObjectModal({ onClose, onArchived }: { onClose: () => voi
               value={applicationNumber}
               onChange={(e) => setApplicationNumber(e.target.value)}
               placeholder={t('archive.newItemModal.objectNumberPlaceholder')}
+              maxLength={PUBLIC_NUMBER_MAX_LENGTH}
               data-testid="archive-object-number"
             />
           </FormField>
         ) : (
-          <div className="grid grid-cols-2 gap-3">
-            <FormField label={t('archive.newItemModal.permitSeries')}>
-              <Input
-                value={permitSeries}
-                onChange={(e) => setPermitSeries(e.target.value)}
-                placeholder={t('archive.newItemModal.permitSeriesPlaceholder')}
-                data-testid="archive-permit-series"
-              />
-            </FormField>
-            <FormField label={t('archive.newItemModal.permitNumber')}>
-              <Input
-                type="text"
-                inputMode="numeric"
-                value={permitNumber}
-                onChange={(e) => setPermitNumber(e.target.value)}
-                placeholder={t('archive.newItemModal.permitNumberPlaceholder')}
-                data-testid="archive-permit-number"
-              />
-            </FormField>
-          </div>
+          <FormField
+            label={t('archive.newItemModal.permitNo')}
+            error={permitNoInvalid ? t('archive.newItemModal.permitNoInvalid') : undefined}
+          >
+            <Input
+              value={permitNo}
+              onChange={(e) => setPermitNo(e.target.value)}
+              placeholder={t('archive.newItemModal.permitNoPlaceholder')}
+              maxLength={32}
+              error={permitNoInvalid}
+              data-testid="archive-permit-no"
+            />
+          </FormField>
         )}
         <FormField label={t('archive.newItemModal.retentionUntil')}>
           <Input type="date" value={retentionUntil} onChange={(e) => setRetentionUntil(e.target.value)} />

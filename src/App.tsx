@@ -3,6 +3,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { RouterProvider } from 'react-router';
 import { AuthProvider } from './auth/AuthProvider';
 import { I18nProvider } from './i18n';
+import { KeyPickerHost } from './lib/eimzo/KeyPickerHost';
 import { router } from './routes';
 
 /**
@@ -20,6 +21,10 @@ function Providers() {
     <QueryClientProvider client={queryClient}>
       <I18nProvider>
         <RouterProvider router={router} />
+        {/* Inside `I18nProvider` (it needs `t`) but OUTSIDE the router: the
+            login challenge is signed by `AuthProvider` before any route is
+            mounted, so a picker living in a page could not serve it. */}
+        <KeyPickerHost />
       </I18nProvider>
     </QueryClientProvider>
   );

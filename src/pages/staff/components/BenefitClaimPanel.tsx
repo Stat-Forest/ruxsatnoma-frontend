@@ -152,7 +152,7 @@ export function BenefitClaimPanel({ card }: { card: ApplicationCardOut }) {
                   href={fileUrl(doc.file_id)}
                   target="_blank"
                   rel="noreferrer"
-                  className="inline-flex items-center gap-1 h-8 px-2.5 text-xs font-semibold rounded-md border border-[#767F87] text-[#1A1F24] hover:bg-[#F8F9FA] shrink-0"
+                  className="inline-flex items-center gap-1 h-8 px-2.5 text-xs font-semibold rounded-md border border-[#767F87] text-[#1A1F24] hover:bg-[#F0F7F1] hover:border-[#2E7D4F] hover:text-[#23653F] shrink-0"
                 >
                   <Download className="w-3.5 h-3.5" /> {t('staff.benefitClaim.documents.download')}
                 </a>

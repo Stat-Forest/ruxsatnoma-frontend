@@ -1,16 +1,20 @@
 import { useState } from 'react';
 import type { FormEvent } from 'react';
 import { Navigate, useLocation, useNavigate, useSearchParams } from 'react-router';
-import { ArrowLeft, ArrowRight, Clock, FileText, QrCode, ShieldCheck, Trees } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Clock, FileText, QrCode, ShieldCheck, Send } from 'lucide-react';
+import ormonLogo from '../assets/img/ormonlogo.png';
 import { Button } from '../components/ui/button';
 import { FormField, Input } from '../components/ui/FormControls';
-import { ApiError, RATE_LIMITED } from '../api/errors';
+import { api } from '../api/client';
+import { ApiError, RATE_LIMITED, apiError as apiErrorFrom } from '../api/errors';
 import { FullPageSpinner } from '../auth/RequireAuth';
 import { useAuth } from '../auth/useAuth';
+import { useApiErrorText } from '../i18n/useApiErrorText';
 import { useLanguage, useT } from '../i18n/useT';
 import { LANDING_PATHS, landingUrl } from '../lib/landing';
 import { LanguageMenu } from '../shell/LanguageMenu';
-import { EimzoError, PINFL_PATTERN, eimzoErrorMessageKey, isEimzoMock, isProviderUnreachable } from '../lib/eimzo';
+import { EimzoError, PINFL_PATTERN, STIR_PATTERN, eimzoErrorMessageKey, isEimzoCancelled, isEimzoMock, isProviderUnreachable } from '../lib/eimzo';
+import { SUPPORT_EXTENSION, SUPPORT_PHONE, SUPPORT_PHONE_HREF } from '../shell/support';
 import { peekStoredNext } from './oneIdReturnCache';
 
 type ErrorKind = 'credentials' | 'blocked' | 'rate-limited' | 'connection' | 'oneid' | null;
@@ -39,6 +43,12 @@ function classify(err: unknown): Exclude<ErrorKind, null | 'oneid'> {
 }
 
 type Method = 'oneid' | 'eimzo' | 'password';
+// The password tab's own steps. `forgot-*` is the self-service reset
+// (decision #208): the login is looked up, the code goes to the card's own
+// phone or e-mail, then the code and the new password are sent together.
+type Step = 'password' | 'code' | 'forgot-login' | 'forgot-channel' | 'forgot-code';
+type Channel = 'phone' | 'email';
+type Contacts = { phone: string | null; email: string | null };
 const TAB_KEY = 'ruxsatnoma.login.tab';
 const METHODS: readonly Method[] = ['oneid', 'eimzo', 'password'];
 
@@ -124,6 +134,7 @@ function TreeLine({ className = '' }: { className?: string }) {
 export function LoginPage() {
   const { me, loading, submitPassword, verifyMfa, startOneId, loginViaEimzo } = useAuth();
   const t = useT();
+  const errorText = useApiErrorText();
   const { backendLang, setLanguage } = useLanguage();
   const navigate = useNavigate();
   const location = useLocation();
@@ -138,13 +149,31 @@ export function LoginPage() {
   const next = (location.state as { next?: string } | null)?.next ?? peekStoredNext() ?? '/';
 
   const [method, setMethod] = useState<Method>(storedMethod);
-  const [step, setStep] = useState<'password' | 'code'>('password');
+  const [step, setStep] = useState<Step>('password');
+  // Self-service reset state. `contacts` is what `/password/forgot/lookup`
+  // answered — masked, or null where the card has no such contact; `channel`
+  // is the one the code was sent to and must be repeated on the reset call,
+  // because the server reads the target from the card by (login, channel)
+  // rather than trusting anything the browser knows.
+  const [contacts, setContacts] = useState<Contacts | null>(null);
+  const [channel, setChannel] = useState<Channel | null>(null);
+  const [newPassword, setNewPassword] = useState('');
+  const [repeatPassword, setRepeatPassword] = useState('');
+  const [forgotError, setForgotError] = useState<string | null>(null);
+  const [resetDone, setResetDone] = useState(false);
   const [loginId, setLoginId] = useState('');
   const [password, setPassword] = useState('');
   const [code, setCode] = useState('');
   const [pinfl, setPinfl] = useState('');
   const [fullName, setFullName] = useState('');
   const [badPinfl, setBadPinfl] = useState(false);
+  // I3 (final review): a real-shaped organisation certificate carries BOTH
+  // the signer's own PINFL and the org TIN — an optional pair on the mock
+  // form so a legal cabinet can be reached on a mock stand at all. Empty
+  // (the default) is an ordinary personal login, unchanged.
+  const [orgStir, setOrgStir] = useState('');
+  const [orgName, setOrgName] = useState('');
+  const [badStir, setBadStir] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   // Real mode only: the message key for one of task 11's five conditions.
   // Kept apart from `errorKind` above — that state carries a FIXED message
@@ -216,10 +245,24 @@ export function LoginPage() {
       setBadPinfl(true);
       return;
     }
+    // The STIR field is optional (an ordinary personal login leaves it
+    // blank) but must be a real 9-digit TIN once anything is typed into it —
+    // the same "blank is fine, wrong shape is not" rule the PINFL field
+    // already follows.
+    if (orgStir.trim() !== '' && !STIR_PATTERN.test(orgStir.trim())) {
+      setBadStir(true);
+      return;
+    }
     setBadPinfl(false);
+    setBadStir(false);
     setSubmitting(true);
     try {
-      await loginViaEimzo(pinfl, fullName);
+      await loginViaEimzo(
+        pinfl,
+        fullName,
+        orgStir.trim() || undefined,
+        orgStir.trim() ? orgName.trim() || undefined : undefined,
+      );
       navigate(next, { replace: true });
     } catch (err) {
       setErrorKind(classify(err));
@@ -241,11 +284,107 @@ export function LoginPage() {
       await loginViaEimzo();
       navigate(next, { replace: true });
     } catch (err) {
+      // Cancel in the certificate picker is a decision, not a failure:
+      // an error banner here would claim the sign-in broke when nobody
+      // tried to sign in.
+      if (isEimzoCancelled(err)) return;
       if (err instanceof EimzoError || isProviderUnreachable(err)) {
         setEimzoErrorKey(eimzoErrorMessageKey(err));
       } else {
         setErrorKind(classify(err));
       }
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  function openForgot() {
+    setErrorKind(null);
+    setForgotError(null);
+    setResetDone(false);
+    setContacts(null);
+    setChannel(null);
+    setStep('forgot-login');
+  }
+
+  function backToPassword() {
+    setForgotError(null);
+    setErrorKind(null);
+    setPassword('');
+    setCode('');
+    setNewPassword('');
+    setRepeatPassword('');
+    setStep('password');
+  }
+
+  async function handleForgotLookup(e: FormEvent) {
+    e.preventDefault();
+    setForgotError(null);
+    setSubmitting(true);
+    try {
+      const { data, error } = await api.POST('/api/v1/auth/password/forgot/lookup', {
+        body: { login: loginId },
+      });
+      if (error) throw apiErrorFrom(error);
+      // Nothing to send a code to — an unknown login answers exactly like a
+      // card with no contacts (decision #208), and the person should learn
+      // that here, not on a step whose two buttons are both greyed out.
+      if (data.phone === null && data.email === null) {
+        setForgotError(t('login.forgotNoContacts'));
+        return;
+      }
+      setContacts(data);
+      setStep('forgot-channel');
+    } catch (err) {
+      setForgotError(errorText(err, t('login.connectionError')));
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  async function handleForgotSend(next: Channel) {
+    setForgotError(null);
+    setSubmitting(true);
+    try {
+      const { error } = await api.POST('/api/v1/auth/password/forgot/send', {
+        body: { login: loginId, channel: next },
+      });
+      if (error) throw apiErrorFrom(error);
+      setChannel(next);
+      setCode('');
+      setStep('forgot-code');
+    } catch (err) {
+      setForgotError(errorText(err, t('login.connectionError')));
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  async function handleForgotReset(e: FormEvent) {
+    e.preventDefault();
+    setForgotError(null);
+    if (newPassword !== repeatPassword) {
+      setForgotError(t('login.forgotMismatch'));
+      return;
+    }
+    if (channel === null) return;
+    setSubmitting(true);
+    try {
+      const { error } = await api.POST('/api/v1/auth/password/forgot/reset', {
+        body: { login: loginId, channel, code, new_password: newPassword },
+      });
+      if (error) throw apiErrorFrom(error);
+      backToPassword();
+      setResetDone(true);
+    } catch (err) {
+      // `ERR-VAL-001` here is only ever the password policy (the code has
+      // its own `ERR-AUTH-010`), and the generic "validation failed" text
+      // would not tell the person what to change.
+      setForgotError(
+        err instanceof ApiError && err.code === 'ERR-VAL-001'
+          ? t('login.forgotWeakPassword')
+          : errorText(err, t('login.connectionError')),
+      );
     } finally {
       setSubmitting(false);
     }
@@ -257,7 +396,7 @@ export function LoginPage() {
     <div
       data-testid="login-page"
       data-next={next}
-      className="min-h-screen flex flex-col bg-[#F8F9FA] text-[#1A1F24]"
+      className="min-h-[100dvh] flex flex-col bg-[#F8F9FA] text-[#1A1F24]"
     >
       {/* The landing's header (`PublicLayout.tsx` there), reduced to what an
           anonymous visitor needs here: the brand as a way home, an explicit
@@ -265,13 +404,12 @@ export function LoginPage() {
       <header className="bg-[#17331B] border-b border-white/15 shadow-md text-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-3">
           <a href={homeUrl} className="flex items-center gap-3 shrink-0 focus:outline-none">
-            <span className="w-10 h-10 rounded-xl bg-[#2E7D4F] border border-white/20 shadow-md flex items-center justify-center shrink-0">
-              <Trees className="w-5.5 h-5.5" />
-            </span>
-            <span className="hidden sm:block leading-tight whitespace-nowrap">
-              <span className="block text-base font-bold tracking-tight">{t('login.brandName')}</span>
-              <span className="block text-[11px] text-gray-200">{t('login.brandTagline')}</span>
-            </span>
+            <img src={ormonLogo} alt="Logo" className="w-10 h-10 rounded-xl shadow-md object-cover shrink-0" />
+            <div className="hidden sm:flex flex-col justify-center">
+              <span className="text-[10px] font-bold text-white leading-[1.1] uppercase tracking-wide">{t('brand.line1')}</span>
+              <span className="text-[10px] font-bold text-white leading-[1.1] uppercase tracking-wide">{t('brand.line2')}</span>
+              <span className="text-[11px] font-extrabold text-[#A5D6A7] leading-[1.2] uppercase tracking-wide">{t('brand.line3')}</span>
+            </div>
           </a>
           <div className="flex items-center gap-2 sm:gap-3">
             <a
@@ -298,32 +436,35 @@ export function LoginPage() {
         </div>
       </header>
 
-      <main className="flex-1 flex items-center">
-        <div className="max-w-7xl w-full mx-auto px-4 sm:px-6 py-8 lg:py-14 grid gap-8 lg:grid-cols-[minmax(0,1fr)_440px] lg:gap-20 items-center">
-          <section className="flex flex-col gap-4 lg:gap-6 max-w-[600px]">
-            <span className="text-xs font-bold uppercase tracking-[0.08em] text-[#2E7D4F]">
+      {/* Anchored to the top, never centred: each sign-in tab has a form of
+          its own height, and a centred card moved every time a tab was
+          clicked — the tabs themselves jumped out from under the pointer. */}
+      <main className="flex-1 flex flex-col">
+        <div className="max-w-7xl w-full mx-auto px-4 sm:px-6 pt-4 pb-2 lg:pt-10 lg:pb-4 grid gap-4 lg:grid-cols-[minmax(0,1fr)_400px] lg:gap-8 items-start">
+          <section className="flex flex-col gap-2 lg:gap-4 max-w-[600px]">
+            <span className="text-[10px] sm:text-xs font-bold uppercase tracking-[0.08em] text-[#2E7D4F]">
               {t('login.eyebrow')}
             </span>
-            <h1 className="text-[28px] leading-9 lg:text-4xl lg:leading-[44px] font-bold text-[#1A1F24] text-balance">
+            <h1 className="text-xl leading-7 lg:text-2xl lg:leading-8 font-bold text-[#1A1F24] text-balance">
               {t('login.heading')}
             </h1>
-            <p className="text-[15px] leading-[22px] lg:text-base lg:leading-6 text-[#5A646D] max-w-[520px]">
+            <p className="text-sm lg:text-[15px] lg:leading-[22px] text-[#5A646D] max-w-[520px]">
               {t('login.lead')}
             </p>
-            <div className="hidden lg:block mt-2">
+            <div className="hidden lg:block mt-1">
               <Benefits />
             </div>
-            <TreeLine className="hidden lg:block mt-4" />
+            <TreeLine className="hidden xl:block mt-2" />
           </section>
 
           <section className="flex flex-col gap-4">
       {/* The card is indented one level less than its position suggests so
           the sign-in forms below it — the part of this file every test and
           every earlier fix is about — keep their lines unchanged. */}
-      <div className="bg-white border border-[#E4E7EA] rounded-2xl p-5 sm:p-8 shadow-sm space-y-5">
-        <div className="space-y-1.5">
-          <h2 className="text-[22px] leading-[30px] font-bold text-[#1A1F24]">{t('login.cardTitle')}</h2>
-          <p className="text-sm text-[#5A646D]">{t('login.cardSubtitle')}</p>
+      <div className="bg-white border border-[#E4E7EA] rounded-2xl p-4 sm:p-5 shadow-sm space-y-3">
+        <div className="space-y-0.5">
+          <h2 className="text-lg sm:text-xl leading-6 font-bold text-[#1A1F24]">{t('login.cardTitle')}</h2>
+          <p className="text-xs sm:text-sm text-[#5A646D]">{t('login.cardSubtitle')}</p>
         </div>
 
         <div
@@ -464,6 +605,42 @@ export function LoginPage() {
                   onChange={(e) => setFullName(e.target.value)}
                 />
               </FormField>
+              {/* I3 (final review): optional organisation identity — leaving
+                  this blank is an ordinary personal login, unchanged. Filled
+                  in, it builds a real-shaped certificate (PINFL AND TIN
+                  together, decision #226) so a legal cabinet can be reached
+                  on a mock stand at all. */}
+              {badStir && (
+                <p data-testid="eimzo-bad-stir" role="alert" className="text-sm text-[#B91C1C]">
+                  {t('login.eimzoBadStir')}
+                </p>
+              )}
+              <FormField
+                label={t('login.eimzoStirLabel')}
+                htmlFor="org-stir"
+                helperText={t('login.eimzoStirHelp')}
+              >
+                <Input
+                  id="org-stir"
+                  inputMode="numeric"
+                  touchSize
+                  value={orgStir}
+                  onChange={(e) => {
+                    setOrgStir(e.target.value);
+                    setBadStir(false);
+                  }}
+                />
+              </FormField>
+              {orgStir.trim() !== '' && (
+                <FormField label={t('login.eimzoOrgNameLabel')} htmlFor="org-name">
+                  <Input
+                    id="org-name"
+                    touchSize
+                    value={orgName}
+                    onChange={(e) => setOrgName(e.target.value)}
+                  />
+                </FormField>
+              )}
               <Button type="submit" variant="primary" fullWidth size="touch" isLoading={submitting}>
                 {t('login.eimzoButton')}
               </Button>
@@ -496,68 +673,217 @@ export function LoginPage() {
             </div>
           ))}
 
-        {method === 'password' &&
-          (step === 'password' ? (
-            <form onSubmit={handlePasswordSubmit} className="space-y-4">
-              <FormField label={t('login.loginLabel')} htmlFor="login" required>
-                <Input
-                  id="login"
-                  touchSize
-                  autoComplete="username"
-                  value={loginId}
-                  onChange={(e) => setLoginId(e.target.value)}
-                />
-              </FormField>
-              <FormField label={t('login.passwordLabel')} htmlFor="password" required>
-                <Input
-                  id="password"
-                  type="password"
-                  touchSize
-                  autoComplete="current-password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                />
-              </FormField>
-              <Button type="submit" variant="primary" fullWidth size="touch" isLoading={submitting}>
-                {t('login.submitPassword')}
-              </Button>
-            </form>
-          ) : (
-            <form onSubmit={handleCodeSubmit} className="space-y-4">
-              <FormField
-                label={t('login.codeLabel')}
-                htmlFor="code"
-                required
-                helperText={t('login.codeHelp')}
-              >
-                <Input
-                  id="code"
-                  inputMode="numeric"
-                  autoComplete="one-time-code"
-                  touchSize
-                  value={code}
-                  onChange={(e) => setCode(e.target.value)}
-                />
-              </FormField>
-              <Button type="submit" variant="primary" fullWidth size="touch" isLoading={submitting}>
-                {t('login.submitCode')}
-              </Button>
-              <Button
+        {method === 'password' && step === 'password' && (
+          <form onSubmit={handlePasswordSubmit} className="space-y-4">
+            {resetDone && (
+              <p data-testid="reset-done" role="status" className="text-sm text-[#2E7D4F]">
+                {t('login.forgotDone')}
+              </p>
+            )}
+            <FormField label={t('login.loginLabel')} htmlFor="login" required>
+              <Input
+                id="login"
+                touchSize
+                autoComplete="username"
+                value={loginId}
+                onChange={(e) => setLoginId(e.target.value)}
+              />
+            </FormField>
+            <FormField label={t('login.passwordLabel')} htmlFor="password" required>
+              <Input
+                id="password"
+                type="password"
+                touchSize
+                autoComplete="current-password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
+            </FormField>
+            <Button type="submit" variant="primary" fullWidth size="touch" isLoading={submitting}>
+              {t('login.submitPassword')}
+            </Button>
+            <div className="text-center">
+              <button
                 type="button"
-                variant="secondary"
-                fullWidth
-                size="touch"
-                disabled={submitting}
-                onClick={() => {
-                  setStep('password');
-                  setCode('');
-                  setErrorKind(null);
-                }}
+                onClick={openForgot}
+                className="text-sm font-medium text-[#2E7D4F] hover:underline min-h-11 px-2"
               >
-                {t('login.back')}
-              </Button>
-            </form>
-          ))}
+                {t('login.forgotLink')}
+              </button>
+            </div>
+            <AdminContact />
+          </form>
+        )}
+
+        {method === 'password' && step === 'code' && (
+          <form onSubmit={handleCodeSubmit} className="space-y-4">
+            <FormField
+              label={t('login.codeLabel')}
+              htmlFor="code"
+              required
+              helperText={t('login.codeHelp')}
+            >
+              <Input
+                id="code"
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                touchSize
+                value={code}
+                onChange={(e) => setCode(e.target.value)}
+              />
+            </FormField>
+            <Button type="submit" variant="primary" fullWidth size="touch" isLoading={submitting}>
+              {t('login.submitCode')}
+            </Button>
+            <Button
+              type="button"
+              variant="secondary"
+              fullWidth
+              size="touch"
+              disabled={submitting}
+              onClick={() => {
+                setStep('password');
+                setCode('');
+                setErrorKind(null);
+              }}
+            >
+              {t('login.back')}
+            </Button>
+          </form>
+        )}
+
+        {method === 'password' && step.startsWith('forgot-') && (
+          <div className="space-y-4" data-testid="forgot-flow">
+            <h2 className="text-base font-semibold text-[#1A1F24]">{t('login.forgotTitle')}</h2>
+            {forgotError && (
+              <p data-testid="forgot-error" role="alert" className="text-sm text-[#B91C1C]">
+                {forgotError}
+              </p>
+            )}
+
+            {step === 'forgot-login' && (
+              <form onSubmit={handleForgotLookup} className="space-y-4">
+                <FormField label={t('login.loginLabel')} htmlFor="forgot-login" required>
+                  <Input
+                    id="forgot-login"
+                    touchSize
+                    autoComplete="username"
+                    value={loginId}
+                    onChange={(e) => setLoginId(e.target.value)}
+                  />
+                </FormField>
+                <Button
+                  type="submit"
+                  variant="primary"
+                  fullWidth
+                  size="touch"
+                  isLoading={submitting}
+                  disabled={loginId.trim() === ''}
+                >
+                  {t('login.forgotNext')}
+                </Button>
+              </form>
+            )}
+
+            {step === 'forgot-channel' && contacts && (
+              <div className="space-y-3">
+                <p className="text-sm text-[#5A646D]">{t('login.forgotChannelTitle')}</p>
+                {(['phone', 'email'] as const).map((c) => {
+                  const masked = contacts[c];
+                  return (
+                    <Button
+                      key={c}
+                      type="button"
+                      variant="secondary"
+                      fullWidth
+                      size="touch"
+                      disabled={masked === null || submitting}
+                      onClick={() => handleForgotSend(c)}
+                      data-testid={`forgot-channel-${c}`}
+                    >
+                      <span className="flex w-full items-center justify-between gap-2">
+                        <span>{t(c === 'phone' ? 'login.forgotPhone' : 'login.forgotEmail')}</span>
+                        <span
+                          className={
+                            masked === null ? 'text-[#8A949C]' : 'font-mono text-[#1A1F24]'
+                          }
+                        >
+                          {masked ?? t('login.forgotNotFilled')}
+                        </span>
+                      </span>
+                    </Button>
+                  );
+                })}
+              </div>
+            )}
+
+            {step === 'forgot-code' && (
+              <form onSubmit={handleForgotReset} className="space-y-4">
+                <FormField
+                  label={t('login.forgotCodeLabel')}
+                  htmlFor="forgot-code"
+                  required
+                  helperText={t('login.forgotCodeHelp')}
+                >
+                  <Input
+                    id="forgot-code"
+                    inputMode="numeric"
+                    autoComplete="one-time-code"
+                    touchSize
+                    value={code}
+                    onChange={(e) => setCode(e.target.value)}
+                  />
+                </FormField>
+                <FormField
+                  label={t('login.forgotNewPassword')}
+                  htmlFor="forgot-new-password"
+                  required
+                  helperText={t('login.forgotPolicyHelp')}
+                >
+                  <Input
+                    id="forgot-new-password"
+                    type="password"
+                    touchSize
+                    autoComplete="new-password"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                  />
+                </FormField>
+                <FormField label={t('login.forgotRepeatPassword')} htmlFor="forgot-repeat" required>
+                  <Input
+                    id="forgot-repeat"
+                    type="password"
+                    touchSize
+                    autoComplete="new-password"
+                    value={repeatPassword}
+                    onChange={(e) => setRepeatPassword(e.target.value)}
+                  />
+                </FormField>
+                <Button type="submit" variant="primary" fullWidth size="touch" isLoading={submitting}>
+                  {t('login.forgotSubmit')}
+                </Button>
+              </form>
+            )}
+
+            <Button
+              type="button"
+              variant="secondary"
+              fullWidth
+              size="touch"
+              disabled={submitting}
+              onClick={backToPassword}
+            >
+              {t('login.back')}
+            </Button>
+            <AdminContact />
+          </div>
+        )}
+
+        {/* Outside every `method === ...` branch on purpose: the notice is
+            about signing in at all, so it must read the same on all three
+            tabs. Inside one branch it would vanish the moment someone
+            switched tabs. */}
+        <TermsNotice />
       </div>
 
             <a
@@ -575,10 +901,10 @@ export function LoginPage() {
         </div>
       </main>
 
-      <footer className="border-t border-[#E4E7EA] bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-5 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-[#767F87]">
-          <span className="text-center sm:text-left">{t('login.footerCopyright')}</span>
-          <nav className="flex items-center gap-6 font-semibold text-[#5A646D]">
+      <footer className="border-t border-[#E4E7EA] bg-white shrink-0 z-10">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex flex-col lg:flex-row items-center justify-between gap-3 text-xs text-[#767F87]">
+          <span className="text-center lg:text-left leading-5">{t('login.footerCopyright')}</span>
+          <nav className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2 font-semibold text-[#5A646D]">
             <a href={landingUrl(LANDING_PATHS.about)} className="hover:text-[#1A1F24]">
               {t('login.footerHelp')}
             </a>
@@ -588,9 +914,83 @@ export function LoginPage() {
             <a href={landingUrl(LANDING_PATHS.documents)} className="hover:text-[#1A1F24]">
               {t('login.footerDocuments')}
             </a>
+            <a href="https://t.me/ruxsatnoma_support" target="_blank" rel="noreferrer" className="flex items-center gap-1.5 text-[#0284C7] hover:text-[#0369A1] transition-colors whitespace-nowrap">
+              <Send className="w-3.5 h-3.5" />
+              <span>Telegram Bot</span>
+            </a>
           </nav>
         </div>
       </footer>
     </div>
+  );
+}
+
+// The two placeholders `login.termsNotice` carries, each mapped to the key
+// holding that document's name. Spelled out rather than built from the token,
+// for the same reason `TAB_LABEL` above is: `useT`'s key type is a union of
+// the literal keys, and a computed key compiles only by widening to `string`.
+const TERMS_LINK_LABEL = {
+  '{privacy}': 'login.termsPrivacy',
+  '{offer}': 'login.termsOffer',
+} as const;
+
+function isTermsToken(part: string): part is keyof typeof TERMS_LINK_LABEL {
+  return part === '{privacy}' || part === '{offer}';
+}
+
+// Names the two documents BEFORE anyone signs. The consent that is legally
+// recorded stays exactly where it is — the two checkboxes on
+// `CompleteRegistrationGate`, written to `user_consents` with the document
+// version and the client IP, which need a user that does not exist until
+// after login. This is not that consent; it is the notice that the documents
+// exist and where to read them, on the only screen an anonymous visitor sees.
+//
+// The sentence is ONE translated string with `{privacy}`/`{offer}` markers,
+// split on them here (the shape `wizard.step5.rulesCheckboxLabel` already
+// uses). Concatenating a lead-in, two names and a connector in code would
+// freeze every language into whatever word order the first one had.
+function TermsNotice() {
+  const t = useT();
+  // Both links point at the same page: the landing has one `/documents`
+  // page holding both texts, not a route per document.
+  const documentsUrl = landingUrl(LANDING_PATHS.documents);
+  return (
+    <p data-testid="login-terms" className="text-xs text-[#5A646D] text-center leading-relaxed">
+      {t('login.termsNotice')
+        .split(/(\{privacy\}|\{offer\})/)
+        .map((part) =>
+          isTermsToken(part) ? (
+            // A new tab, so reading the offer never costs a half-filled
+            // login form.
+            <a
+              key={part}
+              href={documentsUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-medium text-[#2E7D4F] hover:underline"
+            >
+              {t(TERMS_LINK_LABEL[part])}
+            </a>
+          ) : (
+            part
+          ),
+        )}
+    </p>
+  );
+}
+
+// Where to turn when the self-service path cannot help — no contact filled
+// in on the card, no access to that phone any more, an account an
+// administrator blocked. Same line the header advertises (`shell/support.ts`).
+function AdminContact() {
+  const t = useT();
+  return (
+    <p data-testid="admin-contact" className="text-xs text-[#5A646D] text-center leading-relaxed">
+      {t('login.adminContact')}{' '}
+      <a href={SUPPORT_PHONE_HREF} className="font-medium text-[#1A1F24] whitespace-nowrap">
+        {SUPPORT_PHONE}
+      </a>
+      , {t('shell.extension')} {SUPPORT_EXTENSION}
+    </p>
   );
 }

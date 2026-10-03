@@ -1,21 +1,24 @@
-import { useState } from 'react';
 import { Link } from 'react-router';
-import { ArrowUpRight, Bell, Check, Loader2 } from 'lucide-react';
+import { ArrowUpRight, Bell, Loader2 } from 'lucide-react';
 import { Button } from '../../components/ui/button';
 import { Pagination, Tabs } from '../../components/ui/Navigation';
 import { useAuth } from '../../auth/useAuth';
 import { useLanguage, useT } from '../../i18n/useT';
 import { useApiErrorText } from '../../i18n/useApiErrorText';
+import { useListUrlState } from '../../lib/useListUrlState';
 import { ApiError } from '../../api/errors';
 import { useMarkAllNotificationsRead, useMarkNotificationRead, useNotifications } from './queries';
 import { formatDateTime } from './format';
 import { notificationTarget } from './target';
+import { NotificationText } from './NotificationText';
 import { TransitionChips } from './TransitionChips';
 import { translateNotification, translateNotificationSubject } from './translateNotification';
 
 const PAGE_SIZE = 20;
 
 type Filter = 'all' | 'unread';
+
+const DEFAULT_FILTERS: { filter: Filter } = { filter: 'all' };
 
 /**
  * C4 — notifications inbox. `GET /notifications` (`unread` filter, paged),
@@ -31,7 +34,8 @@ type Filter = 'all' | 'unread';
  *
  * A row is a link to what it is about (`target.ts` — the citizen's card or
  * the staff one, by permission); opening an unread row marks it read on the
- * way. The "from -> to" chips under the text come from
+ * way. An unread row with nowhere to go is itself a button that marks it
+ * read, so no row carries a separate mark-read control. The "from -> to" chips under the text come from
  * `params.status_from`/`status_to` (`TransitionChips.tsx`).
  */
 export function NotificationsPage() {
@@ -40,8 +44,10 @@ export function NotificationsPage() {
   const { me } = useAuth();
   const held = { permissions: me?.permissions ?? [], is_superuser: me?.is_superuser ?? false };
   const errorText = useApiErrorText();
-  const [filter, setFilter] = useState<Filter>('all');
-  const [page, setPage] = useState(1);
+  // The unread/all switch and the page live in the URL, so Back from the
+  // record a notification opened returns to the same page of the inbox.
+  const { filters, page, setFilters, setPage } = useListUrlState(DEFAULT_FILTERS);
+  const filter = filters.filter;
 
   const query = useNotifications({ unread: filter === 'unread', page, pageSize: PAGE_SIZE });
   const markRead = useMarkNotificationRead();
@@ -52,8 +58,7 @@ export function NotificationsPage() {
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
   function changeFilter(id: string) {
-    setFilter(id as Filter);
-    setPage(1);
+    setFilters({ filter: id as Filter });
   }
 
   return (
@@ -141,7 +146,9 @@ export function NotificationsPage() {
                     </span>
                   )}
                 </div>
-                <p className="text-sm text-[#1A1F24] break-words">{translateNotification(n.text, lang)}</p>
+                <p className="text-sm text-[#1A1F24] break-words">
+                  <NotificationText text={translateNotification(n.text, lang)} params={n.params} />
+                </p>
                 <TransitionChips
                   objectType={n.object_type}
                   params={n.params}
@@ -157,7 +164,7 @@ export function NotificationsPage() {
                 data-testid={`notification-${n.id}`}
                 className={`p-3.5 sm:p-4 flex items-start justify-between gap-3 transition-colors ${
                   n.read_at ? '' : 'bg-[#F0F7F1] border-l-4 border-l-[#2E7D4F]'
-                } ${target ? 'hover:bg-[#F8F9FA]' : ''}`}
+                } ${target || !n.read_at ? 'hover:bg-[#F8F9FA]' : ''}`}
               >
                 {target ? (
                   <Link
@@ -174,24 +181,21 @@ export function NotificationsPage() {
                     <div className="min-w-0 flex-1">{body}</div>
                     <ArrowUpRight className="w-4 h-4 mt-0.5 text-[#9AA3AB] shrink-0" aria-hidden="true" />
                   </Link>
+                ) : !n.read_at ? (
+                  // Nowhere to open, so the card itself is the mark-read
+                  // control — there is no separate button on any row.
+                  <button
+                    type="button"
+                    data-testid={`notification-card-${n.id}`}
+                    title={t('cabinet.notifications.markRead')}
+                    disabled={markRead.isPending && markRead.variables === n.id}
+                    onClick={() => markRead.mutate(n.id)}
+                    className="min-w-0 flex-1 text-left cursor-pointer disabled:cursor-wait focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2E7D4F] rounded-md"
+                  >
+                    {body}
+                  </button>
                 ) : (
                   <div className="min-w-0 flex-1">{body}</div>
-                )}
-                {!n.read_at && (
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    data-testid={`mark-read-${n.id}`}
-                    aria-label={t('cabinet.notifications.markRead')}
-                    title={t('cabinet.notifications.markRead')}
-                    disabled={markRead.isPending}
-                    isLoading={markRead.isPending && markRead.variables === n.id}
-                    onClick={() => markRead.mutate(n.id)}
-                    className="shrink-0 !px-2 rounded-full"
-                  >
-                    {!(markRead.isPending && markRead.variables === n.id) && <Check className="w-4 h-4" aria-hidden="true" />}
-                  </Button>
                 )}
               </li>
             );

@@ -14,7 +14,7 @@
  */
 import { useRef, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router';
-import { Loader2 } from 'lucide-react';
+import { ChevronLeft, Loader2 } from 'lucide-react';
 import { useAuth } from '../../auth/useAuth';
 import { useApiErrorText } from '../../i18n/useApiErrorText';
 import { useLanguage, useT } from '../../i18n/useT';
@@ -236,6 +236,14 @@ export function ActFormPage() {
   return (
     <div className="space-y-6 font-sans pb-24" data-testid="act-form-page">
       <div className="border-b border-[#E4E7EA] pb-4">
+        <button
+          type="button"
+          onClick={() => navigate(-1)}
+          className="flex items-center gap-1 text-sm text-[#5A646D] hover:text-[#2E7D4F] transition-colors mb-3 cursor-pointer"
+        >
+          <ChevronLeft className="w-4 h-4" />
+          {t('common.back')}
+        </button>
         <h1 className="text-lg md:text-xl font-bold text-[#1A1F24] tracking-tight">
           {isNew ? t('inspector.actForm.newTitle') : t('inspector.actForm.title')}
         </h1>

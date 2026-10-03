@@ -229,13 +229,6 @@ export function ContourMapPreview({
   // be drawn at all.
   const [mapReady, setMapReady] = useState(false);
   const [basemap, setBasemap] = useState<BasemapId>('osm');
-  /** Mirrors the fullscreen control's own `fullscreenstart`/`fullscreenend`
-   * events — drives this component's OWN shell between its normal height and
-   * `h-full` (which only matters, in practice, when `fullscreenTarget` is an
-   * ANCESTOR of this shell: the ancestor gets forced to 100% height by
-   * MapLibre's own stylesheet, `!important`, but that does not cascade down
-   * to this shell's own Tailwind height classes on its own). */
-  const [isFullscreen, setIsFullscreen] = useState(false);
   /** The viewport of the last settled move, as the API's `bbox` string. Set
    * from `moveend`, which is its own debounce: it fires once the pan or zoom
    * stops, not on every frame of it. */
@@ -289,15 +282,11 @@ export function ContourMapPreview({
     if (fullscreenContainer) {
       const fullscreenControl = new FullscreenControl({ container: fullscreenContainer, pseudo: true });
       map.addControl(fullscreenControl, 'top-right');
+      // Only RELAYED, never mirrored into this component's own state: the
+      // shell's `className` must stay a constant, see the render below.
       fullscreenSubscriptions.push(
-        fullscreenControl.on('fullscreenstart', () => {
-          setIsFullscreen(true);
-          onFullscreenChangeRef.current?.(true);
-        }),
-        fullscreenControl.on('fullscreenend', () => {
-          setIsFullscreen(false);
-          onFullscreenChangeRef.current?.(false);
-        }),
+        fullscreenControl.on('fullscreenstart', () => onFullscreenChangeRef.current?.(true)),
+        fullscreenControl.on('fullscreenend', () => onFullscreenChangeRef.current?.(false)),
       );
     }
 
@@ -480,10 +469,24 @@ export function ContourMapPreview({
     }
   }, [geometry, mapReady, basemap]);
 
+  // A CONSTANT className, on purpose. This div is what `FullscreenControl`
+  // expands when no `fullscreenTarget` is given, and MapLibre expands it
+  // by toggling `maplibregl-pseudo-fullscreen` on it imperatively — then
+  // fires `fullscreenstart`. Had that event flipped state that this
+  // className depends on, React would write the `class` attribute back
+  // out wholesale on the re-render, without MapLibre's class, and the
+  // map would stay in its card with a "shrink" button on it (the dev
+  // stand, 2026-09-13). So the full-screen height is expressed in CSS
+  // against that class instead: `[.maplibregl-pseudo-fullscreen_&]:h-full`
+  // grows this shell when an ANCESTOR is the expanded target (the
+  // `ContourPicker` grid) — MapLibre forces the ancestor itself to 100%
+  // with `!important`, which does not cascade into this shell's own
+  // height utilities. When this shell IS the target, the same MapLibre
+  // rule sizes it directly and nothing more is needed.
   return (
     <div
       ref={shellRef}
-      className={`map-shell relative w-full ${isFullscreen ? 'h-full' : 'h-80 lg:h-[560px]'} rounded-xl border border-[#E4E7EA] overflow-hidden`}
+      className="map-shell relative w-full h-80 lg:h-[560px] [.maplibregl-pseudo-fullscreen_&]:h-full rounded-xl border border-[#E4E7EA] overflow-hidden"
     >
       {/* `h-full`, NOT `absolute inset-0`: maplibre-gl.css declares
           `.maplibregl-map { position: relative }` and adds that class to this

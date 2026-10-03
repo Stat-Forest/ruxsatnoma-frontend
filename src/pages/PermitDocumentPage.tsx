@@ -13,6 +13,7 @@ import { toApiError } from './permits/apiErrorHelpers';
 import { formatPermitNumber } from './permits/format';
 import { PermitPdfPanel } from './permits/PermitPdfPanel';
 import { PermitRequisitesPanel } from './permits/PermitRequisitesPanel';
+import { ContourBoundaryPanel } from './gis/ContourBoundaryPanel';
 import { PermitSignaturesPanel } from './permits/PermitSignaturesPanel';
 import { PermitTimelinePanel } from './permits/PermitTimelinePanel';
 import { PermitLifecyclePanel } from './permits/components/PermitLifecyclePanel';
@@ -198,7 +199,8 @@ export function PermitDocumentPage() {
             occurred_at: permit.created_at,
           },
         ],
-        missing_signatures: ['permit_head', 'permit_chief_forester', 'permit_accountant', 'permit_recipient'],
+        // Ruling #210: three leshoz lines; the card refetch replaces this seed.
+        missing_signatures: ['permit_head', 'permit_chief_forester', 'permit_accountant'],
       });
       navigate(`/permits/${permit.id}`, { replace: true });
     },
@@ -306,6 +308,8 @@ export function PermitDocumentPage() {
       </div>
 
       <PermitRequisitesPanel permit={permit} />
+
+      <ContourBoundaryPanel contourId={permit.contour_id} />
 
       <PermitPdfPanel
         permitId={permit.id}

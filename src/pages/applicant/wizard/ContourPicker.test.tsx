@@ -5,17 +5,43 @@
  * — even though the backend already carries an explicit `over_allocated`
  * flag beside the floored `s_available_ha` for exactly this case.
  */
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { http, HttpResponse } from 'msw';
 import { setupServer } from 'msw/node';
+import type { RefObject } from 'react';
 import { ContourPicker, type PickedContour } from './ContourPicker';
 
 // The map draws through maplibre-gl, which needs a real canvas/WebGL context
 // jsdom does not provide — mocked the same way `ApplicationWizardPage.test.tsx`
 // mocks `ContourPicker` itself: this test owns the list/card panel, not the map.
-vi.mock('./ContourMapPreview', () => ({ ContourMapPreview: () => null }));
+// The mock renders nothing but keeps the two fullscreen props the real map
+// would drive, so a test can do to this picker exactly what MapLibre's
+// `FullscreenControl` does: toggle `maplibregl-pseudo-fullscreen` on the
+// `fullscreenTarget` element, THEN report the change (`lastMapProps`,
+// `toggleFullscreen`).
+type MapPreviewFullscreenProps = {
+  fullscreenTarget?: RefObject<HTMLDivElement | null>;
+  onFullscreenChange?: (isFullscreen: boolean) => void;
+};
+let lastMapProps: MapPreviewFullscreenProps = {};
+vi.mock('./ContourMapPreview', () => ({
+  ContourMapPreview: (props: MapPreviewFullscreenProps) => {
+    lastMapProps = props;
+    return null;
+  },
+}));
+
+/** MapLibre's `_togglePseudoFullScreen`, in its real order: the class first,
+ * the event second. */
+function toggleFullscreen() {
+  const target = lastMapProps.fullscreenTarget?.current;
+  if (!target) throw new Error('the map was not handed a fullscreenTarget');
+  target.classList.toggle('maplibregl-pseudo-fullscreen');
+  act(() => lastMapProps.onFullscreenChange?.(target.classList.contains('maplibregl-pseudo-fullscreen')));
+  return target;
+}
 
 function contourListItem(over: Record<string, unknown> = {}) {
   return {
@@ -276,4 +302,30 @@ test('a leshoz WITH a GIS layer shows no such notice', async () => {
 
   await screen.findByText('10517қ');
   expect(screen.queryByTestId('no-map-notice')).not.toBeInTheDocument();
+});
+
+/**
+ * 2026-09-13, dev stand: pressing the map's fullscreen button flipped its
+ * icon and gave this grid its full-screen padding, but nothing expanded.
+ * MapLibre toggles `maplibregl-pseudo-fullscreen` (the class that pins the
+ * target to the viewport) on the target and then fires `fullscreenstart`;
+ * the picker's listener set state, React re-rendered the grid, and because
+ * the grid's `className` depended on that state React rewrote the `class`
+ * attribute wholesale — dropping the class MapLibre had just added. The
+ * target's className must be one React never changes.
+ */
+test("the fullscreen target keeps MapLibre's class across the re-render its own event causes", async () => {
+  server.use(
+    http.get('*/api/v1/gis/contours', () =>
+      HttpResponse.json({ items: [contourListItem()], total: 1, page: 1, page_size: 100 }),
+    ),
+  );
+  renderPicker();
+  await screen.findByText('10517қ');
+
+  const target = toggleFullscreen();
+  expect(target.classList.contains('maplibregl-pseudo-fullscreen')).toBe(true);
+
+  toggleFullscreen();
+  expect(target.classList.contains('maplibregl-pseudo-fullscreen')).toBe(false);
 });

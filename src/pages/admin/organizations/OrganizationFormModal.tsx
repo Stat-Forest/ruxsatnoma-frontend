@@ -36,6 +36,8 @@ import { useCreateOrganization, useDistricts, useOrganizationDetail, useRegions,
 
 const CODE_PATTERN = /^[a-z0-9][a-z0-9-]*$/i;
 const STIR_PATTERN = /^[0-9]{9}$/;
+/** `OrganizationIn.code` (`CodeStr`, `app/core/schemas.py`). */
+const ORGANIZATION_CODE_MAX_LENGTH = 64;
 
 /** What the page asked for: a blank form, a blank form under a known parent, or
  *  one organization loaded for editing. */
@@ -44,7 +46,7 @@ export type FormTarget =
   | { mode: 'edit'; orgId: string };
 
 interface FormState {
-  kind: string;
+  kind: OrganizationKind;
   parentId: string;
   code: string;
   nameUzCyrl: string;
@@ -112,7 +114,12 @@ function loadedState(org: OrganizationAdminOut): FormState {
   const requisites = org.requisites as Record<string, unknown>;
   const paymeAccountId = typeof requisites.payme_account_id === 'string' ? requisites.payme_account_id : '';
   return {
-    kind: org.kind,
+    // `OrganizationAdminOut.kind` is still a bare `string` in the response
+    // schema (only `OrganizationIn.kind`, the create request, is now an
+    // enum) — the value always comes from the DB's `kind_valid` CHECK, so
+    // this narrowing mirrors the `org.kind as OrganizationKind` cast
+    // `parentsFor` already relies on above.
+    kind: org.kind as OrganizationKind,
     parentId: org.parent_id ?? '',
     code: org.code,
     nameUzCyrl: text('uz_cyrl'),
@@ -211,7 +218,11 @@ function OrganizationForm({
   }
 
   function changeKind(kind: string) {
-    const allowed = isOrganizationKind(kind) ? ALLOWED_PARENT_KINDS[kind] : [];
+    // The `<select>` only ever offers `ORGANIZATION_KINDS` values (below), so
+    // this always narrows; the guard is what lets `patch` accept `kind`
+    // now that `OrganizationIn.kind` (and so `FormState.kind`) is an enum.
+    if (!isOrganizationKind(kind)) return;
+    const allowed = ALLOWED_PARENT_KINDS[kind];
     const parent = organizations.find((org) => org.id === state.parentId);
     const keepParent = parent && allowed.includes(parent.kind as OrganizationKind);
     patch({ kind, parentId: keepParent ? state.parentId : '' });
@@ -344,6 +355,7 @@ function OrganizationForm({
             error={Boolean(errors.code)}
             onChange={(e) => patch({ code: e.target.value })}
             placeholder="burchmulla"
+            maxLength={ORGANIZATION_CODE_MAX_LENGTH}
           />
           <FieldError testId="error-code" message={errors.code} />
         </FormField>

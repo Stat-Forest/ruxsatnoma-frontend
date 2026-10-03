@@ -1,8 +1,8 @@
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate, useParams } from 'react-router';
+import { useBackToList } from '../../lib/returnTo';
 import { ArrowLeft, Award, FileText, Receipt } from 'lucide-react';
 import { Button } from '../../components/ui/button';
-import { StatusBadge } from '../../components/ui/StatusBadge';
 import {
   getApplicationCard,
   getApplicationTimeline,
@@ -12,11 +12,15 @@ import {
   listLivestockTypes,
 } from './api';
 import { formatDate, formatDateTime, formatMoney, pickName } from './format';
-import { STATUS_BADGE_KIND, getStatusLabel } from './statusMeta';
+import { getStatusLabel } from './statusMeta';
+import { ApplicationStatusBadge } from './ApplicationStatusBadge';
 import { ApplicantTimeline } from './components/ApplicantTimeline';
+import { CalculationBreakdown } from './components/CalculationBreakdown';
+import { ContourBoundaryPanel } from '../gis/ContourBoundaryPanel';
 import { formatPermitNumber } from '../permits/format';
 import { usePermitForApplication } from '../permits/usePermitForApplication';
-import { useLanguage } from '../../i18n/useT';
+import { useLanguage, useT } from '../../i18n/useT';
+import { ApplicationPrintoutButtons } from '../../components/ApplicationPrintoutButtons';
 
 const API_BASE = (import.meta.env.VITE_API_BASE as string | undefined) ?? 'http://localhost:8000';
 
@@ -45,6 +49,13 @@ const CARD_I18N = {
     history: 'Holatlar tarixi',
     defaultDocName: 'Hujjat',
     condHead: 'shartli bosh',
+    // Decision #215 R6: the deadwood and recreation blanks' own lines —
+    // an executor sees these on the staff card (GeneralInfoPanel), and the
+    // citizen who filed them must see the same values on their own card.
+    deadwoodProduct: 'Mahsulot turi:',
+    removalDeadline: 'Olib chiqish muddati:',
+    recreationPurpose: 'Foydalanish maqsadi:',
+    eventAt: 'Tadbir sanasi va vaqti:',
   },
   uz_cyrl: {
     backToList: 'Аризалар рўйхатига қайтиш',
@@ -70,6 +81,10 @@ const CARD_I18N = {
     history: 'Ҳолатлар тарихи',
     defaultDocName: 'Ҳужжат',
     condHead: 'шартли бош',
+    deadwoodProduct: 'Маҳсулот тури:',
+    removalDeadline: 'Олиб чиқиш муддати:',
+    recreationPurpose: 'Фойдаланиш мақсади:',
+    eventAt: 'Тадбир санаси ва вақти:',
   },
   ru: {
     backToList: 'Вернуться к списку заявок',
@@ -95,6 +110,10 @@ const CARD_I18N = {
     history: 'История статусов',
     defaultDocName: 'Документ',
     condHead: 'усл. голов',
+    deadwoodProduct: 'Вид продукции:',
+    removalDeadline: 'Срок вывоза:',
+    recreationPurpose: 'Цель использования:',
+    eventAt: 'Дата и время мероприятия:',
   },
   en: {
     backToList: 'Back to applications list',
@@ -120,6 +139,10 @@ const CARD_I18N = {
     history: 'Status history',
     defaultDocName: 'Document',
     condHead: 'standard head',
+    deadwoodProduct: 'Product type:',
+    removalDeadline: 'Removal deadline:',
+    recreationPurpose: 'Purpose of use:',
+    eventAt: 'Event date and time:',
   },
   kaa: {
     backToList: 'Arzalar dizimine qaytıw',
@@ -145,6 +168,10 @@ const CARD_I18N = {
     history: 'Jaǵdaylar tariyxı',
     defaultDocName: 'Hújjet',
     condHead: 'shártli bas',
+    deadwoodProduct: 'Ónim túri:',
+    removalDeadline: 'Alıp shıǵıw múddeti:',
+    recreationPurpose: 'Paydalanıw maqseti:',
+    eventAt: 'Ilaj sánesi hám waqtı:',
   },
 };
 
@@ -156,8 +183,14 @@ const CARD_I18N = {
 export function MyApplicationCardPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const backToList = useBackToList('/my/applications');
   const { lang } = useLanguage();
-  const t = CARD_I18N[lang as keyof typeof CARD_I18N] || CARD_I18N.uz_latn;
+  const tr = CARD_I18N[lang as keyof typeof CARD_I18N] || CARD_I18N.uz_latn;
+  // Task 8: the deadwood/recreation blank lines' CODES (product, purpose)
+  // are shown through the wizard's own dictionary keys
+  // (`wizard.step3.deadwoodProduct.<code>`) so the wizard and this card
+  // cannot drift on what a code means — never a third, locally-invented copy.
+  const t = useT();
 
   const cardQuery = useQuery({
     queryKey: ['my-application-card', id],
@@ -172,6 +205,10 @@ export function MyApplicationCardPage() {
   const activityTypesQuery = useQuery({ queryKey: ['activity-types'], queryFn: listActivityTypes });
   const livestockTypesQuery = useQuery({ queryKey: ['livestock-types'], queryFn: listLivestockTypes });
   const docTypesQuery = useQuery({ queryKey: ['classifier-items', 'doc_types'], queryFn: () => listClassifierItems('doc_types') });
+  const benefitCategoriesQuery = useQuery({
+    queryKey: ['classifier-items', 'benefit_categories'],
+    queryFn: () => listClassifierItems('benefit_categories'),
+  });
   const invoicesQuery = useQuery({
     queryKey: ['invoices-for-application', id],
     queryFn: () => listInvoicesForApplication(id!),
@@ -188,16 +225,16 @@ export function MyApplicationCardPage() {
   if (!id) return null;
 
   if (cardQuery.isLoading) {
-    return <div className="max-w-5xl mx-auto py-16 text-center text-sm text-[#5A646D]">{t.loading}</div>;
+    return <div className="max-w-5xl mx-auto py-16 text-center text-sm text-[#5A646D]">{tr.loading}</div>;
   }
   if (cardQuery.isError || !cardQuery.data) {
     return (
       <div className="max-w-5xl mx-auto py-16 text-center space-y-3">
         <p className="text-sm text-[#B91C1C]" role="alert">
-          {t.notFound}
+          {tr.notFound}
         </p>
-        <Button variant="outline" onClick={() => navigate('/my/applications')}>
-          {t.returnToList}
+        <Button variant="outline" onClick={() => navigate(backToList)}>
+          {tr.returnToList}
         </Button>
       </div>
     );
@@ -210,7 +247,15 @@ export function MyApplicationCardPage() {
   const livestockName = (livestockTypeId: string) =>
     pickName(livestockTypesQuery.data?.find((l) => l.id === livestockTypeId)?.name, lang);
   const docTypeName = (docTypeItemId: string) =>
-    pickName(docTypesQuery.data?.find((d) => d.id === docTypeItemId)?.name, lang) || t.defaultDocName;
+    pickName(docTypesQuery.data?.find((d) => d.id === docTypeItemId)?.name, lang) || tr.defaultDocName;
+  // The price's own lines name what they charge for by CODE — the codes
+  // `norms` prices by — not by the ids the rest of this card carries.
+  const livestockNameByCode = (code: string) =>
+    pickName(livestockTypesQuery.data?.find((l) => l.code === code)?.name, lang);
+  const activityNameByCode = (code: string) =>
+    pickName(activityTypesQuery.data?.find((a) => a.code === code)?.name, lang);
+  const benefitNameByCode = (code: string) =>
+    pickName(benefitCategoriesQuery.data?.find((b) => b.code === code)?.name, lang);
 
   const invoice = invoicesQuery.data?.[0];
 
@@ -221,10 +266,10 @@ export function MyApplicationCardPage() {
           variant="ghost"
           size="sm"
           leftIcon={<ArrowLeft className="w-4 h-4" />}
-          onClick={() => navigate('/my/applications')}
+          onClick={() => navigate(backToList)}
           className="text-[#2E7D4F] font-bold hover:bg-[#F0F7F1] cursor-pointer"
         >
-          {t.backToList}
+          {tr.backToList}
         </Button>
       </div>
 
@@ -239,36 +284,42 @@ export function MyApplicationCardPage() {
             <p className="text-sm text-[#5A646D] mt-1 break-words">{activityName}</p>
           </div>
           <div className="shrink-0">
-            <StatusBadge status={STATUS_BADGE_KIND[card.status]} label={getStatusLabel(card.status, lang)} />
+            <ApplicationStatusBadge status={card.status} label={getStatusLabel(card.status, lang)} size="md" />
           </div>
         </div>
 
         <dl className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-3 border-t border-[#E4E7EA] text-xs">
           <div>
-            <dt className="text-[#5A646D]">{t.period}</dt>
+            <dt className="text-[#5A646D]">{tr.period}</dt>
             <dd className="font-semibold text-[#1A1F24] mt-0.5">
               {card.period_from && card.period_to ? `${formatDate(card.period_from)} — ${formatDate(card.period_to)}` : '—'}
             </dd>
           </div>
           <div>
-            <dt className="text-[#5A646D]">{t.area}</dt>
+            <dt className="text-[#5A646D]">{tr.area}</dt>
             <dd className="font-semibold text-[#1A1F24] mt-0.5">
               {card.requested_area_ha ? `${card.requested_area_ha} ga` : '—'}
             </dd>
           </div>
           <div>
-            <dt className="text-[#5A646D]">{t.submitted}</dt>
+            <dt className="text-[#5A646D]">{tr.submitted}</dt>
             <dd className="font-semibold text-[#1A1F24] mt-0.5">{formatDateTime(card.submitted_at)}</dd>
           </div>
         </dl>
 
+        {card.printouts.length > 0 && (
+          <div className="pt-3 border-t border-[#E4E7EA]">
+            <ApplicationPrintoutButtons applicationId={card.id} printouts={card.printouts} />
+          </div>
+        )}
+
         {card.items.length > 0 && (
           <div className="pt-3 border-t border-[#E4E7EA]">
-            <dt className="text-xs text-[#5A646D] mb-1">{t.livestockComposition}</dt>
+            <dt className="text-xs text-[#5A646D] mb-1">{tr.livestockComposition}</dt>
             <ul className="text-xs text-[#1A1F24] space-y-0.5">
               {card.items.map((item) => (
                 <li key={item.id} className="break-words">
-                  {livestockName(item.livestock_type_id)}: <strong>{item.head_count}</strong> {t.head}
+                  {livestockName(item.livestock_type_id)}: <strong>{item.head_count}</strong> {tr.head}
                 </li>
               ))}
             </ul>
@@ -276,37 +327,70 @@ export function MyApplicationCardPage() {
         )}
         {card.quantity && (
           <div className="pt-3 border-t border-[#E4E7EA] text-xs">
-            <span className="text-[#5A646D]">{t.quantity} </span>
+            <span className="text-[#5A646D]">{tr.quantity} </span>
             <strong className="text-[#1A1F24]">{card.quantity}</strong>
+          </div>
+        )}
+        {/* Decision #215 R6: the deadwood and recreation blanks' own lines —
+            shown only for the activity that collected them (a haymaking
+            card shows none of the four). The codes go through the wizard's
+            own dictionary keys so this card and the wizard cannot drift on
+            what a code means. */}
+        {card.deadwood_product && (
+          <div className="pt-3 border-t border-[#E4E7EA] text-xs">
+            <span className="text-[#5A646D]">{tr.deadwoodProduct} </span>
+            <strong className="text-[#1A1F24]">{t(`wizard.step3.deadwoodProduct.${card.deadwood_product}`)}</strong>
+          </div>
+        )}
+        {card.removal_deadline && (
+          <div className="pt-3 border-t border-[#E4E7EA] text-xs">
+            <span className="text-[#5A646D]">{tr.removalDeadline} </span>
+            <strong className="text-[#1A1F24]">{formatDate(card.removal_deadline)}</strong>
+          </div>
+        )}
+        {card.recreation_purpose && (
+          <div className="pt-3 border-t border-[#E4E7EA] text-xs">
+            <span className="text-[#5A646D]">{tr.recreationPurpose} </span>
+            <strong className="text-[#1A1F24]">{t(`wizard.step3.recreationPurpose.${card.recreation_purpose}`)}</strong>
+          </div>
+        )}
+        {card.event_at && (
+          <div className="pt-3 border-t border-[#E4E7EA] text-xs">
+            <span className="text-[#5A646D]">{tr.eventAt} </span>
+            <strong className="text-[#1A1F24]">{formatDateTime(card.event_at)}</strong>
           </div>
         )}
       </div>
 
       {/* Calculated amount */}
       <section className="bg-[#F0F9FF] border border-[#BAE6FD] rounded-2xl p-4 sm:p-6 shadow-xs space-y-2">
-        <h2 className="text-sm font-bold text-[#0369A1] uppercase tracking-wider">{t.calculatedAmount}</h2>
+        <h2 className="text-sm font-bold text-[#0369A1] uppercase tracking-wider">{tr.calculatedAmount}</h2>
         {card.calculation ? (
           <>
-            <div className="font-mono text-xl sm:text-2xl font-extrabold text-[#123522] break-all">{formatMoney(card.calculation.amount)} {t.som}</div>
-            <p className="text-xs text-[#5A646D] break-words">
-              rule_version: <code className="bg-white px-1 py-0.5 rounded border border-[#BAE6FD]">{card.calculation.rule_version}</code>
-              {card.calculation.max_sb !== null && (
-                <>
-                  {' '}
-                  · limit: {card.calculation.used_sb}/{card.calculation.max_sb} {t.condHead}
-                </>
-              )}
-            </p>
+            <div className="font-mono text-xl sm:text-2xl font-extrabold text-[#123522] break-all">{formatMoney(card.calculation.amount)} {tr.som}</div>
+            {card.calculation.max_sb !== null && (
+              <p className="text-xs text-[#5A646D] break-words">
+                {t('wizard.step3.loadRatio')} {card.calculation.used_sb}/{card.calculation.max_sb} {tr.condHead}
+              </p>
+            )}
+            <CalculationBreakdown
+              lines={card.calculation.lines}
+              bhm={card.calculation.bhm}
+              amount={card.calculation.amount}
+              livestockName={livestockNameByCode}
+              activityName={activityNameByCode}
+              benefitName={benefitNameByCode}
+            />
           </>
         ) : (
-          <p className="text-xs text-[#5A646D]">{t.notCalculatedYet}</p>
+          <p className="text-xs text-[#5A646D]">{tr.notCalculatedYet}</p>
         )}
 
         {invoice && (
           <div className="pt-3 border-t border-[#BAE6FD] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div className="text-xs text-[#1A1F24] min-w-0">
-              <span className="text-[#5A646D]">{t.invoice} </span>
-              <strong className="font-mono">{invoice.number}</strong> — {formatMoney(invoice.amount)} {t.som}
+              <span className="text-[#5A646D]">{tr.invoice} </span>
+              <strong className="font-mono">{invoice.number}</strong> — {formatMoney(invoice.amount)} {tr.som}
             </div>
             <Button
               variant="outline"
@@ -315,7 +399,7 @@ export function MyApplicationCardPage() {
               onClick={() => navigate(`/my/invoices/${invoice.id}`)}
               className="cursor-pointer w-full sm:w-auto shrink-0 justify-center"
             >
-              {t.viewInvoice}
+              {tr.viewInvoice}
             </Button>
           </div>
         )}
@@ -325,7 +409,7 @@ export function MyApplicationCardPage() {
       {permitQuery.data && (
         <section className="bg-[#F0F7F1] border border-[#D9EBDC] rounded-2xl p-4 sm:p-6 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="min-w-0">
-            <h2 className="text-sm font-bold text-[#123522] uppercase tracking-wider">{t.permit}</h2>
+            <h2 className="text-sm font-bold text-[#123522] uppercase tracking-wider">{tr.permit}</h2>
             <p className="text-xs text-[#5A646D] mt-1 font-mono break-all">
               {formatPermitNumber(permitQuery.data.series, permitQuery.data.number)}
             </p>
@@ -337,18 +421,21 @@ export function MyApplicationCardPage() {
             onClick={() => navigate(`/my/permits/${permitQuery.data!.id}`)}
             className="cursor-pointer font-bold w-full sm:w-auto shrink-0 justify-center"
           >
-            {t.viewPermit}
+            {tr.viewPermit}
           </Button>
         </section>
       )}
 
+      {/* The plot on a map + KMZ (Odilxon, 2026-09-13) */}
+      <ContourBoundaryPanel contourId={card.contour_id} />
+
       {/* Documents */}
       <section className="bg-white border border-[#E4E7EA] rounded-2xl shadow-xs p-4 sm:p-6 space-y-3">
         <h2 className="text-sm font-bold text-[#1A1F24] uppercase tracking-wider">
-          {t.attachedDocuments} {card.documents.length > 0 && `(${card.documents.length})`}
+          {tr.attachedDocuments} {card.documents.length > 0 && `(${card.documents.length})`}
         </h2>
         {card.documents.length === 0 ? (
-          <p className="text-xs text-[#5A646D]">{t.noDocuments}</p>
+          <p className="text-xs text-[#5A646D]">{tr.noDocuments}</p>
         ) : (
           <ul className="space-y-2">
             {card.documents.map((doc) => (
@@ -358,8 +445,8 @@ export function MyApplicationCardPage() {
               >
                 <div className="flex items-center gap-2 min-w-0 flex-1">
                   <FileText className="w-4 h-4 text-[#5A646D] shrink-0" />
-                  <span className="font-semibold text-[#1A1F24] truncate">{docTypeName(doc.doc_type_item_id)}</span>
-                  {doc.note && <span className="text-[#5A646D] truncate">— {doc.note}</span>}
+                  <span className="min-w-0 font-semibold text-[#1A1F24] break-words">{docTypeName(doc.doc_type_item_id)}</span>
+                  {doc.note && <span className="min-w-0 text-[#5A646D] break-words">— {doc.note}</span>}
                 </div>
                 <a
                   href={`${API_BASE}/api/v1/files/${doc.file_id}`}
@@ -367,7 +454,7 @@ export function MyApplicationCardPage() {
                   rel="noreferrer"
                   className="font-bold text-[#2E7D4F] hover:underline shrink-0"
                 >
-                  {t.download}
+                  {tr.download}
                 </a>
               </li>
             ))}
@@ -377,7 +464,7 @@ export function MyApplicationCardPage() {
 
       {/* Timeline */}
       <section className="bg-white border border-[#E4E7EA] rounded-2xl shadow-xs p-4 sm:p-6 space-y-3">
-        <h2 className="text-sm font-bold text-[#1A1F24] uppercase tracking-wider">{t.history}</h2>
+        <h2 className="text-sm font-bold text-[#1A1F24] uppercase tracking-wider">{tr.history}</h2>
         <ApplicantTimeline timeline={timelineQuery.data} />
       </section>
     </div>

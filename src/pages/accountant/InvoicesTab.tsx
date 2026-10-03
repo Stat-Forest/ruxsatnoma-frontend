@@ -4,7 +4,9 @@ import { Button } from '../../components/ui/button';
 import { FormField, Input, Select } from '../../components/ui/FormControls';
 import { Pagination } from '../../components/ui/Navigation';
 import { Alert } from '../../components/ui/Feedback';
+import { ExportXlsxButton } from '../../components/ui/ExportXlsxButton';
 import { ApiError } from '../../api/errors';
+import { PUBLIC_NUMBER_MAX_LENGTH } from '../../api/limits';
 import { useLanguage, useT } from '../../i18n/useT';
 import { formatDateTime, formatMoney, shortId } from '../permits/format';
 import type { InvoiceStatus } from './api';
@@ -36,13 +38,17 @@ export function InvoicesTab() {
   const [status, setStatus] = useState<InvoiceStatus | ''>('');
   const [page, setPage] = useState(1);
 
-  const listQuery = useInvoicesList({
+  // The SAME filters the register sends go to the export (stage 13 R1): a
+  // number filter left out here would ship the whole zone while the screen
+  // shows one application — FastAPI ignores an unknown query parameter.
+  const queryFilters = {
     application_number: applicationNumber ?? undefined,
     number: invoiceNumber ?? undefined,
     status: status || undefined,
     limit: PAGE_SIZE,
     offset: (page - 1) * PAGE_SIZE,
-  });
+  };
+  const listQuery = useInvoicesList(queryFilters);
 
   const statusOptions = [
     { value: '', label: t('accountant.common.all') },
@@ -82,7 +88,7 @@ export function InvoicesTab() {
 
   return (
     <div className="space-y-5" data-testid="invoices-tab">
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <section className="rounded-2xl border border-[#E4E7EA] bg-white p-4 shadow-xs">
           <h2 className="mb-3 text-sm font-bold text-[#1A1F24]">{t('accountant.invoices.searchByApplication')}</h2>
           <form className="flex flex-col sm:flex-row sm:items-end gap-2.5" onSubmit={searchByApplication}>
@@ -92,6 +98,7 @@ export function InvoicesTab() {
                 value={applicationNumberDraft}
                 onChange={(e) => setApplicationNumberDraft(e.target.value)}
                 placeholder={t('accountant.invoices.applicationNumberPlaceholder')}
+                maxLength={PUBLIC_NUMBER_MAX_LENGTH}
               />
             </FormField>
             <Button type="submit" className="w-full sm:w-auto" leftIcon={<Search className="h-4 w-4" />}>
@@ -109,6 +116,7 @@ export function InvoicesTab() {
                 value={invoiceNumberDraft}
                 onChange={(e) => setInvoiceNumberDraft(e.target.value)}
                 placeholder={t('accountant.invoices.invoiceNumberPlaceholder')}
+                maxLength={PUBLIC_NUMBER_MAX_LENGTH}
               />
             </FormField>
             <Button type="submit" variant="secondary" className="w-full sm:w-auto" leftIcon={<Search className="h-4 w-4" />}>
@@ -119,12 +127,12 @@ export function InvoicesTab() {
       </div>
 
       <section className="rounded-2xl border border-[#E4E7EA] bg-white shadow-xs">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#E4E7EA] p-4">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-[#E4E7EA] p-4">
           <div>
             <h2 className="text-sm font-bold text-[#1A1F24]">{t('accountant.invoices.registerTitle')}</h2>
             <p className="mt-0.5 text-xs text-[#5A646D]">{t('accountant.invoices.registerHint')}</p>
           </div>
-          <div className="flex items-end gap-2 w-full sm:w-auto">
+          <div className="flex items-end gap-2 w-full lg:w-auto">
             <FormField label={t('accountant.invoices.statusFilterLabel')} htmlFor="invoices-status-filter" className="w-full sm:w-auto">
               <Select
                 id="invoices-status-filter"
@@ -136,6 +144,12 @@ export function InvoicesTab() {
                 options={statusOptions}
               />
             </FormField>
+            <ExportXlsxButton
+              className="ml-auto"
+              path="/api/v1/invoices"
+              query={queryFilters}
+              disabled={!listQuery.data?.total}
+            />
           </div>
         </div>
 

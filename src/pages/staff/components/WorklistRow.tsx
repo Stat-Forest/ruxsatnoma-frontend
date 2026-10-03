@@ -1,26 +1,12 @@
 import { Link, useNavigate } from 'react-router';
+import { useReturnHereState } from '../../../lib/returnTo';
 import { FileText, Inbox, PauseCircle } from 'lucide-react';
 import { useLanguage, useT } from '../../../i18n/useT';
 import { Button } from '../../../components/ui/button';
 import { clickableRowProps } from '../../../lib/rowClick';
 import { useContour, type ApplicationOut } from '../queries';
 import { formatAmount, formatDate, formatDateTime, slaStatus, statusLabel } from '../format';
-
-const STATUS_BADGE_CLASS: Record<string, string> = {
-  SUBMITTED: 'bg-[#E0F2FE] text-[#0369A1] border-[#BAE6FD]',
-  IN_REVIEW: 'bg-[#FFFBEB] text-[#B45309] border-[#FDE68A]',
-  PENDING_INFO: 'bg-[#E0F2FE] text-[#0369A1] border-[#BAE6FD]',
-  RETURNED: 'bg-[#FFFBEB] text-[#B45309] border-[#FDE68A]',
-  APPROVED: 'bg-[#DCFCE7] text-[#15803D] border-[#86EFAC]',
-  INVOICED: 'bg-[#F0F7F1] text-[#123522] border-[#D9EBDC]',
-  PAID: 'bg-[#F0F7F1] text-[#123522] border-[#D9EBDC]',
-  PERMIT_ISSUED: 'bg-[#F0F7F1] text-[#123522] border-[#D9EBDC]',
-  REJECTED: 'bg-[#FEF2F2] text-[#991B1B] border-[#FCA5A5]',
-  CANCELLED: 'bg-[#F8F9FA] text-[#5A646D] border-[#E4E7EA]',
-  EXPIRED_UNPAID: 'bg-[#FEF2F2] text-[#991B1B] border-[#FCA5A5]',
-  CLOSED: 'bg-[#F8F9FA] text-[#5A646D] border-[#E4E7EA]',
-  ARCHIVED: 'bg-[#F8F9FA] text-[#5A646D] border-[#E4E7EA]',
-};
+import { ApplicationStatusBadge } from '../../applicant/ApplicationStatusBadge';
 
 const WORKLIST_ROW_I18N = {
   uz_latn: { takeReview: 'Ishga olish' },
@@ -49,7 +35,9 @@ export function WorklistRow({
   const contour = useContour(row.contour_id);
   const sla = slaStatus(row.status, row.sla_deadline_at);
   const areaUnit = lang === 'en' ? 'ha' : lang === 'ru' || lang === 'uz_cyrl' ? 'га' : 'ga';
-  const rowProps = clickableRowProps(() => navigate(`/applications/${row.id}`));
+  // The card's "back to list" returns to this URL, filters and page intact.
+  const returnHere = useReturnHereState();
+  const rowProps = clickableRowProps(() => navigate(`/applications/${row.id}`, { state: returnHere }));
 
   return (
     <tr
@@ -60,6 +48,7 @@ export function WorklistRow({
       <td className="p-3 font-mono font-bold whitespace-nowrap">
         <Link
           to={`/applications/${row.id}`}
+          state={returnHere}
           className="text-[#2E7D4F] hover:underline flex items-center gap-1"
         >
           <FileText className="w-3.5 h-3.5" />
@@ -67,13 +56,7 @@ export function WorklistRow({
         </Link>
       </td>
       <td className="p-3">
-        <span
-          className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-bold border ${
-            STATUS_BADGE_CLASS[row.status] ?? 'bg-[#F8F9FA] text-[#5A646D] border-[#E4E7EA]'
-          }`}
-        >
-          {statusLabel(row.status, lang)}
-        </span>
+        <ApplicationStatusBadge status={row.status} label={statusLabel(row.status, lang)} />
       </td>
       <td className="p-3 font-mono text-xs">
         {contour.data ? `№ ${contour.data.number}` : row.contour_id ? row.contour_id.slice(0, 8) : '—'}

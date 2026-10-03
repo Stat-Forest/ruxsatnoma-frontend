@@ -14,12 +14,11 @@ export function SupportLine({ className = '' }: { className?: string }) {
   return (
     <div className={`flex flex-col min-w-0 ${className}`}>
       <span className="text-[11px] text-[#5A646D] leading-tight">{t('shell.techSupport')}</span>
-      <span className="text-xs font-semibold text-[#1A1F24] leading-tight">
-        <a href={SUPPORT_PHONE_HREF} className="text-[#2E7D4F] hover:underline">
+      <span className="text-xs font-semibold text-[#1A1F24] leading-tight mt-0.5 flex flex-wrap gap-x-1">
+        <a href={SUPPORT_PHONE_HREF} className="text-[#2E7D4F] hover:underline whitespace-nowrap">
           {SUPPORT_PHONE}
         </a>
-        <span className="font-normal text-[#5A646D]">
-          {' '}
+        <span className="font-normal text-[#5A646D] whitespace-nowrap">
           ({t('shell.extension')}: {SUPPORT_EXTENSION})
         </span>
       </span>

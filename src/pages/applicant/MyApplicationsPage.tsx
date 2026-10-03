@@ -1,16 +1,20 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router';
 import { Inbox, Loader2, Plus, Search } from 'lucide-react';
 import { Button } from '../../components/ui/button';
 import { FormField, Input, Select } from '../../components/ui/FormControls';
 import { DataTable, type Column } from '../../components/ui/DataTable';
+import { ExportXlsxButton } from '../../components/ui/ExportXlsxButton';
 import { Pagination } from '../../components/ui/Navigation';
-import { StatusBadge } from '../../components/ui/StatusBadge';
 import { listActivityTypes, listApplications, type ApplicationOut, type ApplicationStatus } from './api';
+import { APPLICATION_NUMBER_MAX_LENGTH } from '../../api/limits';
+import { useListUrlState } from '../../lib/useListUrlState';
+import { useReturnHereState } from '../../lib/returnTo';
 import { formatDate } from './format';
 import { pickName } from './format';
-import { ALL_STATUSES, STATUS_BADGE_KIND, getStatusLabel } from './statusMeta';
+import { ALL_STATUSES, getStatusLabel } from './statusMeta';
+import { ApplicationStatusBadge } from './ApplicationStatusBadge';
 import { useLanguage } from '../../i18n/useT';
 
 const PAGE_SIZE = 20;
@@ -28,6 +32,10 @@ const MY_APPS_I18N = {
     filterNumber: 'Ariza raqami',
     filterStatus: 'Holati',
     filterActivity: 'Faoliyat turi',
+    filterDateBy: 'Sana boʻyicha',
+    filterDateFrom: 'Sana — dan',
+    filterDateTo: 'Sana — gacha',
+    dateReversed: 'Boshlanish sanasi tugash sanasidan keyin boʻlmasligi kerak',
     all: 'Barchasi',
     noNumber: 'raqamsiz',
     open: 'Ochish →',
@@ -47,6 +55,10 @@ const MY_APPS_I18N = {
     filterNumber: 'Ариза рақами',
     filterStatus: 'Ҳолати',
     filterActivity: 'Фаолият тури',
+    filterDateBy: 'Сана бўйича',
+    filterDateFrom: 'Сана — дан',
+    filterDateTo: 'Сана — гача',
+    dateReversed: 'Бошланиш санаси тугаш санасидан кейин бўлмаслиги керак',
     all: 'Барчаси',
     noNumber: 'рақамсиз',
     open: 'Очиш →',
@@ -66,6 +78,10 @@ const MY_APPS_I18N = {
     filterNumber: 'Номер заявки',
     filterStatus: 'Статус',
     filterActivity: 'Вид деятельности',
+    filterDateBy: 'Фильтр по дате',
+    filterDateFrom: 'Дата — с',
+    filterDateTo: 'Дата — по',
+    dateReversed: 'Дата «с» не может быть позже даты «по»',
     all: 'Все',
     noNumber: 'без номера',
     open: 'Открыть →',
@@ -85,6 +101,10 @@ const MY_APPS_I18N = {
     filterNumber: 'Application number',
     filterStatus: 'Status',
     filterActivity: 'Activity type',
+    filterDateBy: 'Filter dates by',
+    filterDateFrom: 'Date — from',
+    filterDateTo: 'Date — to',
+    dateReversed: 'The start date cannot be after the end date',
     all: 'All',
     noNumber: 'no number',
     open: 'Open →',
@@ -104,6 +124,10 @@ const MY_APPS_I18N = {
     filterNumber: 'Arza nómeri',
     filterStatus: 'Jaǵdayı',
     filterActivity: 'Xızmet túri',
+    filterDateBy: 'Sáne boyınsha',
+    filterDateFrom: 'Sáne — baslap',
+    filterDateTo: 'Sáne — deyin',
+    dateReversed: 'Baslanıw sánesi tamamlanıw sánesinen keyin bolmawı kerek',
     all: 'Barlıǵı',
     noNumber: 'nomersiz',
     open: 'Ashıw →',
@@ -113,18 +137,52 @@ const MY_APPS_I18N = {
   },
 };
 
+/** Which date the `dateFrom`/`dateTo` window reads: the day the application
+ * was filed (`created_from`/`created_to`, a Tashkent calendar day on the
+ * server), or its own period (`period_from`/`period_to`, which the server
+ * matches by OVERLAP — a window of September finds an application for
+ * 25 August – 5 September). One pair of inputs and a switch rather than four
+ * inputs: a citizen asks one of the two questions at a time. */
+type DateBy = 'created' | 'period';
+
 /** B6 — the applicant's own application list, with the filters `GET
  * /applications` already supports server-side (ruling: the service scopes
  * "my own" for an applicant caller, so no `applicant_id` is sent here). */
+interface Filters {
+  status: ApplicationStatus | '';
+  activityTypeId: string;
+  number: string;
+  dateBy: DateBy;
+  dateFrom: string;
+  dateTo: string;
+}
+
+const EMPTY_FILTERS: Filters = { status: '', activityTypeId: '', number: '', dateBy: 'created', dateFrom: '', dateTo: '' };
+
 export function MyApplicationsPage() {
   const navigate = useNavigate();
   const { lang } = useLanguage();
   const t = MY_APPS_I18N[lang as keyof typeof MY_APPS_I18N] || MY_APPS_I18N.uz_latn;
 
-  const [page, setPage] = useState(1);
-  const [status, setStatus] = useState<ApplicationStatus | ''>('');
-  const [activityTypeId, setActivityTypeId] = useState('');
-  const [number, setNumber] = useState('');
+  // The filters and the page live in the URL (`useListUrlState`), so opening
+  // a card and coming back shows the same filtered page. The number box
+  // keeps its own draft and reaches the URL debounced — the router applies
+  // a URL change asynchronously, too late for a controlled input's cursor.
+  const { filters, page, setFilters, setPage } = useListUrlState(EMPTY_FILTERS);
+  const { status, activityTypeId, number, dateFrom, dateTo } = filters;
+  // A hand-edited `?dateBy=` reads as the default rather than as a third mode.
+  const dateBy: DateBy = filters.dateBy === 'period' ? 'period' : 'created';
+  // A reversed window is refused on the form, not sent: the server would
+  // answer it with an empty page that reads as "you have no applications".
+  const datesReversed = Boolean(dateFrom && dateTo && dateFrom > dateTo);
+  const windowFrom = datesReversed ? undefined : dateFrom || undefined;
+  const windowTo = datesReversed ? undefined : dateTo || undefined;
+  const [numberDraft, setNumberDraft] = useState(number);
+  useEffect(() => {
+    const timer = setTimeout(() => setFilters({ number: numberDraft }), 400);
+    return () => clearTimeout(timer);
+  }, [numberDraft, setFilters]);
+  const returnHere = useReturnHereState();
 
   const activityTypesQuery = useQuery({ queryKey: ['activity-types'], queryFn: listActivityTypes });
   const activityTypeById = useMemo(() => {
@@ -133,16 +191,23 @@ export function MyApplicationsPage() {
     return map;
   }, [activityTypesQuery.data, lang]);
 
+  // The one query object both the list and the Excel export send (stage 13):
+  // the export is `/api/v1/applications/export.xlsx` in the owner's own scope,
+  // and `ExportXlsxButton` strips the paging keys itself.
+  const listQuery = {
+    page,
+    page_size: PAGE_SIZE,
+    status: status || undefined,
+    activity_type_id: activityTypeId || undefined,
+    number: number || undefined,
+    created_from: dateBy === 'created' ? windowFrom : undefined,
+    created_to: dateBy === 'created' ? windowTo : undefined,
+    period_from: dateBy === 'period' ? windowFrom : undefined,
+    period_to: dateBy === 'period' ? windowTo : undefined,
+  };
   const applicationsQuery = useQuery({
-    queryKey: ['my-applications', { page, status, activityTypeId, number }],
-    queryFn: () =>
-      listApplications({
-        page,
-        page_size: PAGE_SIZE,
-        status: status || undefined,
-        activity_type_id: activityTypeId || undefined,
-        number: number || undefined,
-      }),
+    queryKey: ['my-applications', { page, status, activityTypeId, number, dateBy, windowFrom, windowTo }],
+    queryFn: () => listApplications(listQuery),
     placeholderData: (prev) => prev,
   });
 
@@ -168,7 +233,7 @@ export function MyApplicationsPage() {
     {
       key: 'status',
       header: t.colStatus,
-      accessor: (row) => <StatusBadge status={STATUS_BADGE_KIND[row.status]} label={getStatusLabel(row.status, lang)} size="sm" />,
+      accessor: (row) => <ApplicationStatusBadge status={row.status} label={getStatusLabel(row.status, lang)} />,
     },
     {
       key: 'created_at',
@@ -180,7 +245,7 @@ export function MyApplicationsPage() {
       header: '',
       accessor: (row) => (
         <button
-          onClick={() => navigate(`/my/applications/${row.id}`)}
+          onClick={() => navigate(`/my/applications/${row.id}`, { state: returnHere })}
           className="text-xs font-bold text-[#2E7D4F] hover:underline cursor-pointer"
         >
           {t.open}
@@ -216,21 +281,16 @@ export function MyApplicationsPage() {
             id="filter-number"
             leftIcon={<Search className="w-4 h-4" />}
             placeholder="RX-2026-000123"
-            value={number}
-            onChange={(e) => {
-              setNumber(e.target.value);
-              setPage(1);
-            }}
+            value={numberDraft}
+            onChange={(e) => setNumberDraft(e.target.value)}
+            maxLength={APPLICATION_NUMBER_MAX_LENGTH}
           />
         </FormField>
         <FormField label={t.filterStatus} htmlFor="filter-status">
           <Select
             id="filter-status"
             value={status}
-            onChange={(e) => {
-              setStatus(e.target.value as ApplicationStatus | '');
-              setPage(1);
-            }}
+            onChange={(e) => setFilters({ status: e.target.value as ApplicationStatus | '' })}
             options={[{ value: '', label: t.all }, ...ALL_STATUSES.map((s) => ({ value: s, label: getStatusLabel(s, lang) }))]}
           />
         </FormField>
@@ -238,16 +298,63 @@ export function MyApplicationsPage() {
           <Select
             id="filter-activity"
             value={activityTypeId}
-            onChange={(e) => {
-              setActivityTypeId(e.target.value);
-              setPage(1);
-            }}
+            onChange={(e) => setFilters({ activityTypeId: e.target.value })}
             options={[
               { value: '', label: t.all },
               ...(activityTypesQuery.data ?? []).map((a) => ({ value: a.id, label: pickName(a.name, lang) })),
             ]}
           />
         </FormField>
+        {/* The switch sits as tabs on the frame around the two dates, so it
+            reads as "which date these are" rather than as a filter of its own. */}
+        <div className="sm:col-span-2">
+          <div role="group" aria-label={t.filterDateBy} className="flex gap-0.5 pl-3">
+            {(
+              [
+                ['created', t.colCreatedAt],
+                ['period', t.colPeriod],
+              ] as const
+            ).map(([value, label]) => (
+              <button
+                key={value}
+                type="button"
+                aria-pressed={dateBy === value}
+                onClick={() => setFilters({ dateBy: value })}
+                className={`relative -mb-px h-8 px-3 rounded-t-lg border text-sm cursor-pointer transition-colors ${
+                  dateBy === value
+                    ? 'z-10 bg-white border-[#E4E7EA] border-b-white text-[#2E7D4F] font-semibold'
+                    : 'border-transparent text-[#5A646D] font-medium hover:text-[#1A1F24]'
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+          <div className="rounded-lg border border-[#E4E7EA] p-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <FormField label={t.filterDateFrom} htmlFor="filter-date-from">
+              <Input
+                id="filter-date-from"
+                type="date"
+                value={dateFrom}
+                max={dateTo || undefined}
+                onChange={(e) => setFilters({ dateFrom: e.target.value })}
+              />
+            </FormField>
+            <FormField label={t.filterDateTo} htmlFor="filter-date-to" error={datesReversed ? t.dateReversed : undefined}>
+              <Input
+                id="filter-date-to"
+                type="date"
+                value={dateTo}
+                min={dateFrom || undefined}
+                error={datesReversed}
+                onChange={(e) => setFilters({ dateTo: e.target.value })}
+              />
+            </FormField>
+          </div>
+        </div>
+        <div className="sm:col-span-2 lg:col-span-1 flex justify-end items-end">
+          <ExportXlsxButton className="ml-auto" path="/api/v1/applications" query={listQuery} disabled={!total} />
+        </div>
       </div>
 
       {/* Mobile card view (< md) */}
@@ -267,7 +374,7 @@ export function MyApplicationsPage() {
           applicationsQuery.data!.items.map((row) => (
             <div
               key={row.id}
-              onClick={() => navigate(`/my/applications/${row.id}`)}
+              onClick={() => navigate(`/my/applications/${row.id}`, { state: returnHere })}
               className="bg-white border border-[#E4E7EA] rounded-2xl p-4 shadow-xs hover:border-[#2E7D4F] transition-all cursor-pointer space-y-2.5"
             >
               <div className="flex items-start justify-between gap-2">
@@ -280,18 +387,14 @@ export function MyApplicationsPage() {
                   </span>
                 </div>
                 <div className="shrink-0">
-                  <StatusBadge
-                    status={STATUS_BADGE_KIND[row.status]}
-                    label={getStatusLabel(row.status, lang)}
-                    size="sm"
-                  />
+                  <ApplicationStatusBadge status={row.status} label={getStatusLabel(row.status, lang)} />
                 </div>
               </div>
 
               <div className="pt-2 border-t border-[#F1F3F5] grid grid-cols-1 gap-1 text-xs text-[#5A646D]">
-                <div className="flex items-center justify-between gap-2">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 sm:gap-2">
                   <span>{t.colPeriod}:</span>
-                  <span className="font-medium text-[#1A1F24] text-right">
+                  <span className="font-medium text-[#1A1F24] sm:text-right whitespace-nowrap">
                     {row.period_from && row.period_to ? `${formatDate(row.period_from)} — ${formatDate(row.period_to)}` : '—'}
                   </span>
                 </div>
@@ -326,7 +429,7 @@ export function MyApplicationsPage() {
           emptyTitle={t.emptyTitle}
           emptyDescription={t.emptyDesc}
           pagination={{ currentPage: page, totalPages, onPageChange: setPage, totalRecords: total }}
-          onRowClick={(row) => navigate(`/my/applications/${row.id}`)}
+          onRowClick={(row) => navigate(`/my/applications/${row.id}`, { state: returnHere })}
         />
       </div>
     </div>

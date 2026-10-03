@@ -1,30 +1,7 @@
 import { UserCheck, FileText } from 'lucide-react';
-import { useLanguage } from '../../../i18n/useT';
+import { useLanguage, useT } from '../../../i18n/useT';
 import { useActivityTypes, useBenefitCategories, useContour, useLivestockTypes, type ApplicationCardOut } from '../queries';
-import { formatAmount, formatDate, localizedName, shortId } from '../format';
-
-const ON_BEHALF_LABELS: Record<string, Record<ApplicationCardOut['on_behalf'], string>> = {
-  uz_latn: {
-    self: "Shaxsan (JSHSHIR)",
-    legal: "Yuridik shaxs vakili sifatida",
-  },
-  uz_cyrl: {
-    self: "Шахсан (ЖШШИР)",
-    legal: "Юридик шахс вакили сифатида",
-  },
-  ru: {
-    self: "Лично (ПИНФЛ)",
-    legal: "От имени организации",
-  },
-  en: {
-    self: "In person (PINFL)",
-    legal: "On behalf of legal entity",
-  },
-  kaa: {
-    self: "Ózi (JSHSHIR)",
-    legal: "Yuridikalıq shaxs wákili retinde",
-  },
-};
+import { formatAmount, formatDate, formatDateTime, localizedName, shortId } from '../format';
 
 const CHANNEL_LABELS: Record<ApplicationCardOut['channel'], string> = {
   portal: 'Portal (ruxsatnoma-urmon.uz)',
@@ -36,8 +13,10 @@ const GENERAL_INFO_I18N = {
     title: 'Umumiy maʼlumotlar',
     subtitle: 'Ariza rekvizitlari',
     applicantSection: 'Arizachi',
-    applicantId: 'Arizachi (applicant_id):',
-    onBehalf: 'Kim nomidan:',
+    applicant: 'Arizachi:',
+    kindIndividual: 'Jismoniy shaxs',
+    kindLegal: 'Yuridik shaxs',
+    stir: 'STIR',
     channel: 'Yuborish kanali:',
     benefitCategory: 'Imtiyoz toifasi:',
     notSpecified: 'Koʻrsatilmagan',
@@ -55,13 +34,21 @@ const GENERAL_INFO_I18N = {
     livestock: 'Chorva mollari',
     livestockType: 'Chorva turi',
     headCount: 'Bosh soni',
+    // Decision #215 R6: the deadwood and recreation blanks' own lines — an
+    // executor reviewing one of these two activities must see them here.
+    deadwoodProduct: 'Mahsulot turi:',
+    removalDeadline: 'Olib chiqish muddati:',
+    recreationPurpose: 'Foydalanish maqsadi:',
+    eventAt: 'Tadbir sanasi va vaqti:',
   },
   uz_cyrl: {
     title: 'Умумий маълумотлар',
     subtitle: 'Ариза реквизитлари',
     applicantSection: 'Аризачи',
-    applicantId: 'Аризачи (applicant_id):',
-    onBehalf: 'Ким номидан:',
+    applicant: 'Аризачи:',
+    kindIndividual: 'Жисмоний шахс',
+    kindLegal: 'Юридик шахс',
+    stir: 'СТИР',
     channel: 'Юбориш канали:',
     benefitCategory: 'Имтиёз тоифаси:',
     notSpecified: 'Кўрсатилмаган',
@@ -79,13 +66,19 @@ const GENERAL_INFO_I18N = {
     livestock: 'Чорва моллари',
     livestockType: 'Чорва тури',
     headCount: 'Бош сони',
+    deadwoodProduct: 'Маҳсулот тури:',
+    removalDeadline: 'Олиб чиқиш муддати:',
+    recreationPurpose: 'Фойдаланиш мақсади:',
+    eventAt: 'Тадбир санаси ва вақти:',
   },
   ru: {
     title: 'Общие сведения',
     subtitle: 'Реквизиты заявления',
     applicantSection: 'Заявитель',
-    applicantId: 'Заявитель (applicant_id):',
-    onBehalf: 'От чьего имени:',
+    applicant: 'Заявитель:',
+    kindIndividual: 'Физическое лицо',
+    kindLegal: 'Юридическое лицо',
+    stir: 'СТИР',
     channel: 'Канал подачи:',
     benefitCategory: 'Категория льготы:',
     notSpecified: 'Не указано',
@@ -103,13 +96,19 @@ const GENERAL_INFO_I18N = {
     livestock: 'Скот',
     livestockType: 'Вид скота',
     headCount: 'Поголовье',
+    deadwoodProduct: 'Вид продукции:',
+    removalDeadline: 'Срок вывоза:',
+    recreationPurpose: 'Цель использования:',
+    eventAt: 'Дата и время мероприятия:',
   },
   en: {
     title: 'General Information',
     subtitle: 'Application details',
     applicantSection: 'Applicant',
-    applicantId: 'Applicant (applicant_id):',
-    onBehalf: 'On behalf of:',
+    applicant: 'Applicant:',
+    kindIndividual: 'Individual',
+    kindLegal: 'Legal entity',
+    stir: 'STIR',
     channel: 'Submission channel:',
     benefitCategory: 'Benefit category:',
     notSpecified: 'Not specified',
@@ -127,13 +126,19 @@ const GENERAL_INFO_I18N = {
     livestock: 'Livestock',
     livestockType: 'Livestock type',
     headCount: 'Head count',
+    deadwoodProduct: 'Product type:',
+    removalDeadline: 'Removal deadline:',
+    recreationPurpose: 'Purpose of use:',
+    eventAt: 'Event date and time:',
   },
   kaa: {
     title: 'Ulıwma maǵlıwmatlar',
     subtitle: 'Arza rekvizitleri',
     applicantSection: 'Arzashı',
-    applicantId: 'Arzashı (applicant_id):',
-    onBehalf: 'Kimniń atınan:',
+    applicant: 'Arzashı:',
+    kindIndividual: 'Fizikalıq shaxs',
+    kindLegal: 'Yuridikalıq shaxs',
+    stir: 'STIR',
     channel: 'Jiberiw kanalı:',
     benefitCategory: 'Jeńillik kategoriyası:',
     notSpecified: 'Kórsetilmegen',
@@ -151,6 +156,10 @@ const GENERAL_INFO_I18N = {
     livestock: 'Qara mallar',
     livestockType: 'Mal túri',
     headCount: 'Bas sanı',
+    deadwoodProduct: 'Ónim túri:',
+    removalDeadline: 'Alıp shıǵıw múddeti:',
+    recreationPurpose: 'Paydalanıw maqseti:',
+    eventAt: 'Ilaj sánesi hám waqtı:',
   },
 };
 
@@ -171,7 +180,11 @@ function Fact({ label, value, sub }: { label: string; value: string; sub?: strin
 export function GeneralInfoPanel({ card }: { card: ApplicationCardOut }) {
   const { lang } = useLanguage();
   const tr = GENERAL_INFO_I18N[lang] ?? GENERAL_INFO_I18N.uz_latn;
-  const onBehalfTr = ON_BEHALF_LABELS[lang] ?? ON_BEHALF_LABELS.uz_latn;
+  // Task 8: the deadwood/recreation blank lines' CODES (product, purpose)
+  // are shown through the wizard's own dictionary keys
+  // (`wizard.step3.deadwoodProduct.<code>`) so the wizard and this panel
+  // cannot drift on what a code means.
+  const t = useT();
 
   const activityTypes = useActivityTypes();
   const livestockTypes = useLivestockTypes();
@@ -199,8 +212,20 @@ export function GeneralInfoPanel({ card }: { card: ApplicationCardOut }) {
             <UserCheck className="w-4 h-4 text-[#2E7D4F]" /> {tr.applicantSection}
           </h3>
           <dl className="grid grid-cols-1 gap-3 text-xs">
-            <Fact label={tr.applicantId} value={shortId(card.applicant_id)} />
-            <Fact label={tr.onBehalf} value={onBehalfTr[card.on_behalf] ?? card.on_behalf} />
+            {/* Decision #226: the only place a reviewer sees whether an
+                individual or an organisation filed; the id stays the fallback
+                for the impossible case of a missing applicant row. */}
+            <Fact
+              label={tr.applicant}
+              value={card.applicant?.name ?? shortId(card.applicant_id)}
+              sub={
+                card.applicant
+                  ? card.applicant.kind === 'legal'
+                    ? `${tr.kindLegal}${card.applicant.stir ? ` · ${tr.stir} ${card.applicant.stir}` : ''}`
+                    : tr.kindIndividual
+                  : undefined
+              }
+            />
             <Fact label={tr.channel} value={CHANNEL_LABELS[card.channel] ?? card.channel} />
             <Fact
               label={tr.benefitCategory}
@@ -241,6 +266,20 @@ export function GeneralInfoPanel({ card }: { card: ApplicationCardOut }) {
               value={card.requested_area_ha ? `${formatAmount(card.requested_area_ha)} ${tr.haUnit}` : "—"}
             />
             <Fact label={tr.quantity} value={card.quantity ? formatAmount(card.quantity) : "—"} />
+            {/* Decision #215 R6: the deadwood and recreation blanks' own
+                lines — rendered only for the activity that collected them,
+                the "hiding direction" this task closes: a field the citizen
+                fills that an executor never sees. */}
+            {card.deadwood_product && (
+              <Fact label={tr.deadwoodProduct} value={t(`wizard.step3.deadwoodProduct.${card.deadwood_product}`)} />
+            )}
+            {card.removal_deadline && (
+              <Fact label={tr.removalDeadline} value={formatDate(card.removal_deadline)} />
+            )}
+            {card.recreation_purpose && (
+              <Fact label={tr.recreationPurpose} value={t(`wizard.step3.recreationPurpose.${card.recreation_purpose}`)} />
+            )}
+            {card.event_at && <Fact label={tr.eventAt} value={formatDateTime(card.event_at)} />}
           </dl>
         </div>
       </div>

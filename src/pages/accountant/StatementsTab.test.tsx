@@ -34,7 +34,6 @@ function renderTab(permissions: string[] = ['payments.view', 'payments.manage'])
     csrf_token: 'tok',
     is_superuser: false,
     applicant: null,
-    representations: [],
     registration_complete: true,
   };
   const authValue = { me, loading: false, authError: null } as unknown as AuthContextValue;
@@ -257,6 +256,45 @@ test('the register list is invalidated once the polling detail settles, not left
   // rather than faking the clock.
   await waitFor(() => expect(detailCalls).toBeGreaterThan(1), { timeout: 5000 });
   await waitFor(() => expect(listCalls).toBeGreaterThan(listCallsWhilePolling), { timeout: 5000 });
+});
+
+test('the Excel button asks the server for the export, never paging the register itself', async () => {
+  const user = userEvent.setup();
+  let exportUrl: URL | null = null;
+  server.use(
+    // The button lives in the register's header and is disabled on an empty
+    // register, so the list answers one row (14-findings R7 checklist item 3).
+    http.get('*/api/v1/payments/bank-statements', () =>
+      HttpResponse.json(statementsPage([statementRow({ id: 'st-x', status: 'parsed' })])),
+    ),
+    http.get('*/api/v1/payments/bank-statements/export.xlsx', ({ request }) => {
+      exportUrl = new URL(request.url);
+      return HttpResponse.text('xlsx-bytes', {
+        headers: {
+          'Content-Disposition': 'attachment; filename="bank-hisobotlari-2026-09-11.xlsx"',
+          'X-Export-Total': '1',
+          'X-Export-Rows': '1',
+          'X-Export-Truncated': 'false',
+        },
+      });
+    }),
+  );
+
+  const createObjectURL = vi.fn().mockReturnValue('blob:mock');
+  const revokeObjectURL = vi.fn();
+  URL.createObjectURL = createObjectURL;
+  URL.revokeObjectURL = revokeObjectURL;
+  const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+
+  renderTab();
+
+  const exportButton = await screen.findByTestId('export-xlsx');
+  await waitFor(() => expect(exportButton).toBeEnabled());
+  await user.click(exportButton);
+
+  await waitFor(() => expect(createObjectURL).toHaveBeenCalled());
+  expect(clickSpy).toHaveBeenCalled();
+  expect(exportUrl!.searchParams.get('lang')).toBe('uz_latn');
 });
 
 test('a caller with neither payments.manage nor payments.view (e.g. the manual-PAID checker) sees neither the upload form nor the register, never a button the backend would 403 on', () => {

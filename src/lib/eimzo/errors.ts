@@ -27,6 +27,7 @@ export type EimzoErrorKind =
   | 'wrong_password'
   | 'no_valid_key'
   | 'multiple_valid_keys'
+  | 'cancelled'
   | 'unknown';
 
 /** i18n keys — see `src/i18n/uz_latn.ts`/`ru.ts` for the required two, and
@@ -41,6 +42,7 @@ export const EIMZO_ERROR_MESSAGE_KEYS = {
   wrong_password: 'eimzo.errors.wrongPassword',
   no_valid_key: 'eimzo.errors.noValidKey',
   multiple_valid_keys: 'eimzo.errors.multipleValidKeys',
+  cancelled: 'eimzo.errors.cancelled',
   provider_unreachable: 'eimzo.errors.providerUnreachable',
   unknown: 'eimzo.errors.unknown',
 } as const satisfies Record<EimzoErrorKind | 'provider_unreachable', string>;
@@ -159,6 +161,21 @@ export class EimzoMultipleKeysError extends EimzoError {
 }
 
 /**
+ * The signer closed the certificate picker (2026-09-23) — a DECISION, not a
+ * failure. Every call site must tell it apart from the rest of this module:
+ * showing "signing failed" to somebody who just pressed Cancel is a false
+ * alarm, and worse, it hides the real state of the document they chose not
+ * to sign. Its message key exists only so an unhandled path stays
+ * translatable; no screen should normally render it.
+ */
+export class EimzoCancelledError extends EimzoError {
+  constructor(cause?: unknown) {
+    super('cancelled', 'The signer closed the certificate picker', cause);
+    this.name = 'EimzoCancelledError';
+  }
+}
+
+/**
  * Condition 5 — the E-IMZO provider itself (or the VPN in front of it) did
  * not answer. This never comes from `EIMZOClient`'s callbacks — it is our
  * OWN backend refusing a call `client.ts` makes to it (`POST
@@ -170,6 +187,18 @@ export class EimzoMultipleKeysError extends EimzoError {
  */
 export function isProviderUnreachable(error: unknown): boolean {
   return error instanceof ApiError && (error.code === 'ERR-INT-001' || error.code === 'ERR-INT-002');
+}
+
+/**
+ * The signer pressed Cancel in the certificate picker. EVERY signing call
+ * site checks this FIRST and shows nothing at all: an error banner after a
+ * deliberate cancel is a false alarm, and on a permit or an act it is worse
+ * than noise — it suggests the document failed to sign when in fact nobody
+ * tried. The check is `kind`-based rather than `instanceof` so it survives a
+ * `EimzoCancelledError` that crossed a module boundary in a dev build.
+ */
+export function isEimzoCancelled(error: unknown): boolean {
+  return error instanceof EimzoError && error.kind === 'cancelled';
 }
 
 /** The i18n key a call site should render for a given failure — an

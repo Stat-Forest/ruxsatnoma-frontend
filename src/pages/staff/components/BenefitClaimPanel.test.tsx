@@ -33,9 +33,8 @@ function card(over: Partial<ApplicationCardOut> = {}): ApplicationCardOut {
     number: 'RX-2026-000123',
     status: 'IN_REVIEW',
     applicant_id: 'ap000000-0000-4000-8000-000000000001',
+    applicant: { kind: 'individual', name: 'Alisher Karimov', stir: null },
     submitted_by_user_id: 'u0000000-0000-4000-8000-000000000001',
-    on_behalf: 'self',
-    representation_id: null,
     activity_type_id: null,
     contour_id: null,
     contour_version_id: null,
@@ -43,6 +42,12 @@ function card(over: Partial<ApplicationCardOut> = {}): ApplicationCardOut {
     period_from: null,
     period_to: null,
     quantity: null,
+    // Decision #215 R6: the deadwood and recreation blanks' own lines —
+    // required by the schema (nullable), null for every other activity.
+    deadwood_product: null,
+    removal_deadline: null,
+    recreation_purpose: null,
+    event_at: null,
     channel: 'portal',
     kind: 'new',
     benefit_category_item_id: CATEGORY_ID,
@@ -67,6 +72,7 @@ function card(over: Partial<ApplicationCardOut> = {}): ApplicationCardOut {
     calculation: null,
     sla_overdue: false,
     conclusions: [],
+    printouts: [],
     ...over,
   };
 }
@@ -93,7 +99,6 @@ function authValue(permissions: string[]): AuthContextValue {
       csrf_token: 'tok-1',
       is_superuser: false,
       applicant: null,
-      representations: [],
       registration_complete: true,
     },
     loading: false,
@@ -203,6 +208,14 @@ test('rejecting with a reason posts it to the reject route', async () => {
   await user.click(submit);
 
   await waitFor(() => expect(receivedBody).toEqual({ reason: 'Sertifikat notoʻgʻri koʻrinadi' }));
+});
+
+test('the reject reason field caps input at the backend bound (TextStr, 2000)', async () => {
+  const user = userEvent.setup();
+  renderPanel(card(), ['benefits.verify']);
+
+  await user.click(await screen.findByTestId('open-reject-claim-modal'));
+  expect(screen.getByTestId('reject-claim-reason')).toHaveAttribute('maxLength', '2000');
 });
 
 test('a verified claim with no verifier reads the Union-register sentence, not "decided by nobody"', async () => {

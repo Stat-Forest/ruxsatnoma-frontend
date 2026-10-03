@@ -153,12 +153,126 @@ test('ERR-VAL-001 names the real cause for each reason the backend sends', () =>
   );
 });
 
+// `admin/users_service.py::_check_pinfl_available` / `_check_login_available`
+// — the two refusals an operator actually hits by typing on the "new user"
+// form. Before this case both rendered as the generic sentence, so the
+// operator saw "validation error" over a form with nothing visibly wrong.
+test('ERR-VAL-001 names a duplicate PINFL / login on the staff-user form', () => {
+  const dupPinfl = { code: 'ERR-VAL-001', message: 'x', details: { reason: 'duplicate_pinfl' } };
+  const dupLogin = { code: 'ERR-VAL-001', message: 'x', details: { reason: 'duplicate_login' } };
+
+  expect(apiErrorMessage(dupPinfl, 'ru')).toBe('Пользователь с таким ПИНФЛ уже существует.');
+  expect(apiErrorMessage(dupLogin, 'ru')).toBe('Пользователь с таким логином уже существует.');
+  expect(apiErrorMessage(dupPinfl, 'uz_latn')).toBe('Bunday JShShIR bilan foydalanuvchi allaqachon mavjud.');
+  expect(apiErrorMessage(dupLogin, 'uz_latn')).toBe('Bunday login bilan foydalanuvchi allaqachon mavjud.');
+});
+
 test('ERR-VAL-001 keeps the generic sentence for a reason this map does not recognise', () => {
   const unknown = { code: 'ERR-VAL-001', message: 'x', details: { reason: 'something_new' } };
   const noDetails = { code: 'ERR-VAL-001', message: 'x' };
   expect(apiErrorMessage(unknown, 'ru')).toBe('Ошибка проверки введённых данных.');
   expect(apiErrorMessage(noDetails, 'ru')).toBe('Ошибка проверки введённых данных.');
   expect(apiErrorMessage(noDetails, 'uz_latn')).toBe("Kiritilgan ma'lumotlarni tekshirishda xatolik.");
+});
+
+// Stage 19, R5 — a pydantic 422 on a query/path parameter (a search box or a
+// permit-number field past its server cap) reached the user as the same
+// generic "validation failed" sentence as any other refusal, with no hint of
+// what to shorten or how far. The FIRST error in `details.errors[]` is now
+// named by its `type`, with the limit pydantic already attaches under `ctx`
+// (`backend/app/main.py`'s `validation_error_handler`).
+test('ERR-VAL-001 names the limit for a 422 on a query/path parameter', () => {
+  const stringTooLong = {
+    code: 'ERR-VAL-001',
+    message: 'x',
+    details: { errors: [{ type: 'string_too_long', ctx: { max_length: 200 } }] },
+  };
+  const tooLong = {
+    code: 'ERR-VAL-001',
+    message: 'x',
+    details: { errors: [{ type: 'too_long', ctx: { max_length: 20 } }] },
+  };
+  const lessThanEqual = {
+    code: 'ERR-VAL-001',
+    message: 'x',
+    details: { errors: [{ type: 'less_than_equal', ctx: { le: 1000000 } }] },
+  };
+  const lessThan = {
+    code: 'ERR-VAL-001',
+    message: 'x',
+    details: { errors: [{ type: 'less_than', ctx: { lt: 5 } }] },
+  };
+  const greaterThanEqual = {
+    code: 'ERR-VAL-001',
+    message: 'x',
+    details: { errors: [{ type: 'greater_than_equal', ctx: { ge: 1 } }] },
+  };
+  const greaterThan = {
+    code: 'ERR-VAL-001',
+    message: 'x',
+    details: { errors: [{ type: 'greater_than', ctx: { gt: 0 } }] },
+  };
+
+  expect(apiErrorMessage(stringTooLong, 'ru')).toBe('Слишком длинный текст: не более 200 символов.');
+  expect(apiErrorMessage(tooLong, 'ru')).toBe('Слишком много элементов: не более 20.');
+  expect(apiErrorMessage(lessThanEqual, 'ru')).toBe('Слишком большое значение: не более 1000000.');
+  expect(apiErrorMessage(lessThan, 'ru')).toBe('Значение должно быть меньше 5.');
+  expect(apiErrorMessage(greaterThanEqual, 'ru')).toBe('Слишком маленькое значение: не менее 1.');
+  expect(apiErrorMessage(greaterThan, 'ru')).toBe('Значение должно быть больше 0.');
+
+  expect(apiErrorMessage(stringTooLong, 'uz_latn')).toBe("Matn juda uzun: ko'pi bilan 200 ta belgi.");
+  expect(apiErrorMessage(tooLong, 'uz_latn')).toBe("Elementlar juda ko'p: ko'pi bilan 20 ta.");
+  expect(apiErrorMessage(lessThanEqual, 'uz_latn')).toBe("Qiymat juda katta: ko'pi bilan 1000000.");
+  expect(apiErrorMessage(lessThan, 'uz_latn')).toBe("Qiymat 5 dan kichik bo'lishi kerak.");
+  expect(apiErrorMessage(greaterThanEqual, 'uz_latn')).toBe('Qiymat juda kichik: kamida 1.');
+  expect(apiErrorMessage(greaterThan, 'uz_latn')).toBe("Qiymat 0 dan katta bo'lishi kerak.");
+});
+
+test('ERR-VAL-001 treats a missing required field the same as a too-short string', () => {
+  const tooShort = {
+    code: 'ERR-VAL-001',
+    message: 'x',
+    details: { errors: [{ type: 'string_too_short', ctx: { min_length: 1 } }] },
+  };
+  const missing = { code: 'ERR-VAL-001', message: 'x', details: { errors: [{ type: 'missing' }] } };
+
+  expect(apiErrorMessage(tooShort, 'ru')).toBe('Не заполнено обязательное поле.');
+  expect(apiErrorMessage(missing, 'ru')).toBe('Не заполнено обязательное поле.');
+  expect(apiErrorMessage(tooShort, 'uz_latn')).toBe("Majburiy maydon to'ldirilmagan.");
+  expect(apiErrorMessage(missing, 'uz_latn')).toBe("Majburiy maydon to'ldirilmagan.");
+});
+
+test('ERR-VAL-001 keeps the generic sentence for an error type this map does not know, or missing ctx', () => {
+  const noCtx = { code: 'ERR-VAL-001', message: 'x', details: { errors: [{ type: 'string_too_long' }] } };
+  const uuidParsing = { code: 'ERR-VAL-001', message: 'x', details: { errors: [{ type: 'uuid_parsing' }] } };
+  const emptyDetails = { code: 'ERR-VAL-001', message: 'x', details: {} };
+  const emptyErrors = { code: 'ERR-VAL-001', message: 'x', details: { errors: [] } };
+  const nullDetails = { code: 'ERR-VAL-001', message: 'x', details: null };
+
+  for (const error of [noCtx, uuidParsing, emptyDetails, emptyErrors, nullDetails]) {
+    expect(apiErrorMessage(error, 'ru')).toBe('Ошибка проверки введённых данных.');
+    expect(apiErrorMessage(error, 'uz_latn')).toBe("Kiritilgan ma'lumotlarni tekshirishda xatolik.");
+  }
+});
+
+test('ERR-VAL-001 still lets a domain reason win over a details.errors[] list', () => {
+  const withReason = {
+    code: 'ERR-VAL-001',
+    message: 'x',
+    details: { reason: 'duplicate_login', errors: [{ type: 'string_too_long', ctx: { max_length: 64 } }] },
+  };
+  expect(apiErrorMessage(withReason, 'ru')).toBe('Пользователь с таким логином уже существует.');
+  expect(apiErrorMessage(withReason, 'uz_latn')).toBe('Bunday login bilan foydalanuvchi allaqachon mavjud.');
+});
+
+test('ERR-VAL-001 gives uz_cyrl and kaa the uz_latn text for a named limit, proving the fallback still resolves', () => {
+  const stringTooLong = {
+    code: 'ERR-VAL-001',
+    message: 'x',
+    details: { errors: [{ type: 'string_too_long', ctx: { max_length: 200 } }] },
+  };
+  expect(apiErrorMessage(stringTooLong, 'uz_cyrl')).toBe("Matn juda uzun: ko'pi bilan 200 ta belgi.");
+  expect(apiErrorMessage(stringTooLong, 'kaa')).toBe("Matn juda uzun: ko'pi bilan 200 ta belgi.");
 });
 
 // `norms.checks.first_blocking_error` wraps the WHOLE check list under
@@ -249,27 +363,32 @@ test('ERR-APP-004 keeps the generic sentence for every other reason', () => {
   expect(apiErrorMessage(noDetails, 'uz_latn')).toBe("Ariza holatini bunday o'zgartirib bo'lmaydi. Sahifani yangilang.");
 });
 
-// Stage 10, F1 — ruling #181: the benefit-certificate check against the
-// Beekeeping Union's own register, named by `details.reason` the same way
-// `ERR-VAL-001` already is.
+// Stage 10, F1 — ruling #181: the mandatory benefit-certificate number,
+// named by `details.reason` the same way `ERR-VAL-001` already is; ruling
+// #219: the three refusals of the Beekeeping Union's register.
 test('ERR-APP-003 names the benefit-certificate reason the backend sends', () => {
   const required = { code: 'ERR-APP-003', message: 'x', details: { reason: 'benefit_certificate_required' } };
   const unknown = { code: 'ERR-APP-003', message: 'x', details: { reason: 'benefit_certificate_unknown' } };
   const notYours = { code: 'ERR-APP-003', message: 'x', details: { reason: 'benefit_certificate_not_yours' } };
+  const expired = { code: 'ERR-APP-003', message: 'x', details: { reason: 'benefit_certificate_expired' } };
   const noReason = { code: 'ERR-APP-003', message: 'x' };
 
   expect(apiErrorMessage(required, 'ru')).toBe(
     'Не указан номер справки/свидетельства для выбранной льготной категории.',
   );
-  expect(apiErrorMessage(unknown, 'ru')).toBe('Такой номер справки/свидетельства не найден в реестре.');
-  expect(apiErrorMessage(notYours, 'ru')).toBe('Этот номер справки/свидетельства зарегистрирован на другое лицо.');
+  expect(apiErrorMessage(unknown, 'ru')).toBe('Этот номер удостоверения не найден в реестре Союза пчеловодов.');
+  expect(apiErrorMessage(notYours, 'ru')).toBe('Это удостоверение записано в реестре Союза пчеловодов на другое лицо.');
+  expect(apiErrorMessage(expired, 'ru')).toBe('Срок действия этого удостоверения истёк.');
   expect(apiErrorMessage(noReason, 'ru')).toBe('Неполный комплект документов.');
 
   expect(apiErrorMessage(required, 'uz_latn')).toBe(
     "Tanlangan imtiyoz toifasi uchun guvohnoma/ma'lumotnoma raqami ko'rsatilmagan.",
   );
-  expect(apiErrorMessage(unknown, 'uz_latn')).toBe("Bunday guvohnoma/ma'lumotnoma raqami reyestrda topilmadi.");
-  expect(apiErrorMessage(notYours, 'uz_latn')).toBe("Bu guvohnoma/ma'lumotnoma raqami boshqa shaxsga ro'yxatga olingan.");
+  expect(apiErrorMessage(unknown, 'uz_latn')).toBe('Bu guvohnoma raqami Asalarichilar uyushmasi reyestrida topilmadi.');
+  expect(apiErrorMessage(notYours, 'uz_latn')).toBe(
+    'Bu guvohnoma Asalarichilar uyushmasi reyestrida boshqa shaxs nomiga yozilgan.',
+  );
+  expect(apiErrorMessage(expired, 'uz_latn')).toBe('Bu guvohnomaning amal qilish muddati tugagan.');
 });
 
 // Ruling #183: a simple signature's own refusal reasons, plus the real-mode

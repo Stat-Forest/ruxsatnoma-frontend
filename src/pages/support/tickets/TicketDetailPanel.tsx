@@ -71,6 +71,9 @@ function TicketDetail({ ticket, canManage }: { ticket: TicketWithMessagesOut; ca
   const close = useCloseTicket(ticket.id);
 
   const status = ticket.status as TicketStatus;
+  // Re-assigning a ticket to its current assignee is a no-op, so the button
+  // only offers something when the ticket is unassigned or on a colleague.
+  const assignedToMe = me != null && ticket.assigned_to === me.user.id;
   const actionFailure = addMessage.error ?? assign.error ?? resolve.error ?? close.error;
 
   function submitReply() {
@@ -92,7 +95,7 @@ function TicketDetail({ ticket, canManage }: { ticket: TicketWithMessagesOut; ca
       )}
 
       <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
-        {canManage && status !== 'closed' && (
+        {canManage && status !== 'closed' && !assignedToMe && (
           <Button
             variant="secondary"
             size="sm"

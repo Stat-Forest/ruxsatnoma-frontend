@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { createMemoryRouter, RouterProvider } from 'react-router';
 import { http, HttpResponse } from 'msw';
@@ -78,7 +78,6 @@ function authValue(language: string): AuthContextValue {
       address: 'Toshkent sh., Chilonzor tumani, 12-uy',
       verified_at: null,
     },
-    representations: [],
     registration_complete: true,
   },
   loading: false,
@@ -105,45 +104,26 @@ function authValueWithAddress(address: string | null): AuthContextValue {
 
 const LEGAL_ENTITY_ID = 'ap100000-0000-4000-8000-0000000000ff';
 
-// Ruling #183: `on_behalf='legal'` is the ONLY path that still goes through
-// ERI (mock or real) — every test that exercises that machinery now needs a
-// representation to select, not the bare `AUTH_VALUE` fixture (self).
+// Ruling #226: a legal applicant is its OWN cabinet now — no representation,
+// no picker — `me.applicant.kind === 'legal'` is the only thing that routes
+// signing through ERI (mock or real) instead of the plain button.
 function authValueLegal(): AuthContextValue {
   const base = authValue('uz');
-  const entity = {
-    ...base.me!.applicant!,
-    id: LEGAL_ENTITY_ID,
-    kind: 'legal',
-    pinfl: null,
-    stir: '302345678',
-    name: '"Chorvador" MChJ',
-    address: 'Namangan sh., Navoiy 1',
-  };
   return {
     ...base,
     me: {
       ...base.me!,
-      representations: [
-        {
-          id: 'rep00000-0000-4000-8000-000000000001',
-          applicant: entity,
-          basis: 'poa',
-          valid_from: '2026-01-01',
-          valid_until: null,
-          status: 'active',
-        },
-      ],
+      applicant: {
+        ...base.me!.applicant!,
+        id: LEGAL_ENTITY_ID,
+        kind: 'legal',
+        pinfl: null,
+        stir: '302345678',
+        name: '"Chorvador" MChJ',
+        address: 'Namangan sh., Navoiy 1',
+      },
     },
   };
-}
-
-// Step 1's on-behalf picker is the only `combobox` there (`FormField`
-// renders its label as plain text, not an `htmlFor` binding) — must run
-// BEFORE `chooseActivity`/`driveToStep5`, the same order the existing
-// address-less-entity test already established.
-async function selectLegalEntity() {
-  await screen.findByText('Pichanchilik');
-  await userEvent.selectOptions(screen.getByRole('combobox'), LEGAL_ENTITY_ID);
 }
 
 // Plan 12: `POST /applications/precheck` and `POST /applications/package`
@@ -226,6 +206,7 @@ function renderWizard(
       { path: '/my/applications/new', element: <ApplicationWizardPage /> },
       { path: '/my/applications', element: <div>applications-list</div> },
       { path: '/my/applications/:id', element: <div>application-card</div> },
+      { path: '/profile', element: <div>profile-page</div> },
     ],
     { initialEntries: [initialPath] },
   );
@@ -279,8 +260,8 @@ async function acceptRules() {
 // (`docs/plans/07.3-findings.md`): `ApplicationWizardPage.tsx`'s
 // `handleSignAndSubmit` used to render the server's own Russian string
 // verbatim as `${code}: ${message}`, regardless of the applicant's own
-// interface language. Self-filing only (the default `AUTH_VALUE` fixture
-// carries no representations) — ruling #183's own button label.
+// interface language. An individual applicant only (the default `AUTH_VALUE`
+// fixture is `kind: 'individual'`) — ruling #183's own button label.
 async function driveToSubmitFailure(lang: UiLanguage = 'uz_latn') {
   await driveToStep5(lang);
   const dict = DICTIONARIES[lang] ?? DICTIONARIES.uz_latn;
@@ -321,20 +302,19 @@ test.each([
 // This test drives the wizard end to end only far enough to prove the wiring,
 // not to exercise every step's own behaviour.
 //
-// Ruling #183: the mock/real ERI machinery below is exercised ONLY for a
-// `legal` filing now — a `self` filing never builds an envelope at all
-// (covered separately below). `applicant.name` signed here is still the
-// SIGNED-IN citizen's own name (`me.applicant`, the representative), never
-// the entity's — unaffected by which one is being filed for.
+// Ruling #226: the mock/real ERI machinery below is exercised ONLY for a
+// `kind: 'legal'` cabinet now — an individual applicant's filing never builds
+// an envelope at all (covered separately below). `applicant.name` signed
+// here is the legal applicant's own name (`me.applicant`, its own cabinet
+// since stage 18 — there is no separate representative identity any more).
 //
 // Plan 12, R2: a legal filing first calls `POST /applications/package` (the
 // default handler above mints `APPLICATION_ID` and a base64 `package`), then
 // signs those bytes, then posts `POST /applications` with `application_id` +
 // `pkcs7` alongside the filing — never a per-id route.
-test('signing and submitting passes the signed-in applicant’s own name into the mock signature', async () => {
+test('signing and submitting passes the legal applicant’s own name into the mock signature', async () => {
   const auth = authValueLegal();
   renderWizard(auth);
-  await selectLegalEntity();
 
   await driveToStep5();
   await acceptRules();
@@ -345,7 +325,9 @@ test('signing and submitting passes the signed-in applicant’s own name into th
   await userEvent.click(signButton);
 
   await waitFor(() =>
-    expect(buildMockSignature).toHaveBeenCalledWith(expect.objectContaining({ fullName: APPLICANT_NAME })),
+    expect(buildMockSignature).toHaveBeenCalledWith(
+      expect.objectContaining({ fullName: auth.me!.applicant!.name }),
+    ),
   );
 });
 
@@ -365,7 +347,6 @@ test('real mode: sign calls signDocument over the exact package bytes (DETACHED)
   );
   const auth = authValueLegal();
   renderWizard(auth);
-  await selectLegalEntity();
 
   await driveToStep5();
   await acceptRules();
@@ -393,7 +374,6 @@ test('a real-mode signing failure shows a distinct message and never reaches the
   );
   const auth = authValueLegal();
   renderWizard(auth);
-  await selectLegalEntity();
 
   await driveToStep5();
   await acceptRules();
@@ -490,8 +470,8 @@ test('an account with no address is asked for it in step 5, and can submit once 
   await userEvent.click(saveButton);
 
   await waitFor(() => expect(seenAddressBody).toEqual({ address: "Farg'ona sh., Mustaqillik ko'chasi 5" }));
-  // Nothing is signed by that first press, and this is a `self` filing (the
-  // default fixture carries no representations) — no envelope is EVER built.
+  // Nothing is signed by that first press, and this is an individual
+  // applicant's filing (`kind: 'individual'`) — no envelope is EVER built.
   expect(vi.mocked(buildMockSignature).mock.calls.length).toBe(signaturesBefore);
 
   // Now it signs — ruling #183's plain button, not the ERI one.
@@ -505,56 +485,35 @@ test('an account with no address is asked for it in step 5, and can submit once 
   expect(vi.mocked(buildMockSignature).mock.calls.length).toBe(signaturesBefore);
 });
 
-// Ruling #113, the representative's case: the address that gets printed is
-// the HOLDER's, and when a representative files on behalf of a legal entity
-// the holder is that entity. A citizen whose own record carries an address
-// can still be filing for an entity that has none — checking `me.applicant`
-// alone would leave the backend refusing a submission the wizard never asked
-// about.
-test('a representative filing for an address-less legal entity is asked for the ENTITY address', async () => {
+test('the address field caps input at the backend bound (ApplicantAddressIn, 500)', async () => {
+  const auth = authValueWithAddress(null);
+  renderWizard(auth);
+
+  await driveToStep5();
+  await acceptRules();
+
+  const addressInput = await screen.findByLabelText(/Manzil/);
+  expect(addressInput).toHaveAttribute('maxLength', '500');
+});
+
+// Ruling #113/#226: the address requisite belongs to the applicant the
+// filing is FOR, which since stage 18 is always the caller's own
+// `me.applicant` — a legal cabinet with no address on file is asked for its
+// OWN address, exactly like an individual applicant.
+test('a legal applicant with no address is asked for it, and it is patched by its own id', async () => {
   let seenPath: string | null = null;
   let seenAddressBody: unknown = null;
-  const base = authValue('uz');
-  const entity = {
-    ...base.me!.applicant!,
-    id: 'ap100000-0000-4000-8000-0000000000ff',
-    kind: 'legal',
-    pinfl: null,
-    stir: '302345678',
-    name: '"Chorvador" MChJ',
-    address: null,
-  };
-  const auth: AuthContextValue = {
-    ...base,
-    me: {
-      ...base.me!,
-      representations: [
-        {
-          id: 'rep00000-0000-4000-8000-000000000001',
-          applicant: entity,
-          basis: 'poa',
-          valid_from: '2026-01-01',
-          valid_until: null,
-          status: 'active',
-        },
-      ],
-    },
-  };
+  const auth = authValueLegal();
+  auth.me!.applicant = { ...auth.me!.applicant!, address: null };
   server.use(
     http.patch('*/api/v1/auth/applicants/:applicantId/address', async ({ request, params }) => {
       seenPath = String(params.applicantId);
       seenAddressBody = await request.json();
-      return HttpResponse.json({ ...entity, address: 'Namangan sh., Navoiy 1' });
+      return HttpResponse.json({ ...auth.me!.applicant, address: 'Namangan sh., Navoiy 1' });
     }),
   );
   renderWizard(auth);
 
-  // Step 1 offers the on-behalf-of picker only when representations exist,
-  // and it is the only select on that step. `FormField` renders its label as
-  // plain text, not an `htmlFor` binding, so the role is the handle here —
-  // the same reason `ActFormPage.test.tsx` reaches its selects by value.
-  await screen.findByText('Pichanchilik');
-  await userEvent.selectOptions(screen.getByRole('combobox'), entity.id);
   await driveToStep5();
   await acceptRules();
 
@@ -565,8 +524,8 @@ test('a representative filing for an address-less legal entity is asked for the 
   await waitFor(() => expect(saveButton).toBeEnabled());
   await userEvent.click(saveButton);
 
-  // The entity's id, not the signed-in citizen's.
-  await waitFor(() => expect(seenPath).toBe(entity.id));
+  // The legal applicant's own id.
+  await waitFor(() => expect(seenPath).toBe(LEGAL_ENTITY_ID));
   expect(seenAddressBody).toEqual({ address: 'Namangan sh., Navoiy 1' });
 });
 
@@ -656,7 +615,6 @@ test('reaching step 5 posts the filing assembled from steps 1-4 to /applications
 
   await waitFor(() =>
     expect(precheckBody).toMatchObject({
-      on_behalf: 'self',
       activity_type_id: ACTIVITY_ID,
       contour_id: 'contour-1',
       period_from: '2026-01-01',
@@ -825,17 +783,73 @@ test('no leave-confirmation is asked before any progress exists (step 1, nothing
   await waitFor(() => expect(router.state.location.pathname).toBe('/my/applications'));
 });
 
-test('a successful filing navigates straight through, without asking to leave', async () => {
-  const { router } = renderWizard();
+// Oybek, 2026-09-13: a successful filing no longer jumps to the card at
+// once — it first tells the citizen which phone the status SMS will go to
+// (`me.user.phone`, the same field the profile's contacts section edits and
+// the one `get_notification_contact` reads on the backend), with a way to
+// the profile if that number is stale. Every way OUT of that dialog is a
+// navigation the leave-guard must let through: the filing is already in
+// the database, there is nothing left to lose.
+function authValueWithPhone(phone: string | null): AuthContextValue {
+  const base = authValue('uz');
+  return { ...base, me: { ...base.me!, user: { ...base.me!.user, phone } } };
+}
+
+async function fileSuccessfully() {
   await driveToStep5();
   await acceptRules();
-
   const signButton = await screen.findByRole('button', { name: new RegExp(UZ['wizard.step5.signApplication']) });
   await waitFor(() => expect(signButton).toBeEnabled());
   await userEvent.click(signButton);
+  return screen.findByRole('dialog');
+}
+
+test('a successful filing names the phone the status messages go to, and stays put until the citizen chooses', async () => {
+  const { router } = renderWizard(authValueWithPhone('+998 90 123 45 67'));
+  const dialog = await fileSuccessfully();
+
+  expect(within(dialog).getByText(UZ['wizard.filed.title'])).toBeInTheDocument();
+  expect(within(dialog).getByText('+998 90 123 45 67')).toBeInTheDocument();
+  expect(router.state.location.pathname).toBe('/my/applications/new');
+  expect(screen.queryByText(/Ariza yuborilmadi/)).not.toBeInTheDocument();
+});
+
+test('«Arizaga oʻtish» opens the card without asking to leave', async () => {
+  const { router } = renderWizard(authValueWithPhone('+998 90 123 45 67'));
+  const dialog = await fileSuccessfully();
+
+  await userEvent.click(within(dialog).getByRole('button', { name: UZ['wizard.filed.openCard'] }));
 
   await waitFor(() => expect(router.state.location.pathname).toBe(`/my/applications/${APPLICATION_ID}`));
   expect(screen.queryByText(/Ariza yuborilmadi/)).not.toBeInTheDocument();
+});
+
+test('«Telefonni oʻzgartirish» opens the profile without asking to leave', async () => {
+  const { router } = renderWizard(authValueWithPhone('+998 90 123 45 67'));
+  const dialog = await fileSuccessfully();
+
+  await userEvent.click(within(dialog).getByRole('button', { name: UZ['wizard.filed.changePhone'] }));
+
+  await waitFor(() => expect(router.state.location.pathname).toBe('/profile'));
+  expect(screen.queryByText(/Ariza yuborilmadi/)).not.toBeInTheDocument();
+});
+
+test('dismissing the filed dialog any other way (Esc, the cross, the backdrop) opens the card', async () => {
+  const { router } = renderWizard(authValueWithPhone('+998 90 123 45 67'));
+  await fileSuccessfully();
+
+  await userEvent.keyboard('{Escape}');
+
+  await waitFor(() => expect(router.state.location.pathname).toBe(`/my/applications/${APPLICATION_ID}`));
+  expect(screen.queryByText(/Ariza yuborilmadi/)).not.toBeInTheDocument();
+});
+
+test('an account with no phone on file is told to add one in the profile instead', async () => {
+  renderWizard(authValueWithPhone(null));
+  const dialog = await fileSuccessfully();
+
+  expect(within(dialog).getByText(UZ['wizard.filed.noPhone'])).toBeInTheDocument();
+  expect(within(dialog).getByRole('button', { name: UZ['wizard.filed.changePhone'] })).toBeInTheDocument();
 });
 
 test('beforeunload is prevented once progress exists, and not before', async () => {
@@ -990,6 +1004,13 @@ async function driveToStep4() {
 function fileInput(): HTMLInputElement {
   return document.querySelector('input[type="file"]') as HTMLInputElement;
 }
+// Decision #220: a claimed benefit needs its scan before step 4's Next opens
+// — through the benefit row's own file button, the only file input on the
+// step while no other row has a type chosen.
+async function attachProof() {
+  await userEvent.upload(fileInput(), new File(['x'], 'proof.pdf', { type: 'application/pdf' }));
+  await screen.findByText(UZ['wizard.step4.benefitProofOk']);
+}
 
 test('the benefit is not asked on step 3 any more — it is an option of the document-type select on step 4', async () => {
   server.use(classifierHandler([BENEFIT_ITEM], [PROOF_DOC_TYPE, OTHER_DOC_TYPE]));
@@ -1038,12 +1059,18 @@ test('the benefit certificate number is required before Next for ANY chosen cate
   expect(nextButton).toBeDisabled();
 
   await userEvent.type(certificateInput, 'AB-12345');
-  // The number alone is enough (#189: the scan is optional).
+  // The number alone is NOT enough (#220: the scan is mandatory too).
+  expect(nextButton).toBeDisabled();
+  await attachProof();
   await waitFor(() => expect(nextButton).toBeEnabled());
   await userEvent.click(nextButton);
 
   await waitFor(() =>
-    expect(precheckBody).toMatchObject({ benefit_category_item_id: 'benefit-1', benefit_certificate_no: 'AB-12345' }),
+    expect(precheckBody).toMatchObject({
+      benefit_category_item_id: 'benefit-1',
+      benefit_certificate_no: 'AB-12345',
+      documents: [{ doc_type_item_id: 'doctype-proof', file_id: 'file-1' }],
+    }),
   );
 });
 
@@ -1188,16 +1215,57 @@ test('a simple-signature refusal (ERR-SIGN-001, simple_signature_not_allowed) is
   ).toBeInTheDocument();
 });
 
-// Ruling #181: a benefit-certificate refusal the client could not have
-// caught itself (the number LOOKS filled in, but the register disagrees) is
-// shown AT THE FIELD, not only as a step-5 banner — the wizard sends the
-// applicant back to step 4 for it.
-test('a benefit-certificate refusal (ERR-APP-003, benefit_certificate_unknown) sends the applicant back to step 4 and shows it at the field', async () => {
+// Ruling #219: the Beekeeping Union's register answers on step 4's own
+// "Next" — the pre-check runs BEFORE the stepper moves, a number the
+// register refuses keeps the applicant on step 4 with the reason at the
+// field, and a corrected number goes on to step 5.
+test('a number the register refuses on step 4 keeps the applicant there with the reason at the field', async () => {
+  const seen: string[] = [];
+  server.use(
+    classifierHandler([BENEFIT_ITEM], [PROOF_DOC_TYPE]),
+    http.post('*/api/v1/applications/precheck', async ({ request }) => {
+      const body = (await request.json()) as { benefit_certificate_no?: string };
+      seen.push(body.benefit_certificate_no ?? '');
+      if (body.benefit_certificate_no === 'AB-00000') {
+        return HttpResponse.json(
+          { error: { code: 'ERR-APP-003', message: 'x', details: { reason: 'benefit_certificate_unknown' } } },
+          { status: 422 },
+        );
+      }
+      return HttpResponse.json({ checks: [], calculation: null });
+    }),
+  );
+  renderWizard();
+  await driveToStep4();
+
+  await userEvent.selectOptions(await screen.findByRole('combobox'), 'benefit:benefit-1');
+  const certificate = await screen.findByLabelText(new RegExp(UZ['wizard.step4.certificateNumber']));
+  await userEvent.type(certificate, 'AB-00000');
+  await attachProof();
+  await userEvent.click(screen.getByRole('button', { name: new RegExp(UZ['wizard.nav.next']) }));
+
+  expect(await screen.findByText('Bu guvohnoma raqami Asalarichilar uyushmasi reyestrida topilmadi.')).toBeInTheDocument();
+  expect(screen.getByText(UZ['wizard.step4.heading'])).toBeInTheDocument();
+  expect(screen.queryByText(UZ['wizard.step5.heading'])).not.toBeInTheDocument();
+
+  await userEvent.clear(certificate);
+  await userEvent.type(certificate, 'AB-12345');
+  expect(screen.queryByText('Bu guvohnoma raqami Asalarichilar uyushmasi reyestrida topilmadi.')).not.toBeInTheDocument();
+  await userEvent.click(screen.getByRole('button', { name: new RegExp(UZ['wizard.nav.next']) }));
+
+  expect(await screen.findByText(UZ['wizard.step5.heading'])).toBeInTheDocument();
+  expect(seen).toEqual(['AB-00000', 'AB-12345']);
+});
+
+// Rulings #181/#219: a refusal of the number at FILING (the register changed
+// after step 4's pre-check passed) is shown AT THE FIELD, not only as a
+// step-5 banner — the wizard sends the applicant back to step 4 for it.
+test('a benefit-certificate refusal at filing (ERR-APP-003, benefit_certificate_expired) sends the applicant back to step 4 and shows it at the field', async () => {
   server.use(
     classifierHandler([BENEFIT_ITEM], [PROOF_DOC_TYPE]),
     http.post('*/api/v1/applications', () =>
       HttpResponse.json(
-        { error: { code: 'ERR-APP-003', message: 'x', details: { reason: 'benefit_certificate_unknown' } } },
+        { error: { code: 'ERR-APP-003', message: 'x', details: { reason: 'benefit_certificate_expired' } } },
         { status: 422 },
       ),
     ),
@@ -1207,6 +1275,7 @@ test('a benefit-certificate refusal (ERR-APP-003, benefit_certificate_unknown) s
 
   await userEvent.selectOptions(await screen.findByRole('combobox'), 'benefit:benefit-1');
   await userEvent.type(await screen.findByLabelText(new RegExp(UZ['wizard.step4.certificateNumber'])), 'AB-99999');
+  await attachProof();
   await userEvent.click(await screen.findByRole('button', { name: new RegExp(UZ['wizard.nav.next']) })); // step4 -> step5
 
   await acceptRules();
@@ -1215,13 +1284,14 @@ test('a benefit-certificate refusal (ERR-APP-003, benefit_certificate_unknown) s
   await userEvent.click(signButton);
 
   expect(await screen.findByText(UZ['wizard.step4.heading'])).toBeInTheDocument();
-  expect(await screen.findByText("Bunday guvohnoma/ma'lumotnoma raqami reyestrda topilmadi.")).toBeInTheDocument();
+  expect(await screen.findByText('Bu guvohnomaning amal qilish muddati tugagan.')).toBeInTheDocument();
 });
 
-// Ruling #189: the certificate's scan is OPTIONAL — Next is open on the
-// number alone, and the benefit row's own file button, when used, files the
-// scan under `benefit_proof` (no doc type to pick: the category IS the type).
-test('the benefit_proof scan is optional: Next opens on the number alone, and the file, when attached, is filed under benefit_proof', async () => {
+// Decision #220 (superseding #189): the certificate's scan is MANDATORY —
+// Next stays shut on the number alone, and opens once the benefit row's own
+// file button has filed the scan under `benefit_proof` (no doc type to pick:
+// the category IS the type).
+test('the benefit_proof scan is mandatory: Next stays shut on the number alone and opens once the scan is filed under benefit_proof', async () => {
   let uploadedType: string | null = null;
   server.use(
     classifierHandler([BENEFIT_ITEM], [PROOF_DOC_TYPE, OTHER_DOC_TYPE]),
@@ -1239,21 +1309,21 @@ test('the benefit_proof scan is optional: Next opens on the number alone, and th
   await userEvent.type(await screen.findByLabelText(new RegExp(UZ['wizard.step4.certificateNumber'])), 'AB-1');
 
   const nextButton = screen.getByRole('button', { name: new RegExp(UZ['wizard.nav.next']) });
-  expect(await screen.findByText(UZ['wizard.step4.benefitProofOptional'])).toBeInTheDocument();
-  await waitFor(() => expect(nextButton).toBeEnabled());
+  expect(await screen.findByText(UZ['wizard.step4.benefitProofRequired'])).toBeInTheDocument();
+  expect(nextButton).toBeDisabled();
 
-  await userEvent.upload(fileInput(), new File(['x'], 'proof.pdf', { type: 'application/pdf' }));
+  await attachProof();
 
-  await waitFor(() => expect(screen.getByText(UZ['wizard.step4.benefitProofOk'])).toBeInTheDocument());
   expect(uploadedType).toBe('uploaded');
-  expect(screen.queryByText(UZ['wizard.step4.benefitProofOptional'])).not.toBeInTheDocument();
-  expect(nextButton).toBeEnabled();
+  expect(screen.queryByText(UZ['wizard.step4.benefitProofRequired'])).not.toBeInTheDocument();
+  await waitFor(() => expect(nextButton).toBeEnabled());
 });
 
 // Without a `benefit_proof` doc type (list not loaded, or the item archived)
 // the benefit row has nothing to file a scan under, so it offers no file
-// button — and, the scan being optional (#189), the claim still moves on.
-test('an unknown benefit_proof doc type hides the file button and does not hold the claim', async () => {
+// button — and, the scan being mandatory (#220), the claim cannot move on:
+// fail-closed, exactly as the backend refuses it.
+test('an unknown benefit_proof doc type hides the file button and holds the claim', async () => {
   // `doc_types` answers without `benefit_proof`.
   server.use(classifierHandler([BENEFIT_ITEM], [OTHER_DOC_TYPE]));
   renderWizard();
@@ -1262,11 +1332,9 @@ test('an unknown benefit_proof doc type hides the file button and does not hold 
   await userEvent.selectOptions(await screen.findByRole('combobox'), 'benefit:benefit-1');
   await userEvent.type(await screen.findByLabelText(new RegExp(UZ['wizard.step4.certificateNumber'])), 'AB-1');
 
-  const nextButton = screen.getByRole('button', { name: new RegExp(UZ['wizard.nav.next']) });
-  expect(await screen.findByText(UZ['wizard.step4.benefitProofOptional'])).toBeInTheDocument();
+  expect(await screen.findByText(UZ['wizard.step4.benefitProofRequired'])).toBeInTheDocument();
   expect(screen.queryByRole('button', { name: new RegExp(UZ['wizard.step4.chooseFile']) })).not.toBeInTheDocument();
-  expect(screen.queryByText(UZ['wizard.step4.benefitProofOk'])).not.toBeInTheDocument();
-  await waitFor(() => expect(nextButton).toBeEnabled());
+  expect(screen.getByRole('button', { name: new RegExp(UZ['wizard.nav.next']) })).toBeDisabled();
 });
 
 // ─── The benefit list is scoped to the activity (ruling #181) ─────────────
@@ -1325,4 +1393,368 @@ test('a pre-check refused with unknown_benefit_code says the benefit does not ap
   await driveToStep5();
 
   expect(await screen.findByText(UZ['wizard.step5.benefitNotForActivity'])).toBeInTheDocument();
+});
+
+// Decision #215 R6: the deadwood and recreation blanks carry lines of their
+// own (`deadwood_product`/`removal_deadline`, `recreation_purpose`/`event_at`)
+// that the backend requires at pre-check and filing for THOSE two activities
+// alone. Step 3 asks them for exactly those activities, holds Next until
+// both are filled (mirroring the server's refusal client-side, so the citizen
+// never first learns of them from `checks.missing_for_pricing`), and sends
+// them in the filing. A haymaking filing never sees them.
+const DEADWOOD_NAME = 'Oʻtin yigʻish';
+const RECREATION_NAME = 'Rekreatsiya';
+
+function activityHandler(code: string, name: string, unit: string) {
+  return http.get('*/api/v1/refs/activity-types', () =>
+    HttpResponse.json([{ id: ACTIVITY_ID, code, name: { uz_latn: name }, quantity_unit: unit }]),
+  );
+}
+function precheckRecorder(seen: unknown[]) {
+  return http.post('*/api/v1/applications/precheck', async ({ request }) => {
+    seen.push(await request.json());
+    return HttpResponse.json({ checks: [], calculation: null });
+  });
+}
+// Steps 1–2 (activity, contour + period), ending on step 3.
+async function driveToStep3(activityName = 'Pichanchilik') {
+  await chooseActivity(activityName);
+  await userEvent.click(await screen.findByText('pick-contour'));
+  fireEvent.change(screen.getByLabelText(new RegExp(UZ['wizard.step2.periodFrom'])), { target: { value: '2026-01-01' } });
+  fireEvent.change(screen.getByLabelText(new RegExp(UZ['wizard.step2.periodTo'])), { target: { value: '2026-06-01' } });
+  await userEvent.click(screen.getByRole('button', { name: new RegExp(UZ['wizard.nav.next']) }));
+  await screen.findByLabelText(new RegExp(UZ['wizard.step3.quantity']));
+}
+function nextButton() {
+  return screen.getByRole('button', { name: new RegExp(UZ['wizard.nav.next']) });
+}
+// The pre-check fires on leaving step 4 (`goNext`), so reaching it from
+// step 3 takes two Nexts — the same two `driveToStep5` already presses.
+async function nextTwiceToPrecheck() {
+  await userEvent.click(nextButton());
+  await userEvent.click(await screen.findByRole('button', { name: new RegExp(UZ['wizard.nav.next']) }));
+}
+
+test('asks a deadwood filing for its product and removal deadline, and sends them', async () => {
+  const seen: unknown[] = [];
+  server.use(activityHandler('deadwood', DEADWOOD_NAME, 'm3'), precheckRecorder(seen));
+  renderWizard();
+  await driveToStep3(DEADWOOD_NAME);
+
+  await userEvent.type(screen.getByLabelText(new RegExp(UZ['wizard.step3.quantity'])), '3');
+  // Next is held until BOTH blank lines are filled (R6, mirrored client-side).
+  expect(nextButton()).toBeDisabled();
+  await userEvent.selectOptions(screen.getByLabelText(new RegExp(UZ['wizard.step3.deadwoodProduct'])), 'firewood');
+  expect(nextButton()).toBeDisabled();
+  fireEvent.change(screen.getByLabelText(new RegExp(UZ['wizard.step3.removalDeadline'])), { target: { value: '2027-06-15' } });
+  expect(nextButton()).toBeEnabled();
+
+  await nextTwiceToPrecheck();
+  await waitFor(() => expect(seen.length).toBeGreaterThan(0));
+  expect(seen.at(-1)).toMatchObject({ deadwood_product: 'firewood', removal_deadline: '2027-06-15', quantity: '3' });
+  expect(seen.at(-1)).not.toHaveProperty('recreation_purpose');
+  expect(seen.at(-1)).not.toHaveProperty('event_at');
+});
+
+test('asks a recreation filing for its purpose and event time, and sends them', async () => {
+  const seen: unknown[] = [];
+  server.use(activityHandler('recreation', RECREATION_NAME, 'ga'), precheckRecorder(seen));
+  renderWizard();
+  await driveToStep3(RECREATION_NAME);
+
+  await userEvent.type(screen.getByLabelText(new RegExp(UZ['wizard.step3.quantity'])), '2');
+  expect(nextButton()).toBeDisabled();
+  await userEvent.selectOptions(screen.getByLabelText(new RegExp(UZ['wizard.step3.recreationPurpose'])), 'health');
+  expect(nextButton()).toBeDisabled();
+  // `datetime-local` yields `YYYY-MM-DDTHH:MM`, sent verbatim (Tashkent wall-clock).
+  fireEvent.change(screen.getByLabelText(new RegExp(UZ['wizard.step3.eventAt'])), { target: { value: '2026-05-09T10:30' } });
+  expect(nextButton()).toBeEnabled();
+
+  await nextTwiceToPrecheck();
+  await waitFor(() => expect(seen.length).toBeGreaterThan(0));
+  expect(seen.at(-1)).toMatchObject({ recreation_purpose: 'health', event_at: '2026-05-09T10:30', quantity: '2' });
+  expect(seen.at(-1)).not.toHaveProperty('deadwood_product');
+  expect(seen.at(-1)).not.toHaveProperty('removal_deadline');
+});
+
+test('does not show the deadwood or recreation lines to a haymaking filing', async () => {
+  renderWizard();
+  await driveToStep3(); // default handler: haymaking
+
+  expect(screen.queryByLabelText(new RegExp(UZ['wizard.step3.deadwoodProduct']))).toBeNull();
+  expect(screen.queryByLabelText(new RegExp(UZ['wizard.step3.removalDeadline']))).toBeNull();
+  expect(screen.queryByLabelText(new RegExp(UZ['wizard.step3.recreationPurpose']))).toBeNull();
+  expect(screen.queryByLabelText(new RegExp(UZ['wizard.step3.eventAt']))).toBeNull();
+  // Nothing of the two blanks holds Next for an activity that has no such lines.
+  await userEvent.type(screen.getByLabelText(new RegExp(UZ['wizard.step3.quantity'])), '5');
+  expect(nextButton()).toBeEnabled();
+});
+
+// Stage 17, QA-01 task A1 — the defect that triggered the whole QA run: an
+// applicant could add livestock rows without limit and pick the same species
+// twice, because neither the row list nor the "add" button ever looked at
+// what the OTHER rows already held. `duplicate_livestock_type` (R6/R7) is
+// the backend's own name for exactly this refusal.
+const LIVESTOCK_TYPE_A = {
+  id: 'aa000000-0000-4000-8000-000000000001',
+  code: 'sheep',
+  name: { uz_latn: 'Sheep' },
+  status: 'active',
+};
+const LIVESTOCK_TYPE_B = {
+  id: 'bb000000-0000-4000-8000-000000000002',
+  code: 'cattle',
+  name: { uz_latn: 'Cattle' },
+  status: 'active',
+};
+
+function livestockTypesHandler(types: unknown[]) {
+  return http.get('*/api/v1/refs/livestock-types', () => HttpResponse.json(types));
+}
+
+// Steps 1-2 for a grazing filing, ending on step 3. Unlike `driveToStep3`,
+// there is no quantity field to wait on here (grazing's step 3 shows the
+// livestock rows instead) — the row list starts empty, so the "add" button
+// is what marks step 3 as reached.
+async function driveToStep3Grazing() {
+  await chooseActivity('Yaylov');
+  await userEvent.click(await screen.findByText('pick-contour'));
+  fireEvent.change(screen.getByLabelText(new RegExp(UZ['wizard.step2.periodFrom'])), { target: { value: '2026-01-01' } });
+  fireEvent.change(screen.getByLabelText(new RegExp(UZ['wizard.step2.periodTo'])), { target: { value: '2026-06-01' } });
+  await userEvent.click(screen.getByRole('button', { name: new RegExp(UZ['wizard.nav.next']) }));
+  await screen.findByRole('button', { name: new RegExp(UZ['wizard.step3.addLivestock']) });
+}
+
+test('a species already picked in one livestock row is not offered again in another, and the add button disappears once every type is used', async () => {
+  server.use(activityHandler('grazing', 'Yaylov', 'head'), livestockTypesHandler([LIVESTOCK_TYPE_A, LIVESTOCK_TYPE_B]));
+  renderWizard();
+  await driveToStep3Grazing();
+
+  const addButton = () => screen.getByRole('button', { name: new RegExp(UZ['wizard.step3.addLivestock']) });
+  await userEvent.click(addButton());
+  await userEvent.selectOptions(screen.getAllByRole('combobox')[0], LIVESTOCK_TYPE_A.id);
+
+  // A second type still exists, so the add button is still there.
+  await userEvent.click(addButton());
+  const row2 = screen.getAllByRole('combobox')[1];
+  expect(within(row2).queryByText('Sheep')).toBeNull();
+  expect(within(row2).getByText('Cattle')).toBeInTheDocument();
+
+  // Two rows, two types — nothing left to add.
+  expect(screen.queryByRole('button', { name: new RegExp(UZ['wizard.step3.addLivestock']) })).toBeNull();
+});
+
+test('the head-count input is capped at LIVESTOCK_HEAD_COUNT_MAX', async () => {
+  server.use(activityHandler('grazing', 'Yaylov', 'head'), livestockTypesHandler([LIVESTOCK_TYPE_A, LIVESTOCK_TYPE_B]));
+  renderWizard();
+  await driveToStep3Grazing();
+  await userEvent.click(screen.getByRole('button', { name: new RegExp(UZ['wizard.step3.addLivestock']) }));
+
+  expect(screen.getAllByRole('spinbutton')[0]).toHaveAttribute('max', '1000000');
+});
+
+// Fix round 1 (stage 17 QA-01 review, Important — the QA trigger itself):
+// `max` on a number input with no surrounding `<form>` does nothing — a
+// browser lets the value through regardless. These three cover the actual
+// BEHAVIOUR: Next must react to the value, not just decorate the input.
+test('a head count above LIVESTOCK_HEAD_COUNT_MAX blocks Next and shows the field error', async () => {
+  server.use(activityHandler('grazing', 'Yaylov', 'head'), livestockTypesHandler([LIVESTOCK_TYPE_A, LIVESTOCK_TYPE_B]));
+  renderWizard();
+  await driveToStep3Grazing();
+  await userEvent.click(screen.getByRole('button', { name: new RegExp(UZ['wizard.step3.addLivestock']) }));
+  await userEvent.selectOptions(screen.getAllByRole('combobox')[0], LIVESTOCK_TYPE_A.id);
+  fireEvent.change(screen.getAllByRole('spinbutton')[0], { target: { value: '2000000' } });
+
+  expect(await screen.findByText(UZ['wizard.step3.headCountInvalid'])).toBeInTheDocument();
+  expect(nextButton()).toBeDisabled();
+});
+
+test('a row with a species but no head count blocks Next and names the missing part', async () => {
+  server.use(activityHandler('grazing', 'Yaylov', 'head'), livestockTypesHandler([LIVESTOCK_TYPE_A, LIVESTOCK_TYPE_B]));
+  renderWizard();
+  await driveToStep3Grazing();
+  await userEvent.click(screen.getByRole('button', { name: new RegExp(UZ['wizard.step3.addLivestock']) }));
+  await userEvent.selectOptions(screen.getAllByRole('combobox')[0], LIVESTOCK_TYPE_A.id);
+  // Head count left empty — a half-filled row, the pre-existing hiding
+  // direction: `buildFiling`/`calculationRequest` used to drop it in
+  // silence rather than holding Next on it.
+
+  expect(await screen.findByText(UZ['wizard.step3.headCountRequired'])).toBeInTheDocument();
+  expect(nextButton()).toBeDisabled();
+});
+
+test('a row with a head count but no species blocks Next and names the missing part', async () => {
+  server.use(activityHandler('grazing', 'Yaylov', 'head'), livestockTypesHandler([LIVESTOCK_TYPE_A, LIVESTOCK_TYPE_B]));
+  renderWizard();
+  await driveToStep3Grazing();
+  await userEvent.click(screen.getByRole('button', { name: new RegExp(UZ['wizard.step3.addLivestock']) }));
+  fireEvent.change(screen.getAllByRole('spinbutton')[0], { target: { value: '10' } });
+
+  expect(await screen.findByText(UZ['wizard.step3.typeRequired'])).toBeInTheDocument();
+  expect(nextButton()).toBeDisabled();
+});
+
+test('a single complete, in-range row enables Next', async () => {
+  server.use(activityHandler('grazing', 'Yaylov', 'head'), livestockTypesHandler([LIVESTOCK_TYPE_A, LIVESTOCK_TYPE_B]));
+  renderWizard();
+  await driveToStep3Grazing();
+  await userEvent.click(screen.getByRole('button', { name: new RegExp(UZ['wizard.step3.addLivestock']) }));
+  await userEvent.selectOptions(screen.getAllByRole('combobox')[0], LIVESTOCK_TYPE_A.id);
+  fireEvent.change(screen.getAllByRole('spinbutton')[0], { target: { value: '10' } });
+
+  expect(screen.queryByText(UZ['wizard.step3.headCountInvalid'])).toBeNull();
+  expect(screen.queryByText(UZ['wizard.step3.typeRequired'])).toBeNull();
+  expect(screen.queryByText(UZ['wizard.step3.headCountRequired'])).toBeNull();
+  expect(nextButton()).toBeEnabled();
+});
+
+// The defect this fixes: step 3's own Next already refuses a half-filled
+// row, but the STEPPER let the applicant skip it once step 5 had been
+// reached once — reach step 5 with a complete row, go back to step 3, break
+// the row, then jump straight back to step 5 through the stepper instead of
+// Next. `buildFiling`'s filter used to drop the broken row in silence, so
+// the citizen would file (and sign) with fewer head of livestock than they
+// entered and see nothing about it.
+test('the stepper does not let a half-filled livestock row skip back ahead to step 5', async () => {
+  const precheckBodies: unknown[] = [];
+  const filingBodies: unknown[] = [];
+  server.use(
+    activityHandler('grazing', 'Yaylov', 'head'),
+    livestockTypesHandler([LIVESTOCK_TYPE_A, LIVESTOCK_TYPE_B]),
+    precheckRecorder(precheckBodies),
+    http.post('*/api/v1/applications', async ({ request }) => {
+      filingBodies.push(await request.json());
+      return HttpResponse.json({ id: APPLICATION_ID });
+    }),
+  );
+  renderWizard();
+  await driveToStep3Grazing();
+
+  // Cattle, 5 head — a single complete row.
+  await userEvent.click(screen.getByRole('button', { name: new RegExp(UZ['wizard.step3.addLivestock']) }));
+  await userEvent.selectOptions(screen.getAllByRole('combobox')[0], LIVESTOCK_TYPE_B.id);
+  fireEvent.change(screen.getAllByRole('spinbutton')[0], { target: { value: '5' } });
+  expect(nextButton()).toBeEnabled();
+
+  // Steps 3 → 4 → 5; leaving step 4 fires the pre-check automatically.
+  await userEvent.click(nextButton());
+  await userEvent.click(await screen.findByRole('button', { name: new RegExp(UZ['wizard.nav.next']) }));
+  await waitFor(() => expect(precheckBodies).toHaveLength(1));
+  expect(precheckBodies[0]).toMatchObject({
+    items: [{ livestock_type_id: LIVESTOCK_TYPE_B.id, head_count: 5 }],
+  });
+  expect(await screen.findByText(UZ['wizard.step5.heading'])).toBeInTheDocument();
+
+  // Back to step 3 via the STEPPER (furthest reached is still 5), then
+  // clear the head count — a species with no head count again.
+  await userEvent.click(screen.getAllByLabelText(/^3:/)[0]);
+  expect(await screen.findByText(UZ['wizard.step3.heading'])).toBeInTheDocument();
+  fireEvent.change(screen.getAllByRole('spinbutton')[0], { target: { value: '' } });
+  expect(await screen.findByText(UZ['wizard.step3.headCountRequired'])).toBeInTheDocument();
+  expect(nextButton()).toBeDisabled();
+
+  // The stepper still shows step 5 as reached — clicking it must NOT skip
+  // past step 3 while its own row is broken.
+  await userEvent.click(screen.getAllByLabelText(/^5:/)[0]);
+  expect(screen.getByText(UZ['wizard.step3.heading'])).toBeInTheDocument();
+  expect(screen.queryByText(UZ['wizard.step5.heading'])).not.toBeInTheDocument();
+
+  // No new, thinner filing was ever assembled or sent from the broken state.
+  expect(precheckBodies).toHaveLength(1);
+  expect(filingBodies).toHaveLength(0);
+});
+
+// Fix round 1 (stage 17 QA-01 review, Important): the add-row gate used to
+// read `items.length < (livestockTypesQuery.data?.length ?? 0)` — while the
+// query is loading, erroring, or comes back `[]`, `data?.length ?? 0` is `0`
+// and the button silently never renders. A grazing applicant would see no
+// row, no button, and no explanation — exactly the HIDING-direction defect
+// this stage exists to close. The fix keeps the button visible (disabled)
+// on error and shows a danger Alert naming what went wrong.
+test('the livestock-types query failing (500) shows an error Alert, and the add-row button stays visible but not clickable', async () => {
+  server.use(
+    activityHandler('grazing', 'Yaylov', 'head'),
+    http.get('*/api/v1/refs/livestock-types', () =>
+      HttpResponse.json({ error: { code: 'ERR-SYS-001', message: 'boom' } }, { status: 500 }),
+    ),
+  );
+  renderWizard();
+  await driveToStep3Grazing();
+
+  // The wizard's own `errorText`/`useApiErrorText` resolves a known code
+  // (`ERR-SYS-001`) to its normal localized copy — the same text any other
+  // Alert in this file would show for the same code.
+  expect(await screen.findByText("Serverning ichki xatosi. Keyinroq urinib ko'ring.")).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: new RegExp(UZ['wizard.step3.addLivestock']) })).toBeDisabled();
+});
+
+test('an empty livestock-types list shows a "not configured" message instead of a silent nothing', async () => {
+  server.use(activityHandler('grazing', 'Yaylov', 'head'), livestockTypesHandler([]));
+  renderWizard();
+  await chooseActivity('Yaylov');
+  await userEvent.click(await screen.findByText('pick-contour'));
+  fireEvent.change(screen.getByLabelText(new RegExp(UZ['wizard.step2.periodFrom'])), { target: { value: '2026-01-01' } });
+  fireEvent.change(screen.getByLabelText(new RegExp(UZ['wizard.step2.periodTo'])), { target: { value: '2026-06-01' } });
+  await userEvent.click(screen.getByRole('button', { name: new RegExp(UZ['wizard.nav.next']) }));
+
+  expect(await screen.findByText(UZ['wizard.step3.livestockNotConfigured'])).toBeInTheDocument();
+  // Nothing to add — the message IS the explanation, so the button is gone
+  // rather than sitting there disabled with nothing to point at.
+  expect(screen.queryByRole('button', { name: new RegExp(UZ['wizard.step3.addLivestock']) })).toBeNull();
+});
+
+test('the quantity input for a non-livestock activity is capped at QUANTITY_MAX', async () => {
+  renderWizard();
+  await driveToStep3(); // default handler: haymaking
+
+  expect(screen.getByLabelText(new RegExp(UZ['wizard.step3.quantity']))).toHaveAttribute('max', '99999999.9999');
+});
+
+// Fix round 1 (stage 17 QA-01 review, Important): same "max does nothing
+// without a <form>" gap on the non-livestock side — a value above
+// QUANTITY_MAX, or with more than 4 decimal places, must hold Next.
+test('a quantity above QUANTITY_MAX blocks Next and shows the field error', async () => {
+  renderWizard();
+  await driveToStep3(); // default handler: haymaking
+
+  await userEvent.type(screen.getByLabelText(new RegExp(UZ['wizard.step3.quantity'])), '100000000');
+
+  expect(await screen.findByText(UZ['wizard.step3.quantityInvalid'])).toBeInTheDocument();
+  expect(nextButton()).toBeDisabled();
+});
+
+test('a quantity with more than 4 decimal places blocks Next', async () => {
+  renderWizard();
+  await driveToStep3(); // default handler: haymaking
+
+  await userEvent.type(screen.getByLabelText(new RegExp(UZ['wizard.step3.quantity'])), '1.23456');
+
+  expect(await screen.findByText(UZ['wizard.step3.quantityInvalid'])).toBeInTheDocument();
+  expect(nextButton()).toBeDisabled();
+});
+
+test('a valid quantity enables Next', async () => {
+  renderWizard();
+  await driveToStep3(); // default handler: haymaking
+
+  await userEvent.type(screen.getByLabelText(new RegExp(UZ['wizard.step3.quantity'])), '12.5');
+
+  expect(screen.queryByText(UZ['wizard.step3.quantityInvalid'])).toBeNull();
+  expect(nextButton()).toBeEnabled();
+});
+
+test('a duplicate-livestock-type refusal (ERR-VAL-001) at the pre-check renders the specific message, not the generic one', async () => {
+  server.use(
+    http.post('*/api/v1/applications/precheck', () =>
+      HttpResponse.json(
+        { error: { code: 'ERR-VAL-001', message: 'validation failed', details: { reason: 'duplicate_livestock_type' } } },
+        { status: 422 },
+      ),
+    ),
+  );
+  renderWizard();
+
+  await driveToStep5();
+
+  expect(await screen.findByText("Har bir chorva turini faqat bir marta ko'rsatish mumkin.")).toBeInTheDocument();
 });

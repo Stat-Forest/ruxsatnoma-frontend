@@ -1,17 +1,18 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Download, Loader2, RotateCcw } from 'lucide-react';
+import { Loader2, RotateCcw } from 'lucide-react';
 import { Button } from '../../components/ui/button';
 import { FormField, Input, Select } from '../../components/ui/FormControls';
 import { Pagination } from '../../components/ui/Navigation';
 import { ApiError } from '../../api/errors';
+import { SEARCH_MAX_LENGTH } from '../../api/limits';
 import { useApiErrorText } from '../../i18n/useApiErrorText';
-import { api } from '../../api/client';
-import { apiError } from '../../api/errors';
-import { useLanguage, useT } from '../../i18n/useT';
-import { downloadCsv, fetchAllPages, toCsv } from '../../lib/csvExport';
-import { toPermitsQuery, usePermitsList, type PermitListFilters, type PermitOut, type PermitStatus } from './queries';
+import { useLanguage } from '../../i18n/useT';
+import { useListUrlState } from '../../lib/useListUrlState';
+import { parsePermitNo } from '../../lib/permitNumber';
+import { ExportXlsxButton } from '../../components/ui/ExportXlsxButton';
+import { toPermitsQuery, usePermitsList, type PermitListFilters, type PermitStatus } from './queries';
 import { useLeshozOrganizations } from './useRefsLookup';
-import { formatDate, formatMoney, formatPermitNumber, pickLocalizedName } from './format';
+import { pickLocalizedName } from './format';
 import { PERMIT_STATUS_LABEL, getPermitStatusLabel } from './statusMeta';
 import { PermitRow } from './components/PermitRow';
 import { PermitCard } from './components/PermitCard';
@@ -25,8 +26,10 @@ const PERMITS_LIST_I18N = {
     staffSubtitle: 'Sizga koʻrish huquqi berilgan zonada berilgan barcha elektron ruxsatnomalar',
     applicantSubtitle: 'Sizga berilgan elektron ruxsatnomalar roʻyxati',
     status: 'Status',
-    series: 'Seriya',
-    number: 'Raqami',
+    search: 'Qidiruv',
+    searchHint: 'Arizachining F.I.Sh.',
+    permitNo: 'Seriya va raqami',
+    permitNoInvalid: 'Seriya va raqamni «А 000002» koʻrinishida kiriting',
     organization: 'Oʻrmon xoʻjaligi',
     all: 'Barchasi',
     reset: 'Tiklash',
@@ -49,8 +52,10 @@ const PERMITS_LIST_I18N = {
     staffSubtitle: 'Сизга кўриш ҳуқуқи берилган зонада берилган барча электрон рухсатномалар',
     applicantSubtitle: 'Сизга берилган электрон рухсатномалар рўйхати',
     status: 'Статус',
-    series: 'Серия',
-    number: 'Рақами',
+    search: 'Қидирув',
+    searchHint: 'Аризачининг Ф.И.Ш.',
+    permitNo: 'Серия ва рақами',
+    permitNoInvalid: 'Серия ва рақамни «А 000002» кўринишида киритинг',
     organization: 'Ўрмон хўжалиги',
     all: 'Барчаси',
     reset: 'Тиклаш',
@@ -73,8 +78,10 @@ const PERMITS_LIST_I18N = {
     staffSubtitle: 'Все электронные разрешения, выданные в доступной вам зоне',
     applicantSubtitle: 'Список выданных вам электронных разрешений',
     status: 'Статус',
-    series: 'Серия',
-    number: 'Номер',
+    search: 'Поиск',
+    searchHint: 'ФИО заявителя',
+    permitNo: 'Серия и номер',
+    permitNoInvalid: 'Введите серию и номер в виде «А 000002»',
     organization: 'Лесхоз',
     all: 'Все',
     reset: 'Сбросить',
@@ -97,8 +104,10 @@ const PERMITS_LIST_I18N = {
     staffSubtitle: 'All electronic permits issued in your authorized zone',
     applicantSubtitle: 'List of electronic permits issued to you',
     status: 'Status',
-    series: 'Series',
-    number: 'Number',
+    search: 'Search',
+    searchHint: 'Applicant name',
+    permitNo: 'Series and number',
+    permitNoInvalid: 'Enter the series and number as «А 000002»',
     organization: 'Forestry',
     all: 'All',
     reset: 'Reset',
@@ -121,8 +130,10 @@ const PERMITS_LIST_I18N = {
     staffSubtitle: 'Sizge kóriw huqıqı berilgen zonada berilgen barlıq elektron ruxsatnamalar',
     applicantSubtitle: 'Sizge berilgen elektron ruxsatnamalar dizimi',
     status: 'Status',
-    series: 'Seriya',
-    number: 'Nómeri',
+    search: 'Izlew',
+    searchHint: 'Arza beriwshiniń F.A.Á.',
+    permitNo: 'Seriya hám nómeri',
+    permitNoInvalid: 'Seriya hám nómerdi «А 000002» túrinde kiritiń',
     organization: 'Tokaý xojalıǵı',
     all: 'Barlıǵı',
     reset: 'Qayta tiklew',
@@ -143,12 +154,18 @@ const PERMITS_LIST_I18N = {
 
 interface FilterFormState {
   status: PermitStatus | '';
-  series: string;
-  number: string;
+  q: string;
+  /** Series and number in one box, as printed: «А 000002». */
+  permit_no: string;
   organization_id: string;
 }
 
-const EMPTY_FILTERS: FilterFormState = { status: '', series: '', number: '', organization_id: '' };
+const EMPTY_FILTERS: FilterFormState = { status: '', q: '', permit_no: '', organization_id: '' };
+
+/** The URL owns `status`; the form types it more narrowly than a string. */
+function asStatus(value: string): FilterFormState['status'] {
+  return value as FilterFormState['status'];
+}
 
 /**
  * The two permit list screens the task brief calls a "blocking gap" — ported
@@ -162,24 +179,23 @@ const EMPTY_FILTERS: FilterFormState = { status: '', series: '', number: '', org
  */
 export function PermitsListPage({ variant }: { variant: 'staff' | 'applicant' }) {
   const { lang } = useLanguage();
-  const t = useT();
   const lt = PERMITS_LIST_I18N[lang as keyof typeof PERMITS_LIST_I18N] || PERMITS_LIST_I18N.uz_latn;
   const errorText = useApiErrorText();
   const isStaff = variant === 'staff';
-  const [filters, setFilters] = useState(EMPTY_FILTERS);
-  const [appliedFilters, setAppliedFilters] = useState(EMPTY_FILTERS);
-  const [page, setPage] = useState(1);
-  const [exporting, setExporting] = useState(false);
-  const [exportTruncated, setExportTruncated] = useState(false);
+  // The applied filters and the page live in the URL (`useListUrlState`), so
+  // opening a permit and coming back shows the same filtered page;
+  // `filters` is the form's draft.
+  const { filters: appliedFilters, page, setFilters: applyPatch, setPage, reset } = useListUrlState(EMPTY_FILTERS);
+  const [filters, setFilters] = useState<FilterFormState>(appliedFilters);
 
   // Auto-apply text filters with debounce so typing immediately filters
   useEffect(() => {
     const timer = setTimeout(() => {
-      setAppliedFilters(filters);
+      applyPatch({ q: filters.q, permit_no: filters.permit_no });
     }, 400);
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filters.series, filters.number]);
+  }, [filters.q, filters.permit_no]);
 
   const statusOptions = useMemo(
     () => [
@@ -194,52 +210,24 @@ export function PermitsListPage({ variant }: { variant: 'staff' | 'applicant' })
 
   const queryFilters: PermitListFilters = {
     status: appliedFilters.status || undefined,
-    series: appliedFilters.series || undefined,
-    number: appliedFilters.number || undefined,
+    q: appliedFilters.q || undefined,
+    permit_no: appliedFilters.permit_no || undefined,
     organization_id: isStaff ? appliedFilters.organization_id || undefined : undefined,
     page,
     page_size: PAGE_SIZE,
   };
 
   const list = usePermitsList(queryFilters);
+  const permitNoInvalid = parsePermitNo(filters.permit_no) === null;
   const organizations = useLeshozOrganizations();
 
   function applyFilters() {
-    setAppliedFilters(filters);
-    setPage(1);
+    applyPatch(filters);
   }
 
   function resetFilters() {
     setFilters(EMPTY_FILTERS);
-    setAppliedFilters(EMPTY_FILTERS);
-    setPage(1);
-  }
-
-  async function exportCsv() {
-    setExporting(true);
-    setExportTruncated(false);
-    try {
-      const { rows, truncated } = await fetchAllPages<PermitOut>(async (p, pageSize) => {
-        const { data, error } = await api.GET('/api/v1/permits', {
-          params: { query: { ...toPermitsQuery(queryFilters), page: p, page_size: pageSize } },
-        });
-        if (error) throw apiError(error);
-        return data;
-      });
-      const csv = toCsv(rows, [
-        { header: 'number', value: (r) => formatPermitNumber(r.series, r.number) },
-        { header: 'status', value: (r) => getPermitStatusLabel(r.status, lang) },
-        { header: 'organization_id', value: (r) => r.organization_id },
-        { header: 'period_from', value: (r) => formatDate(r.period_from) },
-        { header: 'period_to', value: (r) => formatDate(r.period_to) },
-        { header: 'area_ha', value: (r) => r.area_ha ?? '' },
-        { header: 'amount', value: (r) => formatMoney(r.amount) },
-      ]);
-      downloadCsv(`permits-${new Date().toISOString().slice(0, 10)}.csv`, csv);
-      setExportTruncated(truncated);
-    } finally {
-      setExporting(false);
-    }
+    reset();
   }
 
   const totalPages = list.data ? Math.max(1, Math.ceil(list.data.total / PAGE_SIZE)) : 1;
@@ -262,33 +250,35 @@ export function PermitsListPage({ variant }: { variant: 'staff' | 'applicant' })
         }}
         className="bg-white border border-[#E4E7EA] rounded-2xl p-5 shadow-xs space-y-3"
       >
-        <div className={`grid grid-cols-1 sm:grid-cols-2 gap-3 items-end ${isStaff ? 'lg:grid-cols-4' : 'lg:grid-cols-3'}`}>
+        <div className={`grid grid-cols-1 sm:grid-cols-2 gap-3 items-start ${isStaff ? 'lg:grid-cols-4' : 'lg:grid-cols-3'}`}>
           <FormField label={lt.status}>
             <Select
               value={filters.status}
               onChange={(e) => {
-                const newStatus = e.target.value as FilterFormState['status'];
+                const newStatus = asStatus(e.target.value);
                 setFilters((f) => ({ ...f, status: newStatus }));
-                setAppliedFilters((af) => ({ ...af, status: newStatus }));
-                setPage(1);
+                applyPatch({ status: newStatus });
               }}
               options={statusOptions}
             />
           </FormField>
-          <FormField label={lt.series}>
+          <FormField label={lt.search}>
             <Input
-              value={filters.series}
-              onChange={(e) => setFilters((f) => ({ ...f, series: e.target.value }))}
-              placeholder="А"
-              maxLength={8}
+              value={filters.q}
+              onChange={(e) => setFilters((f) => ({ ...f, q: e.target.value }))}
+              placeholder={lt.searchHint}
+              maxLength={SEARCH_MAX_LENGTH}
+              data-testid="permits-filter-q"
             />
           </FormField>
-          <FormField label={lt.number}>
+          <FormField label={lt.permitNo} error={permitNoInvalid ? lt.permitNoInvalid : undefined}>
             <Input
-              value={filters.number}
-              onChange={(e) => setFilters((f) => ({ ...f, number: e.target.value.replace(/\D/g, '') }))}
-              placeholder="000002"
-              inputMode="numeric"
+              value={filters.permit_no}
+              onChange={(e) => setFilters((f) => ({ ...f, permit_no: e.target.value }))}
+              placeholder="А 000002"
+              maxLength={32}
+              error={permitNoInvalid}
+              data-testid="permits-filter-permit-no"
             />
           </FormField>
           {isStaff && (
@@ -298,8 +288,7 @@ export function PermitsListPage({ variant }: { variant: 'staff' | 'applicant' })
                 onChange={(e) => {
                   const newOrg = e.target.value;
                   setFilters((f) => ({ ...f, organization_id: newOrg }));
-                  setAppliedFilters((af) => ({ ...af, organization_id: newOrg }));
-                  setPage(1);
+                  applyPatch({ organization_id: newOrg });
                 }}
                 options={[
                   { value: '', label: lt.all },
@@ -313,32 +302,26 @@ export function PermitsListPage({ variant }: { variant: 'staff' | 'applicant' })
           )}
         </div>
         <div className="flex justify-end gap-2">
-          {isStaff && (
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              leftIcon={<Download className="w-3.5 h-3.5" />}
-              isLoading={exporting}
-              onClick={() => void exportCsv()}
-            >
-              {t('prosecutor.exportCsv')}
-            </Button>
-          )}
           <Button type="button" variant="outline" size="sm" leftIcon={<RotateCcw className="w-3.5 h-3.5" />} onClick={resetFilters}>
             {lt.reset}
           </Button>
           <Button type="submit" variant="primary" size="sm" onClick={applyFilters}>
             {lt.apply}
           </Button>
+          {/* Same route for both variants: `GET /permits` is already scoped to the
+              caller server-side (the applicant's own permits, or — holding
+              `permits.view_any` — their zone's, `permits/service.py::list_permits`),
+              so the citizen's own list gets the export with no new backend work
+              (stage 13, Track B). Disabled until the list shows at least one
+              permit: an empty (or still loading) list has nothing to export. */}
+          <ExportXlsxButton
+            className="ml-auto"
+            path="/api/v1/permits"
+            query={toPermitsQuery(queryFilters)}
+            disabled={!list.data?.total}
+          />
         </div>
       </form>
-
-      {isStaff && exportTruncated && (
-        <div className="p-3 bg-[#FFFBEB] border border-[#FDE68A] rounded-xl text-xs text-[#92400E]" role="alert">
-          {t('prosecutor.exportTruncated')}
-        </div>
-      )}
 
       {list.error && (
         <div className="p-4 bg-[#FEF2F2] border border-[#FCA5A5] rounded-2xl text-sm text-[#991B1B]" role="alert">
@@ -395,7 +378,7 @@ export function PermitsListPage({ variant }: { variant: 'staff' | 'applicant' })
         <div className="py-16 text-center text-sm text-[#5A646D]">{lt.noPermitsApplicant}</div>
       ) : (
         <>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
             {list.data!.items.map((permit) => (
               <PermitCard key={permit.id} permit={permit} />
             ))}

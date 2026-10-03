@@ -63,7 +63,7 @@ export function PricePreviewPanel({ request }: { request: CalculationIn | null }
   return (
     <div className="space-y-3">
       <div className="bg-white border border-[#BAE6FD] rounded-xl p-4 flex items-center gap-4">
-        <div className="font-mono text-2xl font-extrabold text-[#123522] bg-[#DCFCE7] px-3 py-1 rounded-xl border border-[#86EFAC]">
+        <div className="font-mono text-2xl font-extrabold text-[#123522] bg-[#DCFCE7] px-3 py-1 rounded-xl border border-[#86EFAC] whitespace-nowrap shrink-0">
           {formatMoney(data.amount)}
         </div>
         <div className="text-xs text-[#1A1F24]">

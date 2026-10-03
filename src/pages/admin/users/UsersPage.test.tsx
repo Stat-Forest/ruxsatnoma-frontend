@@ -4,7 +4,9 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router';
 import { http, HttpResponse } from 'msw';
 import { setupServer } from 'msw/node';
+import { vi } from 'vitest';
 import { I18nContext, type UiLanguage } from '../../../i18n/context';
+import { SEARCH_MAX_LENGTH } from '../../../api/limits';
 import { UsersPage } from './UsersPage';
 import { uz_latn as L, LABELS, labelsFor } from './labels';
 import {
@@ -149,6 +151,43 @@ test('creating sends the zone fields exactly as chosen', async () => {
     region_id: REGION_TASHKENT,
     district_id: DISTRICT_BOSTANLIQ,
   });
+});
+
+test('the login and position fields cap input at the backend bounds (CodeStr 64, NameStr 255)', async () => {
+  server.use(...referenceHandlers());
+  const ui = userEvent.setup();
+  renderUsers();
+
+  await screen.findByText('Karimov Alisher Baxtiyorovich');
+  await ui.click(screen.getByRole('button', { name: L.create }));
+  const form = within(await screen.findByTestId('user-form'));
+
+  expect(form.getByLabelText(L.formLogin)).toHaveAttribute('maxLength', '64');
+  expect(form.getByLabelText(L.formPosition)).toHaveAttribute('maxLength', '255');
+});
+
+// Stage 19, A2: `GET /admin/users?q` caps at SEARCH_MAX_LENGTH (200) — the
+// filter box must stop there too, instead of letting a longer value come
+// back as a 422.
+test('the search filter caps input at the server limit (SEARCH_MAX_LENGTH)', async () => {
+  server.use(...referenceHandlers());
+  renderUsers();
+
+  await screen.findByText('Karimov Alisher Baxtiyorovich');
+  expect(screen.getByLabelText(L.filterQuery)).toHaveAttribute('maxLength', String(SEARCH_MAX_LENGTH));
+});
+
+// Stage 17 QA-01 M1 fix round: `UserBlockIn.reason` (`TextStr`) is capped at 2000.
+test('the block-reason field caps input at the backend bound (2000)', async () => {
+  server.use(...referenceHandlers());
+  const ui = userEvent.setup();
+  renderUsers();
+
+  const card = await openCard(ui);
+  await ui.click(card.getByRole('button', { name: L.actionBlock }));
+  const dialog = within(await screen.findByTestId('block-dialog'));
+
+  expect(dialog.getByLabelText(L.blockReason)).toHaveAttribute('maxLength', '2000');
 });
 
 test('the zone warning is next to the zone fields', async () => {
@@ -461,4 +500,62 @@ test('a click anywhere on a user row opens the card, not only the "open" button'
 
   await ui.click(await screen.findByText('a.karimov'));
   expect(await screen.findByTestId('user-card')).toBeInTheDocument();
+});
+
+test('the Excel button asks the server for the export with the applied filters, never paging the list itself', async () => {
+  const listCalls: string[] = [];
+  let exportUrl: URL | null = null;
+  server.use(
+    http.get('*/api/v1/admin/users', ({ request }) => {
+      listCalls.push(request.url);
+      return HttpResponse.json(page([makeUser()]));
+    }),
+    http.get('*/api/v1/admin/users/export.xlsx', ({ request }) => {
+      exportUrl = new URL(request.url);
+      return HttpResponse.text('xlsx-bytes', {
+        headers: {
+          'Content-Disposition': 'attachment; filename="foydalanuvchilar-2026-09-11.xlsx"',
+          'X-Export-Total': '1',
+          'X-Export-Rows': '1',
+          'X-Export-Truncated': 'false',
+        },
+      });
+    }),
+    ...referenceHandlers(),
+  );
+
+  const createObjectURL = vi.fn().mockReturnValue('blob:mock');
+  const revokeObjectURL = vi.fn();
+  URL.createObjectURL = createObjectURL;
+  URL.revokeObjectURL = revokeObjectURL;
+  const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+
+  const ui = userEvent.setup();
+  renderUsers();
+  await screen.findByText('Karimov Alisher Baxtiyorovich');
+  await ui.type(screen.getByLabelText(L.filterQuery), 'ali');
+  await ui.click(screen.getByRole('button', { name: L.apply }));
+  await screen.findByText('Karimov Alisher Baxtiyorovich');
+  const listCallsBefore = listCalls.length;
+
+  await ui.click(screen.getByTestId('export-xlsx'));
+
+  await waitFor(() => expect(createObjectURL).toHaveBeenCalled());
+  expect(clickSpy).toHaveBeenCalled();
+  expect(listCalls.length).toBe(listCallsBefore); // the export never re-fetches the list
+  expect(exportUrl!.searchParams.get('q')).toBe('ali');
+  expect(exportUrl!.searchParams.get('lang')).toBe('uz_latn');
+  expect(exportUrl!.searchParams.has('page')).toBe(false);
+  expect(exportUrl!.searchParams.has('page_size')).toBe(false);
+
+  clickSpy.mockRestore();
+});
+
+test('an empty list disables the Excel button — there is nothing to export', async () => {
+  server.use(...referenceHandlers([]));
+  renderUsers();
+
+  await screen.findByText(L.empty);
+
+  expect(screen.getByTestId('export-xlsx')).toBeDisabled();
 });

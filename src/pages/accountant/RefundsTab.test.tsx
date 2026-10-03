@@ -62,7 +62,6 @@ function renderTab(permissions: string[]) {
     csrf_token: 'tok',
     is_superuser: false,
     applicant: null,
-    representations: [],
     registration_complete: true,
   };
   const authValue = { me, loading: false, authError: null } as unknown as AuthContextValue;
@@ -154,6 +153,23 @@ test('a new request is filed by application number, trimmed, never by applicatio
 
   await waitFor(() => expect(posted).toMatchObject({ application_number: 'RX-2026-00007' }));
   expect(posted).not.toHaveProperty('application_id');
+});
+
+// Stage 17 QA-01 M1 fix round: `RefundRequestIn.comment` (`NoteStr`) is
+// capped at 2000 chars — the new-request modal's comment field mirrors it.
+test('the new-request comment field caps input at the backend bound (2000)', async () => {
+  server.use(
+    http.get('*/api/v1/refunds', () => HttpResponse.json({ items: [], total: 0, page: 1, page_size: 100 })),
+    http.get('*/api/v1/refs/classifiers/refund_reasons/items', () => HttpResponse.json(REASONS)),
+  );
+  const user = userEvent.setup();
+  renderTab(['payments.view', 'payments.manage']);
+
+  await screen.findByText('Arizalar topilmadi.');
+  await user.click(screen.getByRole('button', { name: 'Yangi ariza' }));
+
+  const dialog = screen.getByRole('dialog');
+  expect(within(dialog).getByLabelText('Izoh')).toHaveAttribute('maxLength', '2000');
 });
 
 test('a failed refund_reasons load says so in the new-request modal, not a silently disabled Submit', async () => {
@@ -319,4 +335,55 @@ test('a payments.confirm-only holder can approve a refund end-to-end, not just s
 
   await waitFor(() => expect(approveCalled).toBe(true));
   expect(approveBody).toMatchObject({ resolution: 'returned' });
+});
+
+test('an empty register disables the Excel button — there is nothing to export', async () => {
+  server.use(http.get('*/api/v1/refunds', () => HttpResponse.json({ items: [], total: 0, page: 1, page_size: 100 })));
+  renderTab(['payments.view']);
+
+  await screen.findByText('Arizalar topilmadi.');
+
+  expect(screen.getByTestId('export-xlsx')).toBeDisabled();
+});
+
+test('the Excel button asks the server for the export with the applied status filter, never paging the register itself', async () => {
+  const user = userEvent.setup();
+  const listCalls: string[] = [];
+  let exportUrl: URL | null = null;
+  server.use(
+    http.get('*/api/v1/refunds', ({ request }) => {
+      listCalls.push(request.url);
+      return HttpResponse.json({ items: [refund()], total: 1, page: 1, page_size: 100 });
+    }),
+    http.get('*/api/v1/refunds/export.xlsx', ({ request }) => {
+      exportUrl = new URL(request.url);
+      return HttpResponse.text('xlsx-bytes', {
+        headers: {
+          'Content-Disposition': 'attachment; filename="qaytarishlar-2026-09-11.xlsx"',
+          'X-Export-Total': '1',
+          'X-Export-Rows': '1',
+          'X-Export-Truncated': 'false',
+        },
+      });
+    }),
+  );
+  const createObjectURL = vi.fn().mockReturnValue('blob:mock');
+  URL.createObjectURL = createObjectURL;
+  URL.revokeObjectURL = vi.fn();
+  const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+
+  renderTab(['payments.view']);
+  await screen.findByTestId(`refund-row-${REFUND_ID}`);
+  await user.selectOptions(screen.getByRole('combobox'), 'in_review');
+  const listCallsAfterFilter = listCalls.length;
+
+  await user.click(screen.getByTestId('export-xlsx'));
+
+  await waitFor(() => expect(createObjectURL).toHaveBeenCalled());
+  expect(clickSpy).toHaveBeenCalled();
+  expect(listCalls.length).toBe(listCallsAfterFilter); // the export never re-fetches the register
+  expect(exportUrl!.searchParams.get('status')).toBe('in_review');
+  expect(exportUrl!.searchParams.get('lang')).toBe('uz_latn');
+  expect(exportUrl!.searchParams.has('limit')).toBe(false);
+  expect(exportUrl!.searchParams.has('offset')).toBe(false);
 });

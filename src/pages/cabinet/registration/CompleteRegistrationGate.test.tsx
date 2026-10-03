@@ -9,15 +9,16 @@ import type { AuthContextValue } from '../../../auth/AuthContext';
 import { I18nContext } from '../../../i18n/context';
 import { CompleteRegistrationGate } from './CompleteRegistrationGate';
 
-const server = setupServer(
-  http.get('*/refs/regions', () => HttpResponse.json([])),
-  http.get('*/refs/districts', () => HttpResponse.json([])),
-);
+const server = setupServer();
 beforeAll(() => server.listen({ onUnhandledRequest: 'error' }));
 afterEach(() => server.resetHandlers());
 afterAll(() => server.close());
 
-function renderGate(applyMe: (me: unknown) => void = () => {}, logout: () => Promise<void> = async () => {}) {
+function renderGate(
+  applyMe: (me: unknown) => void = () => {},
+  logout: () => Promise<void> = async () => {},
+  me: unknown = null,
+) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
   const i18n = {
     lang: 'uz_latn' as const,
@@ -26,7 +27,7 @@ function renderGate(applyMe: (me: unknown) => void = () => {}, logout: () => Pro
     setLanguage: async () => {},
   };
   const auth = {
-    me: null,
+    me,
     loading: false,
     authError: null,
     submitPassword: async () => 'mfa-required',
@@ -54,38 +55,90 @@ async function completePhoneOtp() {
   await screen.findByTestId('phone-verified');
 }
 
-test('submitting with nothing done shows both the consents and the phone warning', async () => {
+test('the form carries no consent checkboxes — the login page already names both documents', async () => {
   renderGate();
-  await userEvent.click(screen.getByTestId('submit'));
-  expect(screen.getByText('cabinet.registration.needConsents')).toBeInTheDocument();
-  expect(screen.getByText('cabinet.registration.needPhoneVerified')).toBeInTheDocument();
+  expect(screen.queryByTestId('consent-privacy')).not.toBeInTheDocument();
+  expect(screen.queryByTestId('consent-offer')).not.toBeInTheDocument();
 });
 
-// Ruling #113 (`docs/decisions.md`): making the address field mandatory at
-// registration is the forward-looking half of the fix — it is the right
-// place for a NEW account, so registration itself never again produces an
-// account the wizard has to catch later.
-test('registration with an empty address is not sent — the field is required', async () => {
-  let called = false;
+// Decision #226 I1 (final review): a legal cabinet's own account has no
+// PINFL at all (R1) — this screen must not assume one. `RequireAuth` renders
+// it purely off `me.registration_complete`, with no branch on `applicant.kind`
+// anywhere in this component, so a legal cabinet completes it exactly like an
+// individual's.
+test('a legal cabinet (no PINFL at all) completes registration the same way as an individual', async () => {
+  let sentBody: unknown = null;
   server.use(
     http.post('*/auth/otp/request', () => new HttpResponse(null, { status: 204 })),
-    http.post('*/auth/otp/verify', () => HttpResponse.json({ otp_token: 'tok-otp-3' })),
-    http.post('*/auth/complete-registration', () => {
-      called = true;
-      return HttpResponse.json({});
+    http.post('*/auth/otp/verify', () => HttpResponse.json({ otp_token: 'tok-otp-legal' })),
+    http.post('*/auth/complete-registration', async ({ request }) => {
+      sentBody = await request.json();
+      return HttpResponse.json({ registration_complete: true });
     }),
   );
-  renderGate();
-  await userEvent.click(screen.getByTestId('consent-privacy'));
-  await userEvent.click(screen.getByTestId('consent-offer'));
+  const applyMe = vi.fn();
+  renderGate(applyMe, async () => {}, {
+    user: { full_name: '"Chorvador" MChJ', pinfl: null },
+    applicant: { kind: 'legal', pinfl: null, stir: '302345678', name: '"Chorvador" MChJ' },
+    registration_complete: false,
+  });
+
   await completePhoneOtp();
   await userEvent.click(screen.getByTestId('submit'));
 
-  expect(called).toBe(false);
-  expect(screen.getByText('cabinet.registration.needAddress')).toBeInTheDocument();
+  await waitFor(() => expect(applyMe).toHaveBeenCalledWith(expect.objectContaining({ registration_complete: true })));
+  expect(sentBody).toMatchObject({ phone: '+998901234567', otp_token: 'tok-otp-legal' });
 });
 
-test('an unverified phone cannot be submitted even with both consents checked', async () => {
+test('the submit button stays disabled until the phone is verified, and says why', async () => {
+  renderGate();
+  expect(screen.getByTestId('submit')).toBeDisabled();
+  expect(screen.getByTestId('need-phone-verified')).toHaveTextContent('cabinet.registration.needPhoneVerified');
+  server.use(
+    http.post('*/auth/otp/request', () => new HttpResponse(null, { status: 204 })),
+    http.post('*/auth/otp/verify', () => HttpResponse.json({ otp_token: 'tok-otp-0' })),
+  );
+  await completePhoneOtp();
+  expect(screen.getByTestId('submit')).toBeEnabled();
+  expect(screen.queryByTestId('need-phone-verified')).not.toBeInTheDocument();
+});
+
+test('a malformed phone is flagged once the field loses focus', async () => {
+  renderGate();
+  await userEvent.type(screen.getByTestId('phone-input'), '12312312');
+  await userEvent.tab();
+  expect(screen.getByText('cabinet.registration.invalidPhone')).toBeInTheDocument();
+});
+
+test('the form asks for the phone only — no email, region, district or address', async () => {
+  renderGate();
+  expect(screen.getByTestId('phone-input')).toBeInTheDocument();
+  for (const id of ['email-input', 'region-select', 'district-select', 'address-input']) {
+    expect(screen.queryByTestId(id)).not.toBeInTheDocument();
+  }
+});
+
+test('the phone field starts with +998, and the prefix cannot be erased', async () => {
+  renderGate();
+  const input = screen.getByTestId('phone-input');
+  expect(input).toHaveValue('+998');
+  await userEvent.type(input, '{backspace}{backspace}{backspace}');
+  expect(input).toHaveValue('+998');
+  await userEvent.type(input, '901234567');
+  expect(input).toHaveValue('+998901234567');
+  await userEvent.type(input, '8');
+  expect(input).toHaveValue('+998901234567');
+});
+
+test('a pasted full number does not double the prefix', async () => {
+  renderGate();
+  const input = screen.getByTestId('phone-input');
+  await userEvent.clear(input);
+  await userEvent.paste('+998 90 123 45 67');
+  expect(input).toHaveValue('+998901234567');
+});
+
+test('an unverified phone cannot be submitted', async () => {
   let called = false;
   server.use(
     http.post('*/auth/complete-registration', () => {
@@ -94,8 +147,6 @@ test('an unverified phone cannot be submitted even with both consents checked', 
     }),
   );
   renderGate();
-  await userEvent.click(screen.getByTestId('consent-privacy'));
-  await userEvent.click(screen.getByTestId('consent-offer'));
   await userEvent.click(screen.getByTestId('submit'));
   expect(called).toBe(false);
 });
@@ -116,10 +167,7 @@ test('the full happy path sends the otp_token and consent versions, and adopts t
     adopted = me;
   });
 
-  await userEvent.click(screen.getByTestId('consent-privacy'));
-  await userEvent.click(screen.getByTestId('consent-offer'));
   await completePhoneOtp();
-  await userEvent.type(screen.getByTestId('address-input'), 'Toshkent sh., Chilonzor tumani, 12-uy');
   await userEvent.click(screen.getByTestId('submit'));
 
   await waitFor(() => expect(adopted).toEqual(freshMe));
@@ -127,39 +175,42 @@ test('the full happy path sends the otp_token and consent versions, and adopts t
     otp_token: 'tok-otp-1',
     phone: '+998901234567',
     consents: { privacy_policy: '1.0', offer: '1.0' },
-    address: 'Toshkent sh., Chilonzor tumani, 12-uy',
   });
 });
 
-test('a stale consent version is corrected from the error and must be re-accepted, not fatal', async () => {
+test('a stale consent version is retried once with the versions the server names', async () => {
+  const seen: Record<string, unknown>[] = [];
+  const freshMe = { registration_complete: true, marker: 'fresh' };
   server.use(
     http.post('*/auth/otp/request', () => new HttpResponse(null, { status: 204 })),
     http.post('*/auth/otp/verify', () => HttpResponse.json({ otp_token: 'tok-otp-2' })),
-    http.post('*/auth/complete-registration', () =>
-      HttpResponse.json(
-        {
-          error: {
-            code: 'ERR-VAL-001',
-            message: 'stale consents',
-            details: { consents_current: { privacy_policy: '2.0', offer: '1.0' } },
+    http.post('*/auth/complete-registration', async ({ request }) => {
+      seen.push((await request.json()) as Record<string, unknown>);
+      if (seen.length === 1) {
+        return HttpResponse.json(
+          {
+            error: {
+              code: 'ERR-VAL-001',
+              message: 'stale consents',
+              details: { consents_current: { privacy_policy: '2.0', offer: '1.0' } },
+            },
           },
-        },
-        { status: 422 },
-      ),
-    ),
+          { status: 422 },
+        );
+      }
+      return HttpResponse.json(freshMe);
+    }),
   );
-  renderGate();
-  await userEvent.click(screen.getByTestId('consent-privacy'));
-  await userEvent.click(screen.getByTestId('consent-offer'));
+  let adopted: unknown = null;
+  renderGate((me) => {
+    adopted = me;
+  });
   await completePhoneOtp();
-  await userEvent.type(screen.getByTestId('address-input'), 'Toshkent sh., Chilonzor tumani, 12-uy');
   await userEvent.click(screen.getByTestId('submit'));
 
-  expect(await screen.findByText('cabinet.registration.consentsStale')).toBeInTheDocument();
-  // Un-checked again — the whole point is that these are NOT the versions
-  // the citizen just accepted, so ticking them again is a fresh decision.
-  expect(screen.getByTestId('consent-privacy')).not.toBeChecked();
-  expect(screen.getByTestId('consent-offer')).not.toBeChecked();
+  await waitFor(() => expect(adopted).toEqual(freshMe));
+  expect(seen).toHaveLength(2);
+  expect(seen[1]).toMatchObject({ consents: { privacy_policy: '2.0', offer: '1.0' } });
 });
 
 // F9 (`docs/plans/07.3-findings.md`): the gate used to render with no

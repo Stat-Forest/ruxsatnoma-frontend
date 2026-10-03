@@ -1,17 +1,17 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Download, Loader2, RotateCcw } from 'lucide-react';
+import { Loader2, RotateCcw } from 'lucide-react';
 import { useAuth } from '../../auth/useAuth';
-import { useLanguage, useT } from '../../i18n/useT';
+import { useListUrlState } from '../../lib/useListUrlState';
+import { useLanguage } from '../../i18n/useT';
 import { Button } from '../../components/ui/button';
 import { FormField, Input, Select } from '../../components/ui/FormControls';
 import { Pagination } from '../../components/ui/Navigation';
 import { ApiError } from '../../api/errors';
+import { SEARCH_MAX_LENGTH } from '../../api/limits';
 import { useApiErrorText } from '../../i18n/useApiErrorText';
-import { api } from '../../api/client';
-import { apiError } from '../../api/errors';
-import { downloadCsv, fetchAllPages, toCsv } from '../../lib/csvExport';
+import { ExportXlsxButton } from '../../components/ui/ExportXlsxButton';
 import { useActivityTypes, useApplicationsList, type ApplicationListFilters, type ApplicationOut } from './queries';
-import { formatAmount, formatDate, localizedName, STATUS_LABELS, statusLabel } from './format';
+import { localizedName, STATUS_LABELS, statusLabel } from './format';
 import { translateTerm } from '../../i18n/terms';
 import { WorklistRow } from './components/WorklistRow';
 import { StartReviewConfirmModal } from './components/StartReviewConfirmModal';
@@ -25,14 +25,13 @@ const APPLICATIONS_LIST_I18N = {
     subtitle: 'Sizga koʻrish huquqi berilgan arizalar — oʻzingizniki yoki (xodim/rahbar boʻlsangiz) tashkilotingiz zonasi boʻyicha',
     status: 'Status',
     activityType: 'Faoliyat turi',
-    appNumber: 'Ariza raqami',
+    search: 'Qidiruv',
+    searchHint: 'Ariza raqami yoki arizachining F.I.Sh.',
     periodFrom: 'Davr — dan',
     periodTo: 'Davr — gacha',
     all: 'Barchasi',
     reset: 'Tiklash',
     apply: 'Qoʻllash',
-    exportCsv: 'CSV eksport',
-    exportTruncated: 'Eksport cheklovi: dastlabki 10 000 ta yozuv yuklandi.',
     loading: 'Yuklanmoqda...',
     loadError: 'Arizalar yuklanmadi.',
     notFoundFiltered: 'Filtr boʻyicha ariza topilmadi.',
@@ -49,14 +48,13 @@ const APPLICATIONS_LIST_I18N = {
     subtitle: 'Сизга кўриш ҳуқуқи берилган аризалар — ўзингизники ёки (ходим/раҳбар бўлсангиз) ташкилотингиз зонаси бўйича',
     status: 'Статус',
     activityType: 'Фаолият тури',
-    appNumber: 'Ариза рақами',
+    search: 'Қидирув',
+    searchHint: 'Ариза рақами ёки аризачининг Ф.И.Ш.',
     periodFrom: 'Давр — дан',
     periodTo: 'Давр — гача',
     all: 'Барчаси',
     reset: 'Тиклаш',
     apply: 'Қўллаш',
-    exportCsv: 'CSV экспорт',
-    exportTruncated: 'Экспорт чеклови: дастлабки 10 000 та ёзув юкланди.',
     loading: 'Юкланмоқда...',
     loadError: 'Аризалар юкланмади.',
     notFoundFiltered: 'Фильтр бўйича ариза топилмади.',
@@ -73,14 +71,13 @@ const APPLICATIONS_LIST_I18N = {
     subtitle: 'Заявки, доступные вам для просмотра — ваши собственные или (для сотрудников/руководства) по зоне вашей организации',
     status: 'Статус',
     activityType: 'Вид деятельности',
-    appNumber: 'Номер заявки',
+    search: 'Поиск',
+    searchHint: 'Номер заявки или ФИО заявителя',
     periodFrom: 'Период — с',
     periodTo: 'Период — по',
     all: 'Все',
     reset: 'Сбросить',
     apply: 'Применить',
-    exportCsv: 'Экспорт CSV',
-    exportTruncated: 'Ограничение экспорта: выгружены первые 10 000 записей.',
     loading: 'Загрузка...',
     loadError: 'Не удалось загрузить заявки.',
     notFoundFiltered: 'По фильтру заявок не найдено.',
@@ -97,14 +94,13 @@ const APPLICATIONS_LIST_I18N = {
     subtitle: 'Applications available for you to view — your own or (for staff/head) within your organization zone',
     status: 'Status',
     activityType: 'Activity type',
-    appNumber: 'Application number',
+    search: 'Search',
+    searchHint: 'Application number or applicant name',
     periodFrom: 'Period — from',
     periodTo: 'Period — to',
     all: 'All',
     reset: 'Reset',
     apply: 'Apply',
-    exportCsv: 'Export CSV',
-    exportTruncated: 'Export truncated: first 10,000 records downloaded.',
     loading: 'Loading...',
     loadError: 'Failed to load applications.',
     notFoundFiltered: 'No applications found matching the filters.',
@@ -121,14 +117,13 @@ const APPLICATIONS_LIST_I18N = {
     subtitle: 'Sizge kóriw huqıqı berilgen arzalar — ózińizdiki yamasa (xızmetker/basshı bolsańız) shólkemińiz zonası boyınsha',
     status: 'Status',
     activityType: 'Xızmet túri',
-    appNumber: 'Arza nómeri',
+    search: 'Izlew',
+    searchHint: 'Arza nómeri yamasa arza beriwshiniń F.A.Á.',
     periodFrom: 'Dáwir — baslap',
     periodTo: 'Dáwir — deyin',
     all: 'Barlıǵı',
     reset: 'Qayta tiklew',
     apply: 'Qollaw',
-    exportCsv: 'CSV eksport',
-    exportTruncated: 'Eksport sheklewi: dáslepki 10 000 jazba júklendi.',
     loading: 'Júklenbekte...',
     loadError: 'Arzalar júklenbedi.',
     notFoundFiltered: 'Filtr boyınsha arza tabılmadı.',
@@ -145,7 +140,7 @@ const APPLICATIONS_LIST_I18N = {
 interface FilterFormState {
   status: ApplicationOut['status'] | '';
   activity_type_id: string;
-  number: string;
+  q: string;
   period_from: string;
   period_to: string;
 }
@@ -153,22 +148,26 @@ interface FilterFormState {
 const EMPTY_FILTERS: FilterFormState = {
   status: '',
   activity_type_id: '',
-  number: '',
+  q: '',
   period_from: '',
   period_to: '',
 };
 
+/** The URL owns `status`; the form types it more narrowly than a string. */
+function asStatus(value: string): FilterFormState['status'] {
+  return value as FilterFormState['status'];
+}
+
 export function ApplicationsListPage() {
   const { me } = useAuth();
-  const t = useT();
   const { lang } = useLanguage();
   const lt = APPLICATIONS_LIST_I18N[lang as keyof typeof APPLICATIONS_LIST_I18N] || APPLICATIONS_LIST_I18N.uz_latn;
   const errorText = useApiErrorText();
-  const [filters, setFilters] = useState(EMPTY_FILTERS);
-  const [appliedFilters, setAppliedFilters] = useState(EMPTY_FILTERS);
-  const [page, setPage] = useState(1);
-  const [exporting, setExporting] = useState(false);
-  const [exportTruncated, setExportTruncated] = useState(false);
+  // The applied filters and the page live in the URL (`useListUrlState`), so
+  // opening a card and coming back — Back, or the card's own link — shows
+  // the same page of the same filtered list; `filters` is the form's draft.
+  const { filters: appliedFilters, page, setFilters: applyPatch, setPage, reset } = useListUrlState(EMPTY_FILTERS);
+  const [filters, setFilters] = useState<FilterFormState>(appliedFilters);
   // The row whose "Ishga olish" is awaiting confirmation; the modal is
   // rendered here, outside the clickable rows (see `StartReviewConfirmModal`).
   const [confirmRow, setConfirmRow] = useState<ApplicationOut | null>(null);
@@ -176,11 +175,11 @@ export function ApplicationsListPage() {
   // Auto-apply text/date filters with debounce
   useEffect(() => {
     const timer = setTimeout(() => {
-      setAppliedFilters(filters);
+      applyPatch({ q: filters.q, period_from: filters.period_from, period_to: filters.period_to });
     }, 400);
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filters.number, filters.period_from, filters.period_to]);
+  }, [filters.q, filters.period_from, filters.period_to]);
 
   const statusOptions = useMemo(
     () => [
@@ -196,7 +195,7 @@ export function ApplicationsListPage() {
   const queryFilters: ApplicationListFilters = {
     status: appliedFilters.status || undefined,
     activity_type_id: appliedFilters.activity_type_id || undefined,
-    number: appliedFilters.number || undefined,
+    q: appliedFilters.q || undefined,
     period_from: appliedFilters.period_from || undefined,
     period_to: appliedFilters.period_to || undefined,
     page,
@@ -209,44 +208,15 @@ export function ApplicationsListPage() {
   const canReview = !!me && (me.is_superuser || me.permissions.includes(REVIEW_PERMISSION));
 
   function applyFilters() {
-    setAppliedFilters(filters);
-    setPage(1);
+    applyPatch(filters);
   }
 
   function resetFilters() {
     setFilters(EMPTY_FILTERS);
-    setAppliedFilters(EMPTY_FILTERS);
-    setPage(1);
+    reset();
   }
 
   const totalPages = list.data ? Math.max(1, Math.ceil(list.data.total / PAGE_SIZE)) : 1;
-
-  async function exportCsv() {
-    setExporting(true);
-    setExportTruncated(false);
-    try {
-      const { rows, truncated } = await fetchAllPages<ApplicationOut>(async (p, pageSize) => {
-        const { data, error } = await api.GET('/api/v1/applications', {
-          params: { query: { ...queryFilters, page: p, page_size: pageSize } },
-        });
-        if (error) throw apiError(error);
-        return data;
-      });
-      const csv = toCsv(rows, [
-        { header: 'number', value: (r) => r.number ?? r.id },
-        { header: 'status', value: (r) => statusLabel(r.status, lang) },
-        { header: 'contour_id', value: (r) => r.contour_id ?? '' },
-        { header: 'period_from', value: (r) => formatDate(r.period_from) },
-        { header: 'period_to', value: (r) => formatDate(r.period_to) },
-        { header: 'requested_area_ha', value: (r) => formatAmount(r.requested_area_ha) },
-        { header: 'sla_deadline_at', value: (r) => r.sla_deadline_at ?? '' },
-      ]);
-      downloadCsv(`applications-${new Date().toISOString().slice(0, 10)}.csv`, csv);
-      setExportTruncated(truncated);
-    } finally {
-      setExporting(false);
-    }
-  }
 
   return (
     <div className="space-y-6" data-testid="applications-page">
@@ -269,10 +239,9 @@ export function ApplicationsListPage() {
             <Select
               value={filters.status}
               onChange={(e) => {
-                const newStatus = e.target.value as FilterFormState['status'];
+                const newStatus = asStatus(e.target.value);
                 setFilters((f) => ({ ...f, status: newStatus }));
-                setAppliedFilters((af) => ({ ...af, status: newStatus }));
-                setPage(1);
+                applyPatch({ status: newStatus });
               }}
               options={statusOptions}
             />
@@ -283,8 +252,7 @@ export function ApplicationsListPage() {
               onChange={(e) => {
                 const newId = e.target.value;
                 setFilters((f) => ({ ...f, activity_type_id: newId }));
-                setAppliedFilters((af) => ({ ...af, activity_type_id: newId }));
-                setPage(1);
+                applyPatch({ activity_type_id: newId });
               }}
               options={[
                 { value: '', label: lt.all },
@@ -305,11 +273,13 @@ export function ApplicationsListPage() {
               ]}
             />
           </FormField>
-          <FormField label={lt.appNumber}>
+          <FormField label={lt.search}>
             <Input
-              value={filters.number}
-              onChange={(e) => setFilters((f) => ({ ...f, number: e.target.value }))}
-              placeholder="RX-2026-000123"
+              value={filters.q}
+              onChange={(e) => setFilters((f) => ({ ...f, q: e.target.value }))}
+              placeholder={lt.searchHint}
+              maxLength={SEARCH_MAX_LENGTH}
+              data-testid="applications-filter-q"
             />
           </FormField>
           <FormField label={lt.periodFrom}>
@@ -328,30 +298,20 @@ export function ApplicationsListPage() {
           </FormField>
         </div>
         <div className="flex justify-end gap-2">
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            leftIcon={<Download className="w-3.5 h-3.5" />}
-            isLoading={exporting}
-            onClick={() => void exportCsv()}
-          >
-            {t('prosecutor.exportCsv')}
-          </Button>
           <Button type="button" variant="outline" size="sm" leftIcon={<RotateCcw className="w-3.5 h-3.5" />} onClick={resetFilters}>
             {lt.reset}
           </Button>
           <Button type="submit" variant="primary" size="sm" onClick={applyFilters}>
             {lt.apply}
           </Button>
+          <ExportXlsxButton
+            className="ml-auto"
+            path="/api/v1/applications"
+            query={queryFilters}
+            disabled={!list.data?.total}
+          />
         </div>
       </form>
-
-      {exportTruncated && (
-        <div className="p-3 bg-[#FFFBEB] border border-[#FDE68A] rounded-xl text-xs text-[#92400E]" role="alert">
-          {t('prosecutor.exportTruncated')}
-        </div>
-      )}
 
       {list.error && (
         <div className="p-4 bg-[#FEF2F2] border border-[#FCA5A5] rounded-2xl text-sm text-[#991B1B]" role="alert">

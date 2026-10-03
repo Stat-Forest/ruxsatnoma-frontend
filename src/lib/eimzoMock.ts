@@ -54,6 +54,17 @@ function base64UrlEncodeJson(data: Record<string, unknown>): string {
 export interface MockSignatureInput {
   /** The signer's own personal PINFL — 14 digits, `users.pinfl`. */
   pinfl: string;
+  /**
+   * The organisation's TIN — present ONLY for a legal applicant's own
+   * signature (C1, final review): a real-shaped organisation certificate
+   * carries BOTH the signer's personal PINFL and the org TIN at once, and
+   * `signatures.service._ownership_reason` checks the TIN against the
+   * caller's own `kind='legal'` applicant's `stir` — never falling back to
+   * comparing `pinfl` against `users.pinfl`, which is always `NULL` for such
+   * an account (R1). Omitted (the default) for every personal signature,
+   * unchanged.
+   */
+  tin?: string | null;
   /** The exact bytes `GET /applications/{id}/package` served. */
   documentBytes: ArrayBuffer;
   /**
@@ -61,8 +72,8 @@ export interface MockSignatureInput {
    * `subject` is persisted and served as signature evidence, not merely
    * parsed and discarded — `certificates.subject` (`signatures/repo.py:47`,
    * `models.py:28`) and `signatures.verification.certificate_subject`
-   * (`signatures/verify.py:94`) both store it, and `GET /certificates` /
-   * `GET /signatures` return it to the document's owner and to
+   * (`signatures/verify.py:94`) both store it, and `GET /signatures`
+   * returns it to the document's owner and to
    * `signatures.view_any` oversight. Omit it (the staff decision routes do)
    * and `subject` falls back to `PINFL=${pinfl}`; give it (the applicant
    * wizard does, from the signed-in user's own name) and the audit trail
@@ -82,6 +93,7 @@ export interface MockSignatureInput {
  */
 export async function buildMockSignature({
   pinfl,
+  tin = null,
   documentBytes,
   fullName,
 }: MockSignatureInput): Promise<string> {
@@ -93,71 +105,27 @@ export async function buildMockSignature({
   return base64UrlEncodeJson({
     serial_number: serial,
     // A fixed value: nothing on the backend reads it (the certificate's
-    // identity comes from `pinfl_or_stir`, not `issuer`), so there is no
-    // correctness reason to prefer one string over another — this is simply
-    // the one this module now always uses, rather than an accident of which
-    // of the two merged copies happened to win.
+    // identity comes from `pinfl_or_stir`/`tin`, not `issuer`), so there is
+    // no correctness reason to prefer one string over another — this is
+    // simply the one this module now always uses, rather than an accident of
+    // which of the two merged copies happened to win.
     issuer: 'MOCK-CA-DEMO',
     subject: fullName ? `CN=${fullName}` : `PINFL=${pinfl}`,
     pinfl_or_stir: pinfl,
+    tin,
     valid_from: validFrom.toISOString(),
     valid_to: validTo.toISOString(),
     signed_at: now.toISOString(),
     timestamp_token: 'MOCK-TS',
-    document_sha256: documentSha256,
-  });
-}
-
-/** Standard (non-URL-safe) base64, padding kept — `document_b64` is decoded
- * server-side with plain `base64.b64decode` (`encode_mock_signature`), a
- * different alphabet from the envelope's own outer `urlsafe_b64encode`. */
-function base64EncodeBytes(bytes: Uint8Array): string {
-  let binary = '';
-  for (const byte of bytes) binary += String.fromCharCode(byte);
-  return btoa(binary);
-}
-
-export interface MockAttachedSignatureInput {
-  /** The signer's own personal PINFL — 14 digits, `users.pinfl`. */
-  pinfl: string;
-  fullName?: string;
-}
-
-/**
- * Builds an ATTACHED envelope — `document_b64` present, so
- * `verify_attached` (`MockEimzo.verify_attached` -> `_verify_envelope(pkcs7,
- * None)`) can recover the "document" from the envelope itself rather than
- * being handed one separately. `POST /certificates` (B5, binding a
- * certificate ahead of any real signing) is this module's one caller: there
- * is no real document to bind a certificate to yet, only a
- * proof-of-possession exercise, so the "document" is a random nonce that
- * exists purely to make the envelope's own sha256 check pass.
- */
-export async function buildMockAttachedSignature({
-  pinfl,
-  fullName,
-}: MockAttachedSignatureInput): Promise<string> {
-  const now = new Date();
-  const validFrom = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-  const validTo = new Date(now.getTime() + 365 * 24 * 60 * 60 * 1000);
-  const nonce = crypto.getRandomValues(new Uint8Array(16));
-  const documentSha256 = await sha256Hex(nonce.buffer);
-  const serial = `MOCK-${crypto.randomUUID()}`;
-  return base64UrlEncodeJson({
-    serial_number: serial,
-    issuer: 'MOCK-CA-DEMO',
-    subject: fullName ? `CN=${fullName}` : `PINFL=${pinfl}`,
-    pinfl_or_stir: pinfl,
-    valid_from: validFrom.toISOString(),
-    valid_to: validTo.toISOString(),
-    signed_at: now.toISOString(),
-    timestamp_token: 'MOCK-TS',
-    document_b64: base64EncodeBytes(nonce),
     document_sha256: documentSha256,
   });
 }
 
 export const PINFL_PATTERN = /^\d{14}$/;
+// A 9-digit organisation TIN (decision #226) — the mock login form's optional
+// second identifier, alongside the always-required personal PINFL a
+// real-shaped organisation certificate also carries (final review C1/I3).
+export const STIR_PATTERN = /^\d{9}$/;
 
 /**
  * The login envelope, which is NOT the document-signing envelope above.
@@ -178,11 +146,12 @@ export interface MockChallengeInput {
   pinfl: string;
   fullName: string;
   /**
-   * The org STIR this certificate speaks for — absent (`null`) for an
-   * ordinary personal login, present when B4's "attach a legal entity"
-   * (`org_eri` basis) or "add a colleague" flow builds this same envelope:
-   * `auth.service._verify_org_challenge` checks `identity.tin != stir`
-   * against exactly this field.
+   * The organisation's TIN — absent (`null`) for an ordinary personal
+   * login, present for a real-shaped organisation certificate (decision
+   * #226): `auth.service.login_via_eimzo` finds or creates the `kind`
+   * `'legal'` applicant by this value (its own `stir`), unless `pinfl`
+   * matches an existing staff (non-applicant) user, in which case that
+   * personal login wins (decision #226's amendment, R2).
    */
   tin?: string | null;
   legalName?: string | null;

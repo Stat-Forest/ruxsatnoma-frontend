@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { setupServer } from 'msw/node';
@@ -25,7 +25,6 @@ const ME = {
   csrf_token: 'tok-1',
   is_superuser: false,
   applicant: null,
-  representations: [],
   registration_complete: true,
 };
 
@@ -292,6 +291,35 @@ it('links back to the public site and to permit verification without signing in'
   );
 });
 
+// The consent that is legally recorded has not moved — it is still the two
+// checkboxes on the finish-registration screen, which a citizen reaches only
+// AFTER signing with their ERI key. This notice is what names the two
+// documents BEFORE any of that, and it lives outside every `method === ...`
+// branch: switching tabs must not make the terms disappear.
+it('names both documents on every sign-in method, each linked to the landing', async () => {
+  render(<App />);
+  await screen.findByTestId('login-page');
+  for (const tab of ['OneID', 'E-IMZO', 'Login/Parol']) {
+    await userEvent.click(screen.getByRole('tab', { name: tab }));
+    const notice = screen.getByTestId('login-terms');
+    expect(notice).toHaveTextContent(
+      'Tizimga kirish orqali siz Maxfiylik siyosati va Ommaviy oferta shartlarini qabul qilgan hisoblanasiz.',
+    );
+    // Scoped to the notice: the page footer carries its own "Hujjatlar" link
+    // to the same page, and an unscoped query would pass on that one alone.
+    const privacy = within(notice).getByRole('link', { name: 'Maxfiylik siyosati' });
+    const offer = within(notice).getByRole('link', { name: 'Ommaviy oferta' });
+    for (const link of [privacy, offer]) {
+      expect(link).toHaveAttribute('href', 'http://localhost:5173/documents');
+      expect(link).toHaveAttribute('target', '_blank');
+      expect(link).toHaveAttribute('rel', 'noopener noreferrer');
+    }
+  }
+  // The last tab clicked above is remembered; dropped so it cannot decide
+  // which tab a later test in this file opens on.
+  localStorage.removeItem('ruxsatnoma.login.tab');
+});
+
 it('lets an anonymous visitor switch language without a session, and remembers it', async () => {
   // No `PUT /auth/me/language` handler is registered and `onUnhandledRequest`
   // is 'error': had the anonymous switch tried to write the language to a
@@ -370,4 +398,80 @@ describe('a signed-in user at /login', () => {
     release();
     expect(await screen.findByTestId('app-shell')).toBeInTheDocument();
   });
+});
+
+// Self-service password reset (decision #208). The lookup answers masked
+// contacts; a channel the card lacks is shown greyed as "not filled in" and
+// cannot be clicked; the reset call repeats (login, channel) and sends the
+// code with the new password; success drops back to the password form.
+test('forgot password: lookup, pick the filled channel, code + new password', async () => {
+  const sent: unknown[] = [];
+  server.use(
+    http.post('*/auth/password/forgot/lookup', async ({ request }) => {
+      expect(await request.json()).toEqual({ login: 'hodim1' });
+      return HttpResponse.json({ phone: '+998 ** *** ** 67', email: null });
+    }),
+    http.post('*/auth/password/forgot/send', async ({ request }) => {
+      sent.push(await request.json());
+      return new HttpResponse(null, { status: 204 });
+    }),
+    http.post('*/auth/password/forgot/reset', async ({ request }) => {
+      sent.push(await request.json());
+      return new HttpResponse(null, { status: 204 });
+    }),
+  );
+  render(<App />);
+  await userEvent.click(await screen.findByRole('tab', { name: 'Login/Parol' }));
+  expect(screen.getByTestId('admin-contact')).toHaveTextContent('+998 71 207 88 77');
+  await userEvent.click(screen.getByRole('button', { name: 'Parolni unutdingizmi?' }));
+
+  await userEvent.type(await screen.findByLabelText(/login/i), 'hodim1');
+  await userEvent.click(screen.getByRole('button', { name: 'Davom etish' }));
+
+  const phone = await screen.findByTestId('forgot-channel-phone');
+  const email = screen.getByTestId('forgot-channel-email');
+  expect(phone).toHaveTextContent('+998 ** *** ** 67');
+  expect(email).toBeDisabled();
+  expect(email).toHaveTextContent("to'ldirilmagan");
+  await userEvent.click(phone);
+  expect(sent).toEqual([{ login: 'hodim1', channel: 'phone' }]);
+
+  await userEvent.type(await screen.findByLabelText(/xabardagi kod/i), '123456');
+  await userEvent.type(screen.getByLabelText(/yangi parol/i), 'N3w!pass-word');
+  await userEvent.type(screen.getByLabelText(/parolni takrorlang/i), 'other');
+  await userEvent.click(screen.getByRole('button', { name: "Parolni o'zgartirish" }));
+  expect(await screen.findByTestId('forgot-error')).toHaveTextContent('Parollar mos kelmadi.');
+  expect(sent).toHaveLength(1); // a mismatch never reaches the server
+
+  await userEvent.clear(screen.getByLabelText(/parolni takrorlang/i));
+  await userEvent.type(screen.getByLabelText(/parolni takrorlang/i), 'N3w!pass-word');
+  await userEvent.click(screen.getByRole('button', { name: "Parolni o'zgartirish" }));
+  expect(await screen.findByTestId('reset-done')).toBeInTheDocument();
+  expect(sent[1]).toEqual({
+    login: 'hodim1',
+    channel: 'phone',
+    code: '123456',
+    new_password: 'N3w!pass-word',
+  });
+  expect(screen.getByLabelText(/^parol/i)).toHaveValue('');
+});
+
+// An unknown login and a card with no contacts get the same `{null, null}`
+// from the server on purpose (decision #208); either way the person is
+// stopped HERE, on the login step, not shown two greyed-out channel buttons.
+test('forgot password: an unknown login (or one with no contacts) is stopped on the login step', async () => {
+  server.use(
+    http.post('*/auth/password/forgot/lookup', () =>
+      HttpResponse.json({ phone: null, email: null }),
+    ),
+  );
+  render(<App />);
+  await userEvent.click(await screen.findByRole('tab', { name: 'Login/Parol' }));
+  await userEvent.click(screen.getByRole('button', { name: 'Parolni unutdingizmi?' }));
+  await userEvent.type(await screen.findByLabelText(/login/i), 'nobody');
+  await userEvent.click(screen.getByRole('button', { name: 'Davom etish' }));
+  expect(await screen.findByTestId('forgot-error')).toHaveTextContent('Login topilmadi');
+  expect(screen.queryByTestId('forgot-channel-phone')).not.toBeInTheDocument();
+  expect(screen.getByLabelText(/login/i)).toHaveValue('nobody');
+  expect(screen.getByTestId('admin-contact')).toHaveTextContent('1010');
 });

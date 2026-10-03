@@ -52,7 +52,6 @@ function renderTab(permissions: string[], isSuperuser = false) {
     csrf_token: 'tok',
     is_superuser: isSuperuser,
     applicant: null,
-    representations: [],
     registration_complete: true,
   };
   const authValue = { me, loading: false, authError: null } as unknown as AuthContextValue;

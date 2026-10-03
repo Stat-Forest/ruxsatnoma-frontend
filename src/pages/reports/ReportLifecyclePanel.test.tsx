@@ -71,7 +71,6 @@ function authValue(roleCode: string, permissions: string[], organizationId: stri
       csrf_token: 'tok-1',
       is_superuser: false,
       applicant: null,
-      representations: [],
       registration_complete: true,
     },
     loading: false,

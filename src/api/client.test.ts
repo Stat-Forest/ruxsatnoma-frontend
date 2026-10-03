@@ -54,6 +54,15 @@ test('ERR-AUTH-002 on a GET (a query) reaches the registered session-gone handle
   expect(handler).toHaveBeenCalledTimes(1);
 });
 
+test('a plain 401 reaches the registered session-gone handler', async () => {
+  const handler = vi.fn();
+  setSessionGoneHandler(handler);
+  server.use(http.get('*/notifications/unread-count', () =>
+    HttpResponse.json({ detail: 'Unauthorized' }, { status: 401 })));
+  await api.GET('/api/v1/notifications/unread-count', {});
+  expect(handler).toHaveBeenCalledTimes(1);
+});
+
 test('ERR-AUTH-002 on a POST (a mutation) reaches the registered session-gone handler too', async () => {
   const handler = vi.fn();
   setSessionGoneHandler(handler);

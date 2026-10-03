@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { render, screen, within } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { setupServer } from 'msw/node';
@@ -76,7 +76,6 @@ function renderTab(permissions: string[]) {
     csrf_token: 'tok',
     is_superuser: false,
     applicant: null,
-    representations: [],
     registration_complete: true,
   };
   const authValue = { me, loading: false, authError: null } as unknown as AuthContextValue;
@@ -169,6 +168,30 @@ test('resolving requires a non-blank comment and posts it, optionally with an up
   expect(resolvedBody).toMatchObject({ comment: 'Bank bilan telefon orqali kelishildi', resolution_doc_id: null });
 });
 
+// Stage 17 QA-01 M1 fix round: `ReconciliationResolveIn.comment` and
+// `ManualConfirmationRejectIn.reason` are both capped at 2000 chars.
+test('the resolve-comment and reject-reason fields cap input at the backend bound (2000)', async () => {
+  server.use(
+    http.get('*/api/v1/payments/reconciliations', () => HttpResponse.json({ items: [reconciliation()], total: 1, page: 1, page_size: 100 })),
+    http.get('*/api/v1/payments/manual-confirmations', () =>
+      HttpResponse.json({ items: [manualConfirmation()], total: 1, page: 1, page_size: 50 }),
+    ),
+  );
+  const user = userEvent.setup();
+  renderTab(['payments.view', 'payments.manage', 'payments.confirm']);
+
+  await screen.findByTestId(`reconciliation-row-${RECONCILIATION_ID}`);
+  await user.click(screen.getByRole('button', { name: 'Yopish' }));
+  const dialog = screen.getByRole('dialog');
+  expect(within(dialog).getByLabelText('Izoh')).toHaveAttribute('maxLength', '2000');
+  await user.click(within(dialog).getByRole('button', { name: 'Bekor qilish' }));
+
+  const row = await screen.findByTestId(`manual-confirmation-row-${CONFIRMATION_ID}`);
+  await user.click(within(row).getByRole('button', { name: 'Rad etish' }));
+  const rejectRow = screen.getByTestId(`manual-reject-row-${CONFIRMATION_ID}`);
+  expect(within(rejectRow).getByLabelText('Rad etish sababi')).toHaveAttribute('maxLength', '2000');
+});
+
 test('the manual-confirmation checker panel is offered only to a payments.confirm holder', async () => {
   server.use(
     http.get('*/api/v1/payments/reconciliations', () => HttpResponse.json({ items: [], total: 0, page: 1, page_size: 100 })),
@@ -196,6 +219,30 @@ test('the maker-is-checker refusal (ERR-ACL-001) reads as a plain explanation, n
   expect(
     await screen.findByText('Siz bu qaydni qilgan shaxssiz — uni tasdiqlay olmaysiz, boshqa shaxs tasdiqlashi kerak.'),
   ).toBeInTheDocument();
+});
+
+test('an empty reconciliation register disables its Excel button — there is nothing to export', async () => {
+  server.use(
+    http.get('*/api/v1/payments/reconciliations', () => HttpResponse.json({ items: [], total: 0, page: 1, page_size: 100 })),
+  );
+  renderTab(['payments.view']);
+
+  await screen.findByText('Yozuvlar topilmadi.');
+
+  const reconciliationSection = screen.getByText('Nomuvofiqliklar reestri').closest('section')!;
+  expect(within(reconciliationSection).getByTestId('export-xlsx')).toBeDisabled();
+});
+
+test('an empty manual-confirmation worklist disables its Excel button — there is nothing to export', async () => {
+  server.use(
+    http.get('*/api/v1/payments/reconciliations', () => HttpResponse.json({ items: [], total: 0, page: 1, page_size: 100 })),
+  );
+  renderTab(['payments.confirm']);
+
+  const panel = await screen.findByTestId('manual-check-panel');
+  await screen.findByText('Hozircha tasdiqlashingizni kutayotgan qaydlar yoʻq.');
+
+  expect(within(panel).getByTestId('export-xlsx')).toBeDisabled();
 });
 
 test('a caller with only payments.confirm (the checker, no payments.view) never fires GET /payments/reconciliations, which would 403', async () => {
@@ -335,4 +382,88 @@ test('F12b — a confirmed row leaves the pending worklist', async () => {
 
   await screen.findByText('Tasdiqlandi. Hisob-faktura toʻlangan deb belgilandi.');
   expect(await screen.findByText('Hozircha tasdiqlashingizni kutayotgan qaydlar yoʻq.')).toBeInTheDocument();
+});
+
+test('the reconciliation register\'s Excel button asks the server with the applied status filter, never re-fetching the list', async () => {
+  const user = userEvent.setup();
+  const listCalls: string[] = [];
+  let exportUrl: URL | null = null;
+  server.use(
+    http.get('*/api/v1/payments/reconciliations', ({ request }) => {
+      listCalls.push(request.url);
+      return HttpResponse.json({ items: [reconciliation()], total: 1, page: 1, page_size: 100 });
+    }),
+    http.get('*/api/v1/payments/reconciliations/export.xlsx', ({ request }) => {
+      exportUrl = new URL(request.url);
+      return HttpResponse.text('xlsx-bytes', {
+        headers: {
+          'Content-Disposition': 'attachment; filename="nomuvofiqliklar-2026-09-11.xlsx"',
+          'X-Export-Total': '1',
+          'X-Export-Rows': '1',
+          'X-Export-Truncated': 'false',
+        },
+      });
+    }),
+  );
+  const createObjectURL = vi.fn().mockReturnValue('blob:mock');
+  URL.createObjectURL = createObjectURL;
+  URL.revokeObjectURL = vi.fn();
+  const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+
+  renderTab(['payments.view']);
+  await screen.findByTestId(`reconciliation-row-${RECONCILIATION_ID}`);
+  const reconciliationSection = screen.getByText('Nomuvofiqliklar reestri').closest('section')!;
+  const listCallsBefore = listCalls.length;
+
+  await user.click(within(reconciliationSection).getByTestId('export-xlsx'));
+
+  await waitFor(() => expect(createObjectURL).toHaveBeenCalled());
+  expect(clickSpy).toHaveBeenCalled();
+  expect(listCalls.length).toBe(listCallsBefore); // the export never re-fetches the list
+  expect(exportUrl!.searchParams.get('status')).toBe('open');
+  expect(exportUrl!.searchParams.get('lang')).toBe('uz_latn');
+  expect(exportUrl!.searchParams.has('limit')).toBe(false);
+  expect(exportUrl!.searchParams.has('offset')).toBe(false);
+});
+
+test('the manual-confirmation checker worklist\'s Excel button asks the server for the pending_check filing, never re-fetching the worklist', async () => {
+  const user = userEvent.setup();
+  const listCalls: string[] = [];
+  let exportUrl: URL | null = null;
+  server.use(
+    http.get('*/api/v1/payments/manual-confirmations', ({ request }) => {
+      listCalls.push(request.url);
+      return HttpResponse.json({ items: [manualConfirmation()], total: 1, page: 1, page_size: 50 });
+    }),
+    http.get('*/api/v1/payments/manual-confirmations/export.xlsx', ({ request }) => {
+      exportUrl = new URL(request.url);
+      return HttpResponse.text('xlsx-bytes', {
+        headers: {
+          'Content-Disposition': 'attachment; filename="qolda-tasdiqlar-2026-09-11.xlsx"',
+          'X-Export-Total': '1',
+          'X-Export-Rows': '1',
+          'X-Export-Truncated': 'false',
+        },
+      });
+    }),
+  );
+  const createObjectURL = vi.fn().mockReturnValue('blob:mock');
+  URL.createObjectURL = createObjectURL;
+  URL.revokeObjectURL = vi.fn();
+  const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+
+  renderTab(['payments.confirm']);
+  await screen.findByTestId(`manual-confirmation-row-${CONFIRMATION_ID}`);
+  const panel = screen.getByTestId('manual-check-panel');
+  const listCallsBefore = listCalls.length;
+
+  await user.click(within(panel).getByTestId('export-xlsx'));
+
+  await waitFor(() => expect(createObjectURL).toHaveBeenCalled());
+  expect(clickSpy).toHaveBeenCalled();
+  expect(listCalls.length).toBe(listCallsBefore); // the export never re-fetches the worklist
+  expect(exportUrl!.searchParams.get('status')).toBe('pending_check');
+  expect(exportUrl!.searchParams.get('lang')).toBe('uz_latn');
+  expect(exportUrl!.searchParams.has('limit')).toBe(false);
+  expect(exportUrl!.searchParams.has('offset')).toBe(false);
 });

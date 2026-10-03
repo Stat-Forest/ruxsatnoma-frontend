@@ -7,12 +7,14 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   createBeekeeper,
+  listBeekeepingClaims,
   listBeekeepers,
   patchBeekeeper,
   removeBeekeeper,
   type BeekeeperCreateIn,
   type BeekeeperListParams,
   type BeekeeperPatchIn,
+  type BeekeepingClaimsParams,
 } from './api';
 
 const LIST_KEY = ['beekeepers', 'list'] as const;
@@ -52,5 +54,15 @@ export function useRemoveBeekeeper(id: string) {
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: LIST_KEY });
     },
+  });
+}
+
+const CLAIMS_KEY = ['beekeepers', 'claims'] as const;
+
+export function useBeekeepingClaims(params: BeekeepingClaimsParams) {
+  return useQuery({
+    queryKey: [...CLAIMS_KEY, params],
+    queryFn: () => listBeekeepingClaims(params),
+    placeholderData: (previous) => previous,
   });
 }

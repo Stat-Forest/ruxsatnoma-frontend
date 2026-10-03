@@ -5,7 +5,7 @@
  * button renders for a transition not in that table (house rule).
  */
 import { useState } from 'react';
-import { Loader2 } from 'lucide-react';
+import { Loader2, ArrowLeft } from 'lucide-react';
 import { Link, useNavigate, useParams } from 'react-router';
 import { useAuth } from '../../auth/useAuth';
 import { useT } from '../../i18n/useT';
@@ -164,7 +164,10 @@ export function TaskDetailPage() {
 
   return (
     <div className="space-y-6 font-sans pb-16" data-testid="task-detail-page">
-      <div className="border-b border-[#E4E7EA] pb-4">
+      <div className="border-b border-[#E4E7EA] pb-4 flex items-center gap-3">
+        <Button variant="outline" size="sm" className="!px-2.5" onClick={() => navigate(-1)} aria-label={t('inspector.taskDetail.backButton')} title={t('inspector.taskDetail.backButton')}>
+          <ArrowLeft className="w-4 h-4" />
+        </Button>
         <h1 className="text-lg md:text-xl font-bold text-[#1A1F24] tracking-tight">{t('inspector.taskDetail.title')}</h1>
       </div>
 
@@ -187,7 +190,7 @@ export function TaskDetailPage() {
           {task.permit_id && (
             <Link
               to={`/permits/${task.permit_id}`}
-              className="inline-flex items-center justify-center h-12 px-6 text-base font-semibold rounded-md border border-[#767F87] text-[#1A1F24] hover:bg-[#F8F9FA] w-full sm:w-auto"
+              className="inline-flex items-center justify-center h-12 px-6 text-base font-semibold rounded-md border border-[#767F87] text-[#1A1F24] hover:bg-[#F0F7F1] hover:border-[#2E7D4F] hover:text-[#23653F] w-full sm:w-auto"
             >
               {t('inspector.taskDetail.viewPermitButton')}
             </Link>
@@ -195,7 +198,7 @@ export function TaskDetailPage() {
           {task.application_id && (
             <Link
               to={`/applications/${task.application_id}`}
-              className="inline-flex items-center justify-center h-12 px-6 text-base font-semibold rounded-md border border-[#767F87] text-[#1A1F24] hover:bg-[#F8F9FA] w-full sm:w-auto"
+              className="inline-flex items-center justify-center h-12 px-6 text-base font-semibold rounded-md border border-[#767F87] text-[#1A1F24] hover:bg-[#F0F7F1] hover:border-[#2E7D4F] hover:text-[#23653F] w-full sm:w-auto"
             >
               {t('inspector.taskDetail.viewApplicationButton')}
             </Link>

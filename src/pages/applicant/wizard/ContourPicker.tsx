@@ -167,12 +167,19 @@ export function ContourPicker({ value, onChange }: { value: PickedContour | null
     onChange(contour);
   }
 
+  // A CONSTANT className on the fullscreen TARGET, on purpose: MapLibre
+  // expands this grid by toggling `maplibregl-pseudo-fullscreen` on it
+  // imperatively and only then fires the event that sets `isFullscreen`.
+  // Were this className to depend on that state, React's re-render would
+  // rewrite the `class` attribute wholesale and drop MapLibre's class —
+  // a "shrink" button over a map still sitting in its card (the dev
+  // stand, 2026-09-13). The full-screen look is keyed on MapLibre's own
+  // class via `[&.maplibregl-pseudo-fullscreen]:` instead; the CHILDREN
+  // below may still read `isFullscreen`, MapLibre never touches them.
   return (
     <div
       ref={shellRef}
-      className={`grid grid-cols-1 lg:grid-cols-[340px_1fr] gap-6 ${
-        isFullscreen ? 'h-full bg-white p-4' : 'items-start'
-      }`}
+      className="grid grid-cols-1 lg:grid-cols-[340px_1fr] gap-6 items-start [&.maplibregl-pseudo-fullscreen]:items-stretch [&.maplibregl-pseudo-fullscreen]:bg-white [&.maplibregl-pseudo-fullscreen]:p-4"
     >
       <div
         className={`bg-white border border-[#E4E7EA] rounded-2xl p-4 shadow-xs space-y-3 ${

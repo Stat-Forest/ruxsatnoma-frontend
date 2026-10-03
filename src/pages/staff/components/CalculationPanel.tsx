@@ -1,7 +1,8 @@
 import { Calculator } from 'lucide-react';
-import type { ApplicationCardOut } from '../queries';
-import { formatAmount, formatDateTime } from '../format';
+import { useActivityTypes, useBenefitCategories, useLivestockTypes, type ApplicationCardOut } from '../queries';
+import { formatAmount, formatDateTime, localizedName } from '../format';
 import { useLanguage } from '../../../i18n/useT';
+import { CalculationBreakdown } from '../../applicant/components/CalculationBreakdown';
 
 const CALCULATION_PANEL_I18N = {
   uz_latn: {
@@ -44,14 +45,17 @@ const CALCULATION_PANEL_I18N = {
 /** The application's CURRENT stored price — `card.calculation`, the newest
  * `calculations` row (`applications.service.current_calculation`), which is
  * exactly what `payments` invoices from and what `decision.approve` checks
- * against the role's limit. Not the reference's invented formula breakdown
- * (`Oz`, `Oz_eff`, `InfraFee`) — `ApplicationCalculationOut` carries no
- * breakdown at all, only `PrecheckCalculationOut` (the dry-run preview) does,
- * and this card never runs a preview. */
+ * against the role's limit. Its lines are the ones the citizen sees on their
+ * own card (`CalculationBreakdown`), so the executor answering a question
+ * about the price reads the same explanation — not the reference's invented
+ * formula breakdown (`Oz`, `Oz_eff`, `InfraFee`). */
 export function CalculationPanel({ card }: { card: ApplicationCardOut }) {
   const { lang } = useLanguage();
   const tr = CALCULATION_PANEL_I18N[lang] ?? CALCULATION_PANEL_I18N.uz_latn;
   const calc = card.calculation;
+  const activityTypes = useActivityTypes();
+  const livestockTypes = useLivestockTypes();
+  const benefitCategories = useBenefitCategories();
 
   return (
     <section className="bg-white border border-[#E4E7EA] rounded-2xl shadow-xs font-sans overflow-hidden">
@@ -72,8 +76,16 @@ export function CalculationPanel({ card }: { card: ApplicationCardOut }) {
               <span className="text-2xl font-bold text-[#123522] font-mono">
                 {formatAmount(calc.amount)} {tr.currency}
               </span>
-              <span className="text-xs text-[#5A646D] font-mono">rule_version: {calc.rule_version}</span>
             </div>
+
+            <CalculationBreakdown
+              lines={calc.lines}
+              bhm={calc.bhm}
+              amount={calc.amount}
+              livestockName={(code) => localizedName(livestockTypes.data?.find((l) => l.code === code)?.name, lang)}
+              activityName={(code) => localizedName(activityTypes.data?.find((a) => a.code === code)?.name, lang)}
+              benefitName={(code) => localizedName(benefitCategories.data?.find((b) => b.code === code)?.name, lang)}
+            />
 
             {(calc.max_sb !== null || calc.used_sb !== null) && (
               <div className="bg-[#F8F9FA] p-4 rounded-xl border border-[#E4E7EA] space-y-2">

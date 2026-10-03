@@ -21,6 +21,7 @@
 import { useMemo, useState } from 'react';
 import { Pencil, Plus, RotateCcw } from 'lucide-react';
 import { DataTable, type Column } from '../../components/ui/DataTable';
+import { ExportXlsxButton } from '../../components/ui/ExportXlsxButton';
 import { FormField, Select } from '../../components/ui/FormControls';
 import { Alert } from '../../components/ui/Feedback';
 import { StatusBadge, type StatusType } from '../../components/ui/StatusBadge';
@@ -106,15 +107,13 @@ export function NormsTab({ active }: { active: boolean }) {
 
   const canManage = me != null && satisfies(NORMS_MANAGE, me);
 
-  const list = useNormsList(
-    {
-      activity_type_id: applied.activityTypeId || undefined,
-      status: applied.status || undefined,
-      limit: PAGE_SIZE,
-      offset: (page - 1) * PAGE_SIZE,
-    },
-    active,
-  );
+  const queryFilters = {
+    activity_type_id: applied.activityTypeId || undefined,
+    status: applied.status || undefined,
+    limit: PAGE_SIZE,
+    offset: (page - 1) * PAGE_SIZE,
+  };
+  const list = useNormsList(queryFilters, active);
 
   const rows = list.data?.items ?? [];
   const totalPages = list.data ? Math.max(1, Math.ceil(list.data.total / PAGE_SIZE)) : 1;
@@ -214,7 +213,7 @@ export function NormsTab({ active }: { active: boolean }) {
   return (
     <div data-testid="norms-tab-norms" className="space-y-4">
       <div className="space-y-3 rounded-2xl border border-[#E4E7EA] bg-white p-6 shadow-xs">
-        <div className="grid grid-cols-1 items-end gap-3 sm:grid-cols-2">
+        <div className="grid grid-cols-1 items-start gap-3 sm:grid-cols-2">
           <FormField label={t('norms.norms.filter.activityType')}>
             <Select
               data-testid="norms-filter-activity-type"
@@ -245,6 +244,12 @@ export function NormsTab({ active }: { active: boolean }) {
           <Button variant="primary" size="sm" onClick={applyFilters}>
             {t('norms.norms.filter.apply')}
           </Button>
+          <ExportXlsxButton
+            className="ml-auto"
+            path="/api/v1/norms"
+            query={queryFilters}
+            disabled={!list.data?.total}
+          />
         </div>
       </div>
 

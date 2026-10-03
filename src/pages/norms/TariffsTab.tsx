@@ -39,6 +39,7 @@
 import { useState } from 'react';
 import { Pencil, Plus, RotateCcw } from 'lucide-react';
 import { DataTable, type Column } from '../../components/ui/DataTable';
+import { ExportXlsxButton } from '../../components/ui/ExportXlsxButton';
 import { FormField, Input, Select } from '../../components/ui/FormControls';
 import { Alert } from '../../components/ui/Feedback';
 import { StatusBadge, type StatusType } from '../../components/ui/StatusBadge';
@@ -178,16 +179,14 @@ export function TariffsTab({ active }: { active: boolean }) {
     archive.reset();
   }
 
-  const list = useTariffsList(
-    {
-      activity_type_id: applied.activityTypeId || undefined,
-      status: applied.status || undefined,
-      on_date: applied.onDate || undefined,
-      limit: PAGE_SIZE,
-      offset: (page - 1) * PAGE_SIZE,
-    },
-    active,
-  );
+  const queryFilters = {
+    activity_type_id: applied.activityTypeId || undefined,
+    status: applied.status || undefined,
+    on_date: applied.onDate || undefined,
+    limit: PAGE_SIZE,
+    offset: (page - 1) * PAGE_SIZE,
+  };
+  const list = useTariffsList(queryFilters, active);
 
   function applyFilters() {
     setApplied(filters);
@@ -277,7 +276,7 @@ export function TariffsTab({ active }: { active: boolean }) {
   return (
     <div data-testid="norms-tab-tariffs" className="space-y-4">
       <div className="space-y-3 rounded-2xl border border-[#E4E7EA] bg-white p-6 shadow-xs">
-        <div className="grid grid-cols-1 items-end gap-3 sm:grid-cols-3">
+        <div className="grid grid-cols-1 items-start gap-3 sm:grid-cols-2 lg:grid-cols-3">
           <FormField label={t('norms.tariffs.filter.activityType')}>
             <Select
               data-testid="tariffs-filter-activity-type"
@@ -322,6 +321,12 @@ export function TariffsTab({ active }: { active: boolean }) {
           <Button variant="primary" size="sm" onClick={applyFilters}>
             {t('norms.tariffs.filter.apply')}
           </Button>
+          <ExportXlsxButton
+            className="ml-auto"
+            path="/api/v1/tariffs"
+            query={queryFilters}
+            disabled={!list.data?.total}
+          />
         </div>
       </div>
 

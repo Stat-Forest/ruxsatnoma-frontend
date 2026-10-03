@@ -14,6 +14,18 @@ import {
 import { LANGUAGE_LABEL, type LegalDocumentLabels } from './labels';
 import { useCreateLegalDocument, useLegalDocument, usePatchLegalDocument } from './queries';
 
+/** `LegalDocumentCreateIn.doc_number` (`CodeStr`, `app/core/schemas.py`). */
+const LEGAL_DOCUMENT_NUMBER_MAX_LENGTH = 64;
+/** `LegalDocumentCreateIn.title`/`.summary` — both `LocalizedName`, capped
+ *  at `LONG_TEXT_MAX_LENGTH` per language (the plan's own table expected
+ *  255 for `title`, but the JSON schema gives it the same `LocalizedName`
+ *  type as `summary`, so both mirror the same 10 000). */
+const LEGAL_DOCUMENT_TEXT_MAX_LENGTH = 10_000;
+/** `LegalDocumentCreateIn.source_url` (`UrlStr`). */
+const LEGAL_DOCUMENT_SOURCE_URL_MAX_LENGTH = 2048;
+/** `LegalDocumentCreateIn.sort_order` — `le=SORT_ORDER_MAX`. */
+const LEGAL_DOCUMENT_SORT_ORDER_MAX = 10000;
+
 interface FormState {
   title: Record<BackendLanguage, string>;
   summary: Record<BackendLanguage, string>;
@@ -218,6 +230,7 @@ function LegalDocumentForm({
               data-testid="legal-document-number"
               value={form.docNumber}
               onChange={(e) => set('docNumber', e.target.value)}
+              maxLength={LEGAL_DOCUMENT_NUMBER_MAX_LENGTH}
             />
           </FormField>
           <FormField label={L.fieldAdopted} htmlFor="legal-document-adopted">
@@ -238,8 +251,10 @@ function LegalDocumentForm({
               id="legal-document-sort-order"
               data-testid="legal-document-sort-order"
               type="number"
+              min={0}
               value={form.sortOrder}
               onChange={(e) => set('sortOrder', e.target.value)}
+              max={LEGAL_DOCUMENT_SORT_ORDER_MAX}
             />
           </FormField>
         </div>
@@ -259,6 +274,7 @@ function LegalDocumentForm({
                 data-testid={`legal-document-title-${code}`}
                 value={form.title[code]}
                 onChange={(e) => setLanguage('title', code, e.target.value)}
+                maxLength={LEGAL_DOCUMENT_TEXT_MAX_LENGTH}
               />
             </FormField>
           ))}
@@ -280,6 +296,7 @@ function LegalDocumentForm({
                 rows={2}
                 value={form.summary[code]}
                 onChange={(e) => setLanguage('summary', code, e.target.value)}
+                maxLength={LEGAL_DOCUMENT_TEXT_MAX_LENGTH}
               />
             </FormField>
           ))}
@@ -289,9 +306,11 @@ function LegalDocumentForm({
           <Input
             id="legal-document-source-url"
             data-testid="legal-document-source-url"
+            type="url"
             value={form.sourceUrl}
             onChange={(e) => set('sourceUrl', e.target.value)}
             placeholder="https://lex.uz/..."
+            maxLength={LEGAL_DOCUMENT_SOURCE_URL_MAX_LENGTH}
           />
         </FormField>
 

@@ -65,6 +65,12 @@ test('a line that misses the polygon is refused with a named reason, not silentl
   expect(screen.queryByRole('button', { name: 'gis.contours.split.confirm' })).not.toBeInTheDocument();
 });
 
+test('the piece number fields cap input at the backend bound (CodeStr, 64)', () => {
+  renderPanel(CUT_LINE);
+  expect(screen.getByLabelText('gis.contours.split.pieceA')).toHaveAttribute('maxLength', '64');
+  expect(screen.getByLabelText('gis.contours.split.pieceB')).toHaveAttribute('maxLength', '64');
+});
+
 test('a good cut issues exactly one request to the atomic split route, and the result names the parent plus both children', async () => {
   const splitRequests: { parentId: string; body: { piece_a: { number: string }; piece_b: { number: string } } }[] = [];
   server.use(
