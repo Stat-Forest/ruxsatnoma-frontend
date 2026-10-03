@@ -25,6 +25,9 @@ name: Notify Telegram
 #   TG_BOT_TOKEN         — bot token from @BotFather
 #   TG_CHAT_ID           — supergroup id (negative, e.g. -1001234567890)
 #   TG_MESSAGE_THREAD_ID — id of the target forum topic (optional; omitted if unset)
+# Issue events and comments on issues go to their own topic instead —
+# TG_ISSUES_THREAD below, a plain value: a topic id is useless without the
+# bot token and chat id.
 # To find the thread id: post into the topic, forward that message to
 # @RawDataBot (or read getUpdates) and copy `message_thread_id`.
 
@@ -76,6 +79,7 @@ jobs:
           TG_BOT_TOKEN: ${{ secrets.TG_BOT_TOKEN }}
           TG_CHAT_ID: ${{ secrets.TG_CHAT_ID }}
           TG_THREAD: ${{ secrets.TG_MESSAGE_THREAD_ID }}
+          TG_ISSUES_THREAD: "2584"   # the "Issues" topic, where the issue buttons live
           EVENT: ${{ github.event_name }}
           ACTION: ${{ github.event.action }}
           REPO: "🍊 ${{ github.repository }}"
@@ -288,9 +292,13 @@ jobs:
             TEXT=$(printf '%s\n%s' "${TEXT:0:$LIMIT}" "…(truncated)")
           fi
 
+          thread="${TG_THREAD:-}"
+          if [ "$EVENT" = issues ] || { [ "$EVENT" = issue_comment ] && [ -z "$IS_PR" ]; }; then
+            thread="$TG_ISSUES_THREAD"
+          fi
           args=( --data-urlencode "chat_id=${TG_CHAT_ID}" )
-          if [ -n "${TG_THREAD:-}" ]; then
-            args+=( --data-urlencode "message_thread_id=${TG_THREAD}" )
+          if [ -n "$thread" ]; then
+            args+=( --data-urlencode "message_thread_id=${thread}" )
           fi
           args+=( --data-urlencode "disable_web_page_preview=true" )
           args+=( --data-urlencode "text=${TEXT}" )
