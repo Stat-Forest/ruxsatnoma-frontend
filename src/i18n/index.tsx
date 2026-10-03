@@ -3,7 +3,7 @@ import type { ReactNode } from 'react';
 import { api } from '../api/client';
 import { apiError } from '../api/errors';
 import { useAuth } from '../auth/useAuth';
-import { DICTIONARIES, I18nContext, normalizeBackendLanguage, resolveLanguage } from './context';
+import { DICTIONARIES, I18nContext, LANGUAGES, normalizeBackendLanguage, resolveLanguage } from './context';
 import type { BackendLanguage } from './context';
 
 /**
@@ -23,6 +23,36 @@ import type { BackendLanguage } from './context';
  */
 export const ANONYMOUS_LANGUAGE_KEY = 'ruxsatnoma.language';
 
+/**
+ * The landing is another origin, so the language picked there never reaches
+ * this site's `localStorage`; every link into the cabinet carries it as
+ * `?lang=` instead. It is adopted as the ANONYMOUS choice, so it governs the
+ * login page and nothing more — a signed-in account keeps its own language,
+ * which is what in-app notifications are written in (Oybek, 2026-10-03,
+ * option «а»). Read before the first render, because `RequireAuth` redirects
+ * to `/login` by pathname alone and the query would be gone by then; removed
+ * from the address bar so a reload cannot undo a switch made on the login
+ * page. An unknown code is dropped without touching the stored choice.
+ */
+export const LANDING_LANGUAGE_PARAM = 'lang';
+
+function adoptLandingLanguage(): void {
+  const url = new URL(window.location.href);
+  const code = url.searchParams.get(LANDING_LANGUAGE_PARAM);
+  if (code === null) return;
+  if (LANGUAGES.some((language) => language.code === code)) {
+    try {
+      localStorage.setItem(ANONYMOUS_LANGUAGE_KEY, code);
+    } catch {
+      // Same as the switcher below: no storage, no memory of the choice.
+    }
+  }
+  url.searchParams.delete(LANDING_LANGUAGE_PARAM);
+  // `history.state` is the router's own bookkeeping (its `idx`/`key`); a
+  // replace that dropped it would break the back button.
+  window.history.replaceState(window.history.state, '', url);
+}
+
 function storedAnonymousLanguage(): BackendLanguage | null {
   try {
     const saved = localStorage.getItem(ANONYMOUS_LANGUAGE_KEY);
@@ -34,9 +64,10 @@ function storedAnonymousLanguage(): BackendLanguage | null {
 
 export function I18nProvider({ children }: { children: ReactNode }) {
   const { me } = useAuth();
-  const [override, setOverride] = useState<BackendLanguage | null>(() =>
-    me ? null : storedAnonymousLanguage(),
-  );
+  const [override, setOverride] = useState<BackendLanguage | null>(() => {
+    adoptLandingLanguage();
+    return me ? null : storedAnonymousLanguage();
+  });
 
   // A login/logout (a change of user identity) must not leak the previous
   // account's manually-picked language into the next one. Resetting state

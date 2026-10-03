@@ -338,6 +338,56 @@ it('opens in the language the visitor picked last time', async () => {
   expect(await screen.findByRole('tab', { name: 'Логин/Пароль' })).toBeInTheDocument();
 });
 
+// The landing is another origin, so the language picked there never reaches
+// this site's `localStorage`; every link into the cabinet carries it as
+// `?lang=` instead.
+describe('the language handed over by the landing', () => {
+  it('opens the login page in it, and drops it from the address bar', async () => {
+    await router.navigate('/login?lang=ru');
+    render(<App />);
+    expect(await screen.findByRole('tab', { name: 'Логин/Пароль' })).toBeInTheDocument();
+    expect(localStorage.getItem(LANGUAGE_KEY)).toBe('ru');
+    // Left in place, a reload would undo a switch made on the login page.
+    expect(window.location.search).toBe('');
+  });
+
+  it('survives the redirect to /login from a page that needs a session', async () => {
+    // The landing's «Ariza topshirish» links to the wizard, not to /login;
+    // `RequireAuth` redirects by pathname alone, so the query is gone by then.
+    await router.navigate('/my/applications/new?lang=ru');
+    render(<App />);
+    expect(await screen.findByRole('tab', { name: 'Логин/Пароль' })).toBeInTheDocument();
+    expect(router.state.location.pathname).toBe('/login');
+  });
+
+  it('ignores a code no language has, keeping the visitor’s own pick', async () => {
+    localStorage.setItem(LANGUAGE_KEY, 'ru');
+    await router.navigate('/login?lang=xx');
+    render(<App />);
+    expect(await screen.findByRole('tab', { name: 'Логин/Пароль' })).toBeInTheDocument();
+    expect(localStorage.getItem(LANGUAGE_KEY)).toBe('ru');
+  });
+
+  it('does not override a signed-in account’s own language', async () => {
+    // Oybek, 2026-10-03, option «а»: the hand-over governs the login page
+    // only. The account's language is what in-app notifications are written
+    // in, and a click on the landing must not change it behind their back.
+    server.use(
+      http.get('*/auth/me', () => HttpResponse.json(ME)),
+      http.get('*/api/v1/applications', () =>
+        HttpResponse.json({ items: [], total: 0, page: 1, page_size: 100 }),
+      ),
+      http.get('*/api/v1/permits', () => HttpResponse.json({ items: [], total: 0, page: 1, page_size: 100 })),
+      http.get('*/api/v1/invoices', () => HttpResponse.json({ items: [], total: 0, page: 1, page_size: 100 })),
+      http.get('*/api/v1/refs/activity-types', () => HttpResponse.json([])),
+    );
+    await router.navigate('/?lang=ru');
+    render(<App />);
+    expect(await screen.findByTestId('app-shell')).toBeInTheDocument();
+    expect(screen.getByTestId('language-trigger')).toHaveTextContent('UZ');
+  });
+});
+
 // A live session at `/login`: the landing's "Kirish" button and a stale
 // bookmark both land here with the cookie still valid. Showing the form to
 // someone who is already signed in is a dead end — every route out of it
