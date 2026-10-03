@@ -213,7 +213,7 @@ export function BeekeeperFormModal({ mode, beekeeper, onClose }: BeekeeperFormMo
               maxLength={BEEKEEPER_CODE_MAX_LENGTH}
             />
           </FormField>
-          <FormField label={t('beekeepers.form.fieldValidTo')} helperText={t('beekeepers.form.validToHint')}>
+          <FormField label={t('beekeepers.form.fieldValidTo')}>
             <Input type="date" value={form.validTo} onChange={(e) => set('validTo', e.target.value)} data-testid="beekeeper-form-valid-to" />
           </FormField>
         </div>

@@ -1992,7 +1992,6 @@ export const en = {
   // Ruling #217 — the certificate's term and the Union's monitoring tab.
   'beekeepers.col.validTo': 'Valid until',
   'beekeepers.form.fieldValidTo': 'Valid until',
-  'beekeepers.form.validToHint': 'The "valid until" date printed on the certificate. Leave blank when it carries none.',
   // The Beekeeping Union registrar's home screen (`BeekeepingRegistrarDashboardPage`).
   'registrarDash.title': "Beekeeping Union",
   'registrarDash.subtitle': "The register today and the applications claiming the Union member benefit",

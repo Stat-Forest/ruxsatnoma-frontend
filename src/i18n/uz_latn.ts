@@ -2211,7 +2211,6 @@ export const uz_latn = {
   // Ruling #217 — the certificate's term and the Union's monitoring tab.
   'beekeepers.col.validTo': 'Amal qilish muddati',
   'beekeepers.form.fieldValidTo': 'Amal qilish muddati (gacha)',
-  'beekeepers.form.validToHint': 'Guvohnomadagi «... gacha amal qiladi» sanasi. Muddat koʻrsatilmagan boʻlsa — boʻsh qoldiring.',
   // The Beekeeping Union registrar's home screen (`BeekeepingRegistrarDashboardPage`).
   'registrarDash.title': "Asalarichilar uyushmasi",
   'registrarDash.subtitle': "Reyestr holati va uyushma aʼzosi imtiyozi bilan berilgan arizalar",

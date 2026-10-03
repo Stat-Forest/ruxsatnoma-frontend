@@ -2169,7 +2169,6 @@ export const ru = {
   // Ruling #217 — the certificate's term and the Union's monitoring tab.
   'beekeepers.col.validTo': 'Действует до',
   'beekeepers.form.fieldValidTo': 'Действует до',
-  'beekeepers.form.validToHint': 'Дата «Действует до …» с удостоверения. Если срок не указан — оставьте пустым.',
   // The Beekeeping Union registrar's home screen (`BeekeepingRegistrarDashboardPage`).
   'registrarDash.title': "Союз пчеловодов",
   'registrarDash.subtitle': "Состояние реестра и заявки с льготой члена Союза",

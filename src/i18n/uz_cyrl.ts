@@ -2205,7 +2205,6 @@ export const uz_cyrl = {
   // Ruling #217 — the certificate's term and the Union's monitoring tab.
   'beekeepers.col.validTo': 'Амал қилиш муддати',
   'beekeepers.form.fieldValidTo': 'Амал қилиш муддати (гача)',
-  'beekeepers.form.validToHint': 'Гувоҳномадаги «... гача амал қилади» санаси. Муддат кўрсатилмаган бўлса — бўш қолдиринг.',
   // The Beekeeping Union registrar's home screen (`BeekeepingRegistrarDashboardPage`).
   'registrarDash.title': "Асаларичилар уюшмаси",
   'registrarDash.subtitle': "Реестр ҳолати ва уюшма аъзоси имтиёзи билан берилган аризалар",

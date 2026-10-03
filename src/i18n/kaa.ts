@@ -1992,7 +1992,6 @@ export const kaa = {
   // Ruling #217 — the certificate's term and the Union's monitoring tab.
   'beekeepers.col.validTo': 'Ámel qılıw múddeti',
   'beekeepers.form.fieldValidTo': 'Ámel qılıw múddeti (shekem)',
-  'beekeepers.form.validToHint': 'Guwalıqtaǵı «... shekem ámel qıladı» sánesi. Múddet kórsetilmegen bolsa — bos qaldırıń.',
   // The Beekeeping Union registrar's home screen (`BeekeepingRegistrarDashboardPage`).
   'registrarDash.title': "Arashılar awqamı",
   'registrarDash.subtitle': "Reestr jaǵdayı hám awqam aǵzası jeńilligi menen berilgen arzalar",
