@@ -15,6 +15,7 @@ import { Button } from '../../components/ui/button';
 import { Drawer } from '../../components/ui/Overlay';
 import { ApiError } from '../../api/errors';
 import { useT } from '../../i18n/useT';
+import { shortId } from '../permits/format';
 import { useArchiveItem, useVerifyArchiveItem } from './queries';
 
 export interface ArchiveItemDrawerProps {
@@ -45,8 +46,9 @@ export function ArchiveItemDrawer({ itemId, canManage, onClose }: ArchiveItemDra
             <Link
               to={detail.data.object_type === 'application' ? `/applications/${detail.data.object_id}` : `/permits/${detail.data.object_id}`}
               className="font-mono text-[#2E7D4F] hover:underline"
+              title={detail.data.object_id}
             >
-              {detail.data.object_id}
+              {detail.data.object_number ?? shortId(detail.data.object_id)}
             </Link>
           </Field>
           <Field label={t('archive.col.status')}>

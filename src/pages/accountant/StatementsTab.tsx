@@ -1,7 +1,8 @@
 import { useRef, useState } from 'react';
-import { AlertTriangle, Search, UploadCloud } from 'lucide-react';
+import { AlertTriangle, UploadCloud } from 'lucide-react';
 import { Button } from '../../components/ui/button';
-import { FileInput, FormField, Input } from '../../components/ui/FormControls';
+import { FileInput, FormField, Input, Select } from '../../components/ui/FormControls';
+import { Pagination } from '../../components/ui/Navigation';
 import { Alert } from '../../components/ui/Feedback';
 import { ExportXlsxButton } from '../../components/ui/ExportXlsxButton';
 import { useAuth } from '../../auth/useAuth';
@@ -11,14 +12,16 @@ import { useLanguage, useT } from '../../i18n/useT';
 import { formatDate, formatDateTime, formatMoney } from '../permits/format';
 import {
   MATCH_STATUS_STYLE,
+  STATEMENT_STATUS_LABEL,
   STATEMENT_STATUS_STYLE,
   getMatchStatusLabel,
   getStatementStatusLabel,
 } from './statusMeta';
-import { useBankStatement, useCreateBankStatement } from './queries';
+import { useBankStatement, useBankStatements, useCreateBankStatement } from './queries';
 
 const PAYMENTS_VIEW = 'payments.view';
 const PAYMENTS_MANAGE = 'payments.manage';
+const PAGE_SIZE = 20;
 
 /**
  * G3 — bank-statement import and reconciliation (matching itself is a
@@ -27,10 +30,15 @@ const PAYMENTS_MANAGE = 'payments.manage';
  * status is `pending`/`parsing`, same idea `useBankStatement`'s own
  * `refetchInterval` implements).
  *
- * Like G1 (`06.5-accountant.md` ruling R1), there is no route that lists
- * statements at all — only a `POST` and a by-id `GET`. Opening one after
- * this session's own upload is a courtesy list kept in component state;
- * opening one from an earlier session works only by pasting its id.
+ * `GET /payments/bank-statements` is the register (backend-gaps finding 3).
+ * This screen said for three stages that no such route existed and made do
+ * with a per-session list of ids uploaded in THIS session plus a hand-typed
+ * id to reopen an earlier one — the route has existed since 7.x, this
+ * screen simply lagged it. Stage 14 (#205 R4) replaces both stand-ins with
+ * `StatementsRegister` below: `useBankStatements` lists every statement
+ * (optionally narrowed by `status`), newest first, and a row's own «Ochish»
+ * button is the only way `openId` is ever set from state that did not just
+ * come out of an upload's own response.
  *
  * `POST /payments/bank-statements` requires `payments.manage`,
  * `GET /payments/bank-statements/{id}` requires `payments.view`
@@ -48,9 +56,7 @@ export function StatementsTab() {
   const canUpload = Boolean(me?.is_superuser || me?.permissions.includes(PAYMENTS_MANAGE));
   const canView = Boolean(me?.is_superuser || me?.permissions.includes(PAYMENTS_VIEW));
 
-  const [uploadedIds, setUploadedIds] = useState<string[]>([]);
   const [openId, setOpenId] = useState<string | null>(null);
-  const [openIdDraft, setOpenIdDraft] = useState('');
 
   if (!canUpload && !canView) {
     return (
@@ -62,56 +68,122 @@ export function StatementsTab() {
 
   return (
     <div className="space-y-5" data-testid="statements-tab">
-      {canUpload && (
-        <UploadForm
-          onAccepted={(id) => {
-            setUploadedIds((prev) => [id, ...prev]);
-            setOpenId(id);
-          }}
-        />
-      )}
+      {canUpload && <UploadForm onAccepted={(id) => setOpenId(id)} />}
 
-      {canView && (
-        <section className="rounded-2xl border border-[#E4E7EA] bg-white p-4 shadow-xs">
-          <div className="mb-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-            <h2 className="text-sm font-bold text-[#1A1F24]">{t('accountant.statements.openIdLabel')}</h2>
-            <ExportXlsxButton className="ml-auto" path="/api/v1/payments/bank-statements" query={{}} />
-          </div>
-          <form
-            className="flex flex-col sm:flex-row sm:items-end gap-2.5"
-            onSubmit={(e) => {
-              e.preventDefault();
-              if (openIdDraft.trim()) setOpenId(openIdDraft.trim());
-            }}
-          >
-            <FormField label={t('accountant.statements.openIdLabel')} htmlFor="statement-open-id" className="flex-1 w-full">
-              <Input id="statement-open-id" value={openIdDraft} onChange={(e) => setOpenIdDraft(e.target.value)} placeholder="UUID" />
-            </FormField>
-            <Button type="submit" variant="secondary" className="w-full sm:w-auto" leftIcon={<Search className="h-4 w-4" />}>
-              {t('accountant.statements.openButton')}
-            </Button>
-          </form>
-
-          {uploadedIds.length > 0 && (
-            <ul className="mt-3 space-y-1 text-xs">
-              {uploadedIds.map((id) => (
-                <li key={id}>
-                  <button
-                    type="button"
-                    className="font-mono text-[#2E7D4F] underline hover:text-[#23653F] break-all text-left"
-                    onClick={() => setOpenId(id)}
-                  >
-                    {id}
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
-      )}
+      {canView && <StatementsRegister onOpen={setOpenId} />}
 
       {canView && openId && <StatementDetail statementId={openId} />}
     </div>
+  );
+}
+
+/** `imported`/`skipped` are read off `stats` defensively — it is a loose
+ *  `Record<string, unknown>` the worker fills in once parsing settles, so a
+ *  `pending`/`parsing` row's `stats` is `{}` and has neither key yet. */
+function importedSkippedText(stats: Record<string, unknown>): string {
+  const hasImported = Object.prototype.hasOwnProperty.call(stats, 'imported');
+  const hasSkipped = Object.prototype.hasOwnProperty.call(stats, 'skipped');
+  if (!hasImported && !hasSkipped) return '—';
+  return `${hasImported ? String(stats.imported) : '—'} / ${hasSkipped ? String(stats.skipped) : '—'}`;
+}
+
+function StatementsRegister({ onOpen }: { onOpen: (id: string) => void }) {
+  const t = useT();
+  const { lang } = useLanguage();
+  const [status, setStatus] = useState('');
+  const [page, setPage] = useState(1);
+
+  const query = useBankStatements({ status: status || undefined, limit: PAGE_SIZE, offset: (page - 1) * PAGE_SIZE });
+
+  const statusOptions = [
+    { value: '', label: t('accountant.common.all') },
+    ...Object.keys(STATEMENT_STATUS_LABEL).map((value) => ({ value, label: getStatementStatusLabel(value, lang) })),
+  ];
+
+  const totalPages = query.data ? Math.max(1, Math.ceil(query.data.total / PAGE_SIZE)) : 1;
+
+  return (
+    <section className="rounded-2xl border border-[#E4E7EA] bg-white shadow-xs">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#E4E7EA] p-4">
+        <h2 className="text-sm font-bold text-[#1A1F24]">{t('accountant.statements.registerTitle')}</h2>
+        <div className="flex items-end gap-2 w-full sm:w-auto">
+          <FormField label={t('accountant.invoices.statusFilterLabel')} htmlFor="statements-status-filter" className="w-full sm:w-auto">
+            <Select
+              id="statements-status-filter"
+              value={status}
+              onChange={(e) => {
+                setStatus(e.target.value);
+                setPage(1);
+              }}
+              options={statusOptions}
+            />
+          </FormField>
+          <ExportXlsxButton
+            className="ml-auto"
+            path="/api/v1/payments/bank-statements"
+            query={{ status: status || undefined }}
+            disabled={!query.data?.total}
+          />
+        </div>
+      </div>
+
+      {query.isLoading ? (
+        <p className="p-4 text-sm text-[#5A646D]">{t('accountant.common.loading')}</p>
+      ) : query.isError ? (
+        <div className="p-4">
+          <Alert variant="danger">{t('accountant.statements.loadFailed')}</Alert>
+        </div>
+      ) : query.data!.items.length === 0 ? (
+        <p className="p-4 text-sm text-[#5A646D]">{t('accountant.statements.empty')}</p>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm min-w-[650px] whitespace-nowrap">
+            <thead className="bg-[#F8F9FA] text-left text-xs font-bold uppercase tracking-wide text-[#5A646D]">
+              <tr>
+                <th className="px-4 py-3">{t('accountant.statements.dateLabel')}</th>
+                <th className="px-4 py-3">{t('accountant.statements.colSource')}</th>
+                <th className="px-4 py-3">{t('accountant.statements.colStatus')}</th>
+                <th className="px-4 py-3">{t('accountant.statements.colImported')}</th>
+                <th className="px-4 py-3">{t('accountant.statements.updatedAt')}</th>
+                <th className="px-4 py-3 text-right">{t('accountant.discrepancies.colActions')}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {query.data!.items.map((row) => (
+                <tr key={row.id} className="border-t border-[#E4E7EA]" data-testid={`statement-row-${row.id}`}>
+                  <td className="px-4 py-3 font-mono text-xs">{formatDate(row.statement_date)}</td>
+                  <td className="px-4 py-3 text-xs">
+                    {row.source} / {row.format}
+                  </td>
+                  <td className="px-4 py-3">
+                    <span
+                      className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-bold ${
+                        STATEMENT_STATUS_STYLE[row.status] ?? STATEMENT_STATUS_STYLE.pending
+                      }`}
+                    >
+                      {getStatementStatusLabel(row.status, lang)}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3 font-mono text-xs">{importedSkippedText(row.stats)}</td>
+                  <td className="px-4 py-3 font-mono text-xs">{formatDateTime(row.created_at)}</td>
+                  <td className="px-4 py-3 text-right">
+                    <Button size="sm" variant="outline" onClick={() => onOpen(row.id)}>
+                      {t('accountant.statements.openRow')}
+                    </Button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {query.data && query.data.total > 0 && (
+        <div className="px-4 border-t border-[#E4E7EA] overflow-x-auto">
+          <Pagination currentPage={page} totalPages={totalPages} onPageChange={setPage} totalRecords={query.data.total} />
+        </div>
+      )}
+    </section>
   );
 }
 

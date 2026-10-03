@@ -30,6 +30,7 @@ export type InvoiceStatus = InvoiceOut['status'];
 export type AllocationOut = components['schemas']['AllocationOut'];
 export type StatementAccepted = components['schemas']['StatementAccepted'];
 export type StatementOut = components['schemas']['StatementOut'];
+export type StatementListItem = components['schemas']['StatementListItem'];
 export type StatementLineOut = components['schemas']['StatementLineOut'];
 export type ReconciliationOut = components['schemas']['ReconciliationOut'];
 export type ManualConfirmationOut = components['schemas']['ManualConfirmationOut'];
@@ -54,6 +55,8 @@ export async function getInvoice(invoiceId: string): Promise<InvoiceOut> {
 
 export interface ListInvoicesParams {
   application_id?: string;
+  application_number?: string;
+  number?: string;
   status?: InvoiceStatus;
   limit?: number;
   offset?: number;
@@ -68,6 +71,13 @@ export interface ListInvoicesParams {
  * stale ruling. Returns the whole `Page<InvoiceOut>`, not just `.items`: the
  * register needs `.total` for pagination, which the old application-only
  * helper this replaces never had to carry.
+ *
+ * Stage 14 (#205 R1): `application_number` and `number` (the invoice's own
+ * public number, e.g. `INV-2026-000123`) let the register be searched the
+ * way a person reads it off a document — `application_id` stays on the type
+ * to mirror the route; no adminka caller passes it today (final review
+ * minor: the earlier claim that the zone banner drills down through it was
+ * false — grep finds no such caller).
  */
 export async function listInvoices(params: ListInvoicesParams) {
   const { data, error } = await api.GET('/api/v1/invoices', { params: { query: params } });
@@ -133,6 +143,21 @@ export async function getBankStatement(
   const { data, error } = await api.GET('/api/v1/payments/bank-statements/{statement_id}', {
     params: { path: { statement_id: statementId }, query: paging },
   });
+  if (error) throw apiError(error);
+  return data;
+}
+
+export interface ListBankStatementsParams {
+  status?: string;
+  limit?: number;
+  offset?: number;
+}
+
+/** `GET /payments/bank-statements` — the register (backend-gaps finding 3),
+ *  newest first. This screen said for three stages that no such route
+ *  existed; it has since 7.x. Stage 14 (#205 R4). */
+export async function listBankStatements(params: ListBankStatementsParams = {}) {
+  const { data, error } = await api.GET('/api/v1/payments/bank-statements', { params: { query: params } });
   if (error) throw apiError(error);
   return data;
 }
@@ -268,11 +293,17 @@ export async function getRefund(refundId: string): Promise<RefundOut> {
   return data;
 }
 
-export async function requestRefund(body: {
-  application_id: string;
-  basis_item_id: string;
-  comment?: string | null;
-}): Promise<RefundOut> {
+/**
+ * Stage 14 (#205 R2, Task 7): the generated `RefundRequestIn` has both
+ * `application_id` and `application_number` optional, exactly one required
+ * by the schema itself. This wrapper pins the accountant's own call site to
+ * `application_number` — the number an accountant actually holds, never the
+ * id a citizen's cabinet carries (that flow is `applicant/api.ts::requestRefund`,
+ * a separate wrapper this one does not share).
+ */
+export type RequestRefundBody = { application_number: string; basis_item_id: string; comment: string | null };
+
+export async function requestRefund(body: RequestRefundBody): Promise<RefundOut> {
   const { data, error } = await api.POST('/api/v1/refunds', { body });
   if (error) throw apiError(error);
   return data;

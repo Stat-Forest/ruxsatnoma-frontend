@@ -4,7 +4,9 @@
  * `./api.ts`, paged lists keep `placeholderData` so a filter change or a
  * page turn does not blank the table between renders.
  */
+import { useEffect, useRef } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { ApiError } from '../../api/errors';
 import {
   approveRefund,
   confirmManualConfirmation,
@@ -15,6 +17,7 @@ import {
   getInvoice,
   getRefund,
   listAllocationsForInvoice,
+  listBankStatements,
   listDistricts,
   listInvoices,
   listManualConfirmations,
@@ -27,10 +30,12 @@ import {
   submitRefundDecision,
   type CreateBankStatementParams,
   type FileManualConfirmationInput,
+  type ListBankStatementsParams,
   type ListInvoicesParams,
   type ListManualConfirmationsParams,
   type ListRefundsParams,
   type ListReconciliationsParams,
+  type RequestRefundBody,
 } from './api';
 
 const INVOICE_KEY = ['accountant', 'invoice'] as const;
@@ -38,6 +43,7 @@ const INVOICES_LIST_KEY = ['accountant', 'invoices-list'] as const;
 const ALLOCATIONS_KEY = ['accountant', 'allocations'] as const;
 const MANUAL_CONFIRMATIONS_KEY = ['accountant', 'manual-confirmations'] as const;
 const STATEMENT_KEY = ['accountant', 'statement'] as const;
+const BANK_STATEMENTS_LIST_KEY = ['accountant', 'bank-statements'] as const;
 const RECONCILIATIONS_KEY = ['accountant', 'reconciliations'] as const;
 const REFUNDS_KEY = ['accountant', 'refunds'] as const;
 const ORG_NAME_KEY = ['accountant', 'zone-organization'] as const;
@@ -62,11 +68,20 @@ export function useInvoice(invoiceId: string | null) {
  *  `placeholderData` keeps the table from blanking between a status change
  *  or a page turn, the same convention every other paged list in this file
  *  already follows. */
+/** A typed number that names nothing answers 404 `ERR-SYS-003` — a final
+ *  answer, so it is not retried. Retried with React Query's default backoff,
+ *  the previous, unfiltered rows stayed on screen under the filter banner for
+ *  several seconds (`placeholderData`) before the not-found message came. */
+function retryUnlessNotFound(failureCount: number, error: unknown): boolean {
+  return !(error instanceof ApiError && error.code === 'ERR-SYS-003') && failureCount < 3;
+}
+
 export function useInvoicesList(params: ListInvoicesParams) {
   return useQuery({
     queryKey: [...INVOICES_LIST_KEY, params],
     queryFn: () => listInvoices(params),
     placeholderData: (previous) => previous,
+    retry: retryUnlessNotFound,
   });
 }
 
@@ -95,23 +110,64 @@ export function useFileManualConfirmation() {
 // ── G3 ────────────────────────────────────────────────────────────────────
 
 export function useCreateBankStatement() {
+  const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (params: CreateBankStatementParams) => createBankStatement(params),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: BANK_STATEMENTS_LIST_KEY });
+    },
   });
 }
 
-export function useBankStatement(statementId: string | null, paging: { limit?: number; offset?: number } = {}) {
+/** `GET /payments/bank-statements` — the register (backend-gaps finding 3,
+ *  Stage 14 #205 R4). `placeholderData` matches every other paged list in
+ *  this file. */
+export function useBankStatements(params: ListBankStatementsParams) {
   return useQuery({
+    queryKey: [...BANK_STATEMENTS_LIST_KEY, params],
+    queryFn: () => listBankStatements(params),
+    placeholderData: (previous) => previous,
+  });
+}
+
+/** Whether a bank statement's status still means "the worker job has not
+ *  settled yet" — shared between the polling condition below and the
+ *  transition check that fires the register invalidation, so the two stay
+ *  in lockstep by construction rather than by two hand-kept copies. */
+function isPollingStatus(status: string | undefined): boolean {
+  return status === 'pending' || status === 'parsing';
+}
+
+/**
+ * A4 (final review): the register (`useBankStatements`) has no
+ * `refetchInterval` of its own — it renders whatever it fetched once, so a
+ * row's status pill goes stale for as long as this detail keeps polling
+ * underneath it. This effect watches the SAME query's own data for the
+ * pending/parsing -> settled transition and invalidates the list right then,
+ * so the register catches up the moment the worker finishes instead of
+ * waiting for an unrelated focus/refetch.
+ */
+export function useBankStatement(statementId: string | null, paging: { limit?: number; offset?: number } = {}) {
+  const queryClient = useQueryClient();
+  const query = useQuery({
     queryKey: [...STATEMENT_KEY, statementId, paging],
     queryFn: () => getBankStatement(statementId!, paging),
     enabled: statementId !== null,
     // Parsing is async (a worker job) — poll while the status has not
     // settled yet, so the accountant does not have to refresh by hand.
-    refetchInterval: (query) => {
-      const status = query.state.data?.status;
-      return status === 'pending' || status === 'parsing' ? 2000 : false;
-    },
+    refetchInterval: (q) => (isPollingStatus(q.state.data?.status) ? 2000 : false),
   });
+
+  const status = query.data?.status;
+  const previousStatus = useRef<string | undefined>(undefined);
+  useEffect(() => {
+    if (isPollingStatus(previousStatus.current) && status !== undefined && !isPollingStatus(status)) {
+      void queryClient.invalidateQueries({ queryKey: BANK_STATEMENTS_LIST_KEY });
+    }
+    previousStatus.current = status;
+  }, [status, queryClient]);
+
+  return query;
 }
 
 // ── G4 ────────────────────────────────────────────────────────────────────
@@ -192,8 +248,7 @@ export function useRefund(refundId: string | null) {
 export function useRequestRefund() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (body: { application_id: string; basis_item_id: string; comment?: string | null }) =>
-      requestRefund(body),
+    mutationFn: (body: RequestRefundBody) => requestRefund(body),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: REFUNDS_KEY });
     },

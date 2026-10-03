@@ -25,6 +25,7 @@ import { ExportXlsxButton } from '../../components/ui/ExportXlsxButton';
 import { FormField, Select } from '../../components/ui/FormControls';
 import { useLanguage, useT } from '../../i18n/useT';
 import { pickLocalizedName, useLeshozOrganizations } from './refs';
+import { shortId } from '../permits/format';
 import { useArchiveItems } from './queries';
 import { ArchiveItemDrawer } from './ArchiveItemDrawer';
 import { ArchiveObjectModal } from './ArchiveObjectModal';
@@ -71,8 +72,9 @@ export function ArchivePage() {
         <Link
           to={row.object_type === 'application' ? `/applications/${row.object_id}` : `/permits/${row.object_id}`}
           className="font-mono text-xs text-[#2E7D4F] hover:underline"
+          title={row.object_id}
         >
-          {row.object_id.slice(0, 8)}
+          {row.object_number ?? shortId(row.object_id)}
         </Link>
       ),
     },

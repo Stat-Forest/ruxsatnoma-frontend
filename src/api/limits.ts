@@ -8,3 +8,4 @@
 export const SEARCH_MAX_LENGTH = 200; // `?q=` on every list — SEARCH_MAX_LENGTH
 export const APPLICATION_NUMBER_MAX_LENGTH = 64; // `/applications?number` — NUMBER_MAX_LENGTH
 export const PERMIT_QR_MAX_LENGTH = 128; // `/public/permits/check?qr`
+export const PUBLIC_NUMBER_MAX_LENGTH = 64; // `RX-…`/`INV-…` typed into `/invoices`, `/refunds`, `/archive/*/by-number` — PUBLIC_NUMBER_MAX_LENGTH
