@@ -267,6 +267,37 @@ test('create posts the typed body', async () => {
   });
 });
 
+test('the passport takes the Uzbek format only: two Latin capitals and seven digits', async () => {
+  server.use(http.get('*/api/v1/beekeepers/lookup', NOT_FOUND));
+  const user = userEvent.setup();
+  renderPage();
+
+  await user.click(await screen.findByTestId('beekeeper-create-button'));
+  await user.type(screen.getByTestId('beekeeper-form-certificate-no'), 'BEE-003');
+  await user.type(screen.getByTestId('beekeeper-form-pinfl'), '30260904000003');
+  await user.type(await screen.findByTestId('beekeeper-form-full-name'), 'Format Tekshiruv');
+
+  const series = screen.getByTestId('beekeeper-form-passport-series');
+  const number = screen.getByTestId('beekeeper-form-passport-number');
+  // The screenshot's own input: letters into the number, a word into the series.
+  await user.type(series, 'kjdasnajkd');
+  await user.type(number, 'sakjdnaskjd');
+  expect(series).toHaveValue('KJ');
+  expect(number).toHaveValue('');
+
+  await user.clear(series);
+  await user.type(series, 'a1б-d');
+  await user.type(number, '12a34 5678 9');
+  expect(series).toHaveValue('AD');
+  expect(number).toHaveValue('1234567');
+  expect(screen.getByTestId('beekeeper-form-submit')).toBeEnabled();
+
+  // Six digits is not a passport number — the form will not send it.
+  await user.type(number, '{Backspace}');
+  expect(number).toHaveValue('123456');
+  expect(screen.getByTestId('beekeeper-form-submit')).toBeDisabled();
+});
+
 test('the certificate no. field caps input at the backend bound (CodeStr, 64)', async () => {
   server.use(http.get('*/api/v1/beekeepers/lookup', NOT_FOUND));
   const user = userEvent.setup();

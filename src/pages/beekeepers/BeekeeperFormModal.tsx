@@ -12,9 +12,13 @@ import { lookupBeekeeper, type BeekeeperOut } from './api';
 import { useCreateBeekeeper, usePatchBeekeeper } from './queries';
 
 const STIR_PATTERN = /^\d{9}$/;
+/** An Uzbek passport or ID card, "AB1234567" — `schemas.PassportSeries`/
+ *  `PassportNumber` and the register's CHECKs (migration 0069). */
+const PASSPORT_SERIES_PATTERN = /^[A-Z]{2}$/;
+const PASSPORT_NUMBER_PATTERN = /^[0-9]{7}$/;
 
-/** `BeekeeperCreateIn`/`BeekeeperPatchIn` — `certificate_no`, `passport_series`,
- *  `passport_number` (`CodeStr`, `app/core/schemas.py`). */
+/** `BeekeeperCreateIn`/`BeekeeperPatchIn` — `certificate_no` (`CodeStr`,
+ *  `app/core/schemas.py`). */
 const BEEKEEPER_CODE_MAX_LENGTH = 64;
 /** `BeekeeperCreateIn`/`BeekeeperPatchIn` — `full_name` (`NameStr`). */
 const BEEKEEPER_NAME_MAX_LENGTH = 255;
@@ -162,8 +166,8 @@ export function BeekeeperFormModal({ mode, beekeeper, onClose }: BeekeeperFormMo
     PINFL_PATTERN.test(form.pinfl) &&
     form.certificateNo.trim().length > 0 &&
     form.fullName.trim().length > 0 &&
-    form.passportSeries.trim().length > 0 &&
-    form.passportNumber.trim().length > 0 &&
+    PASSPORT_SERIES_PATTERN.test(form.passportSeries) &&
+    PASSPORT_NUMBER_PATTERN.test(form.passportNumber) &&
     (form.stir.trim().length === 0 || STIR_PATTERN.test(form.stir.trim()));
 
   function submit() {
@@ -171,8 +175,8 @@ export function BeekeeperFormModal({ mode, beekeeper, onClose }: BeekeeperFormMo
     const body = {
       certificate_no: form.certificateNo.trim(),
       pinfl: form.pinfl,
-      passport_series: form.passportSeries.trim(),
-      passport_number: form.passportNumber.trim(),
+      passport_series: form.passportSeries,
+      passport_number: form.passportNumber,
       stir: form.stir.trim() || null,
       full_name: form.fullName.trim(),
       // Ruling #217: the certificate's own term («Действует до 31.12.2025»);
@@ -264,19 +268,22 @@ export function BeekeeperFormModal({ mode, beekeeper, onClose }: BeekeeperFormMo
               <FormField label={t('beekeepers.form.fieldPassportSeries')} required>
                 <Input
                   value={form.passportSeries}
-                  onChange={(e) => set('passportSeries', e.target.value)}
+                  // Latin letters only, folded to capitals — anything else
+                  // never reaches the field.
+                  onChange={(e) => set('passportSeries', e.target.value.toUpperCase().replace(/[^A-Z]/g, '').slice(0, 2))}
                   disabled={locked.passport}
+                  placeholder="AA"
                   data-testid="beekeeper-form-passport-series"
-                  maxLength={BEEKEEPER_CODE_MAX_LENGTH}
                 />
               </FormField>
               <FormField label={t('beekeepers.form.fieldPassportNumber')} required>
                 <Input
+                  inputMode="numeric"
                   value={form.passportNumber}
-                  onChange={(e) => set('passportNumber', e.target.value)}
+                  onChange={(e) => set('passportNumber', e.target.value.replace(/\D/g, '').slice(0, 7))}
                   disabled={locked.passport}
+                  placeholder="1234567"
                   data-testid="beekeeper-form-passport-number"
-                  maxLength={BEEKEEPER_CODE_MAX_LENGTH}
                 />
               </FormField>
             </div>
