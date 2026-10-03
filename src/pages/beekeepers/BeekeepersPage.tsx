@@ -88,7 +88,6 @@ export function BeekeepersPage() {
       accessor: (row) => <span className="font-mono text-xs">{row.pinfl}</span>,
     },
     { key: 'fullName', header: t('beekeepers.col.fullName'), accessor: (row) => row.full_name },
-    { key: 'farmName', header: t('beekeepers.col.farmName'), accessor: (row) => row.farm_name || '—' },
     {
       key: 'validTo',
       header: t('beekeepers.col.validTo'),

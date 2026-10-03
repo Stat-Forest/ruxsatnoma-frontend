@@ -2,8 +2,9 @@
  * Stage 10, F2 (rulings #181/#182) — the registrar's workplace. Four things
  * this screen must not get wrong, one test group each:
  *   1. the list renders and paginates, search/status filter the query;
- *   2. the create form's PINFL-first lookup autofills on a 200 and changes
- *      nothing on a 404 — both silently, never an error banner for either;
+ *   2. the form's PINFL lookup runs on its own at 14 digits and only then
+ *      shows the name and passport: locked from OneID on a 200, empty to
+ *      type on a 404 — never an error banner for either;
  *   3. create posts the typed body;
  *   4. remove is a `POST .../remove` with a mandatory reason, never a
  *      DELETE.
@@ -28,7 +29,6 @@ function beekeeper(over: Partial<BeekeeperOut> = {}): BeekeeperOut {
     passport_number: '1234567',
     stir: null,
     full_name: 'Asalov Nodir',
-    farm_name: 'Nodir asalarichilik xoʻjaligi',
     valid_to: null,
     status: 'active',
     removed_reason: null,
@@ -100,14 +100,19 @@ test('search and status filter reach the query as q/status', async () => {
   await waitFor(() => expect(seenQuery?.get('status')).toBe('removed'));
 });
 
-test('the PINFL lookup autofills the name and passport on a 200 and stays silent on a 404', async () => {
+const NOT_FOUND = () => HttpResponse.json({ error: { code: 'ERR-SYS-003', message: 'not found' } }, { status: 404 });
+
+test('the PINFL lookup runs at 14 digits, then shows the name and passport locked from OneID', async () => {
+  let release: () => void = () => {};
+  const gate = new Promise<void>((resolve) => (release = resolve));
   server.use(
-    http.get('*/api/v1/beekeepers/lookup', ({ request }) => {
+    http.get('*/api/v1/beekeepers/lookup', async ({ request }) => {
       const pinfl = new URL(request.url).searchParams.get('pinfl');
       if (pinfl === '30260904000003') {
+        await gate;
         return HttpResponse.json({ full_name: 'Topilgan Shaxs', passport_series: 'AD', passport_number: '7654321' });
       }
-      return HttpResponse.json({ error: { code: 'ERR-SYS-003', message: 'not found' } }, { status: 404 });
+      return NOT_FOUND();
     }),
   );
   const user = userEvent.setup();
@@ -116,21 +121,70 @@ test('the PINFL lookup autofills the name and passport on a 200 and stays silent
   await user.click(await screen.findByTestId('beekeeper-create-button'));
   const pinflInput = screen.getByTestId('beekeeper-form-pinfl');
 
-  // 200: fills the name and passport, and shows the honest "auto-filled" note.
-  await user.type(pinflInput, '30260904000003');
-  await user.tab();
-  await waitFor(() => expect(screen.getByTestId('beekeeper-form-full-name')).toHaveValue('Topilgan Shaxs'));
-  expect(screen.getByTestId('beekeeper-form-passport-number')).toHaveValue('7654321');
-  expect(screen.getByTestId('beekeeper-lookup-applied')).toBeInTheDocument();
+  // Hidden until the lookup has answered — 13 digits ask nothing.
+  await user.type(pinflInput, '3026090400000');
+  expect(screen.queryByTestId('beekeeper-form-full-name')).not.toBeInTheDocument();
+  expect(screen.queryByTestId('beekeeper-lookup-loading')).not.toBeInTheDocument();
 
-  // 404 for a different PINFL: the fields already filled stay exactly as
-  // they are — no error, no reset.
+  // The 14th digit starts it on its own: a spinner, still no fields.
+  await user.type(pinflInput, '3');
+  expect(await screen.findByTestId('beekeeper-lookup-loading')).toBeInTheDocument();
+  expect(screen.queryByTestId('beekeeper-form-full-name')).not.toBeInTheDocument();
+
+  release();
+  await waitFor(() => expect(screen.getByTestId('beekeeper-form-full-name')).toHaveValue('Topilgan Shaxs'));
+  expect(screen.queryByTestId('beekeeper-lookup-loading')).not.toBeInTheDocument();
+  expect(screen.getByTestId('beekeeper-form-full-name')).toBeDisabled();
+  expect(screen.getByTestId('beekeeper-form-passport-series')).toHaveValue('AD');
+  expect(screen.getByTestId('beekeeper-form-passport-series')).toBeDisabled();
+  expect(screen.getByTestId('beekeeper-form-passport-number')).toHaveValue('7654321');
+  expect(screen.getByTestId('beekeeper-form-passport-number')).toBeDisabled();
+  expect(screen.getByTestId('beekeeper-lookup-applied')).toBeInTheDocument();
+});
+
+test('a 404 opens the three fields empty to type, and drops what the previous PINFL\'s profile filled', async () => {
+  server.use(
+    http.get('*/api/v1/beekeepers/lookup', ({ request }) => {
+      const pinfl = new URL(request.url).searchParams.get('pinfl');
+      if (pinfl === '30260904000003') {
+        return HttpResponse.json({ full_name: 'Topilgan Shaxs', passport_series: 'AD', passport_number: '7654321' });
+      }
+      return NOT_FOUND();
+    }),
+  );
+  const user = userEvent.setup();
+  renderPage();
+
+  await user.click(await screen.findByTestId('beekeeper-create-button'));
+  const pinflInput = screen.getByTestId('beekeeper-form-pinfl');
+  await user.type(pinflInput, '30260904000003');
+  await waitFor(() => expect(screen.getByTestId('beekeeper-form-full-name')).toHaveValue('Topilgan Shaxs'));
+
   await user.clear(pinflInput);
   await user.type(pinflInput, '99999999999999');
-  await user.tab();
-  await waitFor(() => expect(screen.queryByTestId('beekeeper-lookup-applied')).not.toBeInTheDocument());
-  expect(screen.getByTestId('beekeeper-form-full-name')).toHaveValue('Topilgan Shaxs');
+  await waitFor(() => expect(screen.getByTestId('beekeeper-form-full-name')).toBeEnabled());
+  expect(screen.getByTestId('beekeeper-form-full-name')).toHaveValue('');
+  expect(screen.getByTestId('beekeeper-form-passport-series')).toHaveValue('');
+  expect(screen.getByTestId('beekeeper-form-passport-number')).toBeEnabled();
+  expect(screen.queryByTestId('beekeeper-lookup-applied')).not.toBeInTheDocument();
   expect(screen.queryByTestId('beekeeper-form-error')).not.toBeInTheDocument();
+});
+
+test('a profile without a passport locks only the name', async () => {
+  server.use(
+    http.get('*/api/v1/beekeepers/lookup', () =>
+      HttpResponse.json({ full_name: 'Pasportsiz Shaxs', passport_series: null, passport_number: null }),
+    ),
+  );
+  const user = userEvent.setup();
+  renderPage();
+
+  await user.click(await screen.findByTestId('beekeeper-create-button'));
+  await user.type(screen.getByTestId('beekeeper-form-pinfl'), '30260904000003');
+
+  await waitFor(() => expect(screen.getByTestId('beekeeper-form-full-name')).toBeDisabled());
+  expect(screen.getByTestId('beekeeper-form-passport-series')).toBeEnabled();
+  expect(screen.getByTestId('beekeeper-form-passport-number')).toBeEnabled();
 });
 
 // Stage 10 review, finding 6: a 403/500 on the lookup was swallowed like a
@@ -147,19 +201,41 @@ test('a failing PINFL lookup (not a 404) is said under the field', async () => {
 
   await user.click(await screen.findByTestId('beekeeper-create-button'));
   await user.type(screen.getByTestId('beekeeper-form-pinfl'), '30260904000003');
-  await user.tab();
 
   expect(await screen.findByText(/huquq/i)).toBeInTheDocument();
   expect(screen.queryByTestId('beekeeper-lookup-applied')).not.toBeInTheDocument();
   expect(screen.getByTestId('beekeeper-form-full-name')).toHaveValue('');
+  expect(screen.getByTestId('beekeeper-form-full-name')).toBeEnabled();
+});
+
+test('edit asks the lookup for the row\'s PINFL on open and saves the profile\'s values locked', async () => {
+  let patched: Record<string, unknown> | null = null;
+  server.use(
+    http.get('*/api/v1/beekeepers/lookup', () =>
+      HttpResponse.json({ full_name: 'Asalov Nodir Karimovich', passport_series: 'AE', passport_number: '1111111' }),
+    ),
+    http.patch('*/api/v1/beekeepers/:id', async ({ request }) => {
+      patched = (await request.json()) as Record<string, unknown>;
+      return HttpResponse.json(beekeeper());
+    }),
+  );
+  const user = userEvent.setup();
+  renderPage();
+
+  await user.click(await screen.findByText('Asalov Nodir'));
+  await waitFor(() => expect(screen.getByTestId('beekeeper-form-full-name')).toHaveValue('Asalov Nodir Karimovich'));
+  expect(screen.getByTestId('beekeeper-form-full-name')).toBeDisabled();
+  expect(screen.getByTestId('beekeeper-form-certificate-no')).toHaveValue('BEE-001');
+
+  await user.click(screen.getByTestId('beekeeper-form-submit'));
+  await waitFor(() => expect(patched).not.toBeNull());
+  expect(patched).toMatchObject({ full_name: 'Asalov Nodir Karimovich', passport_series: 'AE', passport_number: '1111111' });
 });
 
 test('create posts the typed body', async () => {
   let receivedBody: unknown = null;
   server.use(
-    http.get('*/api/v1/beekeepers/lookup', () =>
-      HttpResponse.json({ error: { code: 'ERR-SYS-003', message: 'not found' } }, { status: 404 }),
-    ),
+    http.get('*/api/v1/beekeepers/lookup', NOT_FOUND),
     http.post('*/api/v1/beekeepers', async ({ request }) => {
       receivedBody = await request.json();
       return HttpResponse.json(beekeeper(), { status: 201 });
@@ -169,10 +245,9 @@ test('create posts the typed body', async () => {
   renderPage();
 
   await user.click(await screen.findByTestId('beekeeper-create-button'));
-  await user.type(screen.getByTestId('beekeeper-form-pinfl'), '30260904000003');
-  await user.tab();
   await user.type(screen.getByTestId('beekeeper-form-certificate-no'), 'BEE-002');
-  await user.type(screen.getByTestId('beekeeper-form-full-name'), 'Yangi Aʼzo');
+  await user.type(screen.getByTestId('beekeeper-form-pinfl'), '30260904000003');
+  await user.type(await screen.findByTestId('beekeeper-form-full-name'), 'Yangi Aʼzo');
   await user.type(screen.getByTestId('beekeeper-form-passport-series'), 'AD');
   await user.type(screen.getByTestId('beekeeper-form-passport-number'), '1112223');
 
@@ -188,24 +263,20 @@ test('create posts the typed body', async () => {
     passport_number: '1112223',
     stir: null,
     full_name: 'Yangi Aʼzo',
-    farm_name: null,
     valid_to: null,
   });
 });
 
 test('the certificate no. field caps input at the backend bound (CodeStr, 64)', async () => {
-  server.use(
-    http.get('*/api/v1/beekeepers/lookup', () =>
-      HttpResponse.json({ error: { code: 'ERR-SYS-003', message: 'not found' } }, { status: 404 }),
-    ),
-  );
+  server.use(http.get('*/api/v1/beekeepers/lookup', NOT_FOUND));
   const user = userEvent.setup();
   renderPage();
 
   await user.click(await screen.findByTestId('beekeeper-create-button'));
-
   expect(screen.getByTestId('beekeeper-form-certificate-no')).toHaveAttribute('maxLength', '64');
-  expect(screen.getByTestId('beekeeper-form-full-name')).toHaveAttribute('maxLength', '255');
+
+  await user.type(screen.getByTestId('beekeeper-form-pinfl'), '30260904000003');
+  expect(await screen.findByTestId('beekeeper-form-full-name')).toHaveAttribute('maxLength', '255');
 });
 
 // Stage 19, A2: `GET /beekeepers?q` caps at SEARCH_MAX_LENGTH (200) — the
@@ -252,6 +323,7 @@ test('a removed row offers no remove action', async () => {
 });
 
 test('a click anywhere on a beekeeper row opens the edit form', async () => {
+  server.use(http.get('*/api/v1/beekeepers/lookup', NOT_FOUND));
   const user = userEvent.setup();
   renderPage();
 
@@ -307,6 +379,7 @@ test('the term is shown in the register and posted from the form', async () => {
   let body: Record<string, unknown> | null = null;
   server.use(
     http.get('*/api/v1/beekeepers', () => HttpResponse.json(page([beekeeper({ valid_to: '2025-12-31' })]))),
+    http.get('*/api/v1/beekeepers/lookup', NOT_FOUND),
     http.post('*/api/v1/beekeepers', async ({ request }) => {
       body = (await request.json()) as Record<string, unknown>;
       return HttpResponse.json(beekeeper({ id: 'bk000000-0000-4000-8000-000000000009', valid_to: '2026-12-31' }), { status: 201 });
@@ -317,9 +390,9 @@ test('the term is shown in the register and posted from the form', async () => {
   expect(await screen.findByText('31.12.2025')).toBeInTheDocument();
 
   await user.click(screen.getByTestId('beekeeper-create-button'));
-  await user.type(screen.getByTestId('beekeeper-form-pinfl'), '30260904000003');
   await user.type(screen.getByTestId('beekeeper-form-certificate-no'), '2/2');
-  await user.type(screen.getByTestId('beekeeper-form-full-name'), 'Mamajonov Abdishkur');
+  await user.type(screen.getByTestId('beekeeper-form-pinfl'), '30260904000003');
+  await user.type(await screen.findByTestId('beekeeper-form-full-name'), 'Mamajonov Abdishkur');
   await user.type(screen.getByTestId('beekeeper-form-passport-series'), 'AD');
   await user.type(screen.getByTestId('beekeeper-form-passport-number'), '7654321');
   await user.type(screen.getByTestId('beekeeper-form-valid-to'), '2026-12-31');

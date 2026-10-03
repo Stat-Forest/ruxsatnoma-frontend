@@ -1960,7 +1960,6 @@ export const en = {
   'beekeepers.col.certificateNo': 'Certificate No.',
   'beekeepers.col.pinfl': 'PINFL',
   'beekeepers.col.fullName': 'Full name',
-  'beekeepers.col.farmName': 'Farm name',
   'beekeepers.col.status': 'Status',
   'beekeepers.col.actions': 'Actions',
   'beekeepers.status.active': 'Active',
@@ -1979,8 +1978,7 @@ export const en = {
   'beekeepers.form.fieldPassportSeries': 'Passport series',
   'beekeepers.form.fieldPassportNumber': 'Passport number',
   'beekeepers.form.fieldStir': 'STIR (for a legal entity)',
-  'beekeepers.form.fieldFarmName': 'Farm name',
-  'beekeepers.form.lookupApplied': 'Filled in automatically from the OneID profile — edit if needed.',
+  'beekeepers.form.lookupApplied': 'Filled in from the OneID profile — these details cannot be changed.',
   'beekeepers.form.save': 'Save',
   'beekeepers.form.cancel': 'Cancel',
   'beekeepers.form.error': 'Failed to save.',
@@ -1994,7 +1992,6 @@ export const en = {
   // Ruling #217 — the certificate's term and the Union's monitoring tab.
   'beekeepers.col.validTo': 'Valid until',
   'beekeepers.form.fieldValidTo': 'Valid until',
-  'beekeepers.form.validToHint': 'The "valid until" date printed on the certificate. Leave blank when it carries none.',
   // The Beekeeping Union registrar's home screen (`BeekeepingRegistrarDashboardPage`).
   'registrarDash.title': "Beekeeping Union",
   'registrarDash.subtitle': "The register today and the applications claiming the Union member benefit",

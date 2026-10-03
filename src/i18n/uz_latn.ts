@@ -2179,7 +2179,6 @@ export const uz_latn = {
   'beekeepers.col.certificateNo': 'Sertifikat raqami',
   'beekeepers.col.pinfl': 'JSHSHIR',
   'beekeepers.col.fullName': 'F.I.Sh.',
-  'beekeepers.col.farmName': 'Xoʻjalik nomi',
   'beekeepers.col.status': 'Holat',
   'beekeepers.col.actions': 'Amallar',
   'beekeepers.status.active': 'Faol',
@@ -2198,8 +2197,7 @@ export const uz_latn = {
   'beekeepers.form.fieldPassportSeries': 'Pasport seriyasi',
   'beekeepers.form.fieldPassportNumber': 'Pasport raqami',
   'beekeepers.form.fieldStir': 'STIR (yuridik shaxs uchun)',
-  'beekeepers.form.fieldFarmName': "Xoʻjalik nomi",
-  'beekeepers.form.lookupApplied': 'OneID profili boʻyicha avtomatik toʻldirildi — kerak boʻlsa oʻzgartiring.',
+  'beekeepers.form.lookupApplied': 'OneID profili boʻyicha toʻldirildi — bu maʼlumotlarni oʻzgartirib boʻlmaydi.',
   'beekeepers.form.save': 'Saqlash',
   'beekeepers.form.cancel': 'Bekor qilish',
   'beekeepers.form.error': "Saqlab boʻlmadi.",
@@ -2213,7 +2211,6 @@ export const uz_latn = {
   // Ruling #217 — the certificate's term and the Union's monitoring tab.
   'beekeepers.col.validTo': 'Amal qilish muddati',
   'beekeepers.form.fieldValidTo': 'Amal qilish muddati (gacha)',
-  'beekeepers.form.validToHint': 'Guvohnomadagi «... gacha amal qiladi» sanasi. Muddat koʻrsatilmagan boʻlsa — boʻsh qoldiring.',
   // The Beekeeping Union registrar's home screen (`BeekeepingRegistrarDashboardPage`).
   'registrarDash.title': "Asalarichilar uyushmasi",
   'registrarDash.subtitle': "Reyestr holati va uyushma aʼzosi imtiyozi bilan berilgan arizalar",

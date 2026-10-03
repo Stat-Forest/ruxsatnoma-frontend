@@ -2137,7 +2137,6 @@ export const ru = {
   'beekeepers.col.certificateNo': 'Номер сертификата',
   'beekeepers.col.pinfl': 'ПИНФЛ',
   'beekeepers.col.fullName': 'ФИО',
-  'beekeepers.col.farmName': 'Название хозяйства',
   'beekeepers.col.status': 'Статус',
   'beekeepers.col.actions': 'Действия',
   'beekeepers.status.active': 'Активен',
@@ -2156,8 +2155,7 @@ export const ru = {
   'beekeepers.form.fieldPassportSeries': 'Серия паспорта',
   'beekeepers.form.fieldPassportNumber': 'Номер паспорта',
   'beekeepers.form.fieldStir': 'СТИР (для юр. лица)',
-  'beekeepers.form.fieldFarmName': 'Название хозяйства',
-  'beekeepers.form.lookupApplied': 'Заполнено автоматически по профилю OneID — при необходимости измените.',
+  'beekeepers.form.lookupApplied': 'Заполнено по профилю OneID — эти данные изменить нельзя.',
   'beekeepers.form.save': 'Сохранить',
   'beekeepers.form.cancel': 'Отмена',
   'beekeepers.form.error': 'Не удалось сохранить.',
@@ -2171,7 +2169,6 @@ export const ru = {
   // Ruling #217 — the certificate's term and the Union's monitoring tab.
   'beekeepers.col.validTo': 'Действует до',
   'beekeepers.form.fieldValidTo': 'Действует до',
-  'beekeepers.form.validToHint': 'Дата «Действует до …» с удостоверения. Если срок не указан — оставьте пустым.',
   // The Beekeeping Union registrar's home screen (`BeekeepingRegistrarDashboardPage`).
   'registrarDash.title': "Союз пчеловодов",
   'registrarDash.subtitle': "Состояние реестра и заявки с льготой члена Союза",

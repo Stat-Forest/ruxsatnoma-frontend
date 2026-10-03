@@ -2173,7 +2173,6 @@ export const uz_cyrl = {
   'beekeepers.col.certificateNo': 'Сертификат рақами',
   'beekeepers.col.pinfl': 'ЖШШИР',
   'beekeepers.col.fullName': 'Ф.И.Ш.',
-  'beekeepers.col.farmName': 'Хўжалик номи',
   'beekeepers.col.status': 'Ҳолат',
   'beekeepers.col.actions': 'Амаллар',
   'beekeepers.status.active': 'Фаол',
@@ -2192,8 +2191,7 @@ export const uz_cyrl = {
   'beekeepers.form.fieldPassportSeries': 'Паспорт серияси',
   'beekeepers.form.fieldPassportNumber': 'Паспорт рақами',
   'beekeepers.form.fieldStir': 'СТИР (юридик шахс учун)',
-  'beekeepers.form.fieldFarmName': 'Хўжалик номи',
-  'beekeepers.form.lookupApplied': 'OneID профили бўйича автоматик тўлдирилди — керак бўлса ўзгартиринг.',
+  'beekeepers.form.lookupApplied': 'OneID профили бўйича тўлдирилди — бу маълумотларни ўзгартириб бўлмайди.',
   'beekeepers.form.save': 'Сақлаш',
   'beekeepers.form.cancel': 'Бекор қилиш',
   'beekeepers.form.error': 'Сақлаб бўлмади.',
@@ -2207,7 +2205,6 @@ export const uz_cyrl = {
   // Ruling #217 — the certificate's term and the Union's monitoring tab.
   'beekeepers.col.validTo': 'Амал қилиш муддати',
   'beekeepers.form.fieldValidTo': 'Амал қилиш муддати (гача)',
-  'beekeepers.form.validToHint': 'Гувоҳномадаги «... гача амал қилади» санаси. Муддат кўрсатилмаган бўлса — бўш қолдиринг.',
   // The Beekeeping Union registrar's home screen (`BeekeepingRegistrarDashboardPage`).
   'registrarDash.title': "Асаларичилар уюшмаси",
   'registrarDash.subtitle': "Реестр ҳолати ва уюшма аъзоси имтиёзи билан берилган аризалар",
