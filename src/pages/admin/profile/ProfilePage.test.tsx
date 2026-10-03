@@ -6,7 +6,6 @@ import { setupServer } from 'msw/node';
 import { AuthContext } from '../../../auth/AuthContext';
 import type { AuthContextValue } from '../../../auth/AuthContext';
 import { DICTIONARIES, I18nContext, type UiLanguage } from '../../../i18n/context';
-import { uz_latn } from '../../../i18n/uz_latn';
 import { ProfilePage } from './ProfilePage';
 
 const server = setupServer();
@@ -68,25 +67,39 @@ function renderPage(
   return render(<ProfilePage />, { wrapper });
 }
 
-test('the profile tab is selected by default and shows contacts', () => {
+// Contacts and the password live on one page: tabs for two cards hid the
+// password behind a click that bought nothing.
+test('contacts and a folded password card share one page — no tabs', () => {
   renderPage();
   expect(screen.getByText('Test Applicant')).toBeInTheDocument();
   expect(screen.getByTestId('phone-change')).toBeInTheDocument();
+  expect(screen.getByTestId('password-change')).toBeInTheDocument();
+  expect(screen.queryByTestId('old-password')).toBeNull();
+  expect(screen.queryByRole('button', { name: 'Profil' })).toBeNull();
 });
 
-test('switching to the password tab shows the existing change-password form (C5)', async () => {
+test('the password button opens the change-password form (C5) in place, contacts stay', async () => {
   renderPage();
-  await userEvent.click(screen.getByRole('button', { name: uz_latn['cabinet.profile.tabPassword'] }));
+  await userEvent.click(screen.getByTestId('password-change'));
   expect(screen.getByTestId('old-password')).toBeInTheDocument();
-  expect(screen.queryByTestId('phone-change')).toBeNull();
+  expect(screen.getByTestId('phone-change')).toBeInTheDocument();
+  expect(screen.queryByTestId('password-change')).toBeNull();
+});
+
+test('cancel folds the password form back and clears what was typed', async () => {
+  renderPage();
+  await userEvent.click(screen.getByTestId('password-change'));
+  await userEvent.type(screen.getByTestId('old-password'), 'Secret1!');
+  await userEvent.click(screen.getByTestId('password-cancel'));
+  expect(screen.queryByTestId('old-password')).toBeNull();
+  await userEvent.click(screen.getByTestId('password-change'));
+  expect(screen.getByTestId('old-password')).toHaveValue('');
 });
 
 // Decision #226: the "representation" mechanism (and its tab) is gone
-// everywhere — an applicant's profile offers only Profile and Password.
-test('an applicant is offered only the profile and password tabs — no representation tab', () => {
+// everywhere — an applicant's profile has no representation section.
+test('an applicant’s profile has no representation section', () => {
   renderPage('applicant');
-  expect(screen.getByRole('button', { name: uz_latn['cabinet.profile.tabProfile'] })).toBeInTheDocument();
-  expect(screen.getByRole('button', { name: uz_latn['cabinet.profile.tabPassword'] })).toBeInTheDocument();
   expect(screen.queryByText('Yuridik shaxs vakolatlari')).toBeNull();
 });
 

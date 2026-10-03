@@ -32,7 +32,14 @@ const ALL_RULES: PolicyRule[] = ['length', 'uppercase', 'lowercase', 'digit', 's
  * server enforces — but the server stays the authority: its refusal is
  * surfaced, never swallowed, because the mirror can drift.
  */
-export function ChangePasswordForm({ onChanged }: { onChanged: () => void }) {
+export function ChangePasswordForm({
+  onChanged,
+  onCancel,
+}: {
+  onChanged: () => void;
+  /** Absent on the forced screen: there the form is the only way forward. */
+  onCancel?: () => void;
+}) {
   const { lang } = useLanguage();
   const t = LABELS[lang] ?? LABELS.uz_latn;
 
@@ -146,14 +153,28 @@ export function ChangePasswordForm({ onChanged }: { onChanged: () => void }) {
         </div>
       ) : null}
 
-      <Button
-        type="submit"
-        data-testid="submit"
-        disabled={mutation.isPending}
-        className="w-full h-11 sm:h-10 text-sm font-semibold cursor-pointer"
-      >
-        {mutation.isPending ? t.saving : t.submit}
-      </Button>
+      <div className={onCancel ? 'flex flex-col-reverse sm:flex-row sm:justify-end gap-2' : undefined}>
+        {onCancel ? (
+          <Button
+            type="button"
+            variant="ghost"
+            data-testid="password-cancel"
+            onClick={onCancel}
+            disabled={mutation.isPending}
+            className="w-full sm:w-auto h-11 sm:h-10 text-sm cursor-pointer"
+          >
+            {t.cancel}
+          </Button>
+        ) : null}
+        <Button
+          type="submit"
+          data-testid="submit"
+          disabled={mutation.isPending}
+          className={`${onCancel ? 'w-full sm:w-auto sm:px-8' : 'w-full'} h-11 sm:h-10 text-sm font-semibold cursor-pointer`}
+        >
+          {mutation.isPending ? t.saving : t.submit}
+        </Button>
+      </div>
     </form>
   );
 }

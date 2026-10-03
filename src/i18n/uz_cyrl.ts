@@ -277,8 +277,8 @@ export const uz_cyrl = {
     "Давом этиш учун телефон рақамини тасдиқланг.",
   'cabinet.registration.genericError': "Хатолик юз берди. Қайта уриниб кўринг.",
 
-  'cabinet.profile.tabProfile': 'Профиль',
-  'cabinet.profile.tabPassword': 'Пароль',
+  'cabinet.profile.securityTitle': 'Хавфсизлик',
+  'cabinet.profile.passwordLabel': 'Пароль',
   'cabinet.profile.contactsTitle': 'Алоқа маʼлумотлари',
   'cabinet.profile.phoneLabel': 'Телефон рақами',
   'cabinet.profile.emailLabel': 'Электрон почта',
