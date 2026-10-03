@@ -195,6 +195,31 @@ test('RequireAuth sends an anonymous visitor to /login and keeps where they want
   expect(screen.getByTestId('login-page')).toHaveAttribute('data-next', '/applications/42');
 });
 
+test('logging out does not make the page it was clicked on the next login\'s destination', async () => {
+  // An expired session and a click on «Chiqish» both leave `me` null on a
+  // protected page, but only the first wants to come back there: whoever
+  // signs in next on this tab — possibly someone else — starts from the
+  // dashboard, not on the last screen the previous user had open.
+  server.use(
+    http.get('*/auth/me', () => HttpResponse.json(ME)),
+    http.post('*/auth/login', () => HttpResponse.json({ mfa_required: false, me: ME })),
+    http.get('*/api/v1/applications', () => HttpResponse.json({ items: [], total: 0, page: 1, page_size: 100 })),
+    http.get('*/api/v1/permits', () => HttpResponse.json({ items: [], total: 0, page: 1, page_size: 100 })),
+    http.get('*/api/v1/invoices', () => HttpResponse.json({ items: [], total: 0, page: 1, page_size: 100 })),
+    http.get('*/api/v1/refs/activity-types', () => HttpResponse.json([])),
+  );
+  await renderAt('/applications');
+  await userEvent.click(await screen.findByRole('button', { name: /chiqish/i }));
+
+  expect(await screen.findByTestId('login-page')).toHaveAttribute('data-next', '/');
+
+  await userEvent.click(await screen.findByRole('tab', { name: 'Login/Parol' }));
+  await userEvent.type(screen.getByLabelText(/login/i), 'ehead');
+  await userEvent.type(screen.getByLabelText(/parol/i), 'Head123!');
+  await userEvent.click(screen.getByRole('button', { name: /kirish/i }));
+  await waitFor(() => expect(router.state.location.pathname).toBe('/'));
+});
+
 test('RequireAuth shows a distinct notice for a failed session check, not a silent redirect to login', async () => {
   server.use(
     http.get('*/auth/me', () =>

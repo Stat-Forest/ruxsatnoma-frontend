@@ -20,6 +20,13 @@ export interface AuthContextValue {
    */
   authError: ApiError | null;
   /**
+   * True once `logout()` has ended the session on this tab, until the next
+   * login. It is what tells `RequireAuth` a deliberate sign-out apart from an
+   * expired session — both leave `me` null on a protected page, but only the
+   * expired one should come back to that page after signing in again.
+   */
+  signedOut: boolean;
+  /**
    * The password step. Its RESULT decides what happens next, and a caller may
    * not assume: with the second factor required it returns `'mfa-required'`
    * and only remembers the handoff token; with the server's `mfa_enabled`

@@ -39,7 +39,7 @@ export function RequireAuth({
   noSuperuser?: boolean;
   children: ReactNode;
 }) {
-  const { me, loading, authError } = useAuth();
+  const { me, loading, authError, signedOut } = useAuth();
   const location = useLocation();
 
   if (loading) return <FullPageSpinner />;
@@ -56,7 +56,10 @@ export function RequireAuth({
     );
   }
 
-  if (!me) return <Navigate to="/login" state={{ next: location.pathname }} replace />;
+  // Only an expired session remembers this page for after the next login.
+  // A deliberate logout does not: whoever signs in next on this tab —
+  // possibly someone else — starts from the dashboard (`signedOut`).
+  if (!me) return <Navigate to="/login" state={signedOut ? null : { next: location.pathname }} replace />;
 
   // Not a notice any more: only the user themselves can clear this flag
   // (`POST /auth/password/change`), so telling them to contact an
