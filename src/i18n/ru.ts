@@ -2068,18 +2068,19 @@ export const ru = {
   'ratings.filters.reset': 'Сбросить',
   'ratings.tile.avgScoreLabel': 'Средний балл',
   'ratings.tile.countLabel': 'Количество оценок',
+  'ratings.tile.commentCountLabel': 'Комментарии',
+  'ratings.tile.distributionLabel': 'Распределение оценок',
   'ratings.byOrganization.title': 'По организациям',
-  'ratings.byOrganization.empty': 'Нет данных за этот период.',
   'ratings.byActivityType.title': 'По видам услуг',
-  'ratings.byActivityType.empty': 'Нет данных за этот период.',
-  // Ruling #141: the feed below is the anonymous comment stream — date,
-  // service, leshoz, score, text, and NOTHING that identifies who left it.
-  // No column here may ever name an applicant or a permit.
+  'ratings.empty.title': 'За период {from} – {to} оценок нет',
+  'ratings.empty.hint': 'Попробуйте расширить период.',
+  // The feed names its author — the applicant and the permit number
+  // (2026-10-04, reversing ruling #144's anonymity).
   'ratings.feed.title': 'Комментарии',
   'ratings.feed.empty': 'За этот период комментариев нет.',
   'ratings.feed.colDate': 'Дата',
-  'ratings.feed.colOrganization': 'Организация',
-  'ratings.feed.colActivityType': 'Вид услуги',
+  'ratings.feed.colAuthor': 'Автор',
+  'ratings.feed.colWhere': 'Организация / услуга',
   'ratings.feed.colScore': 'Оценка',
   'ratings.feed.colComment': 'Комментарий',
 

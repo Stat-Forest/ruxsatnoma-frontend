@@ -5093,8 +5093,8 @@ export interface paths {
         };
         /**
          * List Ratings
-         * @description The anonymous comment feed: date, service, leshoz, score, text — never
-         *     who left it. Zone-scoped the same way the summary above is, and narrowable
+         * @description The comment feed: date, author (applicant and permit), service, leshoz,
+         *     score, text. Zone-scoped the same way the summary above is, and narrowable
          *     by the same two optional filters — a screen that narrows the summary to
          *     one leshoz must narrow this feed too, or the numbers above and the
          *     comments below them describe different populations with nothing saying so
@@ -5120,7 +5120,7 @@ export interface paths {
          * Export Ratings Xlsx
          * @description The comment feed as a spreadsheet (stage 13, ruling #204): the same
          *     period and the same two optional filters, the same zone through the
-         *     same service call, and ruling #141's anonymity by construction.
+         *     same service call, and the same author columns as the feed.
          */
         get: operations["export_ratings_xlsx_api_v1_admin_ratings_export_xlsx_get"];
         put?: never;
@@ -12305,9 +12305,9 @@ export interface components {
         };
         /**
          * PermitRatingOut
-         * @description One rating, exactly as `permit_ratings` stores it. No `permit_id`, no
-         *     applicant: ruling #141 keeps the author off every response built from this
-         *     table, and this is the shape every such response embeds.
+         * @description One rating, exactly as `permit_ratings` stores it — the shape the
+         *     holder's own permit card embeds. No `permit_id`, no applicant: the card
+         *     already is that permit and that holder.
          */
         PermitRatingOut: {
             /** Score */
@@ -12796,13 +12796,11 @@ export interface components {
         };
         /**
          * RatingCommentRow
-         * @description `GET /admin/ratings` — one row of the anonymous comment feed.
-         *
-         *     Ruling #141: date, service, leshoz, score, text. No applicant, no permit
-         *     number — anything that identifies WHO rated is absent by construction, not
-         *     filtered out at render time. `test_comments_never_name_the_author` asserts
-         *     this on the SERIALIZED body rather than on this class, on purpose: a field
-         *     added here later would pass a field-name check and still leak.
+         * @description `GET /admin/ratings` — one row of the comment feed: date, service,
+         *     leshoz, score, text, and since 2026-10-04 its author — the applicant's
+         *     name and the permit the rating was left on (`permit_id` for a link,
+         *     `permit_number` as printed). Ruling #144 had kept the author off this row;
+         *     Oybek reversed it for every `ratings.view` holder, the leshoz included.
          */
         RatingCommentRow: {
             /**
@@ -12814,6 +12812,15 @@ export interface components {
             score: number;
             /** Comment */
             comment: string | null;
+            /** Applicant Name */
+            applicant_name: string;
+            /**
+             * Permit Id
+             * Format: uuid
+             */
+            permit_id: string;
+            /** Permit Number */
+            permit_number: string;
             /** Organization Name */
             organization_name: {
                 [key: string]: unknown;
@@ -12868,18 +12875,36 @@ export interface components {
             count: number;
         };
         /**
+         * RatingsScoreCount
+         * @description How many ratings in scope gave one score.
+         */
+        RatingsScoreCount: {
+            /** Score */
+            score: number;
+            /** Count */
+            count: number;
+        };
+        /**
          * RatingsSummaryOut
          * @description `GET /admin/ratings/summary` — the overall average and count over the
          *     caller's zone and the given period, plus the same pair broken down by
          *     organization and by activity type. `avg_score`/`count` are both null-safe:
          *     zero ratings in scope reads as `avg_score: null, count: 0`, never a 404 or
          *     a division-by-zero — a summary has no row to refuse.
+         *
+         *     `by_score` always holds all five scores, 1 to 5 in that order, a score
+         *     nobody gave as `count: 0`; `comment_count` is how many of `count` carry a
+         *     non-blank comment.
          */
         RatingsSummaryOut: {
             /** Avg Score */
             avg_score: string | null;
             /** Count */
             count: number;
+            /** Comment Count */
+            comment_count: number;
+            /** By Score */
+            by_score: components["schemas"]["RatingsScoreCount"][];
             /** By Organization */
             by_organization: components["schemas"]["RatingsBreakdownRow"][];
             /** By Activity Type */

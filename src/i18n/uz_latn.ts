@@ -2108,18 +2108,19 @@ export const uz_latn = {
   'ratings.filters.reset': 'Tiklash',
   'ratings.tile.avgScoreLabel': "Oʻrtacha baho",
   'ratings.tile.countLabel': 'Baholar soni',
+  'ratings.tile.commentCountLabel': 'Izohlar',
+  'ratings.tile.distributionLabel': 'Baholar taqsimoti',
   'ratings.byOrganization.title': 'Tashkilotlar boʻyicha',
-  'ratings.byOrganization.empty': 'Bu davr uchun maʼlumot yoʻq.',
   'ratings.byActivityType.title': 'Xizmat turlari boʻyicha',
-  'ratings.byActivityType.empty': 'Bu davr uchun maʼlumot yoʻq.',
-  // Ruling #141: the feed below is the anonymous comment stream — date,
-  // service, leshoz, score, text, and NOTHING that identifies who left it.
-  // No column here may ever name an applicant or a permit.
+  'ratings.empty.title': '{from} – {to} davrida baholar yoʻq',
+  'ratings.empty.hint': 'Davrni kengaytirib koʻring.',
+  // The feed names its author — the applicant and the permit number
+  // (2026-10-04, reversing ruling #144's anonymity).
   'ratings.feed.title': 'Fikr-mulohazalar',
   'ratings.feed.empty': 'Bu davr uchun fikr-mulohaza yoʻq.',
   'ratings.feed.colDate': 'Sana',
-  'ratings.feed.colOrganization': 'Tashkilot',
-  'ratings.feed.colActivityType': 'Xizmat turi',
+  'ratings.feed.colAuthor': 'Muallif',
+  'ratings.feed.colWhere': 'Tashkilot / xizmat',
   'ratings.feed.colScore': 'Baho',
   'ratings.feed.colComment': 'Izoh',
 

@@ -50,10 +50,10 @@ export interface RatingsListParams {
   page_size?: number;
 }
 
-/** `GET /admin/ratings` — the anonymous comment feed (ruling #141): date,
- *  service, leshoz, score, text, never who left it. Takes no
- *  `organization_id`/`activity_type_id` of its own — the route offers no
- *  narrowing beyond the period and the caller's own zone. */
+/** `GET /admin/ratings` — the comment feed: date, author (`applicant_name`,
+ *  `permit_id`, `permit_number`), service, leshoz, score, text. This screen
+ *  passes no `organization_id`/`activity_type_id` — it narrows by the period
+ *  alone, inside the caller's own zone. */
 export async function listRatings(params: RatingsListParams): Promise<PageRatingCommentRow> {
   const { data, error } = await api.GET('/api/v1/admin/ratings', {
     params: { query: params },
