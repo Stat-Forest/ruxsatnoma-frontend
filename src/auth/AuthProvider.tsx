@@ -22,6 +22,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [me, setMe] = useState<MeOut | null>(null);
   const [loading, setLoading] = useState(true);
   const [authError, setAuthError] = useState<ApiError | null>(null);
+  const [signedOut, setSignedOut] = useState(false);
   const mfaTokenRef = useRef<string | null>(null);
 
   // The local half of "session gone": clears React state without telling the
@@ -93,6 +94,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setCsrfToken(next.csrf_token);
     setMe(next);
     setAuthError(null);
+    setSignedOut(false);
   }, []);
 
   // Step 1 of login: POST /auth/login. Two outcomes, and the CALLER must branch
@@ -190,15 +192,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         body: { signed_challenge: signed },
       });
       if (error) throw apiError(error);
-      setCsrfToken(data.csrf_token);
-      setMe(data);
-      setAuthError(null);
+      applySession(data);
     },
-    [],
+    [applySession],
   );
 
   const logout = useCallback(async () => {
     await api.POST('/api/v1/auth/logout', {});
+    setSignedOut(true);
     clearLocalSession();
   }, [clearLocalSession]);
 
@@ -222,6 +223,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         me,
         loading,
         authError,
+        signedOut,
         submitPassword,
         verifyMfa,
         startOneId,

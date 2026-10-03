@@ -41,6 +41,7 @@ function authValue(permissions: string[], is_superuser = false): AuthContextValu
     },
     loading: false,
     authError: null,
+    signedOut: false,
     submitPassword: async () => 'signed-in',
     verifyMfa: async () => {},
     startOneId: async () => {},

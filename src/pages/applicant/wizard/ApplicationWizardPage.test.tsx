@@ -82,6 +82,7 @@ function authValue(language: string): AuthContextValue {
   },
   loading: false,
   authError: null,
+  signedOut: false,
   submitPassword: vi.fn(),
   verifyMfa: vi.fn(),
   startOneId: vi.fn(),
