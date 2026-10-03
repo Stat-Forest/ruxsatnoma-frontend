@@ -1,20 +1,10 @@
-import { useState } from 'react';
 import { useAuth } from '../../../auth/useAuth';
 import { useLanguage, useT } from '../../../i18n/useT';
 import { translateTerm } from '../../../i18n/terms';
 import { pickName } from '../../applicant/format';
-import { ChangePasswordForm } from './ChangePasswordForm';
 import { ContactsSection } from './contacts/ContactsSection';
-import { LABELS } from './labels';
-import {
-  User,
-  Shield,
-  Lock,
-  Globe,
-  Building2,
-} from 'lucide-react';
-
-type TabId = 'profile' | 'password';
+import { PasswordSection } from './PasswordSection';
+import { Shield, Globe, Building2 } from 'lucide-react';
 
 function getInitials(name?: string | null): string {
   if (!name) return 'U';
@@ -27,8 +17,6 @@ export function ProfilePage() {
   const { me } = useAuth();
   const { lang } = useLanguage();
   const t = useT();
-  const passwordLabels = LABELS[lang] ?? LABELS.uz_latn;
-  const [tab, setTab] = useState<TabId>('profile');
   const displayName = me ? translateTerm(me.user.full_name, lang) : '';
   const roleName = me
     ? (pickName(me.role.name, lang) || (me.role.code ? translateTerm(me.role.code, lang) : '—'))
@@ -90,50 +78,8 @@ export function ProfilePage() {
         </div>
       </section>
 
-      {/* Modern Tabs Navigation */}
-      <div className="bg-white border border-[#E4E7EA] rounded-xl sm:rounded-2xl p-1 sm:p-1.5 shadow-xs overflow-x-auto">
-        <nav className="flex gap-1 sm:gap-1.5 min-w-max" aria-label="Tabs">
-          {[
-            { id: 'profile' as const, label: t('cabinet.profile.tabProfile'), icon: User },
-            { id: 'password' as const, label: t('cabinet.profile.tabPassword'), icon: Lock },
-          ].map((item) => {
-            const isActive = tab === item.id;
-            const Icon = item.icon;
-            return (
-              <button
-                key={item.id}
-                type="button"
-                onClick={() => setTab(item.id)}
-                className={`flex items-center gap-1.5 sm:gap-2 shrink-0 text-xs sm:text-sm px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-lg sm:rounded-xl font-semibold transition-all duration-150 cursor-pointer ${
-                  isActive
-                    ? 'bg-[#2E7D4F] text-white shadow-sm'
-                    : 'text-[#5A646D] hover:text-[#1A1F24] hover:bg-[#F8F9FA]'
-                }`}
-              >
-                <Icon className={`w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0 ${isActive ? 'text-white' : 'text-[#767F87]'}`} />
-                <span>{item.label}</span>
-              </button>
-            );
-          })}
-        </nav>
-      </div>
-
-      {tab === 'profile' && <ContactsSection />}
-
-      {tab === 'password' && (
-        <section className="bg-white border border-[#E4E7EA] rounded-xl sm:rounded-2xl p-4 sm:p-7 shadow-xs">
-          <div className="mb-4 sm:mb-6 pb-3 sm:pb-4 border-b border-[#E4E7EA]">
-            <h2 className="text-base sm:text-lg font-bold text-[#1A1F24] flex items-center gap-2">
-              <Lock className="w-4 h-4 sm:w-5 sm:h-5 text-[#2E7D4F] shrink-0" />
-              <span>{passwordLabels.title}</span>
-            </h2>
-            <p className="text-xs sm:text-sm text-[#5A646D] mt-1">
-              {t('cabinet.profile.passwordSubtitle')}
-            </p>
-          </div>
-          <ChangePasswordForm onChanged={() => window.location.assign('/')} />
-        </section>
-      )}
+      <ContactsSection />
+      <PasswordSection />
     </div>
   );
 }
