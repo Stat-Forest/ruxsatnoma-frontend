@@ -8657,8 +8657,6 @@ export interface components {
             stir?: string | null;
             /** Full Name */
             full_name: string;
-            /** Farm Name */
-            farm_name?: string | null;
             /** Valid To */
             valid_to?: string | null;
         };
@@ -8699,8 +8697,6 @@ export interface components {
             stir: string | null;
             /** Full Name */
             full_name: string;
-            /** Farm Name */
-            farm_name: string | null;
             /** Valid To */
             valid_to: string | null;
             /** Status */
@@ -8745,8 +8741,6 @@ export interface components {
             stir?: string | null;
             /** Full Name */
             full_name?: string | null;
-            /** Farm Name */
-            farm_name?: string | null;
             /** Valid To */
             valid_to?: string | null;
         };
