@@ -7,6 +7,12 @@ name: Notify Telegram
 # (reply_markup) instead of a raw URL in the message body — keeps the text
 # compact and the body stays plain text (no parse_mode, no HTML escaping).
 #
+# An opened or reopened issue also gets two action buttons — "К выполнению"
+# and "Закрыть". Presses go to ruxsatnoma-issue-bot (a Cloudflare Worker
+# acting as a GitHub App, repo Stat-Forest/ruxsatnoma-issue-bot), which
+# labels, comments on or closes the issue and edits this same message. Its
+# own issue and comment events are therefore skipped below.
+#
 # Coverage note: GitHub Actions cannot capture 100% of repo events. Comment,
 # review, issue, create/delete, fork, star, label and discussion events only
 # fire from the workflow file on the DEFAULT branch — this must be merged into
@@ -103,6 +109,11 @@ jobs:
           ISSUE_NUMBER: ${{ github.event.issue.number }}
           ISSUE_TITLE: ${{ github.event.issue.title }}
           ISSUE_URL: ${{ github.event.issue.html_url }}
+          ISSUE_ASSIGNEES: ${{ join(github.event.issue.assignees.*.login, ', ') }}
+          ISSUE_CREATED_AT: ${{ github.event.issue.created_at }}
+          ISSUE_UPDATED_AT: ${{ github.event.issue.updated_at }}
+          # The GitHub App behind the issue buttons; must match its slug.
+          ISSUE_BOT: ruxsatnoma-issue-bot[bot]
           # create / delete
           REF_TYPE: ${{ github.event.ref_type }}
           REF_NAME: ${{ github.event.ref }}
@@ -126,6 +137,24 @@ jobs:
           if [ -z "${TG_BOT_TOKEN:-}" ] || [ -z "${TG_CHAT_ID:-}" ]; then
             echo "Telegram secrets are not available to this event (dependabot or fork). Skipping."
             exit 0
+          fi
+
+          # The issue bot's label, comment and close are already shown on the
+          # message it edits; reporting them again would double every press.
+          if [ "$ACTOR" = "$ISSUE_BOT" ] && { [ "$EVENT" = issues ] || [ "$EVENT" = issue_comment ]; }; then
+            echo "Issue bot event — already shown on its Telegram message. Skipping."
+            exit 0
+          fi
+
+          # An issue opened with an assignee fires `opened` and `assigned` within
+          # a second or two; the `opened` message already names the assignee.
+          if [ "$EVENT" = issues ] && [ "$ACTION" = assigned ]; then
+            since_creation=$(jq -n --arg c "$ISSUE_CREATED_AT" --arg u "$ISSUE_UPDATED_AT" \
+              '($u | fromdateiso8601) - ($c | fromdateiso8601)')
+            if [ "$since_creation" -le 10 ]; then
+              echo "Assigned at creation — the opened message names the assignee. Skipping."
+              exit 0
+            fi
           fi
 
           # The link is rendered as a single tappable inline button (built from
@@ -193,6 +222,10 @@ jobs:
                 "📌 Issue ${ACTION} — ${REPO}" \
                 "#${ISSUE_NUMBER} ${ISSUE_TITLE}" \
                 "by ${ACTOR}")
+              if [ "$ACTION" = opened ] || [ "$ACTION" = reopened ]; then
+                TEXT=$(printf '%s\n%s' "$TEXT" "👤 Assignee: ${ISSUE_ASSIGNEES:-—}")
+                ISSUE_BUTTONS=1
+              fi
               ;;
             create)
               TEXT=$(printf '%s\n' \
@@ -264,7 +297,14 @@ jobs:
 
           # Render the link as one tappable inline button instead of a raw URL
           # in the body. jq builds valid JSON regardless of label/URL contents.
-          if [ -n "${LINK_URL:-}" ]; then
+          # Issue buttons carry "<action>:<repo>:<number>" for the issue bot.
+          if [ -n "${ISSUE_BUTTONS:-}" ]; then
+            reply_markup=$(jq -cn --arg t "$LINK_TEXT" --arg u "$LINK_URL" \
+              --arg start "start:${GITHUB_REPOSITORY#*/}:${ISSUE_NUMBER}" \
+              --arg close "close:${GITHUB_REPOSITORY#*/}:${ISSUE_NUMBER}" \
+              '{inline_keyboard:[[{text:"▶️ К выполнению",callback_data:$start},{text:"✖️ Закрыть",callback_data:$close}],[{text:$t,url:$u}]]}')
+            args+=( --data-urlencode "reply_markup=${reply_markup}" )
+          elif [ -n "${LINK_URL:-}" ]; then
             reply_markup=$(jq -cn --arg t "$LINK_TEXT" --arg u "$LINK_URL" \
               '{inline_keyboard:[[{text:$t,url:$u}]]}')
             args+=( --data-urlencode "reply_markup=${reply_markup}" )
