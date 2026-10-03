@@ -36,6 +36,7 @@ import { DICTIONARIES, I18nContext } from '../../i18n/context';
 import type { I18nContextValue, UiLanguage } from '../../i18n/context';
 
 const ORG_ID = '0198f200-0001-7000-8000-000000000001';
+const ORG_ID_2 = '0198f200-0001-7000-8000-000000000002';
 const ACT_ID = '0198f200-0002-7000-8000-000000000001';
 const PERMIT_ID = '0198f200-0003-7000-8000-000000000001';
 
@@ -153,7 +154,7 @@ beforeAll(() => server.listen({ onUnhandledRequest: 'error' }));
 afterEach(() => server.resetHandlers());
 afterAll(() => server.close());
 
-test('shows the average, the counts, the distribution and both breakdowns behind a toggle', async () => {
+test('shows the average, the counts and the distribution', async () => {
   server.use(http.get('*/api/v1/admin/ratings/summary', () => HttpResponse.json(SUMMARY)));
   renderWithProviders(<RatingsPage />);
 
@@ -162,14 +163,42 @@ test('shows the average, the counts, the distribution and both breakdowns behind
   expect(screen.getByTestId('ratings-comment-count')).toHaveTextContent('2');
   expect(screen.getByTestId('ratings-score-5')).toHaveTextContent('1');
   expect(screen.getByTestId('ratings-score-1')).toHaveTextContent('0');
+});
 
-  const breakdown = screen.getByTestId('ratings-breakdown');
-  expect(within(breakdown).getByText('Burchmulla')).toBeInTheDocument();
+test('with several organizations both breakdowns sit behind a toggle', async () => {
+  server.use(
+    http.get('*/api/v1/admin/ratings/summary', () =>
+      HttpResponse.json({
+        ...SUMMARY,
+        by_organization: [
+          ...SUMMARY.by_organization,
+          { organization_id: ORG_ID_2, name: { uz_latn: 'Boʻstonliq' }, avg_score: '3.00', count: 1 },
+        ],
+      }),
+    ),
+  );
+  renderWithProviders(<RatingsPage />);
+
+  const breakdown = await screen.findByTestId('ratings-breakdown');
+  expect(await within(breakdown).findByText('Burchmulla')).toBeInTheDocument();
+  expect(within(breakdown).getByText('Boʻstonliq')).toBeInTheDocument();
   expect(within(breakdown).queryByText('Chorva boqish')).not.toBeInTheDocument();
 
   await userEvent.setup().click(screen.getByTestId('ratings-breakdown-activity'));
   expect(within(breakdown).getByText('Chorva boqish')).toBeInTheDocument();
   expect(within(breakdown).queryByText('Burchmulla')).not.toBeInTheDocument();
+});
+
+test('with one organization the screen shows the service breakdown alone, no toggle', async () => {
+  // A leshoz head sees exactly one organization row — its own, repeating the
+  // overall average — so that view is dropped rather than left mostly blank.
+  server.use(http.get('*/api/v1/admin/ratings/summary', () => HttpResponse.json(SUMMARY)));
+  renderWithProviders(<RatingsPage />);
+
+  const breakdown = await screen.findByTestId('ratings-breakdown');
+  expect(await within(breakdown).findByText('Chorva boqish')).toBeInTheDocument();
+  expect(within(breakdown).queryByText('Burchmulla')).not.toBeInTheDocument();
+  expect(within(breakdown).queryByRole('tablist')).not.toBeInTheDocument();
 });
 
 test('names the author and links the permit number for a reader who can open the card', async () => {
