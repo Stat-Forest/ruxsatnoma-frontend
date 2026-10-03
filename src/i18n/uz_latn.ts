@@ -259,8 +259,8 @@ export const uz_latn = {
     'Davom etish uchun telefon raqamini tasdiqlang.',
   'cabinet.registration.genericError': "Xatolik yuz berdi. Qayta urinib ko'ring.",
 
-  'cabinet.profile.tabProfile': 'Profil',
-  'cabinet.profile.tabPassword': 'Parol',
+  'cabinet.profile.securityTitle': 'Xavfsizlik',
+  'cabinet.profile.passwordLabel': 'Parol',
   'cabinet.profile.contactsTitle': 'Aloqa maʼlumotlari',
   'cabinet.profile.phoneLabel': 'Telefon raqami',
   'cabinet.profile.emailLabel': 'Elektron pochta',
