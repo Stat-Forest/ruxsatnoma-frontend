@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { AlertTriangle, CheckCircle2, Copy, Loader2 } from 'lucide-react';
+import { CheckCircle2, Loader2 } from 'lucide-react';
 import { Drawer } from '../../components/ui/Overlay';
 import { Button } from '../../components/ui/button';
 import { FileInput, FormField, Input } from '../../components/ui/FormControls';
@@ -8,7 +8,7 @@ import { useAuth } from '../../auth/useAuth';
 import { ApiError } from '../../api/errors';
 import { useApiErrorText } from '../../i18n/useApiErrorText';
 import { useLanguage, useT } from '../../i18n/useT';
-import { formatDateTime, formatMoney } from '../permits/format';
+import { formatDateTime, formatMoney, shortId } from '../permits/format';
 import { pickName } from '../applicant/format';
 import {
   INVOICE_STATUS_STYLE,
@@ -90,7 +90,7 @@ function InvoiceHeader({ invoice }: { invoice: import('./api').InvoiceOut }) {
       <div>
         <dt className="font-semibold text-[#5A646D]">{t('accountant.invoices.detailApplication')}</dt>
         <dd className="font-mono text-[#1A1F24] break-all" title={invoice.application_id}>
-          {invoice.application_id.slice(0, 8)}
+          {invoice.application_number ?? shortId(invoice.application_id)}
         </dd>
       </div>
       <div>
@@ -253,7 +253,6 @@ function ManualPaidFilingForm({ invoiceId }: { invoiceId: string }) {
   const [file, setFile] = useState<File | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [copied, setCopied] = useState(false);
 
   const mutation = useFileManualConfirmation();
 
@@ -295,28 +294,12 @@ function ManualPaidFilingForm({ invoiceId }: { invoiceId: string }) {
               ? t('accountant.invoices.manualPaidFiled')
               : t('accountant.invoices.manualPaidMismatch')}
           </Alert>
-          <div className="rounded-lg border border-[#E4E7EA] bg-white p-3">
-            <p className="text-xs font-semibold text-[#5A646D]">{t('accountant.invoices.manualPaidIdLabel')}</p>
-            <div className="mt-1 flex flex-col sm:flex-row sm:items-center gap-2">
-              <code className="flex-1 truncate rounded bg-[#F8F9FA] px-2 py-1 text-xs break-all">{filed.id}</code>
-              <Button
-                variant="outline"
-                size="sm"
-                className="w-full sm:w-auto shrink-0"
-                leftIcon={<Copy className="h-3.5 w-3.5" />}
-                onClick={() => {
-                  void navigator.clipboard?.writeText(filed.id);
-                  setCopied(true);
-                }}
-              >
-                {copied ? t('accountant.common.copied') : t('accountant.common.copy')}
-              </Button>
-            </div>
-            <p className="mt-2 flex items-start gap-1.5 text-xs text-[#92400E]">
-              <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-              {t('accountant.invoices.manualPaidShareHint')}
-            </p>
-          </div>
+          {/* A1 (final review): the checker no longer needs this id handed
+           *  out of band — they see the filing in their own pending
+           *  worklist on the Discrepancies tab (F12b). A plain note, not a
+           *  copy-to-clipboard affordance for a value nothing consumes any
+           *  more. */}
+          <p className="text-xs text-[#5A646D]">{t('accountant.invoices.manualPaidIdLabel')}</p>
         </div>
       ) : (
         <div className="space-y-3">

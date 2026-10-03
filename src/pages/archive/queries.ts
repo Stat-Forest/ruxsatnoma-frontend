@@ -6,12 +6,12 @@
  */
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
-  archiveObject,
+  archiveApplicationByNumber,
+  archivePermitByNumber,
   getArchiveItem,
   listArchiveItems,
   verifyArchiveItem,
   type ArchiveListParams,
-  type ArchiveObjectType,
 } from './api';
 
 const LIST_KEY = ['archive', 'list'] as const;
@@ -39,20 +39,23 @@ export function useArchiveItem(itemId: string | null) {
   });
 }
 
-export function useArchiveObject() {
+/**
+ * Stage 14 (#205 R6) — archives by the number a person actually holds (an
+ * application's or a permit's public number), never by the row's own id.
+ */
+export type ArchiveByNumberInput =
+  | { objectType: 'application'; number: string; retentionUntil: string | null }
+  | { objectType: 'permit'; series: string; number: number; retentionUntil: string | null };
+
+export function useArchiveByNumber() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({
-      objectType,
-      objectId,
-      retentionUntil,
-    }: {
-      objectType: ArchiveObjectType;
-      objectId: string;
-      retentionUntil: string | null;
-    }) => archiveObject(objectType, objectId, retentionUntil),
+    mutationFn: (input: ArchiveByNumberInput) =>
+      input.objectType === 'application'
+        ? archiveApplicationByNumber({ number: input.number, retention_until: input.retentionUntil })
+        : archivePermitByNumber({ series: input.series, number: input.number, retention_until: input.retentionUntil }),
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: LIST_KEY });
+      void queryClient.invalidateQueries({ queryKey: ['archive'] });
     },
   });
 }

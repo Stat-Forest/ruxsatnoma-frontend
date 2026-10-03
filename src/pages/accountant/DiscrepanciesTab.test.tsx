@@ -173,6 +173,9 @@ test('resolving requires a non-blank comment and posts it, optionally with an up
 test('the resolve-comment and reject-reason fields cap input at the backend bound (2000)', async () => {
   server.use(
     http.get('*/api/v1/payments/reconciliations', () => HttpResponse.json({ items: [reconciliation()], total: 1, page: 1, page_size: 100 })),
+    http.get('*/api/v1/payments/manual-confirmations', () =>
+      HttpResponse.json({ items: [manualConfirmation()], total: 1, page: 1, page_size: 50 }),
+    ),
   );
   const user = userEvent.setup();
   renderTab(['payments.view', 'payments.manage', 'payments.confirm']);
@@ -183,10 +186,10 @@ test('the resolve-comment and reject-reason fields cap input at the backend boun
   expect(within(dialog).getByLabelText('Izoh')).toHaveAttribute('maxLength', '2000');
   await user.click(within(dialog).getByRole('button', { name: 'Bekor qilish' }));
 
-  const panel = await screen.findByTestId('manual-check-panel');
-  await user.type(within(panel).getByLabelText('Qayd ID'), CONFIRMATION_ID);
-  await user.click(within(panel).getByRole('button', { name: 'Rad etish' }));
-  expect(within(panel).getByLabelText('Rad etish sababi')).toHaveAttribute('maxLength', '2000');
+  const row = await screen.findByTestId(`manual-confirmation-row-${CONFIRMATION_ID}`);
+  await user.click(within(row).getByRole('button', { name: 'Rad etish' }));
+  const rejectRow = screen.getByTestId(`manual-reject-row-${CONFIRMATION_ID}`);
+  expect(within(rejectRow).getByLabelText('Rad etish sababi')).toHaveAttribute('maxLength', '2000');
 });
 
 test('the manual-confirmation checker panel is offered only to a payments.confirm holder', async () => {
@@ -198,90 +201,24 @@ test('the manual-confirmation checker panel is offered only to a payments.confir
   expect(screen.queryByTestId('manual-check-panel')).not.toBeInTheDocument();
 });
 
-test('confirming a manual confirmation by id calls the confirm route and shows the result', async () => {
-  server.use(
-    http.get('*/api/v1/payments/reconciliations', () => HttpResponse.json({ items: [], total: 0, page: 1, page_size: 100 })),
-    http.post('*/api/v1/payments/manual-confirmations/:id/confirm', ({ params }) =>
-      HttpResponse.json({
-        id: params.id,
-        invoice_id: INVOICE_ID,
-        amount: '2060000.00',
-        paid_at: '2026-08-05T10:00:00',
-        bank_doc_file_id: 'file-1',
-        maker_id: 'u-2',
-        checker_id: 'u-1',
-        status: 'confirmed',
-        reason: null,
-        checked_at: '2026-08-05T11:00:00Z',
-        created_at: '2026-08-05T10:05:00Z',
-      }),
-    ),
-  );
-  const user = userEvent.setup();
-  renderTab(['payments.view', 'payments.confirm']);
-
-  const panel = await screen.findByTestId('manual-check-panel');
-  await user.type(within(panel).getByLabelText('Qayd ID'), CONFIRMATION_ID);
-  await user.click(within(panel).getByRole('button', { name: 'Tasdiqlash' }));
-
-  expect(await screen.findByText('Tasdiqlandi. Hisob-faktura toʻlangan deb belgilandi.')).toBeInTheDocument();
-});
-
 test('the maker-is-checker refusal (ERR-ACL-001) reads as a plain explanation, not a raw code', async () => {
   server.use(
-    http.get('*/api/v1/payments/reconciliations', () => HttpResponse.json({ items: [], total: 0, page: 1, page_size: 100 })),
+    http.get('*/api/v1/payments/manual-confirmations', () =>
+      HttpResponse.json({ items: [manualConfirmation()], total: 1, page: 1, page_size: 50 }),
+    ),
     http.post('*/api/v1/payments/manual-confirmations/:id/confirm', () =>
       HttpResponse.json({ error: { code: 'ERR-ACL-001', message: 'maker cannot check' } }, { status: 403 }),
     ),
   );
   const user = userEvent.setup();
-  renderTab(['payments.view', 'payments.confirm']);
+  renderTab(['payments.confirm']);
 
-  const panel = await screen.findByTestId('manual-check-panel');
-  await user.type(within(panel).getByLabelText('Qayd ID'), CONFIRMATION_ID);
-  await user.click(within(panel).getByRole('button', { name: 'Tasdiqlash' }));
+  const row = await screen.findByTestId(`manual-confirmation-row-${CONFIRMATION_ID}`);
+  await user.click(within(row).getByRole('button', { name: 'Tasdiqlash' }));
 
   expect(
     await screen.findByText('Siz bu qaydni qilgan shaxssiz — uni tasdiqlay olmaysiz, boshqa shaxs tasdiqlashi kerak.'),
   ).toBeInTheDocument();
-});
-
-test('rejecting requires a reason before it can be submitted', async () => {
-  let rejectBody: unknown;
-  server.use(
-    http.get('*/api/v1/payments/reconciliations', () => HttpResponse.json({ items: [], total: 0, page: 1, page_size: 100 })),
-    http.post('*/api/v1/payments/manual-confirmations/:id/reject', async ({ request, params }) => {
-      rejectBody = await request.json();
-      return HttpResponse.json({
-        id: params.id,
-        invoice_id: INVOICE_ID,
-        amount: '2060000.00',
-        paid_at: '2026-08-05T10:00:00',
-        bank_doc_file_id: 'file-1',
-        maker_id: 'u-2',
-        checker_id: 'u-1',
-        status: 'rejected',
-        reason: (rejectBody as { reason: string }).reason,
-        checked_at: '2026-08-05T11:00:00Z',
-        created_at: '2026-08-05T10:05:00Z',
-      });
-    }),
-  );
-  const user = userEvent.setup();
-  renderTab(['payments.view', 'payments.confirm']);
-
-  const panel = await screen.findByTestId('manual-check-panel');
-  await user.type(within(panel).getByLabelText('Qayd ID'), CONFIRMATION_ID);
-  await user.click(within(panel).getByRole('button', { name: 'Rad etish' }));
-
-  const submitReject = within(panel).getByRole('button', { name: 'Rad etishni tasdiqlash' });
-  expect(submitReject).toBeDisabled();
-
-  await user.type(within(panel).getByLabelText('Rad etish sababi'), 'Hujjat notoʻgʻri');
-  await user.click(submitReject);
-
-  expect(rejectBody).toEqual({ reason: 'Hujjat notoʻgʻri' });
-  expect(await screen.findByText('Rad etildi. Hisob-faktura toʻlanmagan holicha qoladi.')).toBeInTheDocument();
 });
 
 test('an empty reconciliation register disables its Excel button — there is nothing to export', async () => {
@@ -362,15 +299,49 @@ test('F12b — a row\'s own confirm button acts on that row directly, no id entr
   expect(confirmedId).toBe(CONFIRMATION_ID);
 });
 
-test("F12b — a row's own reject button selects it into the id field and opens the reason box, never submitting blind", async () => {
-  let rejectBody: unknown;
+test("rejecting a pending confirmation asks for the reason under that row and submits for that row's id", async () => {
+  let rejectBody: { id: string; body: unknown } | null = null;
+  server.use(
+    http.get('*/api/v1/payments/manual-confirmations', () =>
+      HttpResponse.json({
+        items: [manualConfirmation({ id: 'mc-1' }), manualConfirmation({ id: 'mc-2' })],
+        total: 2,
+        page: 1,
+        page_size: 50,
+      }),
+    ),
+    http.post('*/api/v1/payments/manual-confirmations/:id/reject', async ({ params, request }) => {
+      rejectBody = { id: String(params.id), body: await request.json() };
+      return HttpResponse.json(manualConfirmation({ id: String(params.id), status: 'rejected', reason: 'wrong amount' }));
+    }),
+  );
+  const user = userEvent.setup();
+  renderTab(['payments.confirm']);
+
+  const row = await screen.findByTestId('manual-confirmation-row-mc-2');
+  await user.click(within(row).getByRole('button', { name: 'Rad etish' }));
+
+  const rejectRow = screen.getByTestId('manual-reject-row-mc-2');
+  const submitReject = within(rejectRow).getByRole('button', { name: 'Rad etishni tasdiqlash' });
+  expect(submitReject).toBeDisabled();
+
+  await user.type(within(rejectRow).getByLabelText(/Sabab/i), 'wrong amount');
+  await user.click(submitReject);
+
+  expect(rejectBody).toEqual({ id: 'mc-2', body: { reason: 'wrong amount' } });
+  expect(await screen.findByText('Rad etildi. Hisob-faktura toʻlanmagan holicha qoladi.')).toBeInTheDocument();
+  expect(screen.queryByLabelText(/ID/)).toBeNull();
+});
+
+test('cancelling a reject-in-progress closes the reason box without submitting', async () => {
+  let rejectCalled = false;
   server.use(
     http.get('*/api/v1/payments/manual-confirmations', () =>
       HttpResponse.json({ items: [manualConfirmation()], total: 1, page: 1, page_size: 50 }),
     ),
-    http.post('*/api/v1/payments/manual-confirmations/:id/reject', async ({ request, params }) => {
-      rejectBody = { id: params.id, ...(await request.json() as object) };
-      return HttpResponse.json(manualConfirmation({ status: 'rejected', reason: 'Summasi mos emas' }));
+    http.post('*/api/v1/payments/manual-confirmations/:id/reject', () => {
+      rejectCalled = true;
+      return HttpResponse.json(manualConfirmation({ status: 'rejected', reason: 'x' }));
     }),
   );
   const user = userEvent.setup();
@@ -379,16 +350,12 @@ test("F12b — a row's own reject button selects it into the id field and opens 
   const row = await screen.findByTestId(`manual-confirmation-row-${CONFIRMATION_ID}`);
   await user.click(within(row).getByRole('button', { name: 'Rad etish' }));
 
-  const panel = screen.getByTestId('manual-check-panel');
-  expect(within(panel).getByLabelText('Qayd ID')).toHaveValue(CONFIRMATION_ID);
-  const submitReject = within(panel).getByRole('button', { name: 'Rad etishni tasdiqlash' });
-  expect(submitReject).toBeDisabled();
+  const rejectRow = screen.getByTestId(`manual-reject-row-${CONFIRMATION_ID}`);
+  await user.type(within(rejectRow).getByLabelText(/Sabab/i), 'draft reason');
+  await user.click(within(rejectRow).getByRole('button', { name: 'Bekor qilish' }));
 
-  await user.type(within(panel).getByLabelText('Rad etish sababi'), 'Summasi mos emas');
-  await user.click(submitReject);
-
-  expect(rejectBody).toMatchObject({ id: CONFIRMATION_ID, reason: 'Summasi mos emas' });
-  expect(await screen.findByText('Rad etildi. Hisob-faktura toʻlanmagan holicha qoladi.')).toBeInTheDocument();
+  expect(screen.queryByTestId(`manual-reject-row-${CONFIRMATION_ID}`)).not.toBeInTheDocument();
+  expect(rejectCalled).toBe(false);
 });
 
 test('F12b — a confirmed row leaves the pending worklist', async () => {

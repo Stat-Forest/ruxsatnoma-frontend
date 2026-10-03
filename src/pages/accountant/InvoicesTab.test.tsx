@@ -33,6 +33,7 @@ function invoice(overrides: Partial<Record<string, unknown>> = {}) {
     id: INVOICE_PENDING,
     number: 'INV-2026-000123',
     application_id: APPLICATION_ID,
+    application_number: null,
     calculation_id: null,
     amount: '2060000.00',
     status: 'pending',
@@ -57,8 +58,16 @@ beforeAll(() => server.listen({ onUnhandledRequest: 'error' }));
 afterEach(() => server.resetHandlers());
 afterAll(() => server.close());
 
-function renderTab(permissions: string[] = ['payments.view', 'payments.manage'], lang: keyof typeof DICTIONARIES = 'uz_latn') {
-  const client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
+function renderTab(
+  permissions: string[] = ['payments.view', 'payments.manage'],
+  lang: keyof typeof DICTIONARIES = 'uz_latn',
+  { appRetry = false }: { appRetry?: boolean } = {},
+) {
+  // `appRetry` keeps React Query's own default retry, the one `App.tsx`'s
+  // client runs with, for a test about what a hook does on a failure.
+  const client = new QueryClient({
+    defaultOptions: { queries: appRetry ? {} : { retry: false }, mutations: { retry: false } },
+  });
   const me = {
     user: { id: 'u-1', full_name: 'Accountant', login: 'acc', language: lang },
     role: { code: 'accountant', name: {} },
@@ -84,6 +93,26 @@ function renderTab(permissions: string[] = ['payments.view', 'payments.manage'],
     </QueryClientProvider>
   );
   return render(<InvoicesTab />, { wrapper });
+}
+
+/** The two search cards both submit a button labelled "Qidirish" (F1's own
+ *  `searchButton` key, shared) — scoping by the card's own heading rather
+ *  than `getAllByRole(...)[N]` so a test never depends on which card
+ *  happens to render first. */
+function applicationSearchSection() {
+  return screen.getByText('Ariza boʻyicha qidirish').closest('section')!;
+}
+function invoiceSearchSection() {
+  return screen.getByText('Hisob-faktura boʻyicha qidirish').closest('section')!;
+}
+
+/** The shared `Drawer` component (`../../components/ui/Overlay.tsx`) sets no
+ *  `role="dialog"` of its own (unlike its sibling `Modal`) and no testid —
+ *  scope by its title heading instead, since the register row behind it
+ *  renders the same invoice number the drawer's own header does. */
+async function findDrawer() {
+  const heading = await screen.findByText('Hisob-faktura');
+  return heading.closest('div')!.parentElement!;
 }
 
 test('F12a — the zone register renders on its own, with no search needed and no "route does not exist" message', async () => {
@@ -148,20 +177,20 @@ test('F12a — pagination turns the page as offset, not as a second page param t
   expect(await screen.findByText('INV-page-2')).toBeInTheDocument();
 });
 
-test('searching by application id filters the register to that application', async () => {
+test('searching by application number filters the register to that application', async () => {
   server.use(
     http.get('*/api/v1/invoices', ({ request }) => {
       const url = new URL(request.url);
-      if (url.searchParams.get('application_id') !== APPLICATION_ID) return emptyInvoicesPage();
-      return HttpResponse.json({ items: [invoice()], total: 1, page: 1, page_size: 20 });
+      if (url.searchParams.get('application_number') !== 'RX-2026-00001') return emptyInvoicesPage();
+      return HttpResponse.json({ items: [invoice({ application_number: 'RX-2026-00001' })], total: 1, page: 1, page_size: 20 });
     }),
   );
   const user = userEvent.setup();
   renderTab();
   await screen.findByText('Bu filtr boʻyicha hisob-fakturalar topilmadi.');
 
-  await user.type(screen.getByLabelText('Ariza ID'), APPLICATION_ID);
-  await user.click(screen.getByRole('button', { name: 'Qidirish' }));
+  await user.type(screen.getByLabelText('Ariza raqami'), 'RX-2026-00001');
+  await user.click(within(applicationSearchSection()).getByRole('button', { name: 'Qidirish' }));
 
   expect(await screen.findByText('INV-2026-000123')).toBeInTheDocument();
   expect(screen.getByText('2 060 000')).toBeInTheDocument();
@@ -172,8 +201,8 @@ test('an application with no invoices says so instead of showing an empty table'
   renderTab();
   await screen.findByText('Bu filtr boʻyicha hisob-fakturalar topilmadi.');
 
-  await user.type(screen.getByLabelText('Ariza ID'), APPLICATION_ID);
-  await user.click(screen.getByRole('button', { name: 'Qidirish' }));
+  await user.type(screen.getByLabelText('Ariza raqami'), 'RX-2026-00001');
+  await user.click(within(applicationSearchSection()).getByRole('button', { name: 'Qidirish' }));
 
   expect(await screen.findByText('Bu ariza boʻyicha hisob-fakturalar topilmadi.')).toBeInTheDocument();
 });
@@ -182,8 +211,8 @@ test('clearing the application filter returns to the unfiltered register', async
   server.use(
     http.get('*/api/v1/invoices', ({ request }) => {
       const url = new URL(request.url);
-      if (url.searchParams.get('application_id') === APPLICATION_ID) {
-        return HttpResponse.json({ items: [invoice()], total: 1, page: 1, page_size: 20 });
+      if (url.searchParams.get('application_number') === 'RX-2026-00001') {
+        return HttpResponse.json({ items: [invoice({ application_number: 'RX-2026-00001' })], total: 1, page: 1, page_size: 20 });
       }
       return emptyInvoicesPage();
     }),
@@ -192,13 +221,123 @@ test('clearing the application filter returns to the unfiltered register', async
   renderTab();
   await screen.findByText('Bu filtr boʻyicha hisob-fakturalar topilmadi.');
 
-  await user.type(screen.getByLabelText('Ariza ID'), APPLICATION_ID);
-  await user.click(screen.getByRole('button', { name: 'Qidirish' }));
+  await user.type(screen.getByLabelText('Ariza raqami'), 'RX-2026-00001');
+  await user.click(within(applicationSearchSection()).getByRole('button', { name: 'Qidirish' }));
   expect(await screen.findByText('INV-2026-000123')).toBeInTheDocument();
 
   await user.click(screen.getByRole('button', { name: 'Filtrni tozalash' }));
 
   expect(await screen.findByText('Bu filtr boʻyicha hisob-fakturalar topilmadi.')).toBeInTheDocument();
+});
+
+test('searching by application number sends application_number, never application_id', async () => {
+  const seen: URLSearchParams[] = [];
+  server.use(
+    http.get('*/api/v1/invoices', ({ request }) => {
+      const url = new URL(request.url);
+      seen.push(url.searchParams);
+      if (url.searchParams.get('application_number') === 'RX-2026-00001') {
+        return HttpResponse.json({ items: [invoice({ application_number: 'RX-2026-00001' })], total: 1, page: 1, page_size: 20 });
+      }
+      return emptyInvoicesPage();
+    }),
+  );
+  renderTab();
+  await userEvent.type(screen.getByLabelText(/Ariza raqami/i), ' RX-2026-00001 ');
+  await userEvent.click(within(applicationSearchSection()).getByRole('button', { name: /Qidirish/i }));
+  expect(await screen.findByText('INV-2026-000123')).toBeInTheDocument();
+  expect(screen.getByText('RX-2026-00001')).toBeInTheDocument(); // the "filtered by application" banner shows the number
+  const last = seen.at(-1)!;
+  expect(last.get('application_number')).toBe('RX-2026-00001');
+  expect(last.has('application_id')).toBe(false);
+});
+
+test('searching by invoice number filters the register by number', async () => {
+  const seen: URLSearchParams[] = [];
+  server.use(
+    http.get('*/api/v1/invoices', ({ request }) => {
+      seen.push(new URL(request.url).searchParams);
+      return emptyInvoicesPage();
+    }),
+  );
+  renderTab();
+  await userEvent.type(screen.getByLabelText(/Hisob-faktura raqami/i), 'INV-2026-000123');
+  await userEvent.click(within(invoiceSearchSection()).getByRole('button', { name: /Qidirish/i }));
+  await screen.findByText(/topilmadi/i);
+  expect(seen.at(-1)!.get('number')).toBe('INV-2026-000123');
+});
+
+test('the invoice-number filter shows a banner too, and "clear" resets both filters (final review A5)', async () => {
+  const seen: URLSearchParams[] = [];
+  server.use(
+    http.get('*/api/v1/invoices', ({ request }) => {
+      seen.push(new URL(request.url).searchParams);
+      return emptyInvoicesPage();
+    }),
+  );
+  const user = userEvent.setup();
+  renderTab();
+  await screen.findByText('Bu filtr boʻyicha hisob-fakturalar topilmadi.');
+
+  await user.type(screen.getByLabelText('Ariza raqami'), 'RX-2026-00001');
+  await user.click(within(applicationSearchSection()).getByRole('button', { name: 'Qidirish' }));
+  await user.type(screen.getByLabelText(/Hisob-faktura raqami/i), 'INV-2026-000123');
+  await user.click(within(invoiceSearchSection()).getByRole('button', { name: 'Qidirish' }));
+
+  // Both filters are live at once (they AND together on the backend) — the
+  // banner names both, not just whichever one has a hidden table column.
+  const banner = await screen.findByTestId('invoices-filter-banner');
+  expect(within(banner).getByText('RX-2026-00001')).toBeInTheDocument();
+  expect(within(banner).getByText('INV-2026-000123')).toBeInTheDocument();
+  expect(seen.at(-1)!.get('application_number')).toBe('RX-2026-00001');
+  expect(seen.at(-1)!.get('number')).toBe('INV-2026-000123');
+
+  await user.click(screen.getByRole('button', { name: 'Filtrni tozalash' }));
+
+  await waitFor(() => expect(seen.at(-1)!.has('application_number')).toBe(false));
+  expect(seen.at(-1)!.has('number')).toBe(false);
+  expect(screen.queryByTestId('invoices-filter-banner')).not.toBeInTheDocument();
+});
+
+test('an unknown application number shows the not-found message, not a raw 422', async () => {
+  server.use(
+    http.get('*/api/v1/invoices', ({ request }) =>
+      new URL(request.url).searchParams.has('application_number')
+        ? HttpResponse.json({ error: { code: 'ERR-SYS-003', message: 'x', details: {}, correlation_id: 'c' } }, { status: 404 })
+        : emptyInvoicesPage(),
+    ),
+  );
+  renderTab();
+  await userEvent.type(screen.getByLabelText(/Ariza raqami/i), 'RX-2026-99999');
+  await userEvent.click(within(applicationSearchSection()).getByRole('button', { name: /Qidirish/i }));
+  expect(await screen.findByText(/Bunday ariza topilmadi/i)).toBeInTheDocument();
+});
+
+test('an unknown number is a final answer: asked once, and the unfiltered rows never sit under the filter banner', async () => {
+  let numberCalls = 0;
+  server.use(
+    http.get('*/api/v1/invoices', ({ request }) => {
+      if (!new URL(request.url).searchParams.has('application_number')) {
+        return HttpResponse.json({ items: [invoice()], total: 1, page: 1, page_size: 20 });
+      }
+      numberCalls += 1;
+      return HttpResponse.json({ error: { code: 'ERR-SYS-003', message: 'x', details: {}, correlation_id: 'c' } }, { status: 404 });
+    }),
+  );
+  renderTab(undefined, undefined, { appRetry: true });
+  await screen.findByText('INV-2026-000123');
+
+  await userEvent.type(screen.getByLabelText(/Ariza raqami/i), 'RX-2026-99999');
+  await userEvent.click(within(applicationSearchSection()).getByRole('button', { name: /Qidirish/i }));
+
+  expect(await screen.findByText(/Bunday ariza topilmadi/i)).toBeInTheDocument();
+  expect(screen.queryByText('INV-2026-000123')).not.toBeInTheDocument();
+  expect(numberCalls).toBe(1);
+});
+
+test('there is no "open by id" form any more', () => {
+  renderTab();
+  expect(screen.queryByLabelText(/ID/)).toBeNull();
 });
 
 test('opening an invoice from the register shows its detail and ledger, with a null account read as settled outside the system', async () => {
@@ -236,25 +375,31 @@ test('opening an invoice from the register shows its detail and ledger, with a n
   expect(screen.getByText('tizimdan tashqarida hisoblanadi')).toBeInTheDocument();
 });
 
-test('opening an invoice directly by id works without a prior search', async () => {
+test('opening a paid invoice from the register shows its status in the drawer', async () => {
   server.use(
+    http.get('*/api/v1/invoices', () =>
+      HttpResponse.json({ items: [invoice({ id: INVOICE_PAID, status: 'paid', paid_at: '2026-08-05T10:00:00Z' })], total: 1, page: 1, page_size: 20 }),
+    ),
     http.get('*/api/v1/invoices/:id', ({ params }) => HttpResponse.json(invoice({ id: params.id, status: 'paid', paid_at: '2026-08-05T10:00:00Z' }))),
     http.get('*/api/v1/payments/allocations', () => HttpResponse.json({ items: [], total: 0, page: 1, page_size: 200 })),
   );
   const user = userEvent.setup();
   renderTab();
 
-  await user.type(screen.getByLabelText('Hisob-faktura ID'), INVOICE_PAID);
-  await user.click(screen.getByRole('button', { name: 'Ochish' }));
+  await user.click(await screen.findByTestId(`invoice-row-${INVOICE_PAID}`));
 
-  const detail = (await screen.findByText('INV-2026-000123')).closest('dl')!;
-  // The status filter's own `<option>Toʻlangan</option>` renders the same
-  // text — scope to the drawer's requisites list, not the whole document.
+  // The register row behind the drawer shows the same number — scope to the
+  // dialog first, then to its own requisites list, not the whole document
+  // (the status filter's own `<option>Toʻlangan</option>` renders the same
+  // status text too).
+  const dialog = await findDrawer();
+  const detail = (await within(dialog).findByText('INV-2026-000123')).closest('dl')!;
   expect(within(detail).getByText('Toʻlangan')).toBeInTheDocument();
 });
 
-test('a 404 on direct open reads as "not found or not yours", never as a raw error code', async () => {
+test('a 404 opening a row reads as "not found or not yours", never as a raw error code', async () => {
   server.use(
+    http.get('*/api/v1/invoices', () => HttpResponse.json({ items: [invoice()], total: 1, page: 1, page_size: 20 })),
     http.get('*/api/v1/invoices/:id', () =>
       HttpResponse.json({ error: { code: 'ERR-SYS-003', message: 'not found' } }, { status: 404 }),
     ),
@@ -262,28 +407,28 @@ test('a 404 on direct open reads as "not found or not yours", never as a raw err
   const user = userEvent.setup();
   renderTab();
 
-  await user.type(screen.getByLabelText('Hisob-faktura ID'), 'does-not-exist');
-  await user.click(screen.getByRole('button', { name: 'Ochish' }));
+  await user.click(await screen.findByTestId(`invoice-row-${INVOICE_PENDING}`));
 
   expect(await screen.findByText('Bunday hisob-faktura mavjud emas yoki sizga tegishli emas.')).toBeInTheDocument();
 });
 
 test('the manual-PAID filing form is offered only for a pending invoice, and only to a payments.manage holder', async () => {
   server.use(
+    http.get('*/api/v1/invoices', () => HttpResponse.json({ items: [invoice()], total: 1, page: 1, page_size: 20 })),
     http.get('*/api/v1/invoices/:id', ({ params }) => HttpResponse.json(invoice({ id: params.id }))),
     http.get('*/api/v1/payments/allocations', () => HttpResponse.json({ items: [], total: 0, page: 1, page_size: 200 })),
   );
   const user = userEvent.setup();
   renderTab(['payments.view']); // no payments.manage
 
-  await user.type(screen.getByLabelText('Hisob-faktura ID'), INVOICE_PENDING);
-  await user.click(screen.getByRole('button', { name: 'Ochish' }));
+  await user.click(await screen.findByTestId(`invoice-row-${INVOICE_PENDING}`));
 
-  await screen.findByText('INV-2026-000123');
-  expect(screen.queryByText('Qoʻlda toʻlovni qayd etish')).not.toBeInTheDocument();
+  const dialog = await findDrawer();
+  await within(dialog).findByText('INV-2026-000123');
+  expect(within(dialog).queryByText('Qoʻlda toʻlovni qayd etish')).not.toBeInTheDocument();
 });
 
-test('filing a manual confirmation uploads the document first, then files it, and surfaces the id to hand to the checker', async () => {
+test('filing a manual confirmation uploads the document first, then files it, with no id left to hand off (A1)', async () => {
   let filedBody: unknown;
   vi.mocked(accountantApi.uploadFile).mockResolvedValue({
     id: 'file-1',
@@ -294,6 +439,7 @@ test('filing a manual confirmation uploads the document first, then files it, an
     created_at: '2026-08-01T00:00:00Z',
   });
   server.use(
+    http.get('*/api/v1/invoices', () => HttpResponse.json({ items: [invoice()], total: 1, page: 1, page_size: 20 })),
     http.get('*/api/v1/invoices/:id', ({ params }) => HttpResponse.json(invoice({ id: params.id }))),
     http.get('*/api/v1/payments/allocations', () => HttpResponse.json({ items: [], total: 0, page: 1, page_size: 200 })),
     http.post('*/api/v1/payments/manual-confirmations', async ({ request }) => {
@@ -320,11 +466,11 @@ test('filing a manual confirmation uploads the document first, then files it, an
   const user = userEvent.setup();
   renderTab();
 
-  await user.type(screen.getByLabelText('Hisob-faktura ID'), INVOICE_PENDING);
-  await user.click(screen.getByRole('button', { name: 'Ochish' }));
-  await screen.findByText('INV-2026-000123');
+  await user.click(await screen.findByTestId(`invoice-row-${INVOICE_PENDING}`));
+  const dialog = await findDrawer();
+  await within(dialog).findByText('INV-2026-000123');
 
-  const section = screen.getByText('Qoʻlda toʻlovni qayd etish').closest('section')!;
+  const section = within(dialog).getByText('Qoʻlda toʻlovni qayd etish').closest('section')!;
   await user.type(within(section).getByLabelText('Summa'), '2060000.00');
   // `type()` sends real keystrokes through the input's own sanitization
   // algorithm, which a `datetime-local` field frequently rejects mid-way —
@@ -338,7 +484,13 @@ test('filing a manual confirmation uploads the document first, then files it, an
   await user.click(within(section).getByRole('button', { name: 'Qayd etish' }));
 
   expect(await screen.findByText('Qayd etildi. Tasdiqlash rahbarni kutmoqda.')).toBeInTheDocument();
-  expect(screen.getByText('conf-1')).toBeInTheDocument();
+  // A1: no id is shown or offered for copying any more — the checker finds
+  // the filing in their own pending worklist on the Discrepancies tab.
+  expect(screen.queryByText('conf-1')).not.toBeInTheDocument();
+  expect(screen.queryByRole('button', { name: /nusxa/i })).not.toBeInTheDocument();
+  expect(
+    screen.getByText('Tasdiqlovchi shaxs bu qaydni Nomuvofiqliklar boʻlimidagi kutayotgan qaydlar roʻyxatida koʻradi.'),
+  ).toBeInTheDocument();
   expect(accountantApi.uploadFile).toHaveBeenCalledWith(expect.objectContaining({ name: 'payment-order.pdf' }));
   expect(filedBody).toMatchObject({ invoice_id: INVOICE_PENDING, amount: '2060000.00', bank_doc_file_id: 'file-1' });
   expect(typeof (filedBody as { amount: unknown }).amount).toBe('string');
@@ -381,6 +533,10 @@ test('the Excel button asks the server for the export with the applied filters, 
 
   await user.selectOptions(screen.getByLabelText('Holati'), 'paid');
   await vi.waitFor(() => expect(listCalls.length).toBeGreaterThan(listCallsBefore));
+  // Stage 14's number filter rides along too — left out, the file would
+  // carry the whole zone while the screen shows one application.
+  await user.type(screen.getByLabelText('Ariza raqami'), 'RX-2026-00001{enter}');
+  await vi.waitFor(() => expect(listCalls.at(-1)).toContain('application_number=RX-2026-00001'));
   const listCallsAfterFilter = listCalls.length;
 
   await user.click(screen.getByTestId('export-xlsx'));
@@ -389,6 +545,7 @@ test('the Excel button asks the server for the export with the applied filters, 
   expect(clickSpy).toHaveBeenCalled();
   expect(listCalls.length).toBe(listCallsAfterFilter); // the export never re-fetches the list
   expect(exportUrl!.searchParams.get('status')).toBe('paid');
+  expect(exportUrl!.searchParams.get('application_number')).toBe('RX-2026-00001');
   expect(exportUrl!.searchParams.get('lang')).toBe('uz_latn');
   expect(exportUrl!.searchParams.has('limit')).toBe(false);
   expect(exportUrl!.searchParams.has('offset')).toBe(false);
@@ -428,4 +585,3 @@ test('status translates properly in all 5 languages (uz_latn, uz_cyrl, ru, en, k
     unmount();
   }
 });
-
