@@ -145,7 +145,8 @@ jobs:
 
           # The issue bot's label, comment and close are already shown on the
           # message it edits; reporting them again would double every press.
-          if [ "$ACTOR" = "$ISSUE_BOT" ] && { [ "$EVENT" = issues ] || [ "$EVENT" = issue_comment ]; }; then
+          # `label` covers GitHub creating "in progress" on the bot's first use.
+          if [ "$ACTOR" = "$ISSUE_BOT" ] && { [ "$EVENT" = issues ] || [ "$EVENT" = issue_comment ] || [ "$EVENT" = label ]; }; then
             echo "Issue bot event — already shown on its Telegram message. Skipping."
             exit 0
           fi
