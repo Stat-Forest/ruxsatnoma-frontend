@@ -12,6 +12,9 @@ import type { AuthContextValue } from '../../auth/AuthContext';
 vi.mock('./ApplicantDashboardPage', () => ({
   ApplicantDashboardPage: () => <div data-testid="applicant-dashboard" />,
 }));
+vi.mock('./BeekeepingRegistrarDashboardPage', () => ({
+  BeekeepingRegistrarDashboardPage: () => <div data-testid="registrar-dashboard" />,
+}));
 vi.mock('./ChiefForesterDashboardPage', () => ({
   ChiefForesterDashboardPage: () => <div data-testid="chief-forester-dashboard" />,
 }));
@@ -64,6 +67,13 @@ test('a chief forester lands on the chief forester dashboard', () => {
   renderAs('chief_forester');
 
   expect(screen.getByTestId('chief-forester-dashboard')).toBeInTheDocument();
+});
+
+test('the Beekeeping Union registrar lands on the register summary, not the empty placeholder', () => {
+  renderAs('beekeeping_registrar', { permissions: ['beekeepers.manage'] });
+
+  expect(screen.getByTestId('registrar-dashboard')).toBeInTheDocument();
+  expect(screen.queryByTestId('dashboard-page')).not.toBeInTheDocument();
 });
 
 test('F19 — any staff role holding dashboard.view lands on the real staff dashboard, not the placeholder', () => {

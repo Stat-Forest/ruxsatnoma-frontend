@@ -39,7 +39,9 @@ export function KpiTile({
         <h3 className="text-[11px] font-bold uppercase tracking-wide text-[#5A646D] leading-tight">{label}</h3>
         {badge}
       </div>
-      <p className={`text-2xl font-bold font-mono tabular-nums leading-none ${VALUE_COLOR[tone]}`}>{value}</p>
+      <p data-testid={`${testId}-value`} className={`text-2xl font-bold font-mono tabular-nums leading-none ${VALUE_COLOR[tone]}`}>
+        {value}
+      </p>
       <p className="flex items-start gap-1.5 text-xs text-[#5A646D] leading-snug">
         {HintIcon ? <HintIcon className="w-3.5 h-3.5 shrink-0 text-[#767F87] mt-0.5" /> : null}
         <span className="min-w-0 break-words">{hint}</span>

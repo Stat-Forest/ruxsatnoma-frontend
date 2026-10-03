@@ -2957,6 +2957,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/beekeepers/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Beekeepers Summary
+         * @description The register's counts for the registrar's home screen — whole
+         *     register, no zone, the same scope as `GET /beekeepers`.
+         */
+        get: operations["get_beekeepers_summary_api_v1_beekeepers_summary_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/beekeepers/lookup": {
         parameters: {
             query?: never;
@@ -3264,6 +3285,28 @@ export interface paths {
          *     `/applications/{application_id}` so the literal path wins.
          */
         get: operations["list_beekeeping_claims_api_v1_applications_beekeeping_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/applications/beekeeping/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Beekeeping Claims Summary
+         * @description The Union registrar's home screen: `GET /applications/beekeeping`'s
+         *     claims counted per line for one calendar year of filing (the current one
+         *     when `year` is omitted). Same gate as the list it summarizes.
+         */
+        get: operations["get_beekeeping_claims_summary_api_v1_applications_beekeeping_summary_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -8711,6 +8754,59 @@ export interface components {
         BeekeeperRemoveIn: {
             /** Reason */
             reason: string;
+        };
+        /**
+         * BeekeepersSummaryOut
+         * @description `GET /beekeepers/summary` — the register on the registrar's home
+         *     screen, as of `as_of` (the Tashkent business day). `expired` and
+         *     `expiring_soon` count ACTIVE members only; `expiring_soon` is the
+         *     inclusive window `as_of .. as_of + expiring_within_days`.
+         */
+        BeekeepersSummaryOut: {
+            /**
+             * As Of
+             * Format: date
+             */
+            as_of: string;
+            /** Active */
+            active: number;
+            /** Removed */
+            removed: number;
+            /** Expired */
+            expired: number;
+            /** Expiring Soon */
+            expiring_soon: number;
+            /** Expiring Within Days */
+            expiring_within_days: number;
+        };
+        /**
+         * BeekeepingClaimsSummaryOut
+         * @description `GET /applications/beekeeping/summary` — the claims `GET
+         *     /applications/beekeeping` lists, counted for one calendar year of FIRST
+         *     filing (`submitted_at`, Asia/Tashkent) on the Union registrar's home
+         *     screen. Every claim lands in exactly one line
+         *     (`service.BEEKEEPING_CLAIM_LINES`), so the lines always add up to
+         *     `total`; an ARCHIVED claim is counted under the status it was archived
+         *     from. `years`: every year with at least one claim, plus the current one,
+         *     newest first — what the screen's year switcher offers.
+         */
+        BeekeepingClaimsSummaryOut: {
+            /** Year */
+            year: number;
+            /** Years */
+            years: number[];
+            /** Total */
+            total: number;
+            /** In Review */
+            in_review: number;
+            /** Awaiting Payment */
+            awaiting_payment: number;
+            /** Permit Issued */
+            permit_issued: number;
+            /** Rejected */
+            rejected: number;
+            /** Cancelled Or Unpaid */
+            cancelled_or_unpaid: number;
         };
         /**
          * BenefitClaimDetailOut
@@ -20675,6 +20771,26 @@ export interface operations {
             };
         };
     };
+    get_beekeepers_summary_api_v1_beekeepers_summary_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BeekeepersSummaryOut"];
+                };
+            };
+        };
+    };
     lookup_beekeeper_api_v1_beekeepers_lookup_get: {
         parameters: {
             query: {
@@ -21140,6 +21256,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Page_BenefitClaimMonitorOut_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_beekeeping_claims_summary_api_v1_applications_beekeeping_summary_get: {
+        parameters: {
+            query?: {
+                year?: number | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BeekeepingClaimsSummaryOut"];
                 };
             };
             /** @description Validation Error */
