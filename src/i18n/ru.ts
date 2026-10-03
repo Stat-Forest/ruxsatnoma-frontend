@@ -225,8 +225,8 @@ export const ru = {
   'cabinet.registration.needPhoneVerified': 'Чтобы продолжить, подтвердите номер телефона.',
   'cabinet.registration.genericError': 'Произошла ошибка. Попробуйте ещё раз.',
 
-  'cabinet.profile.tabProfile': 'Профиль',
-  'cabinet.profile.tabPassword': 'Пароль',
+  'cabinet.profile.securityTitle': 'Безопасность',
+  'cabinet.profile.passwordLabel': 'Пароль',
   'cabinet.profile.contactsTitle': 'Контактные данные',
   'cabinet.profile.phoneLabel': 'Номер телефона',
   'cabinet.profile.emailLabel': 'Электронная почта',
