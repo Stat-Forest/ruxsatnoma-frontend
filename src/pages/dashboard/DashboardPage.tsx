@@ -1,6 +1,7 @@
 import { useAuth } from '../../auth/useAuth';
 import { useT } from '../../i18n/useT';
 import { ApplicantDashboardPage } from './ApplicantDashboardPage';
+import { BeekeepingRegistrarDashboardPage } from './BeekeepingRegistrarDashboardPage';
 import { ChiefForesterDashboardPage } from './ChiefForesterDashboardPage';
 import { LeadershipDashboardPage } from './LeadershipDashboardPage';
 import { StaffDashboardPage } from './StaffDashboardPage';
@@ -12,7 +13,10 @@ import { StaffDashboardPage } from './StaffDashboardPage';
  * home screen — the applicant's own applications/permits/invoices, leadership's
  * territory drill-down on top of the same KPI feed, and the chief forester's
  * forestry oversight dashboard (pending GIS version/import approvals, permits
- * to sign, contour occupancy, and grazing load monitoring).
+ * to sign, contour occupancy, and grazing load monitoring). The Beekeeping
+ * Union's registrar holds no `dashboard.view` (ruling #182: the register is
+ * their whole workplace), so they get the register's own summary instead of
+ * an empty placeholder.
  *
  * `StaffDashboardPage` is the real screen shared by the remaining staff roles
  * (leshoz officer, GIS specialist, accountant, inspector, prosecutor, central_admin,
@@ -25,6 +29,7 @@ export function DashboardPage() {
   if (me?.role.code === 'applicant') return <ApplicantDashboardPage />;
   if (me?.role.code === 'leadership') return <LeadershipDashboardPage />;
   if (me?.role.code === 'chief_forester') return <ChiefForesterDashboardPage />;
+  if (me?.role.code === 'beekeeping_registrar') return <BeekeepingRegistrarDashboardPage />;
   if (me?.is_superuser || me?.permissions.includes('dashboard.view')) return <StaffDashboardPage />;
 
   return <div data-testid="dashboard-page">{t('nav.dashboard')}</div>;

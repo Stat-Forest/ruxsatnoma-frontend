@@ -11,6 +11,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { MemoryRouter } from 'react-router';
 import { http, HttpResponse } from 'msw';
 import { setupServer } from 'msw/node';
 import { I18nContext } from '../../i18n/context';
@@ -50,15 +51,17 @@ beforeAll(() => server.listen({ onUnhandledRequest: 'error' }));
 afterEach(() => server.resetHandlers());
 afterAll(() => server.close());
 
-function renderPage() {
+function renderPage(url = '/beekeepers') {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
   const i18n = { lang: 'uz_latn' as const, backendLang: 'uz_latn' as const, t: (key: string) => key, setLanguage: async () => {} };
   return render(
-    <QueryClientProvider client={client}>
-      <I18nContext.Provider value={i18n}>
-        <BeekeepersPage />
-      </I18nContext.Provider>
-    </QueryClientProvider>,
+    <MemoryRouter initialEntries={[url]}>
+      <QueryClientProvider client={client}>
+        <I18nContext.Provider value={i18n}>
+          <BeekeepersPage />
+        </I18nContext.Provider>
+      </QueryClientProvider>
+    </MemoryRouter>,
   );
 }
 
@@ -369,4 +372,15 @@ test('the applications tab lists the beekeeping claims through the monitoring ro
   await user.selectOptions(screen.getByTestId('beekeeping-claims-filter-status'), 'REJECTED');
   await waitFor(() => expect(seen.at(-1)?.get('status')).toBe('REJECTED'));
   expect(seen[0].get('status')).toBeNull();
+});
+
+test('?tab=claims (the home screen\'s "all applications" link) opens straight on the claims tab', async () => {
+  server.use(
+    http.get('*/api/v1/applications/beekeeping', () => HttpResponse.json({ items: [], total: 0, page: 1, page_size: 20 })),
+  );
+  renderPage('/beekeepers?tab=claims');
+
+  expect(await screen.findByText('beekeepers.claims.empty')).toBeInTheDocument();
+  expect(screen.getByTestId('beekeepers-tab-claims')).toHaveAttribute('aria-selected', 'true');
+  expect(screen.queryByTestId('beekeepers-filter-q')).not.toBeInTheDocument();
 });

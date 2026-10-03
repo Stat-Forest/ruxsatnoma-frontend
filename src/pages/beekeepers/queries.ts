@@ -7,6 +7,8 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   createBeekeeper,
+  getBeekeepersSummary,
+  getBeekeepingClaimsSummary,
   listBeekeepingClaims,
   listBeekeepers,
   patchBeekeeper,
@@ -18,6 +20,9 @@ import {
 } from './api';
 
 const LIST_KEY = ['beekeepers', 'list'] as const;
+// The home screen's register counts: every register write changes them, so
+// every mutation below invalidates this key beside the list's own.
+const SUMMARY_KEY = ['beekeepers', 'summary'] as const;
 
 export function useBeekeepersList(params: BeekeeperListParams) {
   return useQuery({
@@ -33,6 +38,7 @@ export function useCreateBeekeeper() {
     mutationFn: (body: BeekeeperCreateIn) => createBeekeeper(body),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: LIST_KEY });
+      void queryClient.invalidateQueries({ queryKey: SUMMARY_KEY });
     },
   });
 }
@@ -43,6 +49,7 @@ export function usePatchBeekeeper(id: string) {
     mutationFn: (body: BeekeeperPatchIn) => patchBeekeeper(id, body),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: LIST_KEY });
+      void queryClient.invalidateQueries({ queryKey: SUMMARY_KEY });
     },
   });
 }
@@ -53,6 +60,7 @@ export function useRemoveBeekeeper(id: string) {
     mutationFn: (reason: string) => removeBeekeeper(id, reason),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: LIST_KEY });
+      void queryClient.invalidateQueries({ queryKey: SUMMARY_KEY });
     },
   });
 }
@@ -63,6 +71,19 @@ export function useBeekeepingClaims(params: BeekeepingClaimsParams) {
   return useQuery({
     queryKey: [...CLAIMS_KEY, params],
     queryFn: () => listBeekeepingClaims(params),
+    placeholderData: (previous) => previous,
+  });
+}
+
+export function useBeekeepersSummary() {
+  return useQuery({ queryKey: SUMMARY_KEY, queryFn: getBeekeepersSummary });
+}
+
+/** `year` undefined asks for the backend's current year. */
+export function useBeekeepingClaimsSummary(year: number | undefined) {
+  return useQuery({
+    queryKey: ['beekeepers', 'claims-summary', year ?? null],
+    queryFn: () => getBeekeepingClaimsSummary(year),
     placeholderData: (previous) => previous,
   });
 }

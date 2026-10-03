@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useSearchParams } from 'react-router';
 import { Plus } from 'lucide-react';
 import { useT } from '../../i18n/useT';
 import { ApiError } from '../../api/errors';
@@ -51,7 +52,12 @@ export function BeekeepersPage() {
   const [formMode, setFormMode] = useState<'create' | 'edit' | null>(null);
   const [editing, setEditing] = useState<BeekeeperOut | null>(null);
   const [removing, setRemoving] = useState<BeekeeperOut | null>(null);
-  const [tab, setTab] = useState<'register' | 'claims'>('register');
+  // `?tab=claims` is how the registrar's home screen links straight to the
+  // claims list; only the initial tab reads it, switching tabs stays local.
+  const [searchParams] = useSearchParams();
+  const [tab, setTab] = useState<'register' | 'claims'>(() =>
+    searchParams.get('tab') === 'claims' ? 'claims' : 'register',
+  );
 
   const list = useBeekeepersList({ q: q || undefined, status: status || undefined, page, page_size: PAGE_SIZE });
 

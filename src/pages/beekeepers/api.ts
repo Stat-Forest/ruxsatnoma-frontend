@@ -21,6 +21,8 @@ export type Page_BeekeeperOut_ = components['schemas']['Page_BeekeeperOut_'];
 export type BenefitClaimMonitorOut = components['schemas']['BenefitClaimMonitorOut'];
 export type Page_BenefitClaimMonitorOut_ = components['schemas']['Page_BenefitClaimMonitorOut_'];
 export type BeekeepingClaimStatus = NonNullable<BenefitClaimMonitorOut['status']>;
+export type BeekeepersSummaryOut = components['schemas']['BeekeepersSummaryOut'];
+export type BeekeepingClaimsSummaryOut = components['schemas']['BeekeepingClaimsSummaryOut'];
 
 export interface BeekeeperListParams {
   q?: string;
@@ -109,6 +111,31 @@ export interface BeekeepingClaimsParams {
 export async function listBeekeepingClaims(params: BeekeepingClaimsParams): Promise<Page_BenefitClaimMonitorOut_> {
   const { data, error } = await api.GET('/api/v1/applications/beekeeping', {
     params: { query: { status: params.status, page: params.page, page_size: params.page_size } },
+  });
+  if (error) throw apiError(error);
+  return data;
+}
+
+/**
+ * `GET /beekeepers/summary` — the register's counts for the registrar's home
+ * screen, as of the backend's own business day (Tashkent), never the
+ * browser's clock.
+ */
+export async function getBeekeepersSummary(): Promise<BeekeepersSummaryOut> {
+  const { data, error } = await api.GET('/api/v1/beekeepers/summary');
+  if (error) throw apiError(error);
+  return data;
+}
+
+/**
+ * `GET /applications/beekeeping/summary` — the claims `listBeekeepingClaims`
+ * lists, counted per line for one calendar year of filing. `year` omitted
+ * means the backend's current year; the answer names the year it counted and
+ * every year the switcher may offer.
+ */
+export async function getBeekeepingClaimsSummary(year?: number): Promise<BeekeepingClaimsSummaryOut> {
+  const { data, error } = await api.GET('/api/v1/applications/beekeeping/summary', {
+    params: { query: { year } },
   });
   if (error) throw apiError(error);
   return data;
